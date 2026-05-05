@@ -1,0 +1,27 @@
+---
+description: React frontend standards with Telegram UI kit usage
+alwaysApply: true
+---
+
+# Frontend Standards (React + Telegram UI)
+
+## Stack and Components
+- Build UI using React patterns already used in the project.
+- Actively use `@telegram-apps/telegram-ui` components as the default UI layer.
+- Prefer extending/composing ui-kit components over creating custom primitives from scratch.
+- Keep presentation components focused on one UI responsibility.
+
+## State and UX
+- Keep state minimal, explicit, and local by default.
+- Handle loading, empty, and error states for user-facing screens.
+- Avoid hidden side effects inside render logic and component lifecycle flows.
+
+## Quality
+- Reuse existing project patterns for folder structure, naming, and component APIs.
+- Add or update frontend tests for meaningful behavior changes where coverage exists.
+
+## Delivery Artifacts (Mandatory)
+- Follow `.cursor/rules/feature-delivery-workflow.mdc` for every frontend feature task.
+- Keep `.cursor/active/{feature-slug}/plan.md`, `progress.md`, and `result.md` updated.
+- Publish final outcome in `docs/features/{feature-slug}.md`.
+- Append every meaningful frontend action to `.cursor/memory/logs/action-log.md` with changed file links.

@@ -1,0 +1,48 @@
+networks:
+  filmony-network:
+    driver: bridge
+
+volumes:
+  filmony-pgdata:
+
+x-app-service: &app-service
+  build:
+    context: backend
+    dockerfile: Dockerfile
+    target: dev
+  restart: unless-stopped
+  env_file:
+    - vars/.env.development
+  working_dir: /opt/app
+  volumes:
+    - ./backend/src:/opt/app/src
+    - ./backend/pyproject.toml:/opt/app/pyproject.toml
+    - ./backend/uv.lock:/opt/app/uv.lock
+    - ./backend/alembic.ini:/opt/app/alembic.ini
+  networks:
+    - filmony-network
+
+services:
+  filmony-postgres:
+    image: postgres:18-alpine
+    container_name: filmony-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: filmony
+      POSTGRES_PASSWORD: filmony
+      POSTGRES_DB: filmony
+    ports:
+      - "55432:5432"
+    volumes:
+      - filmony-pgdata:/var/lib/postgresql/data
+    networks:
+      - filmony-network
+
+  filmony-backend:
+    container_name: filmony-backend
+    <<: *app-service
+    command: python src/main.py
+    ports:
+      - "6749:8000"
+    depends_on:
+      - filmony-postgres

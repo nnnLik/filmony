@@ -1,0 +1,42 @@
+---
+description: Mandatory feature lifecycle with planning, result docs, and action memory
+alwaysApply: true
+---
+
+# Feature Delivery Workflow
+
+## Mandatory Folder Structure
+- Feature request source: `.cursor/features/{feature-slug}/feature.md`.
+- Planning workspace: `.cursor/active/{feature-slug}/`.
+- Final project docs: `docs/features/{feature-slug}.md`.
+- Persistent memory log: `.cursor/memory/logs/action-log.md`.
+- Optional feature memory: `.cursor/memory/features/{feature-slug}.md`.
+
+## Docker-first execution
+- Считайте хостовую машину без Docker **не окружением для бэкенда**: pytest, ruff, миграции и одноразовые скрипты по возможности запускайте **внутри** сервиса `filmony-backend` (`docker compose -f compose.yml …` или цели в корневом `Makefile`).
+- Примеры: `make start`, `make backend-test`, `make backend-test-one target=src/tests/test_routes.py::test_root` — см. также `.cursor/tech.md`.
+
+## Required Lifecycle For Every Feature
+1. Create/read `.cursor/features/{feature-slug}/feature.md` with clear scope and acceptance criteria.
+2. Before coding, create `.cursor/active/{feature-slug}/plan.md` with a detailed, step-by-step implementation plan.
+3. During execution, update `.cursor/active/{feature-slug}/progress.md` after every meaningful action.
+3a. **Backend automated tests:** when the feature touches `backend/`, before the feature is considered done, add or extend `backend/src/tests/` with `pytest` (including `pytest-asyncio` for async routes, clients, and services) so **all new and changed behavior** in scope has coverage: happy paths, validation errors, auth/authorization where applicable, and regressions for fixed bugs. No merge-ready feature may leave untested API contracts or service entrypoints introduced by that work. Run the suite **inside Docker** (`make backend-test` or `make backend-test-one target=…`; see `.cursor/tech.md`).
+4. After implementation, create `.cursor/active/{feature-slug}/result.md` with:
+   - what was implemented,
+   - changed files,
+   - verification steps and outcomes,
+   - known limitations and next steps.
+5. Publish final feature documentation to `docs/features/{feature-slug}.md`.
+6. Append a concise action entry to `.cursor/memory/logs/action-log.md` for every meaningful action.
+
+## Action Log Requirements
+- Every entry must include timestamp, feature slug, action type, summary, and file links.
+- File links must use repository paths (for example: `backend/app/services/create_review.py`).
+- If an action modifies behavior, include verification evidence (test/lint command or manual check).
+- Never skip logging for planning, implementation, refactor, test, or docs updates.
+
+## Completion Requirements
+- A feature is considered complete only when `plan.md`, `progress.md`, `result.md`, and `docs/features/{feature-slug}.md` exist and are updated.
+- For any backend work, completion also requires **pytest coverage for the full feature surface** (every new or modified endpoint, service public API, and critical branch) documented in `result.md` under verification, with test file paths listed. Evidence should reference Docker-backed commands (for example `make backend-test`) unless a task explicitly documents a different runner.
+- If work is partial, explicitly mark status as `in_progress` in `progress.md` and `result.md`.
+- Never finish a task without leaving updated artifacts and memory records.

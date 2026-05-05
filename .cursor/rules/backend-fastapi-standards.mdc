@@ -1,0 +1,30 @@
+---
+description: FastAPI backend service and architecture standards
+alwaysApply: true
+---
+
+# Backend Standards (FastAPI)
+
+## Service Architecture
+- Use service classes for business logic.
+- Service class names must include an action verb (for example: `CreateReviewService`, `SyncProfileService`).
+- Each service must solve exactly one concrete task.
+- Every service must expose exactly one public method as its entrypoint.
+- Keep API layer thin: validate/parse in routes, execute business logic in services.
+
+## Data Modeling
+- Prefer `dataclass` for internal data transfer objects used by service logic.
+- Keep dataclasses explicit and typed; avoid unstructured dictionaries for core flows.
+
+## Quality and Safety
+- Handle errors explicitly and preserve context in logs/exceptions.
+- Preserve backward compatibility unless a task explicitly allows breaking changes.
+- Run relevant tests/lint for touched backend files before completion.
+- **Tests:** use `pytest` with `pytest-asyncio` for async code; prefer `httpx.AsyncClient` with `ASGITransport` against the FastAPI app for API tests. After each feature, extend `backend/src/tests/` so **everything** delivered in that feature (routes, services, important edge cases) is covered, not only the happy path.
+- **Execution environment:** run pytest and ruff **inside** the `filmony-backend` container (root `Makefile` or `docker compose -f compose.yml exec …`); see `.cursor/tech.md` for concrete invocations.
+
+## Delivery Artifacts (Mandatory)
+- Follow `.cursor/rules/feature-delivery-workflow.mdc` for every backend feature task.
+- Keep `.cursor/active/{feature-slug}/plan.md`, `progress.md`, and `result.md` updated.
+- Publish final outcome in `docs/features/{feature-slug}.md`.
+- Append every meaningful backend action to `.cursor/memory/logs/action-log.md` with changed file links.
