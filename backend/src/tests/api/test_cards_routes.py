@@ -307,7 +307,7 @@ async def test_get_card_by_id_accessible_for_another_user(async_client: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_create_and_list_comments_tree(async_client: AsyncClient) -> None:
+async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
     me = await _login(async_client, telegram_user_id=705)
     film = await _create_film(kinopoisk_id=100705, title='Дюна', year=2021)
     created = await async_client.post(
@@ -360,10 +360,23 @@ async def test_create_and_list_comments_tree(async_client: AsyncClient) -> None:
     listed_body = listed.json()
     assert listed_body['next_cursor'] is None
     items = listed_body['items']
-    assert len(items) == 1
-    assert items[0]['id'] == root_body['id']
-    assert items[0]['replies_count'] == 1
-    assert items[0]['total_descendants_count'] == 2
+    assert len(items) == 3
+
+    nested_item, reply_item, root_item = items
+    assert nested_item['id'] == nested_reply.json()['id']
+    assert nested_item['parent_comment_id'] == reply_body['id']
+    assert nested_item['replies_count'] == 0
+    assert nested_item['total_descendants_count'] == 0
+
+    assert reply_item['id'] == reply_body['id']
+    assert reply_item['parent_comment_id'] == root_body['id']
+    assert reply_item['replies_count'] == 1
+    assert reply_item['total_descendants_count'] == 1
+
+    assert root_item['id'] == root_body['id']
+    assert root_item['parent_comment_id'] is None
+    assert root_item['replies_count'] == 1
+    assert root_item['total_descendants_count'] == 2
 
     replies = await async_client.get(f'/api/cards/{card_id}/comments/{root_body["id"]}/replies')
     assert replies.status_code == 200

@@ -172,6 +172,7 @@ async def list_card_comments(
             parent_comment_id=None,
             cursor=cursor,
             limit=min(limit, 50),
+            flat=True,
         )
     except ListCommentsMovieCardNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
@@ -275,7 +276,9 @@ async def create_card_comment(
     except ParentCommentNotFoundError:
         raise HTTPException(status_code=404, detail='parent comment not found') from None
     except ParentCommentMismatchError:
-        raise HTTPException(status_code=422, detail='parent comment belongs to another card') from None
+        raise HTTPException(
+            status_code=422, detail='parent comment belongs to another card'
+        ) from None
     except MovieCardCommentValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

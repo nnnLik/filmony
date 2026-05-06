@@ -12,18 +12,18 @@ from api.profile.schemas import (
     PublicProfileResponse,
     SubscriptionListResponse,
     UserMovieCardStatsResponse,
-    build_user_movie_card_stats_response,
     build_movie_card_page_response,
     build_public_profile_response,
     build_subscription_list_response,
+    build_user_movie_card_stats_response,
 )
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
-from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.get_user_movie_card_stats import GetUserMovieCardStatsService
+from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_user_movie_cards import ListUserMovieCardsService
 from services.subscriptions.create_user_subscription import (
     CreateUserSubscriptionService,

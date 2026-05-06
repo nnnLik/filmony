@@ -82,7 +82,7 @@ class GetUserMovieCardStatsService:
         ).all()
 
         total_movies = len(card_rows)
-        rating_counts = {score: 0 for score in range(1, 11)}
+        rating_counts = dict.fromkeys(range(1, 11), 0)
         rating_sum = 0.0
         year_counts: dict[int, int] = {}
         company_counts: dict[str, int] = {}
@@ -124,7 +124,9 @@ class GetUserMovieCardStatsService:
         ]
         mood_after_distribution = [
             ValueDistributionItem(value=value, count=count)
-            for value, count in sorted(mood_after_counts.items(), key=lambda item: (-item[1], item[0]))
+            for value, count in sorted(
+                mood_after_counts.items(), key=lambda item: (-item[1], item[0])
+            )
         ]
 
         tag_rows = (
@@ -137,10 +139,7 @@ class GetUserMovieCardStatsService:
                 .limit(10)
             )
         ).all()
-        popular_tags = [
-            TagDistributionItem(tag=tag, count=int(count))
-            for tag, count in tag_rows
-        ]
+        popular_tags = [TagDistributionItem(tag=tag, count=int(count)) for tag, count in tag_rows]
 
         sorted_by_top = sorted(movies, key=lambda item: (-item.rating, item.card_id))
         sorted_by_worst = sorted(movies, key=lambda item: (item.rating, item.card_id))

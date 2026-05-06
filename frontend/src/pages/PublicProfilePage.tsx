@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-argument */
 import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -22,18 +21,18 @@ function shownCount(value: number | undefined): string {
   return typeof value === 'number' ? String(value) : '0'
 }
 
-const loadMyProfile = getMyProfile as () => Promise<{ id: string }>
-const loadPublicProfileById = getPublicProfileById as (userId: string) => Promise<PublicProfile>
-const loadUserCards = getUserCards as (
+const loadMyProfile: () => Promise<{ id: string }> = getMyProfile
+const loadPublicProfileById: (userId: string) => Promise<PublicProfile> = getPublicProfileById
+const loadUserCards: (
   userId: string,
   params: { cursor?: string | null; limit?: number },
-) => Promise<MovieCardPage>
-const loadUserSubscriptions = getUserSubscriptions as (
+) => Promise<MovieCardPage> = getUserCards
+const loadUserSubscriptions: (
   userId: string,
   type: 'followers' | 'following' | 'both',
-) => Promise<{ items: Array<{ id: string }> }>
-const followUser = subscribeToUser as (userId: string) => Promise<void>
-const unfollowUser = unsubscribeFromUser as (userId: string) => Promise<void>
+) => Promise<{ items: Array<{ id: string }> }> = getUserSubscriptions
+const followUser: (userId: string) => Promise<void> = subscribeToUser
+const unfollowUser: (userId: string) => Promise<void> = unsubscribeFromUser
 
 export function PublicProfilePage() {
   const { userId } = useParams<{ userId?: string }>()

@@ -5,8 +5,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from models.user import User
-from services.profile.get_user_profile_counts import UserProfileCounts
 from services.profile.get_user_movie_card_stats import UserMovieCardStats
+from services.profile.get_user_profile_counts import UserProfileCounts
 from services.profile.list_user_movie_cards import MovieCardListItem, MovieCardPage
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,

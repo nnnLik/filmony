@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import Select, desc, func, select
-from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
@@ -60,6 +60,7 @@ class ListMovieCardCommentsService:
         parent_comment_id: int | None,
         cursor: int | None,
         limit: int,
+        flat: bool = False,
     ) -> MovieCardCommentPage:
         card_exists = (
             await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
@@ -70,7 +71,9 @@ class ListMovieCardCommentsService:
         if parent_comment_id is not None:
             parent_card_id = (
                 await self._session.execute(
-                    select(MovieCardComment.movie_card_id).where(MovieCardComment.id == parent_comment_id)
+                    select(MovieCardComment.movie_card_id).where(
+                        MovieCardComment.id == parent_comment_id
+                    )
                 )
             ).scalar_one_or_none()
             if parent_card_id is None or parent_card_id != card_id:
@@ -83,16 +86,14 @@ class ListMovieCardCommentsService:
             .order_by(desc(MovieCardComment.id))
             .limit(limit + 1)
         )
-        if parent_comment_id is None:
+        if not flat and parent_comment_id is None:
             query = query.where(MovieCardComment.parent_comment_id.is_(None))
-        else:
+        elif parent_comment_id is not None:
             query = query.where(MovieCardComment.parent_comment_id == parent_comment_id)
         if cursor is not None:
             query = query.where(MovieCardComment.id < cursor)
 
-        rows = (
-            await self._session.execute(query)
-        ).all()
+        rows = (await self._session.execute(query)).all()
         has_more = len(rows) > limit
         visible_rows = rows[:limit]
         comment_ids = [comment.id for comment, _user in visible_rows]
