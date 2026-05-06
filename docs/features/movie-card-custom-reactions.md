@@ -85,7 +85,7 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
 - После миграций: `fixtures/reaction_type.sql` или ручные `INSERT`; скрипт: `./scripts/load-fixtures.sh reaction_type.sql` / полная загрузка.
 ## Frontend
 - Загрузка каталога: `GET /api/reactions/catalog` через `reactionCatalogCache.ts` (структура `recent` + `tabs`).
-- Компонент `ReactionStrip`: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка открытия пикера — **`IconButton` + `Smile` (lucide)**; пикер с блоком **Недавние**, боковой навигацией **«Коллекции»** и сеткой по категориям. Вёрстка и соглашения: **`docs/frontend/ui-conventions.md`**.
+- Компонент **`ReactionStrip`**: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка открытия пикера — **`IconButton` + `Smile` (lucide)**; пикер с блоком **Недавние**, боковой навигацией **«Коллекции»** и сеткой по категориям. Вёрстка и соглашения: **`docs/frontend/ui-conventions.md`**. Код: публичный импорт [`frontend/src/components/reactions/ReactionStrip.tsx`](/frontend/src/components/reactions/ReactionStrip.tsx), модули в [`frontend/src/components/reactions/reactionStrip/`](/frontend/src/components/reactions/reactionStrip/).
 - Точки встраивания: `FeedCard`, `MovieCardDetailPage`.
 
 ## Tests

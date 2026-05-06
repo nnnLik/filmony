@@ -21,7 +21,7 @@
 ## Frontend
 
 - **[`frontend/src/pages/FeedPage.tsx`](../../frontend/src/pages/FeedPage.tsx):** загрузка первой страницы, обработка пустых/ошибочных состояний, подгрузка по `next_cursor`, список карточек.
-- **[`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx):** постер, название и год, оценка автора с подписью `card_author`, системные атрибуты досуга как компактные чипы (не простой текстовый список), пользовательские теги ограничены двумя видимыми и индексом `+N`, превью комментариев, текст «Комментариев: …», кнопка «Комментировать» раскрывает поле отправки через существующий `createMovieCardComment`, переход «Все комментарии» на `/cards/:id`. После успешной отправки только соответствующая карточка в состоянии обновляется.
+- **[`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx):** постер, название и год, оценка автора с подписью `card_author`, системные атрибуты досуга как компактные чипы (не простой текстовый список), пользовательские теги ограничены двумя видимыми и индексом `+N`, превью комментариев, текст «Комментариев: …», кнопка «Комментировать» раскрывает поле отправки через существующий `createMovieCardComment`, переход «Все комментарии» на `/cards/:id`. После успешной отправки только соответствующая карточка в состоянии обновляется. Вспомогательно: [`feedCardUtils.ts`](../../frontend/src/components/feed/feedCardUtils.ts), [`FeedCardIcons.tsx`](../../frontend/src/components/feed/FeedCardIcons.tsx).
 - **[`frontend/src/components/feed/FeedCardSkeleton.tsx`](../../frontend/src/components/feed/FeedCardSkeleton.tsx):** состояние загрузки одиночной карточки.
 
 ## Success Criteria (соответствие)

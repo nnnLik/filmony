@@ -377,7 +377,7 @@ export function MovieCardDetailPage() {
 
         {!invalidCardId && !loading && error == null && card != null ? (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
+            <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) [contain:paint]">
               <div className="aspect-video w-full">
                 {card.film_poster_url ? (
                   <img src={card.film_poster_url} alt={card.film_title} className="h-full w-full object-cover" />
@@ -385,28 +385,25 @@ export function MovieCardDetailPage() {
                   <div className="flex h-full items-center justify-center text-sm text-(--tgui--hint_color)">Нет постера</div>
                 )}
               </div>
-              <div className="px-4 py-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <Title level="2" weight="2">
-                      {card.film_title}
-                    </Title>
-                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+              <div className="px-4 pb-3 pt-3">
+                <Title level="2" weight="2">
+                  {card.film_title}
+                </Title>
+                <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                {card.user_id != null ? (
+                  <div className="mt-2.5 min-w-0">
+                    <ReactionStrip
+                      compact
+                      compactTight
+                      targetKind="movie_card"
+                      targetId={card.id}
+                      summary={card.reactions}
+                      onSummaryChange={(next: ReactionSummary) =>
+                        setCard((prev) => (prev ? { ...prev, reactions: next } : prev))
+                      }
+                    />
                   </div>
-                  {card.user_id != null ? (
-                    <div className="max-w-[min(100%,13rem)] min-w-0 shrink-0 self-center pt-0.5">
-                      <ReactionStrip
-                        compact
-                        targetKind="movie_card"
-                        targetId={card.id}
-                        summary={card.reactions}
-                        onSummaryChange={(next: ReactionSummary) =>
-                          setCard((prev) => (prev ? { ...prev, reactions: next } : prev))
-                        }
-                      />
-                    </div>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             </div>
 

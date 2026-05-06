@@ -4,113 +4,21 @@ import { Link } from 'react-router-dom'
 
 import { createMovieCardComment } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
+import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
 import { ReactionStrip } from '../reactions/ReactionStrip'
-
-const COMPANY_SHORT: Record<CardCompany, string> = {
-  alone: 'Один',
-  partner: 'Пара',
-  friends: 'Друзья',
-  family: 'Семья',
-}
-
-const MOOD_BEFORE_SHORT: Record<CardMoodBefore, string> = {
-  relax: 'Чилл',
-  laugh: 'Юмор',
-  sad: 'Грусть',
-  thrill: 'Трилл',
-}
-
-const MOOD_AFTER_SHORT: Record<CardMoodAfter, string> = {
-  laughed: 'Ржал',
-  cried: 'Тэш',
-  enjoyed: 'Топ',
-  tense: 'Выжат',
-  wasted_time: 'Зря',
-}
-
-function ratingPalette(value: number): { ring: string; glow: string; text: string; track: string } {
-  if (value <= 3) {
-    return { ring: '#ef4444', glow: 'rgba(239,68,68,0.35)', text: '#fca5a5', track: 'rgba(239,68,68,0.15)' }
-  }
-  if (value <= 5) {
-    return { ring: '#f59e0b', glow: 'rgba(245,158,11,0.32)', text: '#fcd34d', track: 'rgba(245,158,11,0.14)' }
-  }
-  if (value <= 7) {
-    return { ring: '#84cc16', glow: 'rgba(132,204,22,0.3)', text: '#bef264', track: 'rgba(132,204,22,0.12)' }
-  }
-  return { ring: '#22c55e', glow: 'rgba(34,197,94,0.32)', text: '#86efac', track: 'rgba(34,197,94,0.12)' }
-}
-
-function formatRating(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
-
-function authorLabel(card: FeedMovieCard): string {
-  const a = card.card_author
-  if (a.display_name && a.display_name.trim() !== '') {
-    return a.display_name
-  }
-  if (a.username && a.username.trim() !== '') {
-    return `@${a.username}`
-  }
-  const full = [a.first_name, a.last_name].filter(Boolean).join(' ').trim()
-  return full === '' ? 'Автор' : full
-}
-
-function formatCommentTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function commentAuthorDisplay(comment: MovieCardComment): string {
-  const a = comment.author
-  if (a.display_name && a.display_name.trim() !== '') {
-    return a.display_name
-  }
-  if (a.username && a.username.trim() !== '') {
-    return `@${a.username}`
-  }
-  const full = [a.first_name, a.last_name].filter(Boolean).join(' ').trim()
-  return full === '' ? 'Пользователь' : full
-}
-
-function snippetPreview(text: string): string {
-  const compact = text.replace(/\s+/g, ' ').trim()
-  if (compact.length <= 72) return compact
-  return `${compact.slice(0, 69)}...`
-}
-
-/** Доля окружности (0–1) для шкалы 1–10 */
-function ratingDashOffset(value: number): number {
-  const clamped = Math.min(10, Math.max(1, value))
-  const p = (clamped - 1) / 9
-  return 219.99 * (1 - p)
-}
-
-function IconSend({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden>
-      <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function IconChevronDown({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden>
-      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
+import { IconChevronDown, IconSend } from './FeedCardIcons'
+import {
+  authorLabel,
+  commentAuthorDisplay,
+  COMPANY_SHORT,
+  formatCommentTime,
+  formatRating,
+  MOOD_AFTER_SHORT,
+  MOOD_BEFORE_SHORT,
+  ratingDashOffset,
+  ratingPalette,
+  snippetPreview,
+} from './feedCardUtils'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -165,7 +73,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
       onCommentsState(card.id, { comments_count: nextCount, comments_preview: merged })
       setCommentsPreviewOpen(true)
     },
-    [card.comments_count, card.comments_preview, card.id, onCommentsState]
+    [card.comments_count, card.comments_preview, card.id, onCommentsState],
   )
 
   const send = useCallback(async () => {

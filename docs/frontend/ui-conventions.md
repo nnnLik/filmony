@@ -17,7 +17,10 @@
 - **Центрирование:** у `IconButton` через Tailwind задаются `flex! items-center! justify-center! p-0! leading-none! relative z-0`, у `Smile` — `block shrink-0 relative z-1` и фиксированный `size-*`. Так иконка не уезжает в угол: внутри TGUI `Tappable` первым ребёнком идёт слой ripple, inline-SVG иначе выравнивается по baseline.
 - Размеры: **compact** (лента / узкая полоса) — кнопка 22×22, иконка 15px; обычный режим — 36×36 (`h-9 w-9`), иконка 18px.
 
-Файл: [`frontend/src/components/reactions/ReactionStrip.tsx`](../../frontend/src/components/reactions/ReactionStrip.tsx).
+Файлы (импорт из приложения — по-прежнему из **`components/reactions/ReactionStrip`**):
+
+- [`frontend/src/components/reactions/ReactionStrip.tsx`](../../frontend/src/components/reactions/ReactionStrip.tsx) — реэкспорт `ReactionStrip` / `ReactionStripProps`.
+- [`frontend/src/components/reactions/reactionStrip/`](../../frontend/src/components/reactions/reactionStrip/) — реализация: `ReactionStrip.tsx`, `ReactionStripPopover.tsx`, `CountPill.tsx`, `ReactionThumb.tsx`, `usePopoverPosition.ts`, `constants.ts`, `displayActorName.ts`.
 
 ## Лента: карточка (`FeedCard`)
 
@@ -25,7 +28,11 @@
 - Комментарии и поле ввода **скрыты по умолчанию**; раскрытие по стрелке; после успешной отправки комментария блок раскрывается программно.
 - Карточка уплотнена: `gap-2`, `p-2.5`, меньшие отступы у превью и поля ввода.
 
-Файл: [`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx).
+Файлы:
+
+- [`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx) — разметка и состояние карточки.
+- [`frontend/src/components/feed/feedCardUtils.ts`](../../frontend/src/components/feed/feedCardUtils.ts) — подписи enum’ов, палитра оценки, форматирование.
+- [`frontend/src/components/feed/FeedCardIcons.tsx`](../../frontend/src/components/feed/FeedCardIcons.tsx) — локальные SVG-иконки (отправка, шеврон).
 
 ## Типы для Telegram UI
 

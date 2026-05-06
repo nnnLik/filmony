@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-07T233000Z-frontend-component-split-code.md`
 - `2026-05-07T220000Z-repo-structure-style-docs.md`
 - `2026-05-07T210500Z-movie-card-custom-reactions-code.md`
 - `2026-05-07T200500Z-feed-reaction-ui-docs.md`

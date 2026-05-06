@@ -1,0 +1,24 @@
+# 2026-05-07T23:30:00Z
+
+- Feature slug: `frontend-component-split`
+- Action type: refactor
+- Summary: Разнесение `ReactionStrip` по `reactionStrip/*` с реэкспортом из `ReactionStrip.tsx`; вынос утилит и иконок карточки ленты в `feedCardUtils.ts` / `FeedCardIcons.tsx`. Обновлены `docs/frontend/ui-conventions.md`, `docs/features/movie-card-custom-reactions.md`, `docs/features/feed-ui-card-design.md`, `docs/engineering/project-structure-and-style.md`.
+- Files:
+  - `frontend/src/components/reactions/ReactionStrip.tsx`
+  - `frontend/src/components/reactions/reactionStrip/constants.ts`
+  - `frontend/src/components/reactions/reactionStrip/displayActorName.ts`
+  - `frontend/src/components/reactions/reactionStrip/ReactionThumb.tsx`
+  - `frontend/src/components/reactions/reactionStrip/CountPill.tsx`
+  - `frontend/src/components/reactions/reactionStrip/usePopoverPosition.ts`
+  - `frontend/src/components/reactions/reactionStrip/ReactionStripPopover.tsx`
+  - `frontend/src/components/reactions/reactionStrip/ReactionStrip.tsx`
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/components/feed/feedCardUtils.ts`
+  - `frontend/src/components/feed/FeedCardIcons.tsx`
+  - `docs/frontend/ui-conventions.md`
+  - `docs/features/movie-card-custom-reactions.md`
+  - `docs/features/feed-ui-card-design.md`
+  - `docs/engineering/project-structure-and-style.md`
+  - `.cursor/memory/logs/2026-05-07T233000Z-frontend-component-split-code.md`
+  - `.cursor/memory/logs/action-log.md`
+- Verification: `cd frontend && npm run lint && npm run build` — OK.

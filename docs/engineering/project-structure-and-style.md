@@ -103,6 +103,8 @@
 
 Обязательно: [`docs/frontend/ui-conventions.md`](/docs/frontend/ui-conventions.md) и `.cursor/rules/frontend-react-telegram-ui-standards.mdc`.
 
+Крупные виджеты разбиты на подпапки рядом с публичным входом (импорты в коде не меняются): например `components/reactions/ReactionStrip.tsx` реэкспортирует из `reactionStrip/`; карточка ленты использует `feedCardUtils.ts` и `FeedCardIcons.tsx`.
+
 - ESLint: `consistent-type-imports`, `no-unused-vars` с префиксом `_` — [`frontend/eslint.config.js`](/frontend/eslint.config.js).
 
 ### 4.4. Проверки
