@@ -31,7 +31,7 @@ async def get_my_profile(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MyProfileResponse:
-    counts = await GetUserProfileCountsService().execute(user.id)
+    counts = await GetUserProfileCountsService(db).execute(user.id)
     return build_my_profile_response(user, counts)
 
 
@@ -47,7 +47,7 @@ async def patch_my_profile(
 ) -> MyProfileResponse:
     patch = body.model_dump(exclude_unset=True)
     if not patch:
-        counts = await GetUserProfileCountsService().execute(user.id)
+        counts = await GetUserProfileCountsService(db).execute(user.id)
         return build_my_profile_response(user, counts)
 
     try:
@@ -62,5 +62,5 @@ async def patch_my_profile(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
-    counts = await GetUserProfileCountsService().execute(updated.id)
+    counts = await GetUserProfileCountsService(db).execute(updated.id)
     return build_my_profile_response(updated, counts)

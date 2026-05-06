@@ -84,6 +84,14 @@ class ProfileSettings(BaseSettings):
     page_size_max: int = Field(50, alias='PROFILE_CARDS_PAGE_SIZE_MAX')
 
 
+class KinopoiskSettings(BaseSettings):
+    api_key: str = Field('demo-key', alias='KINOPOISK_API_KEY')
+    base_url: str = Field(
+        'https://kinopoiskapiunofficial.tech/api/v2.2', alias='KINOPOISK_API_BASE_URL'
+    )
+    timeout_seconds: float = Field(8.0, alias='KINOPOISK_API_TIMEOUT_SECONDS')
+
+
 @dataclass
 class Settings:
     app: AppSettings
@@ -91,6 +99,7 @@ class Settings:
     telegram: TelegramAuthSettings
     auth_jwt: AuthJwtSettings
     profile: ProfileSettings
+    kinopoisk: KinopoiskSettings
 
     @classmethod
     def build(cls) -> Self:
@@ -100,6 +109,7 @@ class Settings:
             telegram=TelegramAuthSettings(),
             auth_jwt=AuthJwtSettings(),
             profile=ProfileSettings(),
+            kinopoisk=KinopoiskSettings(),
         )
 
 

@@ -6,7 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from models.user import User
 from services.profile.get_user_profile_counts import UserProfileCounts
-from services.profile.list_user_movie_cards import MovieCardPage
+from services.profile.list_user_movie_cards import MovieCardListItem, MovieCardPage
+from services.subscriptions.list_user_subscriptions import (
+    SubscriptionListItem,
+)
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -49,11 +52,37 @@ class PublicProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class MovieCardPageResponse(BaseModel):
-    """Paginated movie cards; v1 returns an empty ``items`` list until feature 005."""
+class MovieCardItemResponse(BaseModel):
+    id: int
+    film_id: int
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
+    rating: float
+    company: str
+    mood_before: str
+    mood_after: str
+    custom_tags: list[str] = Field(default_factory=list)
 
-    items: list[dict[str, object]] = Field(default_factory=list)
+
+class MovieCardPageResponse(BaseModel):
+    items: list[MovieCardItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
+
+
+class SubscriptionListItemResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    photo_url: str | None
+    display_name: str | None
+    relation_type: str
+
+
+class SubscriptionListResponse(BaseModel):
+    items: list[SubscriptionListItemResponse] = Field(default_factory=list)
 
 
 def build_my_profile_response(user: User, counts: UserProfileCounts) -> MyProfileResponse:
@@ -89,4 +118,37 @@ def build_public_profile_response(user: User, counts: UserProfileCounts) -> Publ
 
 
 def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse:
-    return MovieCardPageResponse(items=[], next_cursor=page.next_cursor)
+    items = [
+        MovieCardItemResponse(
+            id=item.id,
+            film_id=item.film_id,
+            film_title=item.film_title,
+            film_year=item.film_year,
+            film_poster_url=item.film_poster_url,
+            rating=item.rating,
+            company=item.company,
+            mood_before=item.mood_before,
+            mood_after=item.mood_after,
+            custom_tags=item.custom_tags,
+        )
+        for item in page.items
+    ]
+    return MovieCardPageResponse(items=items, next_cursor=page.next_cursor)
+
+
+def build_subscription_list_response(items: list[SubscriptionListItem]) -> SubscriptionListResponse:
+    return SubscriptionListResponse(
+        items=[
+            SubscriptionListItemResponse(
+                id=item.id,
+                profile_slug=item.profile_slug,
+                username=item.username,
+                first_name=item.first_name,
+                last_name=item.last_name,
+                photo_url=item.photo_url,
+                display_name=item.display_name,
+                relation_type=item.relation_type.value,
+            )
+            for item in items
+        ]
+    )

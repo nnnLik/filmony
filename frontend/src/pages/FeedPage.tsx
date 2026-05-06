@@ -2,6 +2,7 @@ import { Button, Section } from '@telegram-apps/telegram-ui'
 import { isTMA, miniAppReady } from '@telegram-apps/sdk'
 import { useLaunchParams } from '@telegram-apps/sdk-react'
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
 function TelegramHint() {
   const lp = useLaunchParams()
@@ -40,9 +41,9 @@ export function FeedPage() {
               Filmony
             </h1>
           </div>
-          <Button mode="gray" disabled title="Скоро">
-            +
-          </Button>
+          <Link to="/cards/new" aria-label="Добавить фильм" className="no-underline">
+            <Button mode="gray">+</Button>
+          </Link>
         </div>
       </header>
 
@@ -53,9 +54,9 @@ export function FeedPage() {
               Пока нет карточек в ленте. Когда появится бэкенд ленты, здесь будут оценки друзей и редкие вкидки от
               похожих по вкусу.
             </p>
-            <Button stretched disabled>
-              Добавить фильм (скоро)
-            </Button>
+            <Link to="/cards/new" className="w-full no-underline">
+              <Button stretched>Добавить фильм</Button>
+            </Link>
           </div>
         </Section>
 

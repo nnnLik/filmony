@@ -209,9 +209,17 @@ export function PublicProfilePage() {
           ) : null}
           {cards != null && cards.items.length > 0 ? (
             <List>
-              {cards.items.map((_, i) => (
-                <Cell key={i} subtitle="Скоро">
-                  Карточка
+              {cards.items.map((card) => (
+                <Cell
+                  key={card.id}
+                  subtitle={[
+                    card.film_year != null ? String(card.film_year) : null,
+                    `Оценка ${Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                >
+                  {card.film_title}
                 </Cell>
               ))}
             </List>
