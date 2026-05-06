@@ -10,7 +10,7 @@ RustFS и upsert строк в Postgres (через `make sync-reactions-rustfs 
   make sync-reactions-rustfs WITH_DB=1
 
 Без Makefile передайте **достигабельный с хоста** `DATABASE_URL` и флаг **`--sync-db`**.
-Строку вида **`postgresql+asyncpg://`** (как для SQLAlchemy) скрипт приведёт к виду для ``asyncpg.connect``.
+Скрипт нормализует строку: ``postgresql+asyncpg://…``, лишние слеши перед именем БД (``…:port//filmony``).
 
 Перед первым запуском: ``make start`` (RustFS на хост-порту **7900**, Postgres проброшен на **55432**).
 """
@@ -22,6 +22,7 @@ import asyncio
 import mimetypes
 import os
 import sys
+import urllib.parse
 from pathlib import Path
 
 
@@ -31,12 +32,27 @@ def label_from_filename(filename: str) -> str:
 
 
 def postgres_dsn_for_native_asyncpg(raw: str) -> str:
-    """SQLAlchemy/async URL uses ``postgresql+asyncpg://…``; libpq/asyncpg expects ``postgresql://``."""
+    """Привести URL к тому, как ``asyncpg.connect`` вытаскивает имя БД из path.
+
+    - ``postgresql+asyncpg://…`` (SQLAlchemy) → ``postgresql://…`` (asyncpg принимает только эти схемы).
+    - Схлопнуть ведущие слеши в path: ``…:55432//filmony`` иначе после одного ``[1:]``
+      остаётся ``/filmony`` и сервер ругается: *database "/filmony" does not exist*.
+    """
     u = raw.strip()
     for dialect in ('postgresql+asyncpg://', 'postgres+asyncpg://'):
         if u.startswith(dialect):
-            return 'postgresql://' + u[len(dialect) :]
-    return u
+            u = 'postgresql://' + u[len(dialect) :]
+            break
+    parsed = urllib.parse.urlparse(u)
+    if parsed.scheme not in {'postgresql', 'postgres'}:
+        return u
+    if not parsed.path or parsed.path == '/':
+        return u
+    db = parsed.path.lstrip('/')
+    new_path = f'/{db}' if db else ''
+    if new_path == parsed.path:
+        return u
+    return urllib.parse.urlunparse(parsed._replace(path=new_path))
 
 
 async def upsert_reaction_rows(
