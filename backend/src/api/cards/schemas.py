@@ -26,6 +26,19 @@ class CardResponse(BaseModel):
     custom_tags: list[str]
 
 
+class CardDetailResponse(BaseModel):
+    id: int
+    film_id: int
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
+    rating: float
+    company: CardCompany
+    mood_before: CardMoodBefore
+    mood_after: CardMoodAfter
+    custom_tags: list[str]
+
+
 class FilmResolveRequest(BaseModel):
     url: str = Field(..., min_length=1)
 

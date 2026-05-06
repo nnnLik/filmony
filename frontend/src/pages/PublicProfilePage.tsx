@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-argument */
-import { Button, Cell, List, Section } from '@telegram-apps/telegram-ui'
+import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -14,6 +14,7 @@ import {
 } from '../api/profileApi'
 import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 
 function shownCount(value: number | undefined): string {
@@ -297,25 +298,13 @@ export function PublicProfilePage() {
           ) : null}
           {cards != null && cards.items.length === 0 && !loadingMore ? (
             <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-              Пока нет карточек — позже здесь будет сетка постеров.
+              Пока нет карточек.
             </p>
           ) : null}
           {cards != null && cards.items.length > 0 ? (
-            <List>
-              {cards.items.map((card) => (
-                <Cell
-                  key={card.id}
-                  subtitle={[
-                    card.film_year != null ? String(card.film_year) : null,
-                    `Оценка ${Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                >
-                  {card.film_title}
-                </Cell>
-              ))}
-            </List>
+            <div className="px-3 pb-3">
+              <MoviePosterGrid items={cards.items} />
+            </div>
           ) : null}
           {canLoadMore ? (
             <div className="px-3 pb-3 pt-1">

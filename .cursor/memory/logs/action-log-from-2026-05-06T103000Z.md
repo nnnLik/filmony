@@ -126,3 +126,30 @@
 - Links:
   - `.cursor/active/movie-card-create-flow/progress.md`
   - `docs/features/movie-card-create-flow.md`
+
+## 2026-05-06T05:10:00Z
+- Feature slug: `movie-card-create-flow`
+- Action type: code | docs
+- Summary: Добавлен backend `GET /api/cards/{card_id}` и frontend деталка карточки с deep-link маршрутом; карточки в моем и публичном профиле переведены в единый грид одинаковых постеров с переходом по клику; на деталке добавлены real-data секции и статические mock-блоки по референсу.
+- Files:
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/services/cards/get_movie_card_details.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/components/profile/MoviePosterGrid.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `frontend/src/routes.tsx`
+  - `frontend/src/api/cardApi.ts`
+  - `.cursor/active/movie-card-create-flow/plan.md`
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `.cursor/active/movie-card-create-flow/result.md`
+  - `docs/features/movie-card-create-flow.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - `ReadLints` по измененным backend/frontend файлам — ошибок нет.
+  - Shell-команды на запуск тестов/сборки в этой сессии недоступны (пропускаются средой).
+- Links:
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `docs/features/movie-card-create-flow.md`

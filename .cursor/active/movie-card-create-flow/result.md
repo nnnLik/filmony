@@ -70,3 +70,25 @@
 
 ### Additional verification
 - `ReadLints` по `frontend/src/pages/CreateCardPage.tsx`, `frontend/src/pages/FeedPage.tsx` — ошибок нет.
+
+## Iteration update (poster grid and details page, 2026-05-06)
+- Добавлен `GET /api/cards/{card_id}` для получения одной карточки фильма с данными фильма и тегами.
+- В профилях (`мой` и `публичный`) карточки переведены в одинаковую сетку постеров фиксированного размера без текстовых подписей.
+- Добавлен маршрут и экран деталки карточки `/cards/:cardId` с поддержкой прямого открытия URL.
+- На деталке отрисованы реальные данные (постер, название, год, рейтинг, теги) и статические mock-блоки по референсному макету (оценки друзей, лучшая оценка, комментарии, действия).
+
+### Additional changed files
+- `backend/src/api/cards/routes.py`
+- `backend/src/api/cards/schemas.py`
+- `backend/src/services/cards/get_movie_card_details.py`
+- `backend/src/tests/api/test_cards_routes.py`
+- `frontend/src/components/profile/MoviePosterGrid.tsx`
+- `frontend/src/pages/ProfilePage.tsx`
+- `frontend/src/pages/PublicProfilePage.tsx`
+- `frontend/src/pages/MovieCardDetailPage.tsx`
+- `frontend/src/routes.tsx`
+- `frontend/src/api/cardApi.ts`
+
+### Additional verification
+- `ReadLints` по затронутым backend/frontend файлам — ошибок нет.
+- Автотесты через Docker и frontend команды (`npm run lint/build`) требуют ручного запуска: shell-команды в этой сессии пропускаются средой.

@@ -50,3 +50,21 @@
   - `.cursor/active/movie-card-create-flow/plan.md`
 - Verification:
   - `ReadLints` по `frontend/src/pages/CreateCardPage.tsx`, `frontend/src/pages/FeedPage.tsx` — ошибок нет.
+
+### 2026-05-06 05:10
+- Action type: code
+- Summary: Добавлен backend endpoint `GET /api/cards/{card_id}` и frontend flow деталки карточки с deep link; списки фильмов в моем и публичном профиле заменены на единую сетку постеров одинакового размера с переходом по клику.
+- Files:
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/services/cards/get_movie_card_details.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/components/profile/MoviePosterGrid.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `frontend/src/routes.tsx`
+  - `frontend/src/api/cardApi.ts`
+- Verification:
+  - `ReadLints` по измененным backend/frontend файлам — ошибок нет.
+  - Запуск shell-команд для тестов/сборки в этой сессии недоступен (команды пропускаются средой).

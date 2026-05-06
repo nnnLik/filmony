@@ -178,6 +178,110 @@ async def test_create_card_film_not_found(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_card_by_id_requires_auth(async_client: AsyncClient) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        from models.user import User
+
+        user = User(
+            telegram_user_id=777000,
+            profile_slug='anon-get-card-test',
+            username='anon_tester',
+            first_name='Anon',
+            last_name='Tester',
+            photo_url=None,
+            display_name='Anon Tester',
+            bio=None,
+            language_code='ru',
+        )
+        film = Film(
+            kinopoisk_id=100700,
+            title='Оппенгеймер',
+            year=2023,
+            poster_url='https://example.com/poster.jpg',
+        )
+        session.add(user)
+        session.add(film)
+        await session.flush()
+        card = MovieCard(
+            user_id=user.id,
+            film_id=film.id,
+            rating=9.0,
+            company='friends',
+            mood_before='thrill',
+            mood_after='tense',
+        )
+        session.add(card)
+        await session.commit()
+        await session.refresh(card)
+        card_id = card.id
+
+    response = await async_client.get(f'/api/cards/{card_id}')
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_card_by_id_success(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=701)
+    film = await _create_film(kinopoisk_id=100701, title='Оппенгеймер', year=2023)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'rating': 9.0,
+            'company': 'friends',
+            'mood_before': 'thrill',
+            'mood_after': 'tense',
+            'custom_tags': ['IMAX'],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    response = await async_client.get(f'/api/cards/{card_id}')
+    assert response.status_code == 200
+    body = response.json()
+    assert body['id'] == card_id
+    assert body['film_id'] == film.id
+    assert body['film_title'] == 'Оппенгеймер'
+    assert body['film_year'] == 2023
+    assert body['film_poster_url'] == 'https://example.com/poster.jpg'
+    assert body['rating'] == 9.0
+    assert body['custom_tags'] == ['IMAX']
+
+
+@pytest.mark.asyncio
+async def test_get_card_by_id_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=702)
+    response = await async_client.get('/api/cards/999999')
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_card_by_id_accessible_for_another_user(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=703)
+    film = await _create_film(kinopoisk_id=100703, title='Начало', year=2010)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'rating': 8.5,
+            'company': 'partner',
+            'mood_before': 'thrill',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['Нолан'],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    await _login(async_client, telegram_user_id=704)
+    response = await async_client.get(f'/api/cards/{card_id}')
+    assert response.status_code == 200
+    assert response.json()['film_title'] == 'Начало'
+
+
+@pytest.mark.asyncio
 async def test_resolve_film_and_get_by_id(
     async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -1,8 +1,9 @@
 import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from './layout/AppShell'
-import { CreateCardPage } from './pages/CreateCardPage'
+import { CreateCardPage } from './pages/CreateCardPage.tsx'
 import { FeedPage } from './pages/FeedPage'
+import { MovieCardDetailPage } from './pages/MovieCardDetailPage'
 import { ProfileEditPage } from './pages/ProfileEditPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
@@ -20,6 +21,7 @@ export function AppRoutes() {
       </Route>
       <Route path="/u/:userId" element={<PublicProfilePage />} />
       <Route path="/u/:userId/subscriptions" element={<SubscriptionsPage />} />
+      <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
     </Routes>
   )
 }

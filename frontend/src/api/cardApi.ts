@@ -29,3 +29,7 @@ export async function resolveFilmByKinopoiskUrl(url: string): Promise<Film> {
 export async function getFilmById(filmId: number): Promise<Film> {
   return apiJson<Film>(`/api/films/${filmId}`)
 }
+
+export async function getMovieCardById(cardId: number): Promise<MovieCard> {
+  return apiJson<MovieCard>(`/api/cards/${cardId}`)
+}

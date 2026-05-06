@@ -1,4 +1,4 @@
-import { Avatar, Button, Cell, List, Section, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, Section, Title } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -6,6 +6,7 @@ import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile, getUserCards } from '../api/profileApi'
 import type { MovieCardPage, MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 
@@ -256,25 +257,12 @@ export function ProfilePage() {
             {myCards != null && myCards.items.length === 0 ? (
               <div className="filmony-text-panel py-8 text-center">
                 <p className="text-sm text-(--tgui--hint_color)">Ещё нет оценённых фильмов</p>
-                <p className="mt-2 text-xs text-(--tgui--hint_color)">Карточки появятся после фичи каталога.</p>
               </div>
             ) : null}
             {myCards != null && myCards.items.length > 0 ? (
-              <List>
-                {myCards.items.map((card) => (
-                  <Cell
-                    key={card.id}
-                    subtitle={[
-                      card.film_year != null ? String(card.film_year) : null,
-                      `Оценка ${Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  >
-                    {card.film_title}
-                  </Cell>
-                ))}
-              </List>
+              <div className="px-1">
+                <MoviePosterGrid items={myCards.items} />
+              </div>
             ) : null}
             {canLoadMore ? (
               <div className="mt-4">

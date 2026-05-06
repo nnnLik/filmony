@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.cards.schemas import CardCreateRequest, CardResponse
+from api.cards.schemas import CardCreateRequest, CardDetailResponse, CardResponse
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.movie_card_tag import MovieCardTag
@@ -17,6 +17,7 @@ from services.cards.create_movie_card import (
     MovieCardAlreadyExistsError,
     MovieCardValidationError,
 )
+from services.cards.get_movie_card_details import GetMovieCardDetailsService, MovieCardNotFoundError
 
 router = APIRouter(prefix='/cards', tags=['cards'])
 
@@ -65,4 +66,28 @@ async def create_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=list(tags),
+    )
+
+
+@router.get('/{card_id}', response_model=CardDetailResponse, summary='Получить карточку фильма по id')
+async def get_card(
+    card_id: int,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CardDetailResponse:
+    try:
+        card = await GetMovieCardDetailsService(db).execute(card_id)
+    except MovieCardNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    return CardDetailResponse(
+        id=card.id,
+        film_id=card.film_id,
+        film_title=card.film_title,
+        film_year=card.film_year,
+        film_poster_url=card.film_poster_url,
+        rating=card.rating,
+        company=card.company,
+        mood_before=card.mood_before,
+        mood_after=card.mood_after,
+        custom_tags=card.custom_tags,
     )
