@@ -85,6 +85,14 @@ npm run dev
 
 Vite по умолчанию проксирует `/api` на бэкенд (настройка `VITE_API_ORIGIN` в `vars/` — см. `frontend/vite.config.ts`).
 
+## Telegram: бот, /start и создание пользователя
+
+- **Сообщение `/start` в чате с ботом** не вызывает ваш бэкенд, пока вы не подняли **обработчик обновлений Bot API** (webhook или polling) в коде — в Filmony этого пока нет.
+- **Строка в таблице `user`** создаётся только после **`POST /api/auth/telegram`** из открытого **Mini App** (подписанный `initData`, тот же токен, что у бота — `TG_APP_TOKEN`).
+- Что настроить: у бота кнопка/меню **Open Web App** на URL фронта (HTTPS в проде); фронт должен реально ходить на API (`/api/auth/telegram` виден в сети при открытии приложения).
+
+Подробнее: [`docs/features/telegram-user-base.md`](docs/features/telegram-user-base.md).
+
 ## Полезные ссылки
 
 - [Telegram Mini Apps — валидация initData](https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app)
