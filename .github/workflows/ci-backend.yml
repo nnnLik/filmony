@@ -1,0 +1,62 @@
+name: CI Backend
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv sync --frozen --group dev
+
+      - run: uv run ruff check --config pyproject.toml src/
+
+      - run: uv run ruff format --config pyproject.toml --check src/
+
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: filmony
+          POSTGRES_PASSWORD: filmony
+          POSTGRES_DB: filmony
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U filmony -d filmony"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql://filmony:filmony@localhost:5432/filmony
+      DATABASE_TEST_SCHEMA: filmony_test
+      TG_APP_TOKEN: ci-placeholder-token
+      KINOPOISK_API_KEY: ci-placeholder-key
+      KINOPOISK_API_BASE_URL: https://kinopoiskapiunofficial.tech/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv sync --frozen --group dev --group prod
+
+      - run: uv run pytest
