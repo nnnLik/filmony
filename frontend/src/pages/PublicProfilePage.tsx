@@ -1,5 +1,5 @@
 import { Button, Cell, List, Section } from '@telegram-apps/telegram-ui'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -35,18 +35,23 @@ export function PublicProfilePage() {
   const [cards, setCards] = useState<MovieCardPage | null>(null)
   const [cardsError, setCardsError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const prevRouteId = useRef<string | null>(null)
 
   useEffect(() => {
     if (auth.kind !== 'ready' || decodedId === '') {
       return
     }
+    if (prevRouteId.current != null && prevRouteId.current !== decodedId) {
+      setProfile(null)
+      setCards(null)
+    }
+    prevRouteId.current = decodedId
     let alive = true
     void (async () => {
       await Promise.resolve()
       if (!alive) {
         return
       }
-      setProfile(null)
       setError(null)
       setCards(null)
       setCardsError(null)
@@ -114,7 +119,7 @@ export function PublicProfilePage() {
   if (auth.kind === 'loading') {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p>Вход…</p>
+        <p className="filmony-text-panel inline-block">Вход…</p>
       </div>
     )
   }
@@ -122,7 +127,7 @@ export function PublicProfilePage() {
   if (auth.kind === 'error') {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <p className="text-sm text-red-500">{auth.message}</p>
+        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
         <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
           На главную
         </Link>
@@ -133,7 +138,9 @@ export function PublicProfilePage() {
   if (auth.kind === 'skipped') {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <p className="text-sm text-(--tgui--hint_color)">Войдите через Telegram Mini App, чтобы открыть профиль.</p>
+        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
+          Войдите через Telegram Mini App, чтобы открыть профиль.
+        </p>
         <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
           На главную
         </Link>
@@ -144,7 +151,7 @@ export function PublicProfilePage() {
   if (decodedId === '') {
     return (
       <div className="px-4 py-10">
-        <p className="text-sm text-(--tgui--hint_color)">Не указан пользователь.</p>
+        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">Не указан пользователь.</p>
       </div>
     )
   }
@@ -152,7 +159,7 @@ export function PublicProfilePage() {
   if (error != null) {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{error}</p>
         <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/profile">
           К профилю
         </Link>
@@ -163,14 +170,14 @@ export function PublicProfilePage() {
   if (profile == null) {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p>Загрузка…</p>
+        <p className="filmony-text-panel inline-block">Загрузка…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-dvh pb-6">
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-(--tgui--bg_color)/95 px-2 py-2 backdrop-blur-md">
+    <div className="min-h-dvh bg-(--tgui--bg_color) pb-6 text-(--tgui--text_color)">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] px-2 py-2 backdrop-blur-md">
         <Link
           className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color) no-underline"
           to="/profile"
@@ -187,12 +194,16 @@ export function PublicProfilePage() {
           subtitle={`Карточек: ${profile.cards_count} · Друзей: ${profile.friends_count}`}
         />
 
-        {profile.bio ? <p className="mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p> : null}
+        {profile.bio ? (
+          <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
+        ) : null}
 
         <Section header="Фильмы">
-          {cardsError != null ? <p className="px-4 py-2 text-sm text-red-500">{cardsError}</p> : null}
+          {cardsError != null ? (
+            <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">{cardsError}</p>
+          ) : null}
           {cards != null && cards.items.length === 0 && !loadingMore ? (
-            <p className="px-4 py-6 text-center text-sm text-(--tgui--hint_color)">
+            <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
               Пока нет карточек — позже здесь будет сетка постеров.
             </p>
           ) : null}

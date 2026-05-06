@@ -17,14 +17,14 @@ function TelegramHint() {
 
   if (!isTMA()) {
     return (
-      <p className="text-center text-sm text-(--tgui--hint_color)">
+      <p className="filmony-text-panel text-center text-sm text-(--tgui--hint_color)">
         Откройте мини-приложение в Telegram — здесь появится ваша лента.
       </p>
     )
   }
 
   return (
-    <p className="text-center text-sm text-(--tgui--hint_color)">
+    <p className="filmony-text-panel text-center text-sm text-(--tgui--hint_color)">
       Вы вошли как <span className="font-medium text-(--tgui--text_color)">{line}</span>
     </p>
   )
@@ -33,10 +33,12 @@ function TelegramHint() {
 export function FeedPage() {
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-(--tgui--bg_color)/95 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Filmony</h1>
+            <h1 className="bg-gradient-to-r from-[var(--filmony-mint,#5eead4)] via-[var(--filmony-text,#e8f0f7)] to-[var(--filmony-amber,#e8b86d)] bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+              Filmony
+            </h1>
           </div>
           <Button mode="gray" disabled title="Скоро">
             +
@@ -47,7 +49,7 @@ export function FeedPage() {
       <main className="px-4 py-6">
         <Section header="Лента">
           <div className="flex flex-col items-center gap-4 px-3 py-10">
-            <p className="text-center text-sm leading-relaxed text-(--tgui--hint_color)">
+            <p className="filmony-text-panel text-center text-sm leading-relaxed text-(--tgui--hint_color)">
               Пока нет карточек в ленте. Когда появится бэкенд ленты, здесь будут оценки друзей и редкие вкидки от
               похожих по вкусу.
             </p>

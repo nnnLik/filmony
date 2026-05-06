@@ -3,6 +3,8 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { authTelegram } from '../api/profileApi'
 import { AuthStateContext, type AuthStatus } from './auth-context'
+import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { readAuthSessionFlag, writeAuthSessionFlag } from '../lib/filmonySession'
 
 function sdkInitDataRaw(): string {
   try {
@@ -20,9 +22,15 @@ function resolveInitDataRaw(): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthStatus>(() =>
-    isTMA() ? { kind: 'loading' } : { kind: 'skipped' },
-  )
+  const [state, setState] = useState<AuthStatus>(() => {
+    if (!isTMA()) {
+      return { kind: 'skipped' }
+    }
+    if (readAuthSessionFlag()) {
+      return { kind: 'ready' }
+    }
+    return { kind: 'loading' }
+  })
 
   useEffect(() => {
     if (!isTMA()) {
@@ -43,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const raw = resolveInitDataRaw()
       if (!raw) {
         if (alive) {
+          writeAuthSessionFlag(false)
+          clearMyProfileBundleCache()
           setState({
             kind: 'error',
             message: 'Пустой initData — откройте приложение из Telegram.',
@@ -58,17 +68,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (!res.ok) {
           const t = await res.text()
+          writeAuthSessionFlag(false)
+          clearMyProfileBundleCache()
           setState({
             kind: 'error',
             message: t.trim() || `Ошибка входа (HTTP ${res.status})`,
           })
           return
         }
+        writeAuthSessionFlag(true)
         setState({ kind: 'ready' })
       } catch (e) {
         if (!alive) {
           return
         }
+        writeAuthSessionFlag(false)
+        clearMyProfileBundleCache()
         setState({
           kind: 'error',
           message: e instanceof Error ? e.message : 'Сеть недоступна',

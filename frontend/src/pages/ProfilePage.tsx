@@ -1,12 +1,14 @@
-import { Avatar, Button, Cell, Input, List, Section, Title } from '@telegram-apps/telegram-ui'
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react'
+import { Avatar, Button, Cell, List, Section, Title } from '@telegram-apps/telegram-ui'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { getMyProfile, getUserCards, patchMyProfile } from '../api/profileApi'
+import { getMyProfile, getUserCards } from '../api/profileApi'
 import type { MovieCardPage, MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
+import { publicProfilePageUrl } from '../lib/publicProfileUrl'
 
 type ProfileMainTab = 'movies' | 'stats'
 
@@ -27,18 +29,23 @@ function toPublicShape(p: MyProfile): PublicProfile {
 
 export function ProfilePage() {
   const auth = useAuthStatus()
+  const initialBundle = useMemo(() => readMyProfileBundleCache(), [])
+
   const [mainTab, setMainTab] = useState<ProfileMainTab>('movies')
-  const [profile, setProfile] = useState<MyProfile | null>(null)
-  const [myCards, setMyCards] = useState<MovieCardPage | null>(null)
+  const [profile, setProfile] = useState<MyProfile | null>(() => initialBundle?.profile ?? null)
+  const [myCards, setMyCards] = useState<MovieCardPage | null>(() => initialBundle?.cards ?? null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [cardsError, setCardsError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [copyToast, setCopyToast] = useState<string | null>(null)
 
-  const [displayName, setDisplayName] = useState('')
-  const [bio, setBio] = useState('')
-  const [slug, setSlug] = useState('')
+  useEffect(() => {
+    if (copyToast == null) {
+      return
+    }
+    const t = window.setTimeout(() => setCopyToast(null), 2200)
+    return () => window.clearTimeout(t)
+  }, [copyToast])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -52,14 +59,12 @@ export function ProfilePage() {
           return
         }
         setProfile(p)
-        setDisplayName(p.display_name ?? '')
-        setBio(p.bio ?? '')
-        setSlug(p.profile_slug)
         const cards = await getUserCards(p.id, { limit: 20 })
         if (!alive) {
           return
         }
         setMyCards(cards)
+        writeMyProfileBundleCache(p, cards)
         setLoadError(null)
         setCardsError(null)
       } catch (e) {
@@ -88,12 +93,15 @@ export function ProfilePage() {
       const page = await getUserCards(profile.id, { cursor: myCards.next_cursor, limit: 20 })
       setMyCards((prev) => {
         if (prev == null) {
+          writeMyProfileBundleCache(profile, page)
           return page
         }
-        return {
+        const next: MovieCardPage = {
           items: [...prev.items, ...page.items],
           next_cursor: page.next_cursor,
         }
+        writeMyProfileBundleCache(profile, next)
+        return next
       })
     } catch (e) {
       if (e instanceof ApiError) {
@@ -106,37 +114,23 @@ export function ProfilePage() {
     }
   }, [profile, myCards])
 
-  async function saveProfile() {
-    setSaveError(null)
-    setSaving(true)
-    try {
-      const next = await patchMyProfile({
-        display_name: displayName.trim() || null,
-        bio: bio.trim() || null,
-        profile_slug: slug.trim(),
-      })
-      setProfile(next)
-      setSlug(next.profile_slug)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setSaveError(formatApiDetail(err.detail))
-      } else {
-        setSaveError(err instanceof Error ? err.message : 'Не удалось сохранить')
-      }
-    } finally {
-      setSaving(false)
+  async function copyPublicLink() {
+    if (profile == null) {
+      return
     }
-  }
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    void saveProfile()
+    const url = publicProfilePageUrl(profile.profile_slug)
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopyToast('Ссылка скопирована')
+    } catch {
+      setCopyToast('Не удалось скопировать')
+    }
   }
 
   if (auth.kind === 'loading') {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p>Вход…</p>
+        <p className="filmony-text-panel inline-block">Вход…</p>
       </div>
     )
   }
@@ -144,7 +138,7 @@ export function ProfilePage() {
   if (auth.kind === 'error') {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <p className="text-sm text-red-500">{auth.message}</p>
+        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
         <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
           На главную
         </Link>
@@ -155,8 +149,8 @@ export function ProfilePage() {
   if (auth.kind === 'skipped') {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <p className="text-sm text-(--tgui--hint_color)">
-          Откройте приложение в Telegram, чтобы увидеть профиль и сохранять изменения.
+        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
+          Откройте приложение в Telegram, чтобы увидеть профиль.
         </p>
         <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
           На главную
@@ -168,7 +162,7 @@ export function ProfilePage() {
   if (loadError != null) {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <p className="text-sm text-red-500">{loadError}</p>
+        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{loadError}</p>
         <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
           На главную
         </Link>
@@ -179,7 +173,7 @@ export function ProfilePage() {
   if (profile == null) {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p>Загрузка…</p>
+        <p className="filmony-text-panel inline-block">Загрузка…</p>
       </div>
     )
   }
@@ -187,15 +181,20 @@ export function ProfilePage() {
   const pub = toPublicShape(profile)
   const shownName = displayNameFromProfile(pub)
   const canLoadMore = Boolean(myCards?.next_cursor)
+  const publicUrl = publicProfilePageUrl(profile.profile_slug)
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-(--tgui--bg_color)/95 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold tracking-tight">Профиль</h1>
-          <Button mode="plain" size="s" disabled title="Скоро">
+          <h1 className="text-lg font-semibold tracking-tight text-(--tgui--text_color)">Профиль</h1>
+          <Link
+            to="/profile/edit"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-lg text-(--tgui--link_color) no-underline active:opacity-70"
+            aria-label="Настройки профиля"
+          >
             ⚙
-          </Button>
+          </Link>
         </div>
       </header>
 
@@ -210,13 +209,27 @@ export function ProfilePage() {
             {shownName}
           </Title>
           <p className="mt-1 font-mono text-[11px] text-(--tgui--hint_color)">@{profile.profile_slug}</p>
+          <button
+            type="button"
+            className="filmony-text-panel mt-3 w-full max-w-sm cursor-pointer text-left transition-opacity active:opacity-80"
+            onClick={() => void copyPublicLink()}
+          >
+            <span className="block text-[10px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">
+              Публичная ссылка · нажмите, чтобы скопировать
+            </span>
+            <span className="mt-1 block break-all font-mono text-xs leading-snug text-(--tgui--link_color)">
+              {publicUrl}
+            </span>
+          </button>
           <Button mode="gray" className="mt-3" disabled>
             {profile.friends_count} друзей
           </Button>
         </div>
 
         {profile.bio ? (
-          <p className="mt-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
+          <p className="filmony-text-panel mt-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
+            {profile.bio}
+          </p>
         ) : null}
 
         <div className="mt-6 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
@@ -246,9 +259,13 @@ export function ProfilePage() {
 
         {mainTab === 'movies' ? (
           <div className="mt-6">
-            {cardsError != null ? <p className="mb-2 text-center text-sm text-red-500">{cardsError}</p> : null}
+            {cardsError != null ? (
+              <p className="filmony-text-panel mb-2 text-center text-sm text-(--tgui--destructive_text_color)">
+                {cardsError}
+              </p>
+            ) : null}
             {myCards != null && myCards.items.length === 0 ? (
-              <div className="py-12 text-center">
+              <div className="filmony-text-panel py-8 text-center">
                 <p className="text-sm text-(--tgui--hint_color)">Ещё нет оценённых фильмов</p>
                 <p className="mt-2 text-xs text-(--tgui--hint_color)">Карточки появятся после фичи каталога.</p>
               </div>
@@ -287,55 +304,23 @@ export function ProfilePage() {
               </div>
             </div>
             <Section header="Детали">
-              <div className="px-3 py-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
+              <div className="filmony-text-panel mx-3 my-3 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
                 Распределение оценок, годы, теги и «с кем смотрел» появятся, когда бэкенд отдаст агрегаты по
                 карточкам.
               </div>
             </Section>
           </div>
         ) : null}
-
-        <Section className="mt-8" header="Редактирование">
-          <form className="flex flex-col gap-3 px-3 pb-4 pt-1" onSubmit={handleSubmit}>
-            <Input
-              header="Отображаемое имя"
-              placeholder={displayNameFromProfile(pub)}
-              value={displayName}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
-            />
-            <div className="flex flex-col gap-1">
-              <span className="px-3 text-xs font-medium uppercase tracking-wide text-(--tgui--hint_color)">
-                О себе
-              </span>
-              <textarea
-                className="min-h-[88px] rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-2 text-(--tgui--text_color) outline-none"
-                maxLength={500}
-                placeholder="Коротко о вкусе"
-                value={bio}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
-              />
-            </div>
-            <Input
-              header="Публичная ссылка (/u/…)"
-              placeholder="например, kino-ivan"
-              value={slug}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
-            />
-            {saveError != null ? <p className="text-sm text-red-500">{saveError}</p> : null}
-            <div className="flex flex-col gap-2">
-              <Button type="submit" disabled={saving} stretched>
-                {saving ? 'Сохранение…' : 'Сохранить'}
-              </Button>
-              <Link
-                className="flex h-12 items-center justify-center rounded-xl bg-(--tgui--secondary_bg_color) text-sm font-medium text-(--tgui--link_color) no-underline active:opacity-80"
-                to={`/u/${profile.profile_slug}`}
-              >
-                Как видят другие
-              </Link>
-            </div>
-          </form>
-        </Section>
       </main>
+
+      {copyToast != null ? (
+        <div
+          role="status"
+          className="fixed bottom-24 left-1/2 z-50 max-w-[min(90vw,20rem)] -translate-x-1/2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_95%,transparent)] px-4 py-2.5 text-center text-sm text-(--tgui--text_color) shadow-lg backdrop-blur-md"
+        >
+          {copyToast}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -40,9 +40,10 @@ class VerifyTelegramInitDataService:
             raise TelegramInitDataInvalidError('auth_date out of range')
 
         data_check_string = '\n'.join(f'{k}={data[k]}' for k in sorted(data.keys()))
+        # Per Telegram: secret key is HMAC-SHA256 of the bot token with "WebAppData" as the key.
         secret_key = hmac.new(
-            self._bot_token.encode('utf-8'),
             b'WebAppData',
+            self._bot_token.encode('utf-8'),
             hashlib.sha256,
         ).digest()
         calculated = hmac.new(

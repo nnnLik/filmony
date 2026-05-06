@@ -1,5 +1,73 @@
 @import 'tailwindcss';
 
+/* Filmony: forced dark, «midnight bioluminescence» — mint cyan on ink blue, warm amber accents */
+.filmony-theme {
+  color-scheme: dark;
+
+  --filmony-ink: #06090d;
+  --filmony-void: #0a1018;
+  --filmony-surface: #111b27;
+  --filmony-elevated: #182433;
+  --filmony-mint: #5eead4;
+  --filmony-mint-dim: #3db8a5;
+  --filmony-amber: #e8b86d;
+  --filmony-text: #e8f0f7;
+  --filmony-muted: #7f95ab;
+  --filmony-danger: #ff7a8c;
+
+  /* Telegram theme bridge — so host theme does not wash out our palette */
+  --tg-theme-bg-color: var(--filmony-void);
+  --tg-theme-text-color: var(--filmony-text);
+  --tg-theme-hint-color: var(--filmony-muted);
+  --tg-theme-link-color: var(--filmony-mint);
+  --tg-theme-button-color: var(--filmony-mint);
+  --tg-theme-button-text-color: var(--filmony-ink);
+  --tg-theme-secondary-bg-color: var(--filmony-surface);
+  --tg-theme-header-bg-color: var(--filmony-void);
+  --tg-theme-accent-text-color: var(--filmony-mint);
+  --tg-theme-section-bg-color: var(--filmony-surface);
+  --tg-theme-section-header-text-color: var(--filmony-muted);
+  --tg-theme-subtitle-text-color: var(--filmony-muted);
+  --tg-theme-destructive-text-color: var(--filmony-danger);
+
+  --tgui--bg_color: var(--filmony-void);
+  --tgui--text_color: var(--filmony-text);
+  --tgui--hint_color: var(--filmony-muted);
+  --tgui--link_color: var(--filmony-mint);
+  --tgui--button_color: var(--filmony-mint);
+  --tgui--button_text_color: var(--filmony-ink);
+  --tgui--secondary_bg_color: var(--filmony-surface);
+  --tgui--header_bg_color: var(--filmony-void);
+  --tgui--accent_text_color: var(--filmony-mint);
+  --tgui--section_bg_color: var(--filmony-surface);
+  --tgui--section_header_text_color: var(--filmony-muted);
+  --tgui--subtitle_text_color: var(--filmony-muted);
+  --tgui--destructive_text_color: var(--filmony-danger);
+  --tgui--divider: color-mix(in srgb, var(--filmony-mint) 14%, transparent);
+  --tgui--outline: color-mix(in srgb, var(--filmony-mint) 10%, transparent);
+  --tgui--surface_primary: color-mix(in srgb, var(--filmony-surface) 92%, transparent);
+  --tgui--tertiary_bg_color: var(--filmony-elevated);
+  --tgui--quartenary_bg_color: #1e2d3f;
+  --tgui--segmented_control_active_bg: var(--filmony-void);
+  --tgui--card_bg_color: #152030;
+  --tgui--secondary_hint_color: #6b7f94;
+  --tgui--secondary_fill: color-mix(in srgb, var(--filmony-mint) 16%, transparent);
+  --tgui--plain_background: color-mix(in srgb, var(--filmony-mint) 8%, transparent);
+  --tgui--plain_foreground: var(--filmony-text);
+  --tgui--destructive_background: color-mix(in srgb, var(--filmony-danger) 12%, transparent);
+  --tgui--toast_accent_color: var(--filmony-mint);
+  --tgui--surface_dark: color-mix(in srgb, var(--filmony-surface) 88%, transparent);
+  --tgui--skeleton: color-mix(in srgb, var(--filmony-mint) 6%, transparent);
+}
+
+/* Блоки подсказок / вторичного текста с мягким фоном и скруглением */
+.filmony-text-panel {
+  border-radius: 1rem;
+  background: var(--tgui--secondary_bg_color);
+  border: 1px solid var(--tgui--divider);
+  padding: 0.875rem 1rem;
+}
+
 html,
 body,
 #root {
@@ -8,4 +76,5 @@ body,
 
 body {
   margin: 0;
+  background: radial-gradient(120% 80% at 50% -10%, #152a35 0%, transparent 55%), var(--filmony-ink, #06090d);
 }

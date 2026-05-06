@@ -23,7 +23,7 @@ def build_init_data(
     pairs = [('auth_date', str(auth_date)), ('user', user_json)]
     pairs.sort(key=lambda x: x[0])
     data_check_string = '\n'.join(f'{k}={v}' for k, v in pairs)
-    secret_key = hmac.new(bot_token.encode('utf-8'), b'WebAppData', hashlib.sha256).digest()
+    secret_key = hmac.new(b'WebAppData', bot_token.encode('utf-8'), hashlib.sha256).digest()
     digest = hmac.new(secret_key, data_check_string.encode('utf-8'), hashlib.sha256).hexdigest()
     out = dict(pairs)
     out['hash'] = digest
