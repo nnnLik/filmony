@@ -1,0 +1,29 @@
+# 2026-05-06T18:30:00Z
+
+- Feature slug: `profile-and-public-profiles`
+- Action type: code | docs
+- Summary: Реализация профилей (API, миграция, тесты), фронт (Router, Telegram UI, AuthProvider), исправление ревизии Alembic на ALTER+backfill, публикация feature-доков и workflow-артефактов.
+- Files:
+  - `backend/src/migrations/versions/110da8652616_enchant_user.py`
+  - `backend/src/api/profile/*`
+  - `backend/src/services/profile/*`
+  - `backend/src/models/user.py`
+  - `backend/src/services/auth/upsert_telegram_user.py`
+  - `backend/src/api/router.py`
+  - `backend/src/conf/settings.py`
+  - `backend/src/tests/api/test_profile_routes.py`
+  - `frontend/package.json`
+  - `frontend/src/{App.tsx,main.tsx,routes.tsx}`
+  - `frontend/src/pages/*`
+  - `frontend/src/api/*`
+  - `frontend/src/auth/*`
+  - `frontend/src/components/profile/*`
+  - `frontend/src/lib/profileDisplay.ts`
+  - `vars/.env.example`
+  - `docs/features/profile-and-public-profiles.md`
+  - `.cursor/features/profile-and-public-profiles/feature.md`
+  - `.cursor/active/profile-and-public-profiles/{plan.md,progress.md,result.md}`
+- Verification: не запускалось (по запросу пользователя без команд); рекомендуется `npm install`, `npm run build`, `make backend-test`.
+- Links:
+  - `.cursor/active/profile-and-public-profiles/result.md`
+  - `docs/features/profile-and-public-profiles.md`

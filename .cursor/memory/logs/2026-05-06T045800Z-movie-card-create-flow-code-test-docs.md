@@ -1,0 +1,25 @@
+# 2026-05-06T04:58:00Z
+
+- Feature slug: `movie-card-create-flow`
+- Action type: code | test | docs
+- Summary: Реализован fullstack flow создания карточки (films resolve + cards create + профильный листинг/счетчики), добавлен экран `/cards/new`, API-клиенты и backend тесты, оформлены feature-артефакты.
+- Files:
+  - `backend/src/models/{film.py,movie_card.py,movie_card_tag.py,movie_card_enums.py}`
+  - `backend/src/services/cards/create_movie_card.py`
+  - `backend/src/services/kinopoisk/{client.py,parse_url.py,resolve_kinopoisk_film.py}`
+  - `backend/src/services/profile/{list_user_movie_cards.py,get_user_profile_counts.py}`
+  - `backend/src/api/{cards/routes.py,films/routes.py,router.py,profile/{me_routes.py,users_routes.py,schemas.py}}`
+  - `backend/src/conf/settings.py`
+  - `backend/src/migrations/versions/5d6f7a8b9c10_add_films_and_movie_cards.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/pages/{FeedPage.tsx,ProfilePage.tsx,PublicProfilePage.tsx}`
+  - `frontend/src/api/{cardApi.ts,profileTypes.ts}`
+  - `frontend/src/routes.tsx`
+  - `.cursor/features/movie-card-create-flow/feature.md`
+  - `.cursor/active/movie-card-create-flow/{plan.md,progress.md,result.md}`
+  - `docs/features/movie-card-create-flow.md`
+- Verification: `ReadLints` по `backend/src` и `frontend/src` без ошибок; shell-команды `make backend-test-one ...` были пропущены средой и требуют ручного прогона.
+- Links:
+  - `.cursor/active/movie-card-create-flow/result.md`
+  - `docs/features/movie-card-create-flow.md`

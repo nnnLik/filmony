@@ -1,20 +1,20 @@
 # Action Log
 
-Use one entry per meaningful action across all features.
+Каждое изменение хранится в отдельном файле в этой директории.
 
-## Entry Format
-- Timestamp:
-- Feature slug:
-- Action type: plan | code | test | docs | refactor | decision
-- Summary:
-- Files:
-  - `path/to/file`
-- Verification:
-  - command/check and result
-- Links:
-  - `.cursor/active/<feature-slug>/progress.md`
-  - `docs/features/<feature-slug>.md`
+## Правило хранения
+- Один файл = одно действие.
+- Формат имени: `YYYY-MM-DDTHHMMSSZ-<feature-slug>-<action-type>.md`.
+- Пример: `2026-05-06T053800Z-movie-card-comments-code.md`.
 
-## Фрагменты (разбиение по `2026-05-06T10:30:00Z`)
-- [`action-log-from-2026-05-06T103000Z.md`](./action-log-from-2026-05-06T103000Z.md) — записи с этой отметки и позже; заголовок файла — время отсечки, ниже — записи `## …`.
-- [`action-log-before-2026-05-06T103000Z.md`](./action-log-before-2026-05-06T103000Z.md) — записи раньше отсечки; заголовок — время самой поздней записи в этом блоке (`09:00`), ниже — записи `## …`.
+## Формат записи (внутри файла)
+- Timestamp
+- Feature slug
+- Action type: `plan | code | test | docs | refactor | decision`
+- Summary
+- Files
+- Verification
+- Links (опционально)
+
+## Примечание
+- Агрегированные файлы логов больше не используются.

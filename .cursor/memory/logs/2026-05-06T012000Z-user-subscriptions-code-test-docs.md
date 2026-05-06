@@ -1,0 +1,24 @@
+# 2026-05-06T01:20:00Z
+
+- Feature slug: `user-subscriptions`
+- Action type: code | test | docs
+- Summary: Реализованы directed subscriptions на backend: модель и миграция `user_subscription`, сервисы create/delete/list, endpoints `/api/users/{user_id}/subscriptions` (POST/DELETE/GET с `type=followers|following|both`), response-схемы flat-list с `relation_type`, а также API-тесты и feature-артефакты workflow.
+- Files:
+  - `backend/src/models/user_subscription.py`
+  - `backend/src/models/__init__.py`
+  - `backend/src/migrations/versions/3c5f09189f9f_add_user_subscriptions.py`
+  - `backend/src/services/subscriptions/create_user_subscription.py`
+  - `backend/src/services/subscriptions/delete_user_subscription.py`
+  - `backend/src/services/subscriptions/list_user_subscriptions.py`
+  - `backend/src/api/profile/schemas.py`
+  - `backend/src/api/profile/users_routes.py`
+  - `backend/src/tests/api/test_profile_routes.py`
+  - `.cursor/features/user-subscriptions/feature.md`
+  - `.cursor/active/user-subscriptions/{plan.md,progress.md,result.md}`
+  - `docs/features/user-subscriptions.md`
+- Verification:
+  - `ReadLints` для изменённых backend-файлов: ошибок нет.
+  - `make backend-test*` и `make backend-lint` не выполнены в сессии (shell skipped).
+- Links:
+  - `.cursor/active/user-subscriptions/progress.md`
+  - `docs/features/user-subscriptions.md`

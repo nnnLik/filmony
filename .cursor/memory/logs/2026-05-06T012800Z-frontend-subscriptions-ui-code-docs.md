@@ -1,0 +1,23 @@
+# 2026-05-06T01:28:00Z
+
+- Feature slug: `frontend-subscriptions-ui`
+- Action type: code | docs
+- Summary: Реализован фронтенд UX подписок по макетам: счётчики `подписчики/подписки/фильмы` в профилях, отдельная страница подписок для своего и публичного профиля, follow/unfollow действия, копирование публичной ссылки, новые API-функции и маршруты.
+- Files:
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/api/profileApi.ts`
+  - `frontend/src/pages/SubscriptionsPage.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+  - `frontend/src/routes.tsx`
+  - `.cursor/features/frontend-subscriptions-ui/feature.md`
+  - `.cursor/active/frontend-subscriptions-ui/plan.md`
+  - `.cursor/active/frontend-subscriptions-ui/progress.md`
+  - `.cursor/active/frontend-subscriptions-ui/result.md`
+  - `docs/features/frontend-subscriptions-ui.md`
+- Verification:
+  - `ReadLints` по изменённым frontend-файлам: ошибок нет.
+  - `npm run lint` / `npm run build` не выполнены в сессии (shell-вызовы были skipped).
+- Links:
+  - `.cursor/active/frontend-subscriptions-ui/progress.md`
+  - `docs/features/frontend-subscriptions-ui.md`

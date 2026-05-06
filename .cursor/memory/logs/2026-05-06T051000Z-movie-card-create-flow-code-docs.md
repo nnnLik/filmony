@@ -1,0 +1,21 @@
+# 2026-05-06T05:10:00Z
+
+- Feature slug: `movie-card-create-flow`
+- Action type: code | docs
+- Summary: Добавлен backend `GET /api/cards/{card_id}` и frontend деталка карточки с deep-link маршрутом; профили переведены на единый грид постеров; на деталке добавлены real-data секции и mock-блоки.
+- Files:
+  - `backend/src/api/cards/{routes.py,schemas.py}`
+  - `backend/src/services/cards/get_movie_card_details.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/components/profile/MoviePosterGrid.tsx`
+  - `frontend/src/pages/{ProfilePage.tsx,PublicProfilePage.tsx,MovieCardDetailPage.tsx}`
+  - `frontend/src/routes.tsx`
+  - `frontend/src/api/cardApi.ts`
+  - `.cursor/active/movie-card-create-flow/{plan.md,progress.md,result.md}`
+  - `docs/features/movie-card-create-flow.md`
+- Verification:
+  - `ReadLints` по измененным backend/frontend файлам — ошибок нет.
+  - Shell-команды на запуск тестов/сборки в этой сессии недоступны (пропускаются средой).
+- Links:
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `docs/features/movie-card-create-flow.md`

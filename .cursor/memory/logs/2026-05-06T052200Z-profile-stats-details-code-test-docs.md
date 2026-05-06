@@ -1,0 +1,21 @@
+# 2026-05-06T05:22:00Z
+
+- Feature slug: `profile-stats-details`
+- Action type: code | test | docs
+- Summary: Реализована агрегированная статистика карточек пользователя (backend сервис + endpoint `/api/users/{user_id}/stats` + API тесты), добавлен общий frontend `ProfileStatsPanel` и подключение в `ProfilePage`/`PublicProfilePage`, оформлены workflow-артефакты.
+- Files:
+  - `backend/src/services/profile/get_user_movie_card_stats.py`
+  - `backend/src/api/profile/{schemas.py,users_routes.py}`
+  - `backend/src/tests/api/test_profile_routes.py`
+  - `frontend/src/api/{profileTypes.ts,profileApi.ts}`
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/pages/{ProfilePage.tsx,PublicProfilePage.tsx}`
+  - `.cursor/features/profile-stats-details/feature.md`
+  - `.cursor/active/profile-stats-details/{plan.md,progress.md,result.md}`
+  - `docs/features/profile-stats-details.md`
+- Verification:
+  - `ReadLints` по изменённым backend/frontend файлам: ошибок нет.
+  - `Shell` команды отклоняются средой: `Rejected: User chose to skip`.
+- Links:
+  - `.cursor/active/profile-stats-details/progress.md`
+  - `docs/features/profile-stats-details.md`
