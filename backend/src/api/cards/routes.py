@@ -16,6 +16,8 @@ from api.cards.schemas import (
     MovieCardCommentCreateRequest,
     MovieCardCommentListResponse,
     MovieCardCommentResponse,
+    MovieCardFeedItemResponse,
+    MovieCardFeedPageResponse,
 )
 from core.database import get_db
 from deps.auth import CurrentUser
@@ -50,10 +52,12 @@ from services.cards.get_movie_card_details import GetMovieCardDetailsService, Mo
 from services.cards.list_movie_card_comments import (
     CommentNotFoundError,
     ListMovieCardCommentsService,
+    MovieCardCommentItem,
 )
 from services.cards.list_movie_card_comments import (
     MovieCardNotFoundError as ListCommentsMovieCardNotFoundError,
 )
+from services.cards.list_movie_card_feed import ListMovieCardFeedService
 from services.cards.update_movie_card import (
     MovieCardForbiddenError as UpdateMovieCardForbiddenError,
 )
@@ -93,6 +97,27 @@ async def _load_comment_response(db: AsyncSession, comment_id: int) -> MovieCard
             last_name=author.last_name,
             photo_url=author.photo_url,
             display_name=author.display_name,
+        ),
+    )
+
+
+def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentResponse:
+    return MovieCardCommentResponse(
+        id=item.id,
+        movie_card_id=item.movie_card_id,
+        parent_comment_id=item.parent_comment_id,
+        text=item.text,
+        created_at=item.created_at,
+        replies_count=item.replies_count,
+        total_descendants_count=item.total_descendants_count,
+        author=MovieCardCommentAuthorResponse(
+            id=item.author.id,
+            profile_slug=item.author.profile_slug,
+            username=item.author.username,
+            first_name=item.author.first_name,
+            last_name=item.author.last_name,
+            photo_url=item.author.photo_url,
+            display_name=item.author.display_name,
         ),
     )
 
@@ -143,6 +168,48 @@ async def create_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=list(tags),
+    )
+
+
+@router.get('/feed', response_model=MovieCardFeedPageResponse, summary='Лента карточек')
+async def list_movie_card_feed(
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=50),
+) -> MovieCardFeedPageResponse:
+    page = await ListMovieCardFeedService(db).execute(cursor, limit)
+    return MovieCardFeedPageResponse(
+        items=[
+            MovieCardFeedItemResponse(
+                id=item.id,
+                user_id=item.user_id,
+                film_id=item.film_id,
+                film_kinopoisk_id=item.film_kinopoisk_id,
+                film_genres=item.film_genres,
+                film_title=item.film_title,
+                film_year=item.film_year,
+                film_poster_url=item.film_poster_url,
+                rating=item.rating,
+                company=item.company,
+                mood_before=item.mood_before,
+                mood_after=item.mood_after,
+                custom_tags=item.custom_tags,
+                comments_count=item.comments_count,
+                card_author=MovieCardCommentAuthorResponse(
+                    id=item.card_author.id,
+                    profile_slug=item.card_author.profile_slug,
+                    username=item.card_author.username,
+                    first_name=item.card_author.first_name,
+                    last_name=item.card_author.last_name,
+                    photo_url=item.card_author.photo_url,
+                    display_name=item.card_author.display_name,
+                ),
+                comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
+            )
+            for item in page.items
+        ],
+        next_cursor=page.next_cursor,
     )
 
 

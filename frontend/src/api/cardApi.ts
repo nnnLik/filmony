@@ -3,6 +3,7 @@ import type {
   CardCompany,
   CardMoodAfter,
   CardMoodBefore,
+  FeedMovieCardPage,
   Film,
   MovieCard,
   MovieCardComment,
@@ -69,6 +70,17 @@ export async function getFilmById(filmId: number): Promise<Film> {
 
 export async function getMovieCardById(cardId: number): Promise<MovieCard> {
   return apiJson<MovieCard>(`/api/cards/${cardId}`)
+}
+
+export async function getMovieCardFeedPage(params?: {
+  cursor?: string | null
+  limit?: number
+}): Promise<FeedMovieCardPage> {
+  const search = new URLSearchParams()
+  if (params?.cursor) search.set('cursor', params.cursor)
+  if (params?.limit != null) search.set('limit', String(params.limit))
+  const suffix = search.toString()
+  return apiJson<FeedMovieCardPage>(`/api/cards/feed${suffix ? `?${suffix}` : ''}`)
 }
 
 export const updateMovieCard: (cardId: number, body: UpdateMovieCardPayload) => Promise<MovieCard> = async (

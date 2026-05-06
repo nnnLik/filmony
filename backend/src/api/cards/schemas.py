@@ -96,6 +96,17 @@ class FilmResolveRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class MovieCardFeedItemResponse(CardDetailResponse):
+    card_author: MovieCardCommentAuthorResponse
+    comments_count: int
+    comments_preview: list[MovieCardCommentResponse] = Field(default_factory=list)
+
+
+class MovieCardFeedPageResponse(BaseModel):
+    items: list[MovieCardFeedItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+
 class FilmResolveResponse(BaseModel):
     id: int
     kinopoisk_id: int

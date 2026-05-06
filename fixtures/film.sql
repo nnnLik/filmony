@@ -1,0 +1,7 @@
+INSERT INTO public.film (kinopoisk_id,title,"year",poster_url,created_at,genres) VALUES
+	 (746200,'Бобры-зомби',2014,'https://kinopoiskapiunofficial.tech/images/posters/kp/746200.jpg','2026-05-06 20:49:22','["\u043a\u043e\u043c\u0435\u0434\u0438\u044f", "\u0443\u0436\u0430\u0441\u044b"]'),
+	 (100100,'Тестовый полдень',1992,'https://kinopoiskapiunofficial.tech/images/posters/kp/100100.jpg','2026-05-07 09:20:00','["\u0432\u0435\u0441\u0442\u0435\u0440\u043d", "\u0434\u0440\u0430\u043c\u0430"]'),
+	 (100101,'Серые будни',2019,'https://kinopoiskapiunofficial.tech/images/posters/kp/100101.jpg','2026-05-07 09:21:00','["\u0434\u0440\u0430\u043c\u0430", "\u0438\u0441\u0442\u043e\u0440\u0438\u044f"]'),
+	 (100102,'Лифт без кнопок',2021,'https://kinopoiskapiunofficial.tech/images/posters/kp/100102.jpg','2026-05-07 09:22:00','["\u0442\u0440\u0438\u043b\u043b\u0435\u0440", "\u043a\u043e\u043c\u0435\u0434\u0438\u044f"]'),
+	 (100103,'Звёздный дождь',2017,'https://kinopoiskapiunofficial.tech/images/posters/kp/100103.jpg','2026-05-07 09:23:00','["\u0444\u0430\u043d\u0442\u0430\u0441\u0442\u0438\u043a\u0430", "\u043f\u0440\u0438\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f"]'),
+	 (100104,'Тихая гавань',2008,'https://kinopoiskapiunofficial.tech/images/posters/kp/100104.jpg','2026-05-07 09:24:00','["\u043c\u0435\u043b\u043e\u0434\u0440\u0430\u043c\u0430", "\u0441\u0435\u043c\u0435\u0439\u043d\u044b\u0439"]');

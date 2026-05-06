@@ -73,6 +73,19 @@ export type MovieCard = {
   custom_tags: string[]
 }
 
+/** Карточка ленты: поля фильма и автора из GET /api/cards/feed */
+export type FeedMovieCard = MovieCard & {
+  user_id: string
+  card_author: MovieCardCommentAuthor
+  comments_count: number
+  comments_preview: MovieCardComment[]
+}
+
+export type FeedMovieCardPage = {
+  items: FeedMovieCard[]
+  next_cursor: string | null
+}
+
 export type MovieCardCommentAuthor = {
   id: string
   profile_slug: string

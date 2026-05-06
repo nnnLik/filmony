@@ -892,3 +892,90 @@ async def test_create_card_normalizes_and_persists_film_genres(async_client: Asy
     details = await async_client.get(f'/api/cards/{response.json()["id"]}')
     assert details.status_code == 200
     assert details.json()['film_genres'] == ['Драма', 'фантастика']
+
+
+@pytest.mark.asyncio
+async def test_movie_card_feed_requires_auth(async_client: AsyncClient) -> None:
+    r = await async_client.get('/api/cards/feed')
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_movie_card_feed_includes_comments_count_and_preview(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=916)
+    film = await _create_film(kinopoisk_id=100916)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.5,
+            'company': 'friends',
+            'mood_before': 'laugh',
+            'mood_after': 'laughed',
+            'custom_tags': ['a', 'b'],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    for label in ('c1', 'c2', 'c3'):
+        c = await async_client.post(f'/api/cards/{card_id}/comments', json={'text': label})
+        assert c.status_code == 200
+
+    feed = await async_client.get('/api/cards/feed?limit=50')
+    assert feed.status_code == 200
+    body = feed.json()
+    ours = next((item for item in body['items'] if item['id'] == card_id), None)
+    assert ours is not None
+    assert ours['user_id'] == me['id']
+    assert ours['comments_count'] == 3
+    assert ours['card_author']['id'] == me['id']
+    previews = ours['comments_preview']
+    assert len(previews) == 3
+    assert [p['text'] for p in previews] == ['c1', 'c2', 'c3']
+
+
+@pytest.mark.asyncio
+async def test_movie_card_feed_cursor_pagination(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=917)
+    films = []
+    for idx, kid in enumerate((1009171, 1009172)):
+        films.append(await _create_film(kinopoisk_id=kid, title=f'Film {idx}'))
+    card_ids = []
+    for film in films:
+        r = await async_client.post(
+            '/api/cards',
+            json={
+                'film_id': film.id,
+                'kinopoisk_id': film.kinopoisk_id,
+                'genres': [],
+                'rating': 7.0 + film.id % 10,
+                'company': 'alone',
+                'mood_before': 'relax',
+                'mood_after': 'enjoyed',
+                'custom_tags': [],
+            },
+        )
+        assert r.status_code == 200
+        card_ids.append(r.json()['id'])
+
+    first_page = await async_client.get('/api/cards/feed?limit=1')
+    assert first_page.status_code == 200
+    first_body = first_page.json()
+    assert len(first_body['items']) == 1
+    top_id = max(card_ids)
+    bottom_id = min(card_ids)
+    assert first_body['items'][0]['id'] == top_id
+    assert first_body['next_cursor'] == str(top_id)
+
+    second_page = await async_client.get(
+        f'/api/cards/feed?limit=1&cursor={first_body["next_cursor"]}'
+    )
+    assert second_page.status_code == 200
+    second_body = second_page.json()
+    assert len(second_body['items']) == 1
+    assert second_body['items'][0]['id'] == bottom_id
