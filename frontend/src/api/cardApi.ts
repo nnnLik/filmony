@@ -1,4 +1,4 @@
-import { apiJson } from './client'
+import { ApiError, apiFetch, apiJson } from './client'
 import type {
   CardCompany,
   CardMoodAfter,
@@ -20,12 +20,39 @@ export type CreateMovieCardPayload = {
   custom_tags: string[]
 }
 
+export type UpdateMovieCardPayload = {
+  rating?: number
+  company?: CardCompany
+  mood_before?: CardMoodBefore
+  mood_after?: CardMoodAfter
+  custom_tags?: string[]
+}
+
 export async function createMovieCard(body: CreateMovieCardPayload): Promise<MovieCard> {
   return apiJson<MovieCard>('/api/cards', {
     method: 'POST',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   })
+}
+
+async function readActionErrorDetail(res: Response): Promise<unknown> {
+  const ct = res.headers.get('content-type') ?? ''
+  if (ct.includes('application/json')) {
+    try {
+      const body = (await res.json()) as { detail?: unknown }
+      return body.detail ?? body
+    } catch {
+      return null
+    }
+  }
+  return await res.text()
+}
+
+async function assertActionOk(res: Response): Promise<void> {
+  if (!res.ok) {
+    throw new ApiError(res.status, await readActionErrorDetail(res))
+  }
 }
 
 export async function resolveFilmByKinopoiskUrl(url: string): Promise<Film> {
@@ -42,6 +69,24 @@ export async function getFilmById(filmId: number): Promise<Film> {
 
 export async function getMovieCardById(cardId: number): Promise<MovieCard> {
   return apiJson<MovieCard>(`/api/cards/${cardId}`)
+}
+
+export const updateMovieCard: (cardId: number, body: UpdateMovieCardPayload) => Promise<MovieCard> = async (
+  cardId: number,
+  body: UpdateMovieCardPayload
+) => {
+  return apiJson<MovieCard>(`/api/cards/${cardId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export const deleteMovieCard: (cardId: number) => Promise<void> = async (cardId: number) => {
+  const res = await apiFetch(`/api/cards/${cardId}`, {
+    method: 'DELETE',
+  })
+  await assertActionOk(res)
 }
 
 export async function getMovieCardComments(

@@ -59,6 +59,7 @@ export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_
 
 export type MovieCard = {
   id: number
+  user_id?: string
   film_id: number
   film_kinopoisk_id: number
   film_genres: string[]

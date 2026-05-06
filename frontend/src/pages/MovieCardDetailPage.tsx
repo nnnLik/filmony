@@ -4,7 +4,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { createMovieCardComment, getMovieCardById, getMovieCardComments } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
+import { getMyProfile } from '../api/profileApi'
 import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MovieCardComment } from '../api/profileTypes'
+import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
+import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',
@@ -71,7 +74,9 @@ function snippet(text: string): string {
 
 export function MovieCardDetailPage() {
   const navigate = useNavigate()
+  const removeMovieCardRequest = useRemoveMovieCard()
   const { cardId } = useParams<{ cardId?: string }>()
+  const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
   const [card, setCard] = useState<MovieCard | null>(null)
   const [comments, setComments] = useState<MovieCardComment[]>([])
   const [commentsNextCursor, setCommentsNextCursor] = useState<string | null>(null)
@@ -83,6 +88,8 @@ export function MovieCardDetailPage() {
   const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [jumpBusy, setJumpBusy] = useState(false)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
   const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null)
   const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
@@ -100,8 +107,27 @@ export function MovieCardDetailPage() {
     return map
   }, [comments])
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
+  const isOwner =
+    card != null && card.user_id != null && viewerId != null && card.user_id === viewerId
   const charsLeft = 100 - commentText.length
   const invalidCardId = parsedCardId == null
+
+  useEffect(() => {
+    if (viewerId != null) return
+    let alive = true
+    void (async () => {
+      try {
+        const profile = await getMyProfile()
+        if (!alive) return
+        setViewerId(profile.id)
+      } catch {
+        // no-op: owner-only controls stay hidden
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [viewerId])
 
   const scrollToComment = useCallback((commentId: number): boolean => {
     const target = commentRefs.current[commentId]
@@ -124,6 +150,7 @@ export function MovieCardDetailPage() {
         const item = await getMovieCardById(parsedCardId)
         if (!alive) return
         setCard(item)
+        setActionMenuOpen(false)
       } catch (e) {
         if (!alive) return
         if (e instanceof ApiError) {
@@ -244,6 +271,29 @@ export function MovieCardDetailPage() {
     }
   }
 
+  async function handleDeleteCard() {
+    if (parsedCardId == null || deleteBusy) return
+    const confirmed = window.confirm('Удалить карточку фильма? Это действие нельзя отменить.')
+    if (!confirmed) return
+
+    setDeleteBusy(true)
+    setError(null)
+    setActionMenuOpen(false)
+    try {
+      await removeMovieCardRequest(parsedCardId)
+      clearMyProfileBundleCache()
+      void navigate('/profile')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(formatApiDetail(e.detail))
+      } else {
+        setError('Не удалось удалить карточку фильма')
+      }
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) text-(--tgui--text_color)">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
@@ -261,6 +311,45 @@ export function MovieCardDetailPage() {
           <span className="truncate text-sm font-medium text-(--tgui--hint_color)">
             {card?.film_title ?? 'Карточка фильма'}
           </span>
+          <span className="ml-auto" />
+          {isOwner ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActionMenuOpen((prev) => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-(--tgui--divider_color) text-xl text-(--tgui--text_color)"
+                aria-label="Действия с карточкой"
+              >
+                ⋯
+              </button>
+              {actionMenuOpen ? (
+                <div className="absolute right-0 top-12 z-30 w-48 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-2 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionMenuOpen(false)
+                      if (parsedCardId != null) {
+                        void navigate(`/cards/${parsedCardId}/edit`)
+                      }
+                    }}
+                    className="flex w-full items-center rounded-xl px-3 py-2 text-left text-base hover:bg-(--tgui--secondary_bg_color)"
+                  >
+                    Редактировать
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDeleteCard()
+                    }}
+                    disabled={deleteBusy}
+                    className="mt-1 flex w-full items-center rounded-xl px-3 py-2 text-left text-base text-(--tgui--destructive_text_color) hover:bg-(--tgui--secondary_bg_color)"
+                  >
+                    {deleteBusy ? 'Удаление...' : 'Удалить'}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </header>
 

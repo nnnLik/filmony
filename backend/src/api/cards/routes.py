@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,7 @@ from api.cards.schemas import (
     CardCreateRequest,
     CardDetailResponse,
     CardResponse,
+    CardUpdateRequest,
     MovieCardCommentAuthorResponse,
     MovieCardCommentCreateRequest,
     MovieCardCommentListResponse,
@@ -37,6 +39,13 @@ from services.cards.create_movie_card_comment import (
 from services.cards.create_movie_card_comment import (
     MovieCardNotFoundError as CommentMovieCardNotFoundError,
 )
+from services.cards.delete_movie_card import DeleteMovieCardService
+from services.cards.delete_movie_card import (
+    MovieCardForbiddenError as DeleteMovieCardForbiddenError,
+)
+from services.cards.delete_movie_card import (
+    MovieCardNotFoundError as DeleteMovieCardNotFoundError,
+)
 from services.cards.get_movie_card_details import GetMovieCardDetailsService, MovieCardNotFoundError
 from services.cards.list_movie_card_comments import (
     CommentNotFoundError,
@@ -45,6 +54,16 @@ from services.cards.list_movie_card_comments import (
 from services.cards.list_movie_card_comments import (
     MovieCardNotFoundError as ListCommentsMovieCardNotFoundError,
 )
+from services.cards.update_movie_card import (
+    MovieCardForbiddenError as UpdateMovieCardForbiddenError,
+)
+from services.cards.update_movie_card import (
+    MovieCardNotFoundError as UpdateMovieCardNotFoundError,
+)
+from services.cards.update_movie_card import (
+    MovieCardValidationError as UpdateMovieCardValidationError,
+)
+from services.cards.update_movie_card import UpdateMovieCardInput, UpdateMovieCardService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
 
@@ -132,7 +151,7 @@ async def create_card(
 )
 async def get_card(
     card_id: int,
-    _viewer: CurrentUser,
+    viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CardDetailResponse:
     try:
@@ -141,6 +160,7 @@ async def get_card(
         raise HTTPException(status_code=404, detail='movie card not found') from None
     return CardDetailResponse(
         id=card.id,
+        user_id=card.user_id,
         film_id=card.film_id,
         film_kinopoisk_id=card.film_kinopoisk_id,
         film_genres=card.film_genres,
@@ -153,6 +173,78 @@ async def get_card(
         mood_after=card.mood_after,
         custom_tags=card.custom_tags,
     )
+
+
+@router.patch(
+    '/{card_id}',
+    response_model=CardResponse,
+    summary='Обновить карточку фильма',
+)
+async def patch_card(
+    card_id: int,
+    body: CardUpdateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CardResponse:
+    try:
+        card = await UpdateMovieCardService(db).execute(
+            card_id=card_id,
+            viewer_user_id=user.id,
+            payload=UpdateMovieCardInput(
+                rating=body.rating,
+                company=body.company,
+                mood_before=body.mood_before,
+                mood_after=body.mood_after,
+                custom_tags=body.custom_tags,
+            ),
+        )
+    except UpdateMovieCardNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    except UpdateMovieCardForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    except UpdateMovieCardValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    tags = (
+        (
+            await db.execute(
+                select(MovieCardTag.tag)
+                .where(MovieCardTag.movie_card_id == card.id)
+                .order_by(MovieCardTag.tag)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return CardResponse(
+        id=card.id,
+        film_id=card.film_id,
+        rating=float(card.rating),
+        company=card.company,
+        mood_before=card.mood_before,
+        mood_after=card.mood_after,
+        custom_tags=list(tags),
+    )
+
+
+@router.delete(
+    '/{card_id}',
+    status_code=204,
+    response_class=Response,
+    summary='Удалить карточку фильма',
+)
+async def delete_card(
+    card_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteMovieCardService(db).execute(card_id=card_id, viewer_user_id=user.id)
+    except DeleteMovieCardNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    except DeleteMovieCardForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    return Response(status_code=204)
 
 
 @router.get(

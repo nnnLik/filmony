@@ -307,6 +307,243 @@ async def test_get_card_by_id_accessible_for_another_user(async_client: AsyncCli
 
 
 @pytest.mark.asyncio
+async def test_patch_card_requires_auth(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=720)
+    film = await _create_film(kinopoisk_id=100720, title='Аватар', year=2009)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['фантастика'],
+            'rating': 8.0,
+            'company': 'friends',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['3D'],
+        },
+    )
+    assert created.status_code == 200
+
+    logout = await async_client.post('/api/auth/logout')
+    assert logout.status_code == 200
+
+    patched = await async_client.patch(
+        f'/api/cards/{created.json()["id"]}',
+        json={'rating': 7.5},
+    )
+    assert patched.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_patch_card_success_owner(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=721)
+    film = await _create_film(kinopoisk_id=100721, title='Гладиатор', year=2000)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'thrill',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['эпик'],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    patched = await async_client.patch(
+        f'/api/cards/{card_id}',
+        json={
+            'rating': 9.5,
+            'company': 'family',
+            'mood_before': 'sad',
+            'mood_after': 'cried',
+            'custom_tags': [' Оскар ', 'драма', 'оскар'],
+        },
+    )
+    assert patched.status_code == 200
+    patched_body = patched.json()
+    assert patched_body['rating'] == 9.5
+    assert patched_body['company'] == 'family'
+    assert patched_body['mood_before'] == 'sad'
+    assert patched_body['mood_after'] == 'cried'
+    assert patched_body['custom_tags'] == ['Оскар', 'драма']
+
+    details = await async_client.get(f'/api/cards/{card_id}')
+    assert details.status_code == 200
+    details_body = details.json()
+    assert details_body['rating'] == 9.5
+    assert details_body['company'] == 'family'
+    assert details_body['mood_before'] == 'sad'
+    assert details_body['mood_after'] == 'cried'
+    assert details_body['custom_tags'] == ['Оскар', 'драма']
+    assert details_body['user_id'] is not None
+
+
+@pytest.mark.asyncio
+async def test_patch_card_forbidden_for_another_user(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=722)
+    film = await _create_film(kinopoisk_id=100722, title='Престиж', year=2006)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['триллер'],
+            'rating': 9.0,
+            'company': 'partner',
+            'mood_before': 'thrill',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    await _login(async_client, telegram_user_id=723)
+    forbidden = await async_client.patch(f'/api/cards/{card_id}', json={'rating': 7.0})
+    assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_patch_card_validation(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=724)
+    film = await _create_film(kinopoisk_id=100724, title='Бойцовский клуб', year=1999)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.5,
+            'company': 'friends',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['культ'],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    empty_payload = await async_client.patch(f'/api/cards/{card_id}', json={})
+    assert empty_payload.status_code == 422
+
+    invalid_rating = await async_client.patch(f'/api/cards/{card_id}', json={'rating': 7.3})
+    assert invalid_rating.status_code == 422
+
+    too_many_tags = await async_client.patch(
+        f'/api/cards/{card_id}',
+        json={'custom_tags': ['a', 'b', 'c', 'd', 'e', 'f']},
+    )
+    assert too_many_tags.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_patch_card_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=725)
+    response = await async_client.patch('/api/cards/999999', json={'rating': 9.0})
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_card_requires_auth(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=726)
+    film = await _create_film(kinopoisk_id=100726, title='Схватка', year=1995)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.5,
+            'company': 'alone',
+            'mood_before': 'thrill',
+            'mood_after': 'tense',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+
+    logout = await async_client.post('/api/auth/logout')
+    assert logout.status_code == 200
+
+    deleted = await async_client.delete(f'/api/cards/{created.json()["id"]}')
+    assert deleted.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_card_success_owner(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=727)
+    film = await _create_film(kinopoisk_id=100727, title='Одержимость', year=2014)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 9.0,
+            'company': 'alone',
+            'mood_before': 'thrill',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['джаз'],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    root = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': 'Сильный финал'},
+    )
+    assert root.status_code == 200
+
+    deleted = await async_client.delete(f'/api/cards/{card_id}')
+    assert deleted.status_code == 204
+
+    details = await async_client.get(f'/api/cards/{card_id}')
+    assert details.status_code == 404
+
+    comments = await async_client.get(f'/api/cards/{card_id}/comments')
+    assert comments.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_card_forbidden_for_another_user(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=728)
+    film = await _create_film(kinopoisk_id=100728, title='Семь', year=1995)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['триллер'],
+            'rating': 8.5,
+            'company': 'friends',
+            'mood_before': 'thrill',
+            'mood_after': 'tense',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    await _login(async_client, telegram_user_id=729)
+    forbidden = await async_client.delete(f'/api/cards/{card_id}')
+    assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_card_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=730)
+    response = await async_client.delete('/api/cards/999999')
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
     me = await _login(async_client, telegram_user_id=705)
     film = await _create_film(kinopoisk_id=100705, title='Дюна', year=2021)
@@ -385,7 +622,11 @@ async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
     assert replies.status_code == 200
     reply_items = replies.json()['items']
     assert len(reply_items) == 1
-    assert (reply_items[0]['id'], reply_items[0]['replies_count'], reply_items[0]['total_descendants_count']) == (
+    assert (
+        reply_items[0]['id'],
+        reply_items[0]['replies_count'],
+        reply_items[0]['total_descendants_count'],
+    ) == (
         reply_body['id'],
         1,
         1,

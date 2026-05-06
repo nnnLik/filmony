@@ -33,6 +33,7 @@ class CardResponse(BaseModel):
 
 class CardDetailResponse(BaseModel):
     id: int
+    user_id: UUID
     film_id: int
     film_kinopoisk_id: int
     film_genres: list[str] = Field(default_factory=list)
@@ -44,6 +45,16 @@ class CardDetailResponse(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str]
+
+
+class CardUpdateRequest(BaseModel):
+    rating: float | None = Field(default=None, ge=1, le=10, multiple_of=0.5)
+    company: CardCompany | None = None
+    mood_before: CardMoodBefore | None = None
+    mood_after: CardMoodAfter | None = None
+    custom_tags: list[str] | None = Field(default=None, max_length=5)
+
+    model_config = ConfigDict(extra='forbid')
 
 
 class MovieCardCommentAuthorResponse(BaseModel):

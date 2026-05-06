@@ -18,3 +18,12 @@
 
 ## Примечание
 - Агрегированные файлы логов больше не используются.
+
+## Latest Entries
+- `2026-05-06T205200Z-feed-ui-card-design-plan.md`
+- `2026-05-06T205300Z-feed-recommendation-engine-plan.md`
+- `2026-05-06T204000Z-movie-card-edit-delete-plan.md`
+- `2026-05-06T205400Z-movie-card-edit-delete-code.md`
+- `2026-05-06T205800Z-movie-card-edit-delete-test.md`
+- `2026-05-06T210000Z-movie-card-edit-delete-docs.md`
+- `2026-05-06T213000Z-movie-card-edit-delete-code.md`

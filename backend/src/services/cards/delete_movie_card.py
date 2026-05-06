@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.movie_card import MovieCard
+
+
+class MovieCardNotFoundError(Exception):
+    pass
+
+
+class MovieCardForbiddenError(Exception):
+    pass
+
+
+class DeleteMovieCardService:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def execute(self, card_id: int, viewer_user_id: UUID) -> None:
+        card = (
+            await self._session.execute(select(MovieCard).where(MovieCard.id == card_id))
+        ).scalar_one_or_none()
+        if card is None:
+            raise MovieCardNotFoundError
+        if card.user_id != viewer_user_id:
+            raise MovieCardForbiddenError
+        await self._session.delete(card)
+        await self._session.commit()
