@@ -52,9 +52,9 @@ docker compose -f compose.yml exec -w /opt/app filmony-backend pytest src/tests/
 | Reverse proxy | Nginx |
 | Уведомления в реальном времени | SSE |
 | Фронтенд | React + @telegram-apps/telegram-ui + **lucide-react** (иконки) + Vite + TypeScript |
-
-Подробнее про ленту, `ReactionStrip`, `IconButton` и центрирование иконок: **[`docs/frontend/ui-conventions.md`](../../docs/frontend/ui-conventions.md)**.
 | Интеграция | Telegram Bot API, Kinopoisk API Unofficial |
+
+Подробнее про ленту, `ReactionStrip`, `IconButton` и центрирование иконок: **[`docs/frontend/ui-conventions.md`](../docs/frontend/ui-conventions.md)**.
 
 ## 5. Основной функционал
 
