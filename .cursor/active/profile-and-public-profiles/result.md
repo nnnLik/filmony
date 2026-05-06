@@ -42,4 +42,4 @@
 Дополнения к экранам профиля и общему UI мини-приложения зафиксированы в памяти проекта:
 
 - `.cursor/memory/features/telegram-mini-app-ui.md` — палитра, навбар, кеш auth/профиля, `/profile/edit`, копирование публичной ссылки, `.filmony-text-panel`.
-- Запись в `.cursor/memory/logs/action-log.md` (slug `telegram-mini-app-ui`, метка времени 2026-05-06T22:00:00Z).
+- Запись в `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md` (slug `telegram-mini-app-ui`, метка времени 2026-05-06T22:00:00Z).

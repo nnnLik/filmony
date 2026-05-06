@@ -11,6 +11,8 @@ export type MyProfile = {
   bio: string | null
   cards_count: number
   friends_count: number
+  followers_count?: number
+  following_count?: number
 }
 
 export type PublicProfile = {
@@ -24,6 +26,26 @@ export type PublicProfile = {
   bio: string | null
   cards_count: number
   friends_count: number
+  followers_count?: number
+  following_count?: number
+}
+
+export type SubscriptionListType = 'followers' | 'following' | 'both'
+export type SubscriptionRelationType = 'follower' | 'following'
+
+export type SubscriptionListItem = {
+  id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+  relation_type: SubscriptionRelationType
+}
+
+export type SubscriptionListResponse = {
+  items: SubscriptionListItem[]
 }
 
 export type MovieCardPage = {

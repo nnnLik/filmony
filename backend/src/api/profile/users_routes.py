@@ -20,7 +20,6 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
-from services.profile.get_public_user_by_slug import GetPublicUserBySlugService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_user_movie_cards import ListUserMovieCardsService
 from services.subscriptions.create_user_subscription import (
@@ -66,21 +65,6 @@ async def _public_profile_or_404(
         raise _not_found()
     counts = await GetUserProfileCountsService(db).execute(target.id)
     return build_public_profile_response(target, counts)
-
-
-@router.get(
-    '/by-slug/{slug}',
-    response_model=PublicProfileResponse,
-    summary='Публичный профиль по slug',
-    description=_PRIVACY_DOC,
-)
-async def get_user_by_slug(
-    slug: str,
-    _viewer: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> PublicProfileResponse:
-    user = await GetPublicUserBySlugService(db).execute(slug)
-    return await _public_profile_or_404(user, db)
 
 
 @router.get(

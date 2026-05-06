@@ -9,7 +9,7 @@ alwaysApply: true
 - Feature request source: `.cursor/features/{feature-slug}/feature.md`.
 - Planning workspace: `.cursor/active/{feature-slug}/`.
 - Final project docs: `docs/features/{feature-slug}.md`.
-- Persistent memory log: `.cursor/memory/logs/action-log.md`.
+- Persistent memory log: index `.cursor/memory/logs/action-log.md` (фрагменты с записями — отдельные `.md` в той же папке, ссылки в индексе).
 - Optional feature memory: `.cursor/memory/features/{feature-slug}.md`.
 
 ## Docker-first execution
@@ -27,7 +27,7 @@ alwaysApply: true
    - verification steps and outcomes,
    - known limitations and next steps.
 5. Publish final feature documentation to `docs/features/{feature-slug}.md`.
-6. Append a concise action entry to `.cursor/memory/logs/action-log.md` for every meaningful action.
+6. Append a concise action entry to the relevant action-log fragment under `.cursor/memory/logs/` (см. индекс `action-log.md`) for every meaningful action.
 
 ## Action Log Requirements
 - Every entry must include timestamp, feature slug, action type, summary, and file links.

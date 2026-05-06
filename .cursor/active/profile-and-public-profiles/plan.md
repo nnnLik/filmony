@@ -17,7 +17,7 @@
 3. API: роуты под `/api/me/profile` и `/api/users/...`; подключение в `api/router.py`.
 4. Тесты: `backend/src/tests/api/test_profile_routes.py` (auth, валидация, 404, пустые карточки).
 5. Фронт: `react-router-dom`, `@telegram-apps/telegram-ui`, страницы и API-клиент с `credentials: 'include'`.
-6. Документация: `docs/features/profile-and-public-profiles.md`; артефакты `.cursor/active/...`; запись в `action-log.md`.
+6. Документация: `docs/features/profile-and-public-profiles.md`; артефакты `.cursor/active/...`; запись во фрагмент action-log (индекс `action-log.md`).
 
 ## Files Expected To Change
 - `backend/src/migrations/versions/110da8652616_enchant_user.py`

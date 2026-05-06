@@ -1,6 +1,6 @@
 import { Avatar, Button, Cell, List, Section, Title } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile, getUserCards } from '../api/profileApi'
@@ -8,9 +8,12 @@ import type { MovieCardPage, MyProfile, PublicProfile } from '../api/profileType
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
-import { publicProfilePageUrl } from '../lib/publicProfileUrl'
 
 type ProfileMainTab = 'movies' | 'stats'
+
+function shownCount(value: number | undefined): string {
+  return typeof value === 'number' ? String(value) : '0'
+}
 
 function toPublicShape(p: MyProfile): PublicProfile {
   return {
@@ -24,11 +27,14 @@ function toPublicShape(p: MyProfile): PublicProfile {
     bio: p.bio,
     cards_count: p.cards_count,
     friends_count: p.friends_count,
+    followers_count: p.followers_count,
+    following_count: p.following_count,
   }
 }
 
 export function ProfilePage() {
   const auth = useAuthStatus()
+  const navigate = useNavigate()
   const initialBundle = useMemo(() => readMyProfileBundleCache(), [])
 
   const [mainTab, setMainTab] = useState<ProfileMainTab>('movies')
@@ -37,15 +43,6 @@ export function ProfilePage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [cardsError, setCardsError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [copyToast, setCopyToast] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (copyToast == null) {
-      return
-    }
-    const t = window.setTimeout(() => setCopyToast(null), 2200)
-    return () => window.clearTimeout(t)
-  }, [copyToast])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -114,19 +111,6 @@ export function ProfilePage() {
     }
   }, [profile, myCards])
 
-  async function copyPublicLink() {
-    if (profile == null) {
-      return
-    }
-    const url = publicProfilePageUrl(profile.profile_slug)
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopyToast('Ссылка скопирована')
-    } catch {
-      setCopyToast('Не удалось скопировать')
-    }
-  }
-
   if (auth.kind === 'loading') {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
@@ -181,8 +165,6 @@ export function ProfilePage() {
   const pub = toPublicShape(profile)
   const shownName = displayNameFromProfile(pub)
   const canLoadMore = Boolean(myCards?.next_cursor)
-  const publicUrl = publicProfilePageUrl(profile.profile_slug)
-
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
@@ -209,21 +191,28 @@ export function ProfilePage() {
             {shownName}
           </Title>
           <p className="mt-1 font-mono text-[11px] text-(--tgui--hint_color)">@{profile.profile_slug}</p>
-          <button
-            type="button"
-            className="filmony-text-panel mt-3 w-full max-w-sm cursor-pointer text-left transition-opacity active:opacity-80"
-            onClick={() => void copyPublicLink()}
-          >
-            <span className="block text-[10px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">
-              Публичная ссылка · нажмите, чтобы скопировать
-            </span>
-            <span className="mt-1 block break-all font-mono text-xs leading-snug text-(--tgui--link_color)">
-              {publicUrl}
-            </span>
-          </button>
-          <Button mode="gray" className="mt-3" disabled>
-            {profile.friends_count} друзей
-          </Button>
+          <div className="mt-4 grid w-full max-w-sm grid-cols-3 gap-2">
+            <button
+              type="button"
+              className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
+              onClick={() => void navigate('/profile/subscriptions?tab=followers')}
+            >
+              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.followers_count)}</span>
+              <span className="text-[11px] text-(--tgui--hint_color)">подписчиков</span>
+            </button>
+            <button
+              type="button"
+              className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
+              onClick={() => void navigate('/profile/subscriptions?tab=following')}
+            >
+              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.following_count)}</span>
+              <span className="text-[11px] text-(--tgui--hint_color)">подписок</span>
+            </button>
+            <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
+              <span className="block text-lg font-semibold tabular-nums">{profile.cards_count}</span>
+              <span className="text-[11px] text-(--tgui--hint_color)">фильмов</span>
+            </div>
+          </div>
         </div>
 
         {profile.bio ? (
@@ -321,14 +310,6 @@ export function ProfilePage() {
         ) : null}
       </main>
 
-      {copyToast != null ? (
-        <div
-          role="status"
-          className="fixed bottom-24 left-1/2 z-50 max-w-[min(90vw,20rem)] -translate-x-1/2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_95%,transparent)] px-4 py-2.5 text-center text-sm text-(--tgui--text_color) shadow-lg backdrop-blur-md"
-        >
-          {copyToast}
-        </div>
-      ) : null}
     </div>
   )
 }

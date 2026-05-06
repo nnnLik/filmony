@@ -1,4 +1,4 @@
-import { Button, Input } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, Input, Title } from '@telegram-apps/telegram-ui'
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -6,7 +6,7 @@ import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile, patchMyProfile } from '../api/profileApi'
 import type { MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
-import { displayNameFromProfile } from '../lib/profileDisplay'
+import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
 function toPublicShape(p: MyProfile): PublicProfile {
@@ -36,7 +36,6 @@ export function ProfileEditPage() {
 
   const [displayName, setDisplayName] = useState(() => cached?.profile.display_name ?? '')
   const [bio, setBio] = useState(() => cached?.profile.bio ?? '')
-  const [slug, setSlug] = useState(() => cached?.profile.profile_slug ?? '')
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -52,7 +51,6 @@ export function ProfileEditPage() {
         setProfile(p)
         setDisplayName(p.display_name ?? '')
         setBio(p.bio ?? '')
-        setSlug(p.profile_slug)
         setLoadError(null)
       } catch (e) {
         if (!alive) {
@@ -80,10 +78,8 @@ export function ProfileEditPage() {
       const next = await patchMyProfile({
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
-        profile_slug: slug.trim(),
       })
       setProfile(next)
-      setSlug(next.profile_slug)
       const bundle = readMyProfileBundleCache()
       writeMyProfileBundleCache(next, bundle?.cards ?? null)
       void navigate('/profile')
@@ -170,6 +166,14 @@ export function ProfileEditPage() {
       </header>
 
       <main className="px-4 py-6">
+        <div className="mb-5 flex flex-col items-center text-center">
+          <Avatar src={profile.photo_url ?? undefined} acronym={profileInitials(pub)} size={72} />
+          <Title className="mt-3" level="2" weight="2">
+            {displayNameFromProfile(pub)}
+          </Title>
+          <p className="mt-1 font-mono text-xs text-(--tgui--hint_color)">@{profile.profile_slug}</p>
+        </div>
+
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="filmony-text-panel flex flex-col gap-3">
             <Input
@@ -190,12 +194,6 @@ export function ProfileEditPage() {
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
               />
             </div>
-            <Input
-              header="Публичный адрес (/u/…)"
-              placeholder="например, kino-ivan"
-              value={slug}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
-            />
           </div>
           {saveError != null ? (
             <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{saveError}</p>

@@ -6,6 +6,7 @@ import { FeedPage } from './pages/FeedPage'
 import { ProfileEditPage } from './pages/ProfileEditPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
+import { SubscriptionsPage } from './pages/SubscriptionsPage'
 
 export function AppRoutes() {
   return (
@@ -15,8 +16,10 @@ export function AppRoutes() {
         <Route path="cards/new" element={<CreateCardPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<ProfileEditPage />} />
+        <Route path="profile/subscriptions" element={<SubscriptionsPage />} />
       </Route>
-      <Route path="/u/:identifier" element={<PublicProfilePage />} />
+      <Route path="/u/:userId" element={<PublicProfilePage />} />
+      <Route path="/u/:userId/subscriptions" element={<SubscriptionsPage />} />
     </Routes>
   )
 }

@@ -1,51 +1,62 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-argument */
 import { Button, Cell, List, Section } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { getPublicProfileById, getPublicProfileBySlug, getUserCards } from '../api/profileApi'
+import {
+  getMyProfile,
+  getPublicProfileById,
+  getUserCards,
+  getUserSubscriptions,
+  subscribeToUser,
+  unsubscribeFromUser,
+} from '../api/profileApi'
 import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-
-function isUuid(s: string) {
-  return UUID_RE.test(s)
+function shownCount(value: number | undefined): string {
+  return typeof value === 'number' ? String(value) : '0'
 }
 
-function decodeRouteIdentifier(raw: string | undefined): string {
-  if (raw == null || raw === '') {
-    return ''
-  }
-  try {
-    return decodeURIComponent(raw)
-  } catch {
-    return raw
-  }
-}
+const loadMyProfile = getMyProfile as () => Promise<{ id: string }>
+const loadPublicProfileById = getPublicProfileById as (userId: string) => Promise<PublicProfile>
+const loadUserCards = getUserCards as (
+  userId: string,
+  params: { cursor?: string | null; limit?: number },
+) => Promise<MovieCardPage>
+const loadUserSubscriptions = getUserSubscriptions as (
+  userId: string,
+  type: 'followers' | 'following' | 'both',
+) => Promise<{ items: Array<{ id: string }> }>
+const followUser = subscribeToUser as (userId: string) => Promise<void>
+const unfollowUser = unsubscribeFromUser as (userId: string) => Promise<void>
 
 export function PublicProfilePage() {
-  const { identifier: rawIdentifier } = useParams<{ identifier?: string }>()
-  const decodedId = useMemo(() => decodeRouteIdentifier(rawIdentifier), [rawIdentifier])
+  const { userId } = useParams<{ userId?: string }>()
+  const resolvedUserId = useMemo(() => decodeURIComponent(userId ?? ''), [userId])
   const auth = useAuthStatus()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [cards, setCards] = useState<MovieCardPage | null>(null)
   const [cardsError, setCardsError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [myUserId, setMyUserId] = useState<string | null>(null)
+  const [isFollowing, setIsFollowing] = useState<boolean>(false)
+  const [followBusy, setFollowBusy] = useState(false)
   const prevRouteId = useRef<string | null>(null)
 
   useEffect(() => {
-    if (auth.kind !== 'ready' || decodedId === '') {
+    if (auth.kind !== 'ready' || resolvedUserId === '') {
       return
     }
-    if (prevRouteId.current != null && prevRouteId.current !== decodedId) {
+    if (prevRouteId.current != null && prevRouteId.current !== resolvedUserId) {
       setProfile(null)
       setCards(null)
     }
-    prevRouteId.current = decodedId
+    prevRouteId.current = resolvedUserId
     let alive = true
     void (async () => {
       await Promise.resolve()
@@ -56,14 +67,27 @@ export function PublicProfilePage() {
       setCards(null)
       setCardsError(null)
       try {
-        const p = isUuid(decodedId)
-          ? await getPublicProfileById(decodedId)
-          : await getPublicProfileBySlug(decodedId)
+        const me = await loadMyProfile()
+        if (!alive) {
+          return
+        }
+        setMyUserId(me.id)
+
+        const p = await loadPublicProfileById(resolvedUserId)
         if (!alive) {
           return
         }
         setProfile(p)
-        const page = await getUserCards(p.id, { limit: 20 })
+        if (p.id === me.id) {
+          setIsFollowing(false)
+        } else {
+          const following = await loadUserSubscriptions(me.id, 'following')
+          if (!alive) {
+            return
+          }
+          setIsFollowing(following.items.some((item) => item.id === p.id))
+        }
+        const page = await loadUserCards(p.id, { limit: 20 })
         if (!alive) {
           return
         }
@@ -84,7 +108,7 @@ export function PublicProfilePage() {
     return () => {
       alive = false
     }
-  }, [auth.kind, decodedId])
+  }, [auth.kind, resolvedUserId])
 
   const loadMoreCards = useCallback(async () => {
     if (profile == null || cards?.next_cursor == null || cards.next_cursor === '') {
@@ -93,7 +117,7 @@ export function PublicProfilePage() {
     setLoadingMore(true)
     setCardsError(null)
     try {
-      const page = await getUserCards(profile.id, { cursor: cards.next_cursor, limit: 20 })
+      const page = await loadUserCards(profile.id, { cursor: cards.next_cursor, limit: 20 })
       setCards((prev) => {
         if (prev == null) {
           return page
@@ -115,6 +139,41 @@ export function PublicProfilePage() {
   }, [profile, cards])
 
   const canLoadMore = Boolean(cards?.next_cursor)
+
+  async function toggleFollowing() {
+    if (profile == null || myUserId == null || profile.id === myUserId) {
+      return
+    }
+    setFollowBusy(true)
+    try {
+      if (isFollowing) {
+        await unfollowUser(profile.id)
+      } else {
+        await followUser(profile.id)
+      }
+      setIsFollowing((prev) => !prev)
+      setProfile((prev) => {
+        if (prev == null) {
+          return prev
+        }
+        if (typeof prev.followers_count !== 'number') {
+          return prev
+        }
+        return {
+          ...prev,
+          followers_count: Math.max(0, prev.followers_count + (isFollowing ? -1 : 1)),
+        }
+      })
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(formatApiDetail(e.detail))
+      } else {
+        setError(e instanceof Error ? e.message : 'Не удалось обновить подписку')
+      }
+    } finally {
+      setFollowBusy(false)
+    }
+  }
 
   if (auth.kind === 'loading') {
     return (
@@ -148,7 +207,7 @@ export function PublicProfilePage() {
     )
   }
 
-  if (decodedId === '') {
+  if (resolvedUserId === '') {
     return (
       <div className="px-4 py-10">
         <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">Не указан пользователь.</p>
@@ -191,8 +250,42 @@ export function PublicProfilePage() {
       <div className="mx-auto max-w-md px-4 pt-4">
         <ProfileHeader
           profile={profile}
-          subtitle={`Карточек: ${profile.cards_count} · Друзей: ${profile.friends_count}`}
+          subtitle=""
         />
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
+            onClick={() =>
+              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=followers`)
+            }
+          >
+            <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.followers_count)}</span>
+            <span className="text-[11px] text-(--tgui--hint_color)">подписчиков</span>
+          </button>
+          <button
+            type="button"
+            className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
+            onClick={() =>
+              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=following`)
+            }
+          >
+            <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.following_count)}</span>
+            <span className="text-[11px] text-(--tgui--hint_color)">подписок</span>
+          </button>
+          <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
+            <span className="block text-xl font-semibold tabular-nums">{profile.cards_count}</span>
+            <span className="text-[11px] text-(--tgui--hint_color)">фильмов</span>
+          </div>
+        </div>
+
+        {myUserId != null && profile.id !== myUserId ? (
+          <div className="mb-4 flex justify-center">
+            <Button mode={isFollowing ? 'gray' : 'filled'} disabled={followBusy} onClick={() => void toggleFollowing()}>
+              {followBusy ? '...' : isFollowing ? 'Отписаться' : 'Подписаться'}
+            </Button>
+          </div>
+        ) : null}
 
         {profile.bio ? (
           <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>

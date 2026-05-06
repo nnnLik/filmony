@@ -106,7 +106,7 @@ isProject: false
   - `.cursor/active/<feature-slug>/progress.md`
   - `.cursor/active/<feature-slug>/result.md`
   - `docs/features/<feature-slug>.md`
-  - `.cursor/memory/logs/action-log.md`
+  - фрагмент action-log под `.cursor/memory/logs/` (индекс `action-log.md`)
 
 ## Поток данных
 ```mermaid

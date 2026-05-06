@@ -8,14 +8,14 @@
 
 ### 2026-05-06 (консолидация сессии)
 - Action type: docs
-- Summary: Приведение репозитория к обязательному workflow `.cursor`: `feature.md` по slug, `plan.md`, `progress.md`, `result.md`, `docs/features/telegram-user-base.md`, записи в `action-log.md`.
+- Summary: Приведение репозитория к обязательному workflow `.cursor`: `feature.md` по slug, `plan.md`, `progress.md`, `result.md`, `docs/features/telegram-user-base.md`, записи во фрагмент action-log (см. `action-log.md`).
 - Files:
   - `.cursor/features/telegram-user-base/feature.md`
   - `.cursor/active/telegram-user-base/plan.md`
   - `.cursor/active/telegram-user-base/progress.md`
   - `.cursor/active/telegram-user-base/result.md`
   - `docs/features/telegram-user-base.md`
-  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
 - Verification: визуальная проверка наличия файлов.
 
 ### 2026-05-06 (ранее в сессии)

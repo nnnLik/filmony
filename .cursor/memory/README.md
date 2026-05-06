@@ -4,7 +4,7 @@
 This folder stores persistent execution memory so every feature has a traceable history.
 
 ## Mandatory Updates
-- Append every meaningful action to `.cursor/memory/logs/action-log.md`.
+- Append every meaningful action to the appropriate fragment under `.cursor/memory/logs/` (индекс и ссылки: `action-log.md`).
 - Keep per-feature notes in `.cursor/memory/features/<feature-slug>.md` when decisions are non-trivial.
 - Reference changed files with repository paths.
 - Include verification evidence for behavior-changing actions.

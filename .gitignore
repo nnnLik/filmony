@@ -46,7 +46,6 @@ frontend/.vite/
 
 # --- Логи и временные файлы ---
 *.log
-logs/
 tmp/
 temp/
 *.tmp

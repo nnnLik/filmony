@@ -15,7 +15,6 @@ from services.subscriptions.list_user_subscriptions import (
 class ProfileUpdateRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=120)
     bio: str | None = Field(default=None, max_length=500)
-    profile_slug: str | None = Field(default=None, min_length=3, max_length=32)
 
     model_config = ConfigDict(extra='forbid')
 

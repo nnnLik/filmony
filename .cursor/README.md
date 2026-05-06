@@ -10,7 +10,7 @@ Create `.cursor/active/<feature-slug>/plan.md` from `.cursor/active/templates/pl
 
 ## 3) Execute And Log
 - Update `.cursor/active/<feature-slug>/progress.md` after each meaningful action.
-- Append the same action to `.cursor/memory/logs/action-log.md`.
+- Append the same action to the relevant fragment under `.cursor/memory/logs/` (индекс: `action-log.md`).
 
 ## 4) Finalize
 - Write `.cursor/active/<feature-slug>/result.md`.

@@ -54,32 +54,6 @@ async def test_patch_my_profile_text_fields(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_patch_my_profile_slug(async_client: AsyncClient) -> None:
-    await _login(async_client, telegram_user_id=504)
-    r = await async_client.patch('/api/me/profile', json={'profile_slug': 'good-slug-4u'})
-    assert r.status_code == 200
-    assert r.json()['profile_slug'] == 'good-slug-4u'
-
-
-@pytest.mark.asyncio
-async def test_patch_my_profile_invalid_slug(async_client: AsyncClient) -> None:
-    await _login(async_client, telegram_user_id=505)
-    r = await async_client.patch('/api/me/profile', json={'profile_slug': 'NO'})
-    assert r.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_patch_my_profile_slug_conflict(async_client: AsyncClient) -> None:
-    await _login(async_client, telegram_user_id=506)
-    r1 = await async_client.patch('/api/me/profile', json={'profile_slug': 'taken-slug-506'})
-    assert r1.status_code == 200
-
-    await _login(async_client, telegram_user_id=507)
-    r2 = await async_client.patch('/api/me/profile', json={'profile_slug': 'taken-slug-506'})
-    assert r2.status_code == 409
-
-
-@pytest.mark.asyncio
 async def test_patch_my_profile_rejects_unknown_field(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=508)
     r = await async_client.patch('/api/me/profile', json={'hacker_field': 'x'})
@@ -87,20 +61,14 @@ async def test_patch_my_profile_rejects_unknown_field(async_client: AsyncClient)
 
 
 @pytest.mark.asyncio
-async def test_public_profile_by_id_and_slug(async_client: AsyncClient) -> None:
+async def test_public_profile_by_id(async_client: AsyncClient) -> None:
     me = await _login(async_client, telegram_user_id=509)
-    await async_client.patch('/api/me/profile', json={'profile_slug': 'public-509'})
-
     await _login(async_client, telegram_user_id=510)
 
     by_id = await async_client.get(f'/api/users/{me["id"]}')
     assert by_id.status_code == 200
-    assert by_id.json()['profile_slug'] == 'public-509'
+    assert by_id.json()['profile_slug']
     assert 'telegram_user_id' not in by_id.json()
-
-    by_slug = await async_client.get('/api/users/by-slug/public-509')
-    assert by_slug.status_code == 200
-    assert by_slug.json()['id'] == me['id']
 
 
 @pytest.mark.asyncio

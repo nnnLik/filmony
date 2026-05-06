@@ -24,4 +24,4 @@ alwaysApply: true
 - Follow `.cursor/rules/feature-delivery-workflow.mdc` for every frontend feature task.
 - Keep `.cursor/active/{feature-slug}/plan.md`, `progress.md`, and `result.md` updated.
 - Publish final outcome in `docs/features/{feature-slug}.md`.
-- Append every meaningful frontend action to `.cursor/memory/logs/action-log.md` with changed file links.
+- Append every meaningful frontend action to the appropriate action-log fragment under `.cursor/memory/logs/` (индекс `action-log.md`) with changed file links.

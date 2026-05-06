@@ -13,11 +13,7 @@ from api.profile.schemas import (
 from core.database import get_db
 from deps.auth import CurrentUser
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
-from services.profile.update_my_profile import (
-    ProfileSlugInvalidError,
-    ProfileSlugTakenError,
-    UpdateMyProfileService,
-)
+from services.profile.update_my_profile import UpdateMyProfileService
 
 router = APIRouter(prefix='/me', tags=['profile'])
 
@@ -52,13 +48,6 @@ async def patch_my_profile(
 
     try:
         updated = await UpdateMyProfileService(db).execute(user.id, patch)
-    except ProfileSlugInvalidError:
-        raise HTTPException(
-            status_code=422,
-            detail='profile_slug must be 3–32 chars: lowercase letters, digits, non-leading/trailing hyphen',
-        ) from None
-    except ProfileSlugTakenError:
-        raise HTTPException(status_code=409, detail='profile_slug already taken') from None
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
