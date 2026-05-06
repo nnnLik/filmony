@@ -1,5 +1,10 @@
 # Feature Request
 
+## Canonical scope (наследие 007 / 008)
+
+- Этот slug **`feed-recommendation-engine`** — **единая** продуктово-техническая спека **ленты**: подписки, подписчики, личный сигнал, discovery.
+- Документы **`007-feed-friends-and-stranger-inserts`** и **`008-doppelganger-recommendations`** помечены как **исторические / фазовые**: друзья заменены на **подписки**; «двойники» при реализации усиливают **`personal_affinity`** и связанный discovery, без отдельного дублирующего описания ленты. Канон для команды: этот файл + `docs/features/feed-recommendation-engine.md`.
+
 ## Metadata
 - Feature slug: `feed-recommendation-engine`
 - Author: Codex

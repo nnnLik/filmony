@@ -73,6 +73,8 @@ async def test_my_profile_returns_slug_and_counts(async_client: AsyncClient) -> 
     assert body['profile_slug'].startswith('u')
     assert body['cards_count'] == 0
     assert body['friends_count'] == 0
+    assert body['followers_count'] == 0
+    assert body['following_count'] == 0
 
 
 @pytest.mark.asyncio
@@ -146,10 +148,34 @@ async def test_list_user_cards_unknown_user(async_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_create_subscription_and_list_following(async_client: AsyncClient) -> None:
     target = await _login(async_client, telegram_user_id=514)
-    await _login(async_client, telegram_user_id=515)
+    target_before = await async_client.get('/api/me/profile')
+    assert target_before.json()['followers_count'] == 0
+    assert target_before.json()['following_count'] == 0
+
+    follower = await _login(async_client, telegram_user_id=515)
 
     create = await async_client.post(f'/api/users/{target["id"]}/subscriptions')
     assert create.status_code == 204
+
+    me_profile = await async_client.get('/api/me/profile')
+    assert me_profile.status_code == 200
+    assert me_profile.json()['following_count'] == 1
+    assert me_profile.json()['followers_count'] == 0
+
+    await _login(async_client, telegram_user_id=514)
+    target_after = await async_client.get('/api/me/profile')
+    assert target_after.json()['followers_count'] == 1
+    assert target_after.json()['following_count'] == 0
+
+    pub = await async_client.get(f'/api/users/{target["id"]}')
+    assert pub.status_code == 200
+    assert pub.json()['followers_count'] == 1
+    assert pub.json()['following_count'] == 0
+
+    await _login(async_client, telegram_user_id=515)
+    pub_follower = await async_client.get(f'/api/users/{follower["id"]}')
+    assert pub_follower.json()['following_count'] == 1
+    assert pub_follower.json()['followers_count'] == 0
 
     listed = await async_client.get(
         f'/api/users/{target["id"]}/subscriptions',

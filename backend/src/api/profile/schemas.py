@@ -33,6 +33,8 @@ class MyProfileResponse(BaseModel):
     bio: str | None
     cards_count: int = 0
     friends_count: int = 0
+    followers_count: int = 0
+    following_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,6 +50,8 @@ class PublicProfileResponse(BaseModel):
     bio: str | None
     cards_count: int = 0
     friends_count: int = 0
+    followers_count: int = 0
+    following_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -142,6 +146,8 @@ def build_my_profile_response(user: User, counts: UserProfileCounts) -> MyProfil
         bio=user.bio,
         cards_count=counts.movie_cards,
         friends_count=counts.friends,
+        followers_count=counts.followers_count,
+        following_count=counts.following_count,
     )
 
 
@@ -157,6 +163,8 @@ def build_public_profile_response(user: User, counts: UserProfileCounts) -> Publ
         bio=user.bio,
         cards_count=counts.movie_cards,
         friends_count=counts.friends,
+        followers_count=counts.followers_count,
+        following_count=counts.following_count,
     )
 
 

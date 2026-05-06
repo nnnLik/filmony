@@ -1,5 +1,7 @@
 # 008 — Recommendations via doppelgängers (“двойники”)
 
+> **Статус: сведено к фазе внутри ленты.** Полноценные «двойники» (вектора в Redis, отдельный API соседей, уведомления по двойникам) **не отменены**, но **не дублируют** отдельную продуктовую спеку ленты. Текущий **единый источник правды** по выдаче ленты и смешиванию источников: **[`feed-recommendation-engine`](./feed-recommendation-engine/feature.md)** / **[`docs/features/feed-recommendation-engine.md`](../../docs/features/feed-recommendation-engine.md)**. Слой «двойников» при внедрении логично подключать как усиление канала **`personal_affinity`** и/или **discovery**, плюс будущие хуки к `telegram-engagement-notifications`.
+
 ## Metadata
 
 | Field | Value |

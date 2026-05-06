@@ -18,7 +18,6 @@ import type {
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
-import { publicProfilePageUrl } from '../lib/publicProfileUrl'
 
 type SubscriptionsTab = 'following' | 'followers'
 
@@ -71,15 +70,6 @@ export function SubscriptionsPage() {
   const [loading, setLoading] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [copyToast, setCopyToast] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (copyToast == null) {
-      return
-    }
-    const t = window.setTimeout(() => setCopyToast(null), 2200)
-    return () => window.clearTimeout(t)
-  }, [copyToast])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -168,9 +158,7 @@ export function SubscriptionsPage() {
     }
   }, [auth.kind, targetProfile, tab])
 
-  const isOwnTarget = myProfile != null && targetProfile != null && myProfile.id === targetProfile.id
   const backTo = userId ? `/u/${encodeURIComponent(resolvedUserId)}` : '/profile'
-  const shareUrl = isOwnTarget && targetProfile != null ? publicProfilePageUrl(targetProfile.id) : null
 
   function switchTab(nextTab: SubscriptionsTab) {
     setSearchParams((prev) => {
@@ -209,18 +197,6 @@ export function SubscriptionsPage() {
       }
     } finally {
       setActionLoadingId(null)
-    }
-  }
-
-  async function copyShareUrl() {
-    if (shareUrl == null) {
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopyToast('Ссылка скопирована')
-    } catch {
-      setCopyToast('Не удалось скопировать')
     }
   }
 
@@ -314,22 +290,6 @@ export function SubscriptionsPage() {
           <p className="mt-1 font-mono text-xs text-(--tgui--hint_color)">@{targetProfile.profile_slug}</p>
         </div>
 
-        {isOwnTarget && shareUrl != null ? (
-          <section className="filmony-text-panel mb-5 space-y-3">
-            <p className="text-sm text-(--tgui--hint_color)">
-              Поделись ссылкой, чтобы пользователь открыл твой профиль и смог подписаться.
-            </p>
-            <div className="flex gap-2">
-              <div className="min-w-0 flex-1 rounded-xl bg-(--tgui--tertiary_bg_color) px-3 py-2 font-mono text-xs text-(--tgui--text_color)">
-                <span className="block truncate">{shareUrl}</span>
-              </div>
-              <Button mode="filled" size="s" onClick={() => void copyShareUrl()}>
-                Копировать
-              </Button>
-            </div>
-          </section>
-        ) : null}
-
         <div className="mb-4 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
           <button
             type="button"
@@ -402,15 +362,6 @@ export function SubscriptionsPage() {
           ) : null}
         </Section>
       </main>
-
-      {copyToast != null ? (
-        <div
-          role="status"
-          className="fixed bottom-24 left-1/2 z-50 max-w-[min(90vw,20rem)] -translate-x-1/2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_95%,transparent)] px-4 py-2.5 text-center text-sm text-(--tgui--text_color) shadow-lg backdrop-blur-md"
-        >
-          {copyToast}
-        </div>
-      ) : null}
     </div>
   )
 }

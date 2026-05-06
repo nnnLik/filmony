@@ -1,5 +1,7 @@
 # 006 — Comments and likes
 
+> **Статус: частично.** **Комментарии** реализованы (см. `docs/features/movie-card-comments.md` и telegram-like при необходимости). Классические **лайки** и стандартные emoji-реакции мессенджеров **не** являются целевой моделью: вместо них — **кастомные картинки-реакции** из каталога (админ задаёт ассеты, хранение в БД/URL). Актуальная спека: [`movie-card-custom-reactions/feature.md`](./movie-card-custom-reactions/feature.md) и `docs/features/movie-card-custom-reactions.md`.
+
 ## Metadata
 
 | Field | Value |

@@ -1,5 +1,7 @@
 # 007 — Feed (friends + “вкидки”)
 
+> **Статус: заменено.** Социальный контур — **подписки/подписчики**, не отдельные «друзья». Лента и рекомендации описаны в едином документе: **[`feed-recommendation-engine/feature.md`](./feed-recommendation-engine/feature.md)** и канонично в **[`docs/features/feed-recommendation-engine.md`](../../docs/features/feed-recommendation-engine.md)** (источники `subscriptions`, `subscribers`, `personal_affinity`, `discovery`). Этот файл сохранён для истории и ссылок из старых планов.
+
 ## Metadata
 
 | Field | Value |

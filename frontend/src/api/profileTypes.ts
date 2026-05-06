@@ -11,8 +11,8 @@ export type MyProfile = {
   bio: string | null
   cards_count: number
   friends_count: number
-  followers_count?: number
-  following_count?: number
+  followers_count: number
+  following_count: number
 }
 
 export type PublicProfile = {
@@ -26,8 +26,8 @@ export type PublicProfile = {
   bio: string | null
   cards_count: number
   friends_count: number
-  followers_count?: number
-  following_count?: number
+  followers_count: number
+  following_count: number
 }
 
 export type SubscriptionListType = 'followers' | 'following' | 'both'

@@ -1,5 +1,7 @@
 # 003 — Friends (requests and list)
 
+> **Статус: не планируется.** Социальный граф строится на **подписках** (`user-subscriptions`, см. `docs/features/user-subscriptions.md`). Заявки в друзья и отдельная модель friendship **не внедряются**. Документ оставлен как историческая спека; новые задачи не заводить от него.
+
 ## Metadata
 
 | Field | Value |

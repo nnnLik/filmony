@@ -1,0 +1,22 @@
+# 2026-05-07T12:00:00Z
+
+- Feature slug: `roadmap-consolidation` (несколько артефактов)
+- Action type: docs
+- Summary: Консолидация дорожной карты: отмена 003 (подписки), закрытие 004 с `docs/features/kinopoisk-movie-by-link.md`, уточнение 006 + новая фича `movie-card-custom-reactions`, пометки 007/008 как legacy относительно `feed-recommendation-engine`.
+- Files:
+  - `.cursor/features/003-friends-requests-and-list.md`
+  - `.cursor/features/004-kinopoisk-movie-by-link.md`
+  - `.cursor/features/006-comments-and-likes.md`
+  - `.cursor/features/007-feed-friends-and-stranger-inserts.md`
+  - `.cursor/features/008-doppelganger-recommendations.md`
+  - `.cursor/features/feed-recommendation-engine/feature.md`
+  - `.cursor/features/movie-card-custom-reactions/feature.md`
+  - `.cursor/active/movie-card-custom-reactions/plan.md`
+  - `.cursor/active/movie-card-custom-reactions/progress.md`
+  - `.cursor/active/movie-card-custom-reactions/result.md`
+  - `.cursor/active/feed-recommendation-engine/progress.md`
+  - `docs/features/kinopoisk-movie-by-link.md`
+  - `docs/features/movie-card-custom-reactions.md`
+  - `docs/features/feed-recommendation-engine.md`
+- Verification:
+  - Перекрёстные ссылки между legacy 007/008 и каноном ленты проверены вручную при редактировании.

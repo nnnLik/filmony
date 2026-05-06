@@ -27,6 +27,11 @@ export function readMyProfileBundleCache(): MyProfileBundle | null {
       sessionStorage.removeItem(MY_PROFILE_BUNDLE_STORAGE_KEY)
       return null
     }
+    parsed.profile = {
+      ...parsed.profile,
+      followers_count: parsed.profile.followers_count ?? 0,
+      following_count: parsed.profile.following_count ?? 0,
+    }
     return parsed
   } catch {
     try {
