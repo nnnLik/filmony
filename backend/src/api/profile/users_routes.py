@@ -92,12 +92,12 @@ async def list_user_cards(
     _viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = None,
-    limit: int = Query(default=settings.profile.page_size_default, ge=1),
+    limit: int = Query(default=20, ge=1),
 ) -> MovieCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
-    cap = min(limit, settings.profile.page_size_max)
+    cap = min(limit, 50)
     page = await ListUserMovieCardsService(db).execute(user_id, cursor, cap)
     return build_movie_card_page_response(page)
 

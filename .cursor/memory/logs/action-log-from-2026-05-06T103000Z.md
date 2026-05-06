@@ -108,3 +108,21 @@
   - `backend/src/core/database.py`
   - `backend/src/tests/conftest.py`
 - Verification: ожидается `make backend-test` в контейнере (см. `.cursor/tech.md`).
+
+## 2026-05-06T04:58:00Z
+- Feature slug: `movie-card-create-flow`
+- Action type: code | docs
+- Summary: Лента упрощена; экран создания карточки переработан в нумерованный wizard из 5 шагов с confirm-этапом после resolve URL, понятными ошибками парсинга Кинопоиска, этапом рейтинга+chips-тегов, этапом custom tags и mock-этапом перед финальным созданием карточки.
+- Files:
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/pages/FeedPage.tsx`
+  - `.cursor/active/movie-card-create-flow/plan.md`
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `.cursor/active/movie-card-create-flow/result.md`
+  - `docs/features/movie-card-create-flow.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - `ReadLints` по `frontend/src/pages/CreateCardPage.tsx`, `frontend/src/pages/FeedPage.tsx` — ошибок нет.
+- Links:
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `docs/features/movie-card-create-flow.md`

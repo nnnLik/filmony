@@ -20,3 +20,11 @@
 - `make backend-test-one target=src/tests/api/test_cards_routes.py`
 - `make backend-test-one target=src/tests/api/test_profile_routes.py`
 - `cd frontend && npm run lint && npm run build`
+
+## Iteration: wizard UX refresh (2026-05-06)
+1. Упростить `FeedPage`: убрать временный текст и оставить лаконичный CTA на создание карточки.
+2. Перестроить `CreateCardPage` в нумерованный wizard из 5 этапов (`URL -> confirmation -> rating/tags -> custom tags -> mock sharing`).
+3. На шаге URL использовать существующий backend `POST /api/films/resolve`; ошибки парсинга показывать понятным текстом на том же экране.
+4. На шаге подтверждения показать постер и имя фильма, добавить развилку «Это тот фильм?»: при «нет» вернуть к шагу 1.
+5. На шаге оценки сохранить текущую шкалу 1..10 с шагом 0.5 и оформить контекстные теги цветными прямоугольными chips.
+6. Финал: мок-экран про будущий sharing, кнопка `Готово`, создание карточки через `POST /api/cards`, переход в `/profile`.

@@ -55,3 +55,18 @@
   - `make backend-test-one target=src/tests/api/test_cards_routes.py`
   - `make backend-test`
   - `cd frontend && npm run lint && npm run build`
+
+## Iteration update (wizard UX refresh, 2026-05-06)
+- `CreateCardPage` переработан в нумерованный flow из 5 шагов:
+  1) ссылка на Кинопоиск, 2) подтверждение фильма, 3) оценка и контекст, 4) свои теги, 5) mock sharing + `Готово`.
+- На шаге resolve добавлены более понятные пользовательские тексты для ошибок парсинга URL (`empty url`, неверный домен, id не найден).
+- На шаге подтверждения показываются постер/название фильма и выбор «Да, далее» / «Нет, другой фильм».
+- Шаг оценки оформлен с центральным рейтингом 1..10 (шаг 0.5) и цветными прямоугольными chips для контекстных тегов.
+- Финальный шаг оставляет прежнюю бизнес-логику: `POST /api/cards` и переход в `/profile`.
+
+### Additional changed files
+- `frontend/src/pages/CreateCardPage.tsx`
+- `frontend/src/pages/FeedPage.tsx`
+
+### Additional verification
+- `ReadLints` по `frontend/src/pages/CreateCardPage.tsx`, `frontend/src/pages/FeedPage.tsx` — ошибок нет.

@@ -40,3 +40,13 @@
   - `ReadLints` по `frontend/src` — ошибок нет.
 - Notes:
   - Команды `npm run lint`/`npm run build` не удалось выполнить из-за пропуска shell-команд средой.
+
+### 2026-05-06 04:58
+- Action type: code | refactor
+- Summary: Переделан экран создания карточки в пошаговый wizard (5 этапов) с нумерацией, подтверждением фильма после resolve, дружелюбными ошибками парсинга URL, отдельным этапом оценки и цветных chips-тегов, этапом custom tags и финальным mock-этапом с кнопкой `Готово`.
+- Files:
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/pages/FeedPage.tsx`
+  - `.cursor/active/movie-card-create-flow/plan.md`
+- Verification:
+  - `ReadLints` по `frontend/src/pages/CreateCardPage.tsx`, `frontend/src/pages/FeedPage.tsx` — ошибок нет.
