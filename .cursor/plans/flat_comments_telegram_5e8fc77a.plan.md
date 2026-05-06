@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: verification-docs-logs
     content: Прогнать проверки, заполнить result.md, docs/features и action-log записи
-    status: in_progress
+    status: completed
 isProject: false
 ---
 
