@@ -29,7 +29,6 @@ def _connect_args() -> dict[str, str] | None:
 def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
-        url = settings.database.url
         kwargs: dict[str, Any] = {
             "echo": settings.database.echo,
             "pool_pre_ping": True,
@@ -37,7 +36,10 @@ def get_engine() -> AsyncEngine:
         ca = _connect_args()
         if ca is not None:
             kwargs["connect_args"] = ca
-        _engine = create_async_engine(url, **kwargs)
+        _engine = create_async_engine(
+            settings.database.async_sqlalchemy_url,
+            **kwargs,
+        )
     return _engine
 
 
@@ -51,7 +53,7 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
     return _session_factory
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     factory = get_session_factory()
     async with factory() as session:
         yield session

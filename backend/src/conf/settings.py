@@ -58,6 +58,15 @@ class DatabaseSettings(BaseSettings):
     test_schema: str = Field(default="filmony_test", alias="DATABASE_TEST_SCHEMA")
     echo: bool = Field(False, alias="DATABASE_ECHO")
 
+    @property
+    def async_sqlalchemy_url(self) -> str:
+        u = self.url.strip()
+        if u.startswith("postgresql+asyncpg://"):
+            return u
+        if u.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + u.removeprefix("postgresql://")
+        return u
+
 
 class TelegramAuthSettings(BaseSettings):
     bot_token: str = Field(..., alias="TG_APP_TOKEN")

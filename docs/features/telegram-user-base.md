@@ -16,7 +16,7 @@
 
 ## Конфигурация (env)
 
-- `DATABASE_URL` — только `postgresql+asyncpg://...`
+- `DATABASE_URL` — `postgresql://...` или уже с драйвером `postgresql+asyncpg://...` (в коде для async подставляется asyncpg).
 - `DATABASE_SCHEMA` — схема приложения (в коде: `default_schema`, по умолчанию `public`)
 - `DATABASE_TEST_SCHEMA` — схема для pytest при `ENV=test`
 - `ENV` — `dev` | `prod` | `test` (pytest выставляет `test` в `src/tests/conftest.py` до импорта настроек)

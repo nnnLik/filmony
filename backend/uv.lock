@@ -131,7 +131,7 @@ dev = [
 ]
 prod = [
     { name = "alembic", specifier = "==1.18.4" },
-    { name = "asyncpg", specifier = "==0.31.0" },
+    { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "fastapi", specifier = "==0.136.1" },
     { name = "httpx", specifier = "==0.28.0" },
     { name = "pydantic", specifier = "==2.13.3" },
