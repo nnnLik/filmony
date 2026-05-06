@@ -1,0 +1,72 @@
+export class ApiError extends Error {
+  readonly status: number
+  readonly detail: unknown
+
+  constructor(status: number, detail: unknown) {
+    super(typeof detail === 'string' ? detail : `HTTP ${status}`)
+    this.name = 'ApiError'
+    this.status = status
+    this.detail = detail
+  }
+}
+
+async function readErrorDetail(res: Response): Promise<unknown> {
+  const ct = res.headers.get('content-type') ?? ''
+  if (ct.includes('application/json')) {
+    try {
+      const body = (await res.json()) as { detail?: unknown }
+      return body.detail ?? body
+    } catch {
+      return null
+    }
+  }
+  return await res.text()
+}
+
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(path, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  })
+}
+
+export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(path, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...(init?.method && init.method !== 'GET' && init.method !== 'HEAD'
+        ? { 'Content-Type': 'application/json' }
+        : {}),
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorDetail(res))
+  }
+  return (await res.json()) as T
+}
+
+export async function postJson(path: string, body: unknown): Promise<Response> {
+  return apiFetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export function formatApiDetail(detail: unknown): string {
+  if (detail == null) {
+    return 'Неизвестная ошибка'
+  }
+  if (typeof detail === 'string') {
+    return detail
+  }
+  if (Array.isArray(detail)) {
+    return detail.map((x) => (typeof x === 'object' && x && 'msg' in x ? String((x as { msg: unknown }).msg) : JSON.stringify(x))).join('; ')
+  }
+  return JSON.stringify(detail)
+}

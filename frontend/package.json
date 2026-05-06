@@ -13,9 +13,17 @@
     "@tailwindcss/vite": "^4.2.4",
     "@telegram-apps/sdk": "^3.11.8",
     "@telegram-apps/sdk-react": "^3.3.9",
+    "@telegram-apps/telegram-ui": "^2.1.8",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-router-dom": "^7.9.5",
     "tailwindcss": "^4.2.4"
+  },
+  "overrides": {
+    "@telegram-apps/telegram-ui": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

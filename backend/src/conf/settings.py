@@ -77,12 +77,20 @@ class AuthJwtSettings(BaseSettings):
     session_max_age_seconds: int = Field(604_800, alias='SESSION_MAX_AGE_SECONDS')
 
 
+class ProfileSettings(BaseSettings):
+    """Defaults for public profile movie-card lists (feature profile-and-public-profiles)."""
+
+    page_size_default: int = Field(20, alias='PROFILE_CARDS_PAGE_SIZE_DEFAULT')
+    page_size_max: int = Field(50, alias='PROFILE_CARDS_PAGE_SIZE_MAX')
+
+
 @dataclass
 class Settings:
     app: AppSettings
     database: DatabaseSettings
     telegram: TelegramAuthSettings
     auth_jwt: AuthJwtSettings
+    profile: ProfileSettings
 
     @classmethod
     def build(cls) -> Self:
@@ -91,6 +99,7 @@ class Settings:
             database=DatabaseSettings(),
             telegram=TelegramAuthSettings(),
             auth_jwt=AuthJwtSettings(),
+            profile=ProfileSettings(),
         )
 
 

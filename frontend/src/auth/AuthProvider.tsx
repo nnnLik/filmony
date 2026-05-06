@@ -1,0 +1,86 @@
+import { isTMA, retrieveRawInitData } from '@telegram-apps/sdk'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
+
+import { authTelegram } from '../api/profileApi'
+import { AuthStateContext, type AuthStatus } from './auth-context'
+
+function sdkInitDataRaw(): string {
+  try {
+    const v = retrieveRawInitData()
+    return (typeof v === 'string' ? v : String(v ?? '')).trim()
+  } catch {
+    return ''
+  }
+}
+
+function resolveInitDataRaw(): string {
+  const fromSdk = sdkInitDataRaw()
+  const fromWebApp = window.Telegram?.WebApp?.initData?.trim() ?? ''
+  return fromSdk || fromWebApp
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AuthStatus>(() =>
+    isTMA() ? { kind: 'loading' } : { kind: 'skipped' },
+  )
+
+  useEffect(() => {
+    if (!isTMA()) {
+      return
+    }
+
+    let alive = true
+
+    void (async () => {
+      // Дождаться кадра: после init() и в StrictMode initData в WebApp может появиться не синхронно.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve())
+      })
+      if (!alive) {
+        return
+      }
+
+      const raw = resolveInitDataRaw()
+      if (!raw) {
+        if (alive) {
+          setState({
+            kind: 'error',
+            message: 'Пустой initData — откройте приложение из Telegram.',
+          })
+        }
+        return
+      }
+
+      try {
+        const res = await authTelegram(raw)
+        if (!alive) {
+          return
+        }
+        if (!res.ok) {
+          const t = await res.text()
+          setState({
+            kind: 'error',
+            message: t.trim() || `Ошибка входа (HTTP ${res.status})`,
+          })
+          return
+        }
+        setState({ kind: 'ready' })
+      } catch (e) {
+        if (!alive) {
+          return
+        }
+        setState({
+          kind: 'error',
+          message: e instanceof Error ? e.message : 'Сеть недоступна',
+        })
+      }
+    })()
+
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const value = useMemo(() => state, [state])
+  return <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>
+}

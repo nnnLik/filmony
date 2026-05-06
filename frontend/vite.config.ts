@@ -30,8 +30,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       proxy,
-      host: true,           // 🔑 Слушаем все интерфейсы
-      allowedHosts: true    // 🔑 Отключаем проверку хостов (именно здесь!)
+      host: true,
+      port: 5176,
+      allowedHosts: true
     },
     preview: { proxy },
   }

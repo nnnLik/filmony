@@ -19,6 +19,10 @@ class User(Base):
 
     photo_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
+    profile_slug: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     language_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
     updated_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

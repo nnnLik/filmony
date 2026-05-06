@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
 from services.auth.dto import TelegramWebAppUser
+from services.profile.allocate_default_profile_slug import AllocateDefaultProfileSlugService
 
 
 class UpsertTelegramUserService:
@@ -22,6 +23,7 @@ class UpsertTelegramUserService:
         )
         user = result.scalar_one_or_none()
         if user is None:
+            slug = await AllocateDefaultProfileSlugService(self._session).execute()
             user = User(
                 telegram_user_id=profile.telegram_user_id,
                 username=profile.username,
@@ -29,6 +31,7 @@ class UpsertTelegramUserService:
                 last_name=profile.last_name,
                 photo_url=profile.photo_url,
                 language_code=profile.language_code,
+                profile_slug=slug,
             )
             self._session.add(user)
         else:
@@ -38,6 +41,8 @@ class UpsertTelegramUserService:
             user.photo_url = profile.photo_url
             user.language_code = profile.language_code
             user.updated_at = now
+            if not user.profile_slug:
+                user.profile_slug = await AllocateDefaultProfileSlugService(self._session).execute()
 
         await self._session.commit()
         await self._session.refresh(user)
