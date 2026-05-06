@@ -267,7 +267,7 @@ async def test_get_card_success_surfaces_movie_and_author(async_client: AsyncCli
     assert body['film_title'] == 'Интерстеллар'
     assert 'reactions' in body
     assert body['reactions']['counts'] == []
-    assert body['reactions']['my_reaction_type_id'] is None
+    assert body['reactions']['my_reaction_type_ids'] == []
 
 
 @pytest.mark.asyncio

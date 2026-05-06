@@ -5,12 +5,11 @@
 
 ## Data model
 - **`reaction_type`**: `id`, `created_at`, `label` (опционально), `category_slug` (вкладка пикера), `asset_key` (S3-ключ относительно публичного base, например `reactions/pepe/foo.png`), `image_url` (fallback если base или asset пустые), `sort_order`, `is_active`.
-- **`user_reaction`**: `user_id` → `user`, `reaction_type_id` → `reaction_type` (RESTRICT при удалении типа), `target_kind` (`movie_card` | `movie_card_comment`), `target_id`. Уникальность: одна строка на пару пользователь + цель.
-- **`user_recent_reaction`**: последние выбранные реакции пользователя (`user_id`, `reaction_type_id`, `last_used_at`, unique на пару). Обновляется при успешной установке/смене реакции (не при toggle-off).
+- **`user_reaction`**: несколько строк на пару пользователь + цель с **разными** `reaction_type_id`. Уникальность: **`(user_id, target_kind, target_id, reaction_type_id)`**.
+- **`user_recent_reaction`**: последнее использование типа пользователем (`user_id`, `reaction_type_id`, `last_used_at`, unique на пару). Обновляется при каждом `POST /api/reactions` для данных `reaction_type_id` (постановка и снятие), чтобы блок «Недавние» в каталоге сортировался по активности.
 
-## Behaviour (MVP)
-- Одна реакция пользователя на цель. Повторный `POST` с тем же `reaction_type_id` **снимает** реакцию (toggle).
-- Выбор другого типа из каталога **заменяет** строку (`reaction_type_id` обновляется).
+## Behaviour
+- На одну карточку или комментарий пользователь может поставить **несколько** разных типов реакций; каждый тип **переключается отдельно** (повторный `POST` с тем же `reaction_type_id` снимает только эту реакцию).
 - Self-react разрешён (флаг в `SetOrToggleUserReactionService`).
 - Уведомления в Telegram **вне scope**; хук возможен через комментарий в сервисе после commit.
 
@@ -19,7 +18,7 @@
 - Для прямых публичных URL (без прокси) с path-style клиент собирает: `{REACTION_MEDIA_PUBLIC_BASE_URL}/{asset_key}` (без двойных слешей). Пример base: `http://127.0.0.1:7900/filmony-reactions`. Mini App без LAN к этому адресу: либо **прокси бэкенда**, либо отдельный HTTPS-домен к RustFS на том же origin, что и API.
 - С **прокси** при `RUSTFS_INTERNAL_BASE_URL` и наличии **`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`** у backend (см. `vars/.env.development`): в каталоге API отдаются **постоянные** относительные URL **`/api/reactions/asset/<asset_key>`** (без срока действия). Бэкенд забирает объект из контейнерного RustFS методом **S3 GetObject с SigV4** (не анонимный HTTP GET). Если ключи из env пустые, остаётся вырожденный путь через «голый» `httpx` (тогда при приватном бакете клиент будет получать ошибки загрузки).
 - Если задан только **`REACTION_MEDIA_PUBLIC_BASE_URL`** (без внутреннего URL или без `asset_key`), клиент строит публичные ссылки напрямую к RustFS; для Mini App с телефона обычно неудобно из‑за `127.0.0.1` / приватности бакета — предпочтителен прокси без истечения срока.
-- Сидеры в [`fixtures/reaction_type.sql`](/fixtures/reaction_type.sql) задают **`asset_key`** под объекты, которые можно залить `make sync-reactions-rustfs` или полным циклом с БД (**`ARGS=--sync-db`**, см. [`scripts/sync_reactions_to_rustfs.py`](/scripts/sync_reactions_to_rustfs.py)).
+- Сидеры в [`fixtures/reaction_type.sql`](/fixtures/reaction_type.sql) задают **`asset_key`** под объекты, которые можно залить `make sync-reactions-rustfs` или **`make sync-reactions-rustfs WITH_DB=1`** (см. [`scripts/sync_reactions_to_rustfs.py`](/scripts/sync_reactions_to_rustfs.py)).
 - Политику **анонимного чтения** префикса `reactions/*` в RustFS нужно включать только если вы сознательно раздаёте картинки без прокси; для режима SigV4 из backend она не требуется.
 - Порядок вкладок и каталоги emoji: **`backend/src/const/reaction_packs.py`** (маппинг `category_slug` ↔ папка в `emoji/`).
 
@@ -62,7 +61,7 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
     "counts": [
       { "reaction_type_id": 1, "count": 2, "image_url": "…", "label": "…" }
     ],
-    "my_reaction_type_id": 1
+    "my_reaction_type_ids": [1, 7]
   }
 }
 ```
@@ -82,7 +81,7 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
 **Требование к клиенту:** списки комментариев и replies вызываются **с авторизованной сессией** (как лента).
 
 ## Fixtures
-- Сначала залить объекты в RustFS (и опционально в БД): `make sync-reactions-rustfs` и при нужде `ARGS='--sync-db'` с доступным для хоста `DATABASE_URL`.
+- Сначала залить объекты в RustFS (и опционально в БД): `make sync-reactions-rustfs` или `make sync-reactions-rustfs WITH_DB=1`; при втором после `vars/.env.development` хост Postgres **filmony-postgres:5432** на сборочной машине автоматически меняется на **127.0.0.1:55432** (см. `Makefile`; отключить — `SKIP_DATABASE_URL_HOST_REWRITE=1`).
 - После миграций: `fixtures/reaction_type.sql` или ручные `INSERT`; скрипт: `./scripts/load-fixtures.sh reaction_type.sql` / полная загрузка.
 ## Frontend
 - Загрузка каталога: `GET /api/reactions/catalog` через `reactionCatalogCache.ts` (структура `recent` + `tabs`).

@@ -533,7 +533,7 @@ class ListMovieCardFeedService:
                             photo_url=author_row.photo_url,
                             display_name=author_row.display_name,
                         ),
-                        reactions=ReactionTargetSummary(counts=(), my_reaction_type_id=None),
+                        reactions=ReactionTargetSummary(counts=(), my_reaction_type_ids=()),
                     )
                 )
 

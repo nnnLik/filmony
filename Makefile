@@ -62,14 +62,34 @@ logs:
 fixtures-load:
 	@if [ -z "$(file)" ]; then bash scripts/load-fixtures.sh; else bash scripts/load-fixtures.sh "$(file)"; fi
 
-# Залить папки `emoji/*-emojigg-pack` в RustFS (S3). Нужны: `make start` (RustFS на localhost:7900), на хосте — `uv`.
-# Переопределить: RUSTFS_ENDPOINT=... RUSTFS_BUCKET=... make sync-reactions-rustfs
-# С синхром в Postgres (хост должен достучаться до БД — см. `vars/.env.example` порты Postgres):
-#   DATABASE_URL=postgresql://filmony:filmony@127.0.0.1:55432/filmony make sync-reactions-rustfs ARGS=--sync-db
+# Залить `emoji/*-emojigg-pack` в RustFS (S3). Нужны: `make start` (RustFS на localhost:7900), на хосте — `uv`.
+# Только объекты:     make sync-reactions-rustfs
+# RustFS + upsert БД:  make sync-reactions-rustfs WITH_DB=1
+#   (source `vars/.env.development`; для хоста `DATABASE_URL` с `filmony-postgres:5432`
+#    подменяется на `127.0.0.1:$(COMPOSE_PG_PORT)`, см. ниже COMPOSE_PG_PORT)
+# Отключить подмену:     SKIP_DATABASE_URL_HOST_REWRITE=1 make sync-reactions-rustfs WITH_DB=1
+# Доп. флаги скрипта:  make sync-reactions-rustfs ARGS='--help'
+# Переопределить S3:    RUSTFS_ENDPOINT=... make sync-reactions-rustfs
+ENV_FILE ?= vars/.env.development
+WITH_DB ?= 0
+COMPOSE_PG_PORT ?= 55432
+SKIP_DATABASE_URL_HOST_REWRITE ?= 0
 ARGS ?=
 sync-reactions-rustfs:
-	RUSTFS_ENDPOINT=$${RUSTFS_ENDPOINT:-http://127.0.0.1:7900} \
-	RUSTFS_ACCESS_KEY=$${RUSTFS_ACCESS_KEY:-rustfsadmin} \
-	RUSTFS_SECRET_KEY=$${RUSTFS_SECRET_KEY:-rustfsadmin} \
-	RUSTFS_BUCKET=$${RUSTFS_BUCKET:-filmony-reactions} \
-	uv run --project backend python scripts/sync_reactions_to_rustfs.py $(ARGS)
+	bash -c 'set -euo pipefail; \
+	  if [[ "$(WITH_DB)" == "1" || "$(WITH_DB)" == "true" || "$(WITH_DB)" == "yes" ]]; then \
+	    test -f "$(ENV_FILE)" || { echo "sync WITH_DB=1: нет файла $(ENV_FILE)" >&2; exit 1; }; \
+	    set -a; . "./$(ENV_FILE)"; set +a; \
+	    if [[ "$(SKIP_DATABASE_URL_HOST_REWRITE)" != "1" && "$${DATABASE_URL:-}" == *"@filmony-postgres:5432"* ]]; then \
+	      export DATABASE_URL="$${DATABASE_URL//@filmony-postgres:5432/@127.0.0.1:$(COMPOSE_PG_PORT)/}"; \
+	      echo "sync WITH_DB=1: DATABASE_URL -> 127.0.0.1:$(COMPOSE_PG_PORT) для запуска с хоста" >&2; \
+	    fi; \
+	    DB_FLAG=--sync-db; \
+	  else \
+	    DB_FLAG=; \
+	  fi; \
+	  export RUSTFS_ENDPOINT="$${RUSTFS_ENDPOINT:-http://127.0.0.1:7900}"; \
+	  export RUSTFS_ACCESS_KEY="$${RUSTFS_ACCESS_KEY:-rustfsadmin}"; \
+	  export RUSTFS_SECRET_KEY="$${RUSTFS_SECRET_KEY:-rustfsadmin}"; \
+	  export RUSTFS_BUCKET="$${RUSTFS_BUCKET:-filmony-reactions}"; \
+	  uv run --project backend python scripts/sync_reactions_to_rustfs.py $$DB_FLAG $(ARGS)'

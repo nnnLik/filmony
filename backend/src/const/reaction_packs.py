@@ -13,12 +13,12 @@ class ReactionPackTab:
 REACTION_TAB_ORDER: tuple[ReactionPackTab, ...] = (
     ReactionPackTab(
         slug='pepe',
-        label_ru='Pepe',
+        label_ru='Пепе',
         directory='25781-pepe-emojigg-pack',
     ),
     ReactionPackTab(
         slug='meme_pt1',
-        label_ru='Мемы I',
+        label_ru='Базированные',
         directory='57442-meme-pt1-emojigg-pack',
     ),
     ReactionPackTab(
@@ -28,12 +28,12 @@ REACTION_TAB_ORDER: tuple[ReactionPackTab, ...] = (
     ),
     ReactionPackTab(
         slug='cat_memes',
-        label_ru='Cat memes',
+        label_ru='Больше котиков',
         directory='89312-cat-memes-essentials-emojigg-pack',
     ),
     ReactionPackTab(
         slug='frieren',
-        label_ru='Фриерен',
+        label_ru='Гей?',
         directory='643214-frieren-emojigg-pack',
     ),
 )

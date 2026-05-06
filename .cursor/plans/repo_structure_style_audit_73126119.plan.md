@@ -4,22 +4,22 @@ overview: Проиндексировать существующие артефа
 todos:
   - id: inventory-docs
     content: "Свести таблицу: .cursor/features (нумерация vs папки), .cursor/plans vs .cursor/active, docs/features — канон и дубли"
-    status: pending
+    status: completed
   - id: reality-check
     content: Сверить tech.md/README с compose.yml, pyproject (Python/Ruff target), Postgres версия
-    status: pending
+    status: completed
   - id: backend-pass
     content: "Пройти backend/src: api/router, services/* __init__ баррели, алиасы; зафиксировать правила импорта и миграций"
-    status: pending
+    status: completed
   - id: frontend-pass
     content: "Пройти frontend/src: routes, api/*, согласованность импортов; связать с ui-conventions.md"
-    status: pending
+    status: completed
   - id: dead-code-method
     content: "Описать в гайде: knip/ts-prune для TS; vulture+whitelist для Python; ограничения"
-    status: pending
+    status: completed
   - id: write-guide
     content: Добавить docs/engineering/project-structure-and-style.md и ссылку из README (опционально)
-    status: pending
+    status: completed
 isProject: false
 ---
 

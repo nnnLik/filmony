@@ -84,11 +84,14 @@ class SetOrToggleUserReactionService:
                     UserReaction.user_id == user_id,
                     UserReaction.target_kind == payload.target_kind.value,
                     UserReaction.target_id == payload.target_id,
+                    UserReaction.reaction_type_id == payload.reaction_type_id,
                 )
             )
         ).scalar_one_or_none()
 
-        if existing is None:
+        if existing is not None:
+            await self._session.delete(existing)
+        else:
             self._session.add(
                 UserReaction(
                     user_id=user_id,
@@ -97,10 +100,6 @@ class SetOrToggleUserReactionService:
                     target_id=payload.target_id,
                 )
             )
-        elif existing.reaction_type_id == payload.reaction_type_id:
-            await self._session.delete(existing)
-        else:
-            existing.reaction_type_id = payload.reaction_type_id
 
         await self._session.commit()
 
@@ -119,11 +118,10 @@ class SetOrToggleUserReactionService:
         )
         summary = card_m[payload.target_id] if cards else comment_m[payload.target_id]
 
-        if summary.my_reaction_type_id is not None:
-            await TouchUserRecentReactionService(self._session).execute(
-                user_id=user_id,
-                reaction_type_id=summary.my_reaction_type_id,
-            )
-            await self._session.commit()
+        await TouchUserRecentReactionService(self._session).execute(
+            user_id=user_id,
+            reaction_type_id=payload.reaction_type_id,
+        )
+        await self._session.commit()
 
         return summary

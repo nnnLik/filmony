@@ -164,7 +164,7 @@ async def test_reactions_catalog_misc_tab_includes_orphans(async_client: AsyncCl
 
 
 @pytest.mark.asyncio
-async def test_set_reaction_on_card_toggle_replace_validate(async_client: AsyncClient) -> None:
+async def test_set_reaction_multiple_per_target_toggle(async_client: AsyncClient) -> None:
     a, b, c, off = await _seed_reaction_catalog()
     cid = await _create_card_any(async_client, 941, 941_941)
     await _login(async_client, telegram_user_id=941)
@@ -174,16 +174,19 @@ async def test_set_reaction_on_card_toggle_replace_validate(async_client: AsyncC
         json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': a},
     )
     assert r1.status_code == 200
-    body = await async_client.get(f'/api/cards/{cid}')
-    assert body.status_code == 200
-    assert body.json()['reactions']['my_reaction_type_id'] == a
+    assert set(r1.json()['reactions']['my_reaction_type_ids']) == {a}
 
+    card = await async_client.get(f'/api/cards/{cid}')
+    assert card.status_code == 200
+    assert set(card.json()['reactions']['my_reaction_type_ids']) == {a}
+
+    # same type again -> remove that reaction only
     r_same = await async_client.post(
         '/api/reactions',
         json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': a},
     )
     assert r_same.status_code == 200
-    assert r_same.json()['reactions']['my_reaction_type_id'] is None
+    assert r_same.json()['reactions']['my_reaction_type_ids'] == []
 
     await async_client.post(
         '/api/reactions',
@@ -194,7 +197,7 @@ async def test_set_reaction_on_card_toggle_replace_validate(async_client: AsyncC
         json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': b},
     )
     assert rb.status_code == 200
-    assert rb.json()['reactions']['my_reaction_type_id'] == b
+    assert set(rb.json()['reactions']['my_reaction_type_ids']) == {a, b}
 
     inactive = await async_client.post(
         '/api/reactions',
@@ -240,6 +243,29 @@ async def test_reactions_catalog_recent_after_post(async_client: AsyncClient) ->
     recent = cat1.json()['recent']
     assert len(recent) == 1
     assert recent[0]['id'] == a
+
+
+@pytest.mark.asyncio
+async def test_reactions_catalog_recent_orders_by_last_touch(async_client: AsyncClient) -> None:
+    a, b, *_ = await _seed_reaction_catalog()
+    cid = await _create_card_any(async_client, 946, 946_946)
+    await _login(async_client, telegram_user_id=946)
+
+    await async_client.post(
+        '/api/reactions',
+        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': a},
+    )
+    await async_client.post(
+        '/api/reactions',
+        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': b},
+    )
+
+    cat = await async_client.get('/api/reactions/catalog')
+    assert cat.status_code == 200
+    recent = cat.json()['recent']
+    assert len(recent) == 2
+    assert recent[0]['id'] == b
+    assert recent[1]['id'] == a
 
 
 @pytest.mark.asyncio
@@ -305,7 +331,7 @@ async def test_set_reaction_on_comment(async_client: AsyncClient) -> None:
     lst = await async_client.get(f'/api/cards/{cid}/comments')
     assert lst.status_code == 200
     reactions = lst.json()['items'][0]['reactions']
-    assert reactions['my_reaction_type_id'] == rx1
+    assert reactions['my_reaction_type_ids'] == [rx1]
     assert reactions['counts'] and reactions['counts'][0]['count'] == 1
 
     nf = await async_client.post(

@@ -5,6 +5,22 @@
 
 ## 2. Архитектура
 
+### 2.1. Локальная разработка (`compose.yml`)
+
+Текущий репозиторий поднимает для day-to-day работы:
+
+```
+Telegram Mini App (React) ──► FastAPI (Uvicorn, filmony-backend)
+                                    │
+                    PostgreSQL ◄────┴────► RustFS (S3-совместимое хранилище медиа реакций)
+```
+
+Порты и имена сервисов см. в корневом `compose.yml` и `README.md`.
+
+### 2.2. Целевая / продуктовая архитектура
+
+В полном контуре (прод, roadmap) задумано также:
+
 ```
 Telegram Mini App (React) → Nginx → FastAPI (Uvicorn)
                            ↓
@@ -12,6 +28,8 @@ Telegram Mini App (React) → Nginx → FastAPI (Uvicorn)
                                     ↓
                               Telegram Bot
 ```
+
+Nginx, Redis, Celery и бот на webhook в **этом** `compose.yml` могут отсутствовать — см. описание в корневом `README.md`.
 
 ## 3. Локальная разработка (Docker)
 
@@ -43,18 +61,21 @@ docker compose -f compose.yml exec -w /opt/app filmony-backend pytest src/tests/
 
 ## 4. Стек
 
-| Компонент | Технология |
-|-----------|-----------|
-| Бэкенд | FastAPI + Uvicorn |
-| База данных | PostgreSQL |
-| Кеш | Redis |
-| Очереди | Celery (брокер — Redis) |
-| Reverse proxy | Nginx |
-| Уведомления в реальном времени | SSE |
-| Фронтенд | React + @telegram-apps/telegram-ui + **lucide-react** (иконки) + Vite + TypeScript |
-| Интеграция | Telegram Bot API, Kinopoisk API Unofficial |
+| Компонент | Технология | Примечание |
+|-----------|-----------|------------|
+| Бэкенд | FastAPI + Uvicorn | в Docker |
+| База данных | PostgreSQL | в локальном compose см. образ в `compose.yml` |
+| Объектное хранилище | RustFS (S3 API) | медиа реакций, см. `docs/features/movie-card-custom-reactions.md` |
+| Кеш | Redis | в целевой архитектуре |
+| Очереди | Celery (брокер — Redis) | в целевой архитектуре |
+| Reverse proxy | Nginx | в целевой архитектуре |
+| Уведомления в реальном времени | SSE | по необходимости |
+| Фронтенд | React + @telegram-apps/telegram-ui + **lucide-react** (иконки) + Vite + TypeScript | |
+| Интеграция | Telegram Bot API, Kinopoisk API Unofficial | |
 
 Подробнее про ленту, `ReactionStrip`, `IconButton` и центрирование иконок: **[`docs/frontend/ui-conventions.md`](../docs/frontend/ui-conventions.md)**.
+
+Структура репозитория и соглашения по стилю: **[`docs/engineering/project-structure-and-style.md`](../docs/engineering/project-structure-and-style.md)**.
 
 ## 5. Основной функционал
 
@@ -72,18 +93,18 @@ docker compose -f compose.yml exec -w /opt/app filmony-backend pytest src/tests/
 
 **Профили:** чужие профили с их карточками для ручного поиска совпадений.
 
-## 6. Рекомендательная система
+## 6. Рекомендательная система (целевая модель)
 
-Вектор пользователя — Redis. При добавлении оценки пересчитывается близость к другим. Коэффициент смешанный: 60% от разницы в оценках (на одинаковые фильмы), 40% от совпадения тегов. Найденные двойники кешируются. При их высокой оценке нового фильма — уведомление пользователю.
+В целевой реализации: вектор пользователя в Redis; при добавлении оценки — пересчёт близости к другим; смешанный коэффициент (оценки + теги); кеш двойников; уведомления при сильных совпадениях. Текущая реализация в коде — см. `docs/features/feed-recommendation-engine.md` и сервисы ленты.
 
-## 7. Кеширование (Redis)
+## 7. Кеширование (Redis, целевая модель)
 
-Лента, оценки друзей на карточке, топ пользователей по фильму, список двойников. TTL — от 5 минут до часа.
+Лента, оценки друзей на карточке, топ по фильму, двойники — с TTL. В локальном compose Redis может отсутствовать.
 
-## 8. Фоновые задачи (Celery)
+## 8. Фоновые задачи (Celery, целевая модель)
 
-Парсинг Кинопоиска, обновление вектора пользователя, поиск двойников, отправка уведомлений в Telegram, пересборка кеша ленты.
+Тяжёлые задачи: парсинг, векторы, уведомления, пересборка кешей. В репозитории контур Celery может быть подключён только на проде.
 
 ## 9. Деплой
 
-VPS (2-4 ГБ RAM, 20 ГБ SSD) + Docker Compose (Postgres, Redis, FastAPI, Nginx, Celery). Telegram Bot на webhook.
+VPS (2-4 ГБ RAM, 20 ГБ SSD) + Docker Compose. Минимум: Postgres + приложение; полный контур — Postgres, Redis, FastAPI, Nginx, Celery, Telegram Bot на webhook.

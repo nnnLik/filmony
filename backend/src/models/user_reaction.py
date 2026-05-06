@@ -25,6 +25,12 @@ class UserReaction(Base):
     target_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'target_kind', 'target_id', name='uq_user_reaction_target'),
+        UniqueConstraint(
+            'user_id',
+            'target_kind',
+            'target_id',
+            'reaction_type_id',
+            name='uq_user_reaction_user_target_kind_type',
+        ),
         Index('ix_user_reaction_target', 'target_kind', 'target_id'),
     )

@@ -15,4 +15,4 @@ class ReactionCountEntry:
 @dataclass(frozen=True, slots=True)
 class ReactionTargetSummary:
     counts: tuple[ReactionCountEntry, ...]
-    my_reaction_type_id: int | None
+    my_reaction_type_ids: tuple[int, ...]

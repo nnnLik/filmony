@@ -27,11 +27,10 @@ class GetReactionSummariesForTargetsService:
         comment_ids: list[int],
     ) -> tuple[dict[int, ReactionTargetSummary], dict[int, ReactionTargetSummary]]:
         card_out: dict[int, ReactionTargetSummary] = {
-            cid: ReactionTargetSummary(counts=(), my_reaction_type_id=None)
-            for cid in movie_card_ids
+            cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in movie_card_ids
         }
         comment_out: dict[int, ReactionTargetSummary] = {
-            cid: ReactionTargetSummary(counts=(), my_reaction_type_id=None) for cid in comment_ids
+            cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in comment_ids
         }
 
         scope_conds: list = []
@@ -105,28 +104,33 @@ class GetReactionSummariesForTargetsService:
             if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
                 prev = card_out[tid]
                 card_out[tid] = ReactionTargetSummary(
-                    counts=ordered, my_reaction_type_id=prev.my_reaction_type_id
+                    counts=ordered, my_reaction_type_ids=prev.my_reaction_type_ids
                 )
             elif kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value and tid in comment_out:
                 prev = comment_out[tid]
                 comment_out[tid] = ReactionTargetSummary(
-                    counts=ordered, my_reaction_type_id=prev.my_reaction_type_id
+                    counts=ordered, my_reaction_type_ids=prev.my_reaction_type_ids
                 )
 
+        mines: defaultdict[tuple[str, int], list[int]] = defaultdict(list)
         mine_stmt = select(
             UserReaction.target_kind, UserReaction.target_id, UserReaction.reaction_type_id
         ).where(UserReaction.user_id == viewer_user_id, scope)
         mine_rows = (await self._session.execute(mine_stmt)).all()
         for kind, tid, rtid in mine_rows:
+            mines[(kind, int(tid))].append(int(rtid))
+
+        for (kind, tid), rtids in mines.items():
+            unique_ids = tuple(dict.fromkeys(rtids))
             if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
                 s = card_out[tid]
                 card_out[tid] = ReactionTargetSummary(
-                    counts=s.counts, my_reaction_type_id=int(rtid)
+                    counts=s.counts, my_reaction_type_ids=unique_ids
                 )
             elif kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value and tid in comment_out:
                 s = comment_out[tid]
                 comment_out[tid] = ReactionTargetSummary(
-                    counts=s.counts, my_reaction_type_id=int(rtid)
+                    counts=s.counts, my_reaction_type_ids=unique_ids
                 )
 
         return card_out, comment_out

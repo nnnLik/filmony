@@ -66,7 +66,7 @@ export type ReactionCountItem = {
 
 export type ReactionSummary = {
   counts: ReactionCountItem[]
-  my_reaction_type_id: number | null
+  my_reaction_type_ids: number[]
 }
 
 export type ReactionCatalogItem = {

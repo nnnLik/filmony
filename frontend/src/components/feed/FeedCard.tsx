@@ -216,7 +216,6 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
               Нет постера
             </div>
           )}
-          {/* Градиент снизу + заголовок на постере */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/82 via-black/35 to-transparent pt-14 pb-2.5 pl-3 pr-19">
             <Title
               level="3"
@@ -229,7 +228,6 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
               ) : null}
             </Title>
           </div>
-          {/* Оценка — круговой индикатор на постере */}
           <div
             className="absolute right-2.5 top-2.5 flex size-12 items-center justify-center rounded-full backdrop-blur-md select-none"
             style={{
@@ -373,9 +371,18 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
                             />
                           </Link>
                           <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <span className="text-sm font-medium text-(--tgui--text_color)">{commentAuthorDisplay(comment)}</span>
-                              <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
+                            <div className="flex min-w-0 items-center justify-between gap-2">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <span className="text-sm font-medium text-(--tgui--text_color)">{commentAuthorDisplay(comment)}</span>
+                                <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
+                              </div>
+                              <Link
+                                to={cardHref}
+                                className="shrink-0 py-0 text-xs leading-none text-(--tgui--link_color) no-underline active:opacity-90"
+                                onMouseDown={stopCardNav}
+                              >
+                                Ответить
+                              </Link>
                             </div>
 
                             {parentCommentId != null ? (
@@ -393,16 +400,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
                             ) : null}
 
                             <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug text-(--tgui--text_color)">{comment.text}</p>
-                            <div
-                              className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-2 overflow-hidden"
-                              onMouseDown={stopCardNav}
-                            >
-                              <Link
-                                to={cardHref}
-                                className="inline-flex shrink-0 items-center py-0 text-xs leading-none text-(--tgui--link_color) no-underline active:opacity-90"
-                              >
-                                Ответить
-                              </Link>
+                            <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden" onMouseDown={stopCardNav}>
                               <ReactionStrip
                                 compact
                                 targetKind="movie_card_comment"

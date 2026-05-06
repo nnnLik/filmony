@@ -386,10 +386,27 @@ export function MovieCardDetailPage() {
                 )}
               </div>
               <div className="px-4 py-3">
-                <Title level="2" weight="2">
-                  {card.film_title}
-                </Title>
-                <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Title level="2" weight="2">
+                      {card.film_title}
+                    </Title>
+                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                  </div>
+                  {card.user_id != null ? (
+                    <div className="max-w-[min(100%,13rem)] min-w-0 shrink-0 self-center pt-0.5">
+                      <ReactionStrip
+                        compact
+                        targetKind="movie_card"
+                        targetId={card.id}
+                        summary={card.reactions}
+                        onSummaryChange={(next: ReactionSummary) =>
+                          setCard((prev) => (prev ? { ...prev, reactions: next } : prev))
+                        }
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -436,23 +453,6 @@ export function MovieCardDetailPage() {
                 )}
               </div>
             </section>
-
-            {card.user_id != null ? (
-              <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">Реакции</p>
-                <div className="mt-3">
-                  <ReactionStrip
-                    targetKind="movie_card"
-                    targetId={card.id}
-                    summary={card.reactions}
-                    onSummaryChange={(next: ReactionSummary) =>
-                      setCard((prev) => (prev ? { ...prev, reactions: next } : prev))
-                    }
-                    compact
-                  />
-                </div>
-              </section>
-            ) : null}
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
               <div className="flex gap-2">
@@ -543,14 +543,23 @@ export function MovieCardDetailPage() {
                             />
                           </Link>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <Link
-                                to={`/u/${encodeURIComponent(comment.author.id)}`}
-                                className="text-sm font-medium text-(--tgui--link_color) no-underline"
+                            <div className="flex min-w-0 items-center justify-between gap-2">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <Link
+                                  to={`/u/${encodeURIComponent(comment.author.id)}`}
+                                  className="text-sm font-medium text-(--tgui--link_color) no-underline"
+                                >
+                                  {authorName(comment)}
+                                </Link>
+                                <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
+                                className="inline-flex shrink-0 bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
                               >
-                                {authorName(comment)}
-                              </Link>
-                              <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
+                                Ответить
+                              </button>
                             </div>
 
                             {parentCommentId != null ? (
@@ -570,14 +579,7 @@ export function MovieCardDetailPage() {
                             ) : null}
 
                             <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{comment.text}</p>
-                            <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-2 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
-                                className="inline-flex shrink-0 items-center bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                              >
-                                Ответить
-                              </button>
+                            <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
                               <ReactionStrip
                                 compact
                                 targetKind="movie_card_comment"

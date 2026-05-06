@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 """Upload `emoji/*/`-pack images to RustFS (S3 API) under `reactions/<category>/<file>`.
 
-Из **корня репозитория** (boto3 в `backend` dev-группа):
+Из **корня репозитория**:
 
   make sync-reactions-rustfs
 
-Поднять Postgres + RustFS, затем **с синком строк в БД** (PostgreSQL доступен с хоста на `55432`):
+RustFS и upsert строк в Postgres (через `make sync-reactions-rustfs WITH_DB=1`; Makefile после `source vars/.env.development` заменит в `DATABASE_URL` хост `filmony-postgres:5432` на **127.0.0.1:55432** для запуска с хоста):
 
-  DATABASE_URL=postgresql://filmony:filmony@127.0.0.1:55432/filmony \\
-  make sync-reactions-rustfs ARGS='--sync-db'
+  make sync-reactions-rustfs WITH_DB=1
 
-Или внутри контейнера backend, где уже правильный `DATABASE_URL`:
+Без Makefile передайте **достигабельный с хоста** `DATABASE_URL` и флаг **`--sync-db`**.
+Строку вида **`postgresql+asyncpg://`** (как для SQLAlchemy) скрипт приведёт к виду для ``asyncpg.connect``.
 
-  docker compose -f compose.yml exec filmony-backend \\
-    uv run --project backend python scripts/sync_reactions_to_rustfs.py --sync-db
-
-Перед этим: ``make start`` чтобы поднялись ``filmony-rustfs`` (порт хоста **7900**) и bucket создался автоматически.
+Перед первым запуском: ``make start`` (RustFS на хост-порту **7900**, Postgres проброшен на **55432**).
 """
 
 from __future__ import annotations
@@ -33,6 +30,15 @@ def label_from_filename(filename: str) -> str:
     return stem[:118] if stem else Path(filename).name[:118]
 
 
+def postgres_dsn_for_native_asyncpg(raw: str) -> str:
+    """SQLAlchemy/async URL uses ``postgresql+asyncpg://…``; libpq/asyncpg expects ``postgresql://``."""
+    u = raw.strip()
+    for dialect in ('postgresql+asyncpg://', 'postgres+asyncpg://'):
+        if u.startswith(dialect):
+            return 'postgresql://' + u[len(dialect) :]
+    return u
+
+
 async def upsert_reaction_rows(
     dsn: str,
     uploaded: list[tuple[str, str, str, int]],
@@ -44,7 +50,7 @@ async def upsert_reaction_rows(
         print('asyncpg не найден: используйте `uv run --project backend`.', file=sys.stderr)
         raise SystemExit(1) from None
 
-    conn = await asyncpg.connect(dsn)
+    conn = await asyncpg.connect(postgres_dsn_for_native_asyncpg(dsn))
     try:
         sql = """
             INSERT INTO reaction_type (
@@ -75,7 +81,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         '--database-url',
         default=os.environ.get('DATABASE_URL', ''),
-        help='Строка подключения Postgres (или env DATABASE_URL). Нужно при --sync-db.',
+        help='Строка подключения Postgres (или env DATABASE_URL). Нужно при --sync-db. '
+        'Поддерживается то же DATABASE_URL что и у backend, в т.ч. postgresql+asyncpg://.',
     )
     return parser.parse_args(argv)
 

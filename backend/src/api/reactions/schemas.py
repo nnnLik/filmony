@@ -16,7 +16,7 @@ class ReactionCountItemResponse(BaseModel):
 
 class ReactionSummaryResponse(BaseModel):
     counts: list[ReactionCountItemResponse] = Field(default_factory=list)
-    my_reaction_type_id: int | None = None
+    my_reaction_type_ids: list[int] = Field(default_factory=list)
 
 
 class ReactionCatalogItemResponse(BaseModel):
@@ -79,5 +79,5 @@ def reaction_target_summary_to_response(summary: ReactionTargetSummary) -> React
             )
             for e in summary.counts
         ],
-        my_reaction_type_id=summary.my_reaction_type_id,
+        my_reaction_type_ids=list(summary.my_reaction_type_ids),
     )

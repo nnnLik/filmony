@@ -21,10 +21,10 @@ import type {
 } from '../../api/profileTypes'
 import { setUserReaction } from '../../api/reactionApi'
 import { loadReactionActors } from '../../lib/reactionActorsCache'
-import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
+import { clearReactionCatalogCache, loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 
-const EMPTY: ReactionSummary = { counts: [], my_reaction_type_id: null }
+const EMPTY: ReactionSummary = { counts: [], my_reaction_type_ids: [] }
 
 const POPOVER_GAP = 10
 const SIDE_PAD = 10
@@ -71,7 +71,7 @@ function ReactionThumb({
     <img
       src={resolved}
       alt=""
-      className={`${roundedClassName} object-cover ${className}`}
+      className={`${roundedClassName} border-0 object-cover outline-none ${className}`}
       onError={() => setFailed(true)}
     />
   )
@@ -152,7 +152,7 @@ function CountPill({
         onClick={onPick}
         className={
           compact
-            ? `inline-flex h-[18px] min-h-[18px] cursor-pointer touch-manipulation items-center gap-0.5 rounded-full px-[3px] text-[9px] leading-none tabular-nums ring-[0.5px] transition-[transform,opacity] active:scale-[0.97] disabled:opacity-50 ${
+            ? `inline-flex h-10 min-h-10 cursor-pointer touch-manipulation items-center gap-1.5 rounded-full px-1.5 py-px text-[14px] leading-none tabular-nums ring-[0.5px] transition-[transform,opacity] active:scale-[0.97] disabled:opacity-50 ${
                 mine
                   ? 'bg-[color-mix(in_srgb,var(--tgui--link_color)_14%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]'
                   : 'bg-[color-mix(in_srgb,var(--tgui--hint_color)_06%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--divider_color)_38%,transparent)]'
@@ -165,11 +165,17 @@ function CountPill({
         }
         title={label ?? undefined}
       >
-        <span className="flex shrink-0 items-center justify-center rounded-[3px] bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] p-px">
+        <span
+          className={
+            compact
+              ? 'relative flex size-[30px] shrink-0 overflow-hidden rounded-full'
+              : 'flex shrink-0 items-center justify-center rounded-[4px] p-px'
+          }
+        >
           <ReactionThumb
             src={imageUrl}
-            className={compact ? 'size-[11px]' : 'size-[15px]'}
-            roundedClassName={compact ? 'rounded-[3px]' : 'rounded-[4px]'}
+            className={compact ? 'size-full object-cover' : 'size-[15px]'}
+            roundedClassName={compact ? 'rounded-full' : 'rounded-[4px]'}
           />
         </span>
         <span className={`leading-none text-(--tgui--text_color) ${compact ? 'pr-px' : 'pr-0.5'}`}>{count}</span>
@@ -282,7 +288,7 @@ export type ReactionStripProps = {
   summary: ReactionSummary | undefined
   onSummaryChange: (next: ReactionSummary) => void
   className?: string
-  /** Один узкий ряд (под текстом комментария рядом с «Ответить»). */
+  /** Один узкий ряд под текстом комментария (крупнее кружки‑реакции). */
   compact?: boolean
 }
 
@@ -295,6 +301,10 @@ export function ReactionStrip({
   compact = false,
 }: ReactionStripProps) {
   const effective = summary ?? EMPTY
+  const myReactionIds = useMemo(
+    () => new Set(effective.my_reaction_type_ids),
+    [effective.my_reaction_type_ids],
+  )
   const popoverW = compact ? POPOVER_W_COMPACT : POPOVER_W_DEFAULT
   const [pickerOpen, setPickerOpen] = useState(false)
   const [catalog, setCatalog] = useState<ReactionGroupedCatalog | null>(null)
@@ -362,6 +372,7 @@ export function ReactionStrip({
           reaction_type_id: reactionTypeId,
         })
         onSummaryChange(res.reactions)
+        clearReactionCatalogCache()
         closePicker()
       } catch (e) {
         setActionError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось применить')
@@ -448,7 +459,7 @@ export function ReactionStrip({
                         </p>
                         <div className="-mx-0.5 flex gap-1 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                           {recentItems.map((item) => {
-                            const mine = effective.my_reaction_type_id === item.id
+                            const mine = myReactionIds.has(item.id)
                             const badge = countsById.get(item.id)
                             return (
                               <button
@@ -464,7 +475,7 @@ export function ReactionStrip({
                               >
                                 <ReactionThumb
                                   src={item.image_url}
-                                  className={compact ? 'size-8' : 'size-9'}
+                                  className={compact ? 'size-12' : 'size-9'}
                                   roundedClassName="rounded-md"
                                 />
                                 {badge != null ? (
@@ -486,9 +497,9 @@ export function ReactionStrip({
                         <p className="mb-1.5 shrink-0 text-[11px] font-medium tracking-tight text-zinc-200">
                           {activeTab.label}
                         </p>
-                        <div className={`grid shrink-0 gap-1 pb-2 ${compact ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-5'}`}>
+                        <div className={`grid shrink-0 gap-1 pb-2 ${compact ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-5'}`}>
                           {gridItems.map((item) => {
-                            const mine = effective.my_reaction_type_id === item.id
+                            const mine = myReactionIds.has(item.id)
                             return (
                               <button
                                 key={item.id}
@@ -529,12 +540,12 @@ export function ReactionStrip({
       <div
         className={
           compact
-            ? 'flex min-h-[18px] w-full max-w-full min-w-0 flex-nowrap items-center gap-x-0.5 gap-y-0 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+            ? 'flex min-h-10 w-full max-w-full min-w-0 flex-nowrap items-center gap-x-1 gap-y-0 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
             : 'flex flex-wrap items-center gap-1'
         }
       >
         {effective.counts.map((c) => {
-          const mine = effective.my_reaction_type_id === c.reaction_type_id
+          const mine = myReactionIds.has(c.reaction_type_id)
           return (
             <CountPill
               key={c.reaction_type_id}
@@ -573,12 +584,12 @@ export function ReactionStrip({
           aria-label="Выбрать реакцию"
           className={
             compact
-              ? 'relative z-0 box-border! flex! h-[22px]! w-[22px]! min-h-[22px]! min-w-[22px]! shrink-0 items-center! justify-center! rounded-full p-0! leading-none! text-(--tgui--hint_color) transition-[transform,colors] hover:text-(--tgui--text_color) active:scale-[0.97] aria-expanded:text-(--tgui--link_color)!'
+              ? 'relative z-0 box-border! flex! h-11! w-11! min-h-11! min-w-11! shrink-0 items-center! justify-center! rounded-full p-0! leading-none! text-(--tgui--hint_color) transition-[transform,colors] hover:text-(--tgui--text_color) active:scale-[0.97] aria-expanded:text-(--tgui--link_color)!'
               : 'relative z-0 box-border! flex! h-9! w-9! min-h-9! min-w-9! shrink-0 items-center! justify-center! rounded-full p-0! leading-none! text-(--tgui--hint_color) transition-[transform,colors] hover:text-(--tgui--text_color) active:scale-[0.98] aria-expanded:text-(--tgui--link_color)!'
           }
         >
           <Smile
-            className={`relative z-1 block shrink-0 ${compact ? 'size-[15px]' : 'size-[18px]'}`}
+            className={`relative z-1 block shrink-0 ${compact ? 'size-[26px]' : 'size-[18px]'}`}
             strokeWidth={1.75}
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -2,7 +2,7 @@
 
 Сервис для оценки фильмов с двойной системой оценок (шкала 1–10 и теги контекста) и рекомендациями на основе «двойников» по вкусу. Клиент — **Telegram Mini App**: пользователь открывает приложение внутри Telegram, бэкенд проверяет сессию и хранит данные в **PostgreSQL**.
 
-Подробнее о продукте и дорожной карте см. [`.cursor/tech.md`](.cursor/tech.md) и [`.cursor/user-story.md`](.cursor/user-story.md) (если есть в репозитории).
+Подробнее о продукте и дорожной карте см. [`.cursor/tech.md`](.cursor/tech.md) и [`.cursor/user-story.md`](.cursor/user-story.md) (если есть в репозитории). Структура репозитория и стиль кода: [`docs/engineering/project-structure-and-style.md`](docs/engineering/project-structure-and-style.md).
 
 ## Стек
 
@@ -10,7 +10,7 @@
 |------|------------|
 | Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4, [@telegram-apps/sdk](https://docs.telegram-mini-apps.com/) |
 | Backend | Python 3.12+, FastAPI, Uvicorn, SQLAlchemy 2 (async), Alembic, asyncpg |
-| Данные | PostgreSQL 16 |
+| Данные | PostgreSQL (версия образа — см. `compose.yml`) |
 | Сборка / зависимости бэкенда | [uv](https://docs.astral.sh/uv/) (`pyproject.toml`, `uv.lock`) |
 | Инфра | Docker Compose (`compose.yml`), Makefile |
 
@@ -24,6 +24,7 @@
 │   ├── alembic.ini
 │   └── pyproject.toml
 ├── frontend/          # Mini App (Vite + React)
+├── docs/              # итоговые доки фич (`docs/features/`) и инженерные гайды
 ├── vars/              # env: версионируемый `.env.development` + `.env.example`
 ├── compose.yml
 └── Makefile
@@ -59,8 +60,8 @@
 
    ```bash
    make sync-reactions-rustfs
-   # опционально upsert в Postgres (с хоста — порт 55432, см. vars/.env.example):
-   DATABASE_URL=postgresql://filmony:filmony@127.0.0.1:55432/filmony make sync-reactions-rustfs ARGS=--sync-db
+   # то же + upsert в БД: из env берётся DATABASE_URL; с хоста `filmony-postgres:5432` подменится на `127.0.0.1:55432` автоматически
+   make sync-reactions-rustfs WITH_DB=1
    ```
 
    Должны быть запущены compose и RustFS (`http://127.0.0.1:7900`, ключи как в `compose.yml`). Картинки в UI идут через **постоянный** путь `/api/reactions/asset/...`: бэкенд качает объект из RustFS с **подписью S3** при заданных в `vars/.env.development` переменных **`RUSTFS_ACCESS_KEY`** / **`RUSTFS_SECRET_KEY`**. Временные presigned-URL из консоли (порт 7901) для этого не нужны. Подробнее: `docs/features/movie-card-custom-reactions.md`.
@@ -75,8 +76,8 @@
 | `make backend-test` | весь pytest |
 | `make backend-test-one target=src/tests/...` | один тест / файл |
 | `make backend-lint` / `backend-format` / `backend-fix` | Ruff |
-| `make sync-reactions-rustfs` | залить каталоги `emoji/` в локальный RustFS (нужен `uv` на хосте) |
-| `DATABASE_URL=… make sync-reactions-rustfs ARGS=--sync-db` | то же + upsert `reaction_type` (строка подключения должна быть доступна с хоста) |
+| `make sync-reactions-rustfs` | только RustFS: каталоги `emoji/` → бакет (нужен `uv`, `make start`) |
+| `make sync-reactions-rustfs WITH_DB=1` | RustFS + upsert `reaction_type`; из `DATABASE_URL` в `vars/.env.development` для запуска **с хоста** автоматически подставляется `127.0.0.1:55432` вместо `filmony-postgres:5432`. Порт другой — `COMPOSE_PG_PORT=...`. Отключить: `SKIP_DATABASE_URL_HOST_REWRITE=1`. |
 
 Тесты используют тот же Postgres, что и приложение; для изоляции данных в pytest выставляется отдельная схема (см. `DATABASE_TEST_SCHEMA` и `src/tests/conftest.py`).
 

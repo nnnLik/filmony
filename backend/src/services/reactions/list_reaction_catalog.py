@@ -123,5 +123,5 @@ class ListReactionCatalogGroupedService:
         return ReactionCatalogGrouped(recent=recent, tabs=tuple(tabs))
 
 
-# Back-compat alias для импортов вне API.
+# Deprecated: prefer `ListReactionCatalogGroupedService` in new code.
 ListReactionCatalogService = ListReactionCatalogGroupedService
