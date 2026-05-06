@@ -1,0 +1,59 @@
+from __future__ import annotations
+
+from typing import Final, Literal
+
+StreamName = Literal[
+    'own',
+    'subscriptions',
+    'subscribers',
+    'personal_affinity',
+    'discovery',
+]
+
+# Сколько id максимум держим в каждом внутреннем потоке за один запрос (глубокая пагинация
+# может исчерпать пул — см. docs/features/feed-recommendation-engine.md).
+STREAM_POOL_LIMIT: Final[int] = 400
+
+# Сколько свежих карточек сканировать под скоринг affinity до финальной сортировки.
+AFFINITY_CANDIDATE_SCAN: Final[int] = 500
+
+# Один слот из каждых N отдаётся каналу discovery (диапазон продукта 5–10).
+DISCOVERY_EVERY_N_SLOTS: Final[int] = 7
+
+# Не чаще чем раз в N слотов брать карточку с тем же автором или тем же фильмом, что уже
+# в хвосте последних выдач (окно = K последних позиций). Свои карточки зрителя не режутся.
+ANTI_SPAM_WINDOW: Final[int] = 2
+
+GENRE_OVERLAP_WEIGHT: Final[int] = 2
+TAG_OVERLAP_WEIGHT: Final[int] = 3
+
+# Цикл слотов: own + social + affinity + discovery (детерминированное чередование).
+SLOT_PATTERN: Final[tuple[StreamName, ...]] = (
+    'own',
+    'subscriptions',
+    'subscribers',
+    'subscriptions',
+    'personal_affinity',
+    'subscribers',
+    'discovery',
+)
+
+# Если у слота нет кандидата — пробуем источники в этом порядке.
+FALLBACK_ORDER: Final[tuple[StreamName, ...]] = (
+    'subscriptions',
+    'subscribers',
+    'personal_affinity',
+    'discovery',
+    'own',
+)
+
+STREAM_KEYS: Final[tuple[StreamName, ...]] = (
+    'own',
+    'subscriptions',
+    'subscribers',
+    'personal_affinity',
+    'discovery',
+)
+
+assert len(SLOT_PATTERN) == DISCOVERY_EVERY_N_SLOTS
+assert sum(1 for s in SLOT_PATTERN if s == 'discovery') == 1
