@@ -4,7 +4,7 @@ import datetime as dt
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import Select, desc, func, select
+from sqlalchemy import Select, asc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -83,7 +83,7 @@ class ListMovieCardCommentsService:
             select(MovieCardComment, User)
             .join(User, User.id == MovieCardComment.user_id)
             .where(MovieCardComment.movie_card_id == card_id)
-            .order_by(desc(MovieCardComment.id))
+            .order_by(asc(MovieCardComment.id))
             .limit(limit + 1)
         )
         if not flat and parent_comment_id is None:
@@ -91,7 +91,7 @@ class ListMovieCardCommentsService:
         elif parent_comment_id is not None:
             query = query.where(MovieCardComment.parent_comment_id == parent_comment_id)
         if cursor is not None:
-            query = query.where(MovieCardComment.id < cursor)
+            query = query.where(MovieCardComment.id > cursor)
 
         rows = (await self._session.execute(query)).all()
         has_more = len(rows) > limit

@@ -73,7 +73,7 @@ class MovieCardCommentListResponse(BaseModel):
 
 
 class MovieCardCommentCreateRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=250)
+    text: str = Field(..., min_length=1, max_length=100)
     parent_comment_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(extra='forbid')

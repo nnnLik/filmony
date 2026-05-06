@@ -100,7 +100,7 @@ export function MovieCardDetailPage() {
     return map
   }, [comments])
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
-  const charsLeft = 250 - commentText.length
+  const charsLeft = 100 - commentText.length
   const invalidCardId = parsedCardId == null
 
   const scrollToComment = useCallback((commentId: number): boolean => {
@@ -384,7 +384,7 @@ export function MovieCardDetailPage() {
                   value={commentText}
                   onChange={(e) => setCommentText(e.currentTarget.value)}
                   rows={4}
-                  maxLength={250}
+                  maxLength={100}
                   placeholder="Напишите комментарий..."
                   className="w-full resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-sm outline-none"
                 />

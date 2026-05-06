@@ -56,3 +56,15 @@
   - `ReadLints` по измененным файлам: ошибок нет.
 - Notes:
   - Статус фичи переводится в done с оговоркой о необходимости ручного прогона команд локально.
+
+### 2026-05-06 20:55 UTC
+- Action type: code | docs
+- Summary: Изменена последовательность комментариев на oldest-first (старые в начале), обновлен API-тест плоского списка и фича-документация.
+- Files:
+  - `backend/src/services/cards/list_movie_card_comments.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `docs/features/movie-card-comments-telegram-like.md`
+- Verification:
+  - `ReadLints` по затронутым файлам: ошибок нет.
+- Notes:
+  - Cursor pagination для комментариев переключена с `id < cursor` на `id > cursor` в соответствии с ascending-порядком.

@@ -36,8 +36,8 @@ def _normalize_text(value: str) -> str:
     text = value.strip()
     if text == '':
         raise MovieCardCommentValidationError('comment text must not be empty')
-    if len(text) > 250:
-        raise MovieCardCommentValidationError('comment text max length is 250')
+    if len(text) > 100:
+        raise MovieCardCommentValidationError('comment text max length is 100')
     return text
 
 

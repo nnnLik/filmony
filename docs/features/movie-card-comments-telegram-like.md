@@ -13,7 +13,7 @@
 
 ## Контракт API после изменения
 - `GET /api/cards/{card_id}/comments?cursor=&limit=`
-  - Возвращает плоский список комментариев карточки по убыванию `id`.
+  - Возвращает плоский список комментариев карточки по возрастанию `id` (старые в начале).
   - В каждом элементе сохраняются поля:
     - `id`, `movie_card_id`, `parent_comment_id`, `text`, `created_at`
     - `replies_count`, `total_descendants_count`
