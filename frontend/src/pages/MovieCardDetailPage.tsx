@@ -4,13 +4,44 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { createMovieCardComment, getMovieCardById, getMovieCardComments } from '../api/cardApi'
-import type {
-  CardCompany,
-  CardMoodAfter,
-  CardMoodBefore,
-  MovieCard,
-  MovieCardComment,
-} from '../api/profileTypes'
+
+type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
+type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
+type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_time'
+
+type MovieCardDetails = {
+  id: number
+  film_id: number
+  film_kinopoisk_id: number
+  film_genres: string[]
+  film_title: string
+  film_year: number | null
+  film_poster_url: string | null
+  rating: number
+  company: CardCompany
+  mood_before: CardMoodBefore
+  mood_after: CardMoodAfter
+  custom_tags: string[]
+}
+
+type MovieCardCommentAuthor = {
+  id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+}
+
+type MovieCardComment = {
+  id: number
+  movie_card_id: number
+  parent_comment_id: number | null
+  text: string
+  created_at: string
+  author: MovieCardCommentAuthor
+}
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',
@@ -144,9 +175,9 @@ function CommentNode({ node, depth, onReply }: CommentNodeProps) {
 export function MovieCardDetailPage() {
   const navigate = useNavigate()
   const { cardId } = useParams<{ cardId?: string }>()
-  const [card, setCard] = useState<MovieCard | null>(null)
+  const [card, setCard] = useState<MovieCardDetails | null>(null)
   const [comments, setComments] = useState<MovieCardComment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsError, setCommentsError] = useState<string | null>(null)
@@ -163,19 +194,16 @@ export function MovieCardDetailPage() {
   const tree = useMemo(() => buildCommentTree(comments), [comments])
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
   const charsLeft = 250 - commentText.length
+  const invalidCardId = parsedCardId == null
 
   useEffect(() => {
-    if (parsedCardId == null) {
-      setError('Некорректный id карточки')
-      setLoading(false)
-      return
-    }
+    if (parsedCardId == null) return
     let alive = true
     void (async () => {
       setLoading(true)
       setError(null)
       try {
-        const item = await getMovieCardById(parsedCardId)
+        const item = (await getMovieCardById(parsedCardId)) as unknown as MovieCardDetails
         if (!alive) return
         setCard(item)
       } catch (e) {
@@ -201,7 +229,7 @@ export function MovieCardDetailPage() {
       setCommentsLoading(true)
       setCommentsError(null)
       try {
-        const items = await getMovieCardComments(parsedCardId)
+        const items = (await getMovieCardComments(parsedCardId)) as unknown as MovieCardComment[]
         if (!alive) return
         setComments(items)
       } catch (e) {
@@ -227,10 +255,10 @@ export function MovieCardDetailPage() {
     setSubmitBusy(true)
     setCommentsError(null)
     try {
-      const created = await createMovieCardComment(parsedCardId, {
+      const created = (await createMovieCardComment(parsedCardId, {
         text,
         parent_comment_id: replyTo?.id ?? null,
-      })
+      })) as unknown as MovieCardComment
       setComments((prev) => [...prev, created])
       setCommentText('')
       setReplyTo(null)
@@ -251,7 +279,9 @@ export function MovieCardDetailPage() {
         <div className="flex items-center gap-2 px-3 py-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              void navigate(-1)
+            }}
             className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color)"
             aria-label="Назад"
           >
@@ -266,7 +296,16 @@ export function MovieCardDetailPage() {
       <main className="mx-auto max-w-md px-4 py-4">
         {loading ? <p className="filmony-text-panel py-10 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p> : null}
 
-        {error != null ? (
+        {invalidCardId ? (
+          <div className="py-10 text-center">
+            <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">Некорректный id карточки</p>
+            <Link to="/profile" className="mt-3 inline-block text-sm text-(--tgui--link_color)">
+              Вернуться в профиль
+            </Link>
+          </div>
+        ) : null}
+
+        {error != null && !invalidCardId ? (
           <div className="py-10 text-center">
             <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{error}</p>
             <Link to="/profile" className="mt-3 inline-block text-sm text-(--tgui--link_color)">
@@ -275,7 +314,7 @@ export function MovieCardDetailPage() {
           </div>
         ) : null}
 
-        {!loading && error == null && card != null ? (
+        {!invalidCardId && !loading && error == null && card != null ? (
           <div className="space-y-4">
             <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
               <div className="aspect-video w-full">
