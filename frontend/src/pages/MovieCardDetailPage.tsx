@@ -5,7 +5,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createMovieCardComment, getMovieCardById, getMovieCardComments } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile } from '../api/profileApi'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MovieCardComment } from '../api/profileTypes'
+import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MovieCardComment, ReactionSummary } from '../api/profileTypes'
+import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
@@ -436,6 +437,22 @@ export function MovieCardDetailPage() {
               </div>
             </section>
 
+            {card.user_id != null ? (
+              <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Реакции</p>
+                <div className="mt-3">
+                  <ReactionStrip
+                    targetKind="movie_card"
+                    targetId={card.id}
+                    summary={card.reactions}
+                    onSummaryChange={(next: ReactionSummary) =>
+                      setCard((prev) => (prev ? { ...prev, reactions: next } : prev))
+                    }
+                  />
+                </div>
+              </section>
+            ) : null}
+
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
               <div className="flex gap-2">
                 <Button stretched mode="gray" disabled>
@@ -559,6 +576,18 @@ export function MovieCardDetailPage() {
                             >
                               Ответить
                             </button>
+                            <div className="mt-2">
+                              <ReactionStrip
+                                targetKind="movie_card_comment"
+                                targetId={comment.id}
+                                summary={comment.reactions}
+                                onSummaryChange={(next: ReactionSummary) =>
+                                  setComments((prev) =>
+                                    prev.map((c) => (c.id === comment.id ? { ...c, reactions: next } : c))
+                                  )
+                                }
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>

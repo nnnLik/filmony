@@ -57,6 +57,24 @@ export type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
 export type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
 export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_time'
 
+export type ReactionCountItem = {
+  reaction_type_id: number
+  count: number
+  image_url: string
+  label: string | null
+}
+
+export type ReactionSummary = {
+  counts: ReactionCountItem[]
+  my_reaction_type_id: number | null
+}
+
+export type ReactionCatalogItem = {
+  id: number
+  label: string | null
+  image_url: string
+}
+
 export type MovieCard = {
   id: number
   user_id?: string
@@ -71,6 +89,7 @@ export type MovieCard = {
   mood_before: CardMoodBefore
   mood_after: CardMoodAfter
   custom_tags: string[]
+  reactions?: ReactionSummary
 }
 
 /** Карточка ленты: поля фильма и автора из GET /api/cards/feed */
@@ -105,6 +124,7 @@ export type MovieCardComment = {
   replies_count: number
   total_descendants_count: number
   author: MovieCardCommentAuthor
+  reactions?: ReactionSummary
 }
 
 export type MovieCardCommentPage = {

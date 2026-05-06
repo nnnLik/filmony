@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from api.reactions.schemas import ReactionSummaryResponse
 from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 
 
@@ -45,6 +46,7 @@ class CardDetailResponse(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str]
+    reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
 
 
 class CardUpdateRequest(BaseModel):
@@ -76,6 +78,7 @@ class MovieCardCommentResponse(BaseModel):
     replies_count: int = 0
     total_descendants_count: int = 0
     author: MovieCardCommentAuthorResponse
+    reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
 
 
 class MovieCardCommentListResponse(BaseModel):

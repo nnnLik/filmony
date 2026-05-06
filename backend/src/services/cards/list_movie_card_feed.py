@@ -13,6 +13,8 @@ from models.movie_card_comment import MovieCardComment
 from models.movie_card_tag import MovieCardTag
 from models.user import User
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor, MovieCardCommentItem
+from services.reactions import GetReactionSummariesForTargetsService
+from services.reactions.types import ReactionTargetSummary
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +35,7 @@ class MovieCardFeedItem:
     custom_tags: list[str]
     comments_count: int
     comments_preview: list[MovieCardCommentItem]
+    reactions: ReactionTargetSummary
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +48,9 @@ class ListMovieCardFeedService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, cursor: str | None, limit: int) -> MovieCardFeedPage:
+    async def execute(
+        self, viewer_user_id: UUID, cursor: str | None, limit: int
+    ) -> MovieCardFeedPage:
         query = (
             select(MovieCard, Film, User)
             .join(Film, Film.id == MovieCard.film_id)
@@ -145,37 +150,68 @@ class ListMovieCardFeedService:
                             photo_url=author_row.photo_url,
                             display_name=author_row.display_name,
                         ),
+                        reactions=ReactionTargetSummary(counts=(), my_reaction_type_id=None),
                     )
                 )
 
-        items = [
-            MovieCardFeedItem(
-                id=card.id,
-                user_id=card.user_id,
-                card_author=MovieCardCommentAuthor(
-                    id=card_author_user.id,
-                    profile_slug=card_author_user.profile_slug,
-                    username=card_author_user.username,
-                    first_name=card_author_user.first_name,
-                    last_name=card_author_user.last_name,
-                    photo_url=card_author_user.photo_url,
-                    display_name=card_author_user.display_name,
-                ),
-                film_id=film.id,
-                film_kinopoisk_id=film.kinopoisk_id,
-                film_genres=list(film.genres or []),
-                film_title=film.title,
-                film_year=film.year,
-                film_poster_url=film.poster_url,
-                rating=float(card.rating),
-                company=card.company,
-                mood_before=card.mood_before,
-                mood_after=card.mood_after,
-                custom_tags=tags_by_card.get(card.id, []),
-                comments_count=counts_by_card.get(card.id, 0),
-                comments_preview=previews_by_card.get(card.id, []),
+        preview_comment_ids: list[int] = []
+        for _cid, plist in previews_by_card.items():
+            for p in plist:
+                preview_comment_ids.append(p.id)
+
+        card_summaries, comment_summaries = await GetReactionSummariesForTargetsService(
+            self._session
+        ).execute(
+            viewer_user_id=viewer_user_id,
+            movie_card_ids=card_ids,
+            comment_ids=preview_comment_ids,
+        )
+
+        items = []
+        for card, film, card_author_user in visible_rows:
+            prev_list = previews_by_card.get(card.id, [])
+            preview_with_rx = tuple(
+                MovieCardCommentItem(
+                    id=p.id,
+                    movie_card_id=p.movie_card_id,
+                    parent_comment_id=p.parent_comment_id,
+                    text=p.text,
+                    created_at=p.created_at,
+                    replies_count=p.replies_count,
+                    total_descendants_count=p.total_descendants_count,
+                    author=p.author,
+                    reactions=comment_summaries[p.id],
+                )
+                for p in prev_list
             )
-            for card, film, card_author_user in visible_rows
-        ]
+            items.append(
+                MovieCardFeedItem(
+                    id=card.id,
+                    user_id=card.user_id,
+                    card_author=MovieCardCommentAuthor(
+                        id=card_author_user.id,
+                        profile_slug=card_author_user.profile_slug,
+                        username=card_author_user.username,
+                        first_name=card_author_user.first_name,
+                        last_name=card_author_user.last_name,
+                        photo_url=card_author_user.photo_url,
+                        display_name=card_author_user.display_name,
+                    ),
+                    film_id=film.id,
+                    film_kinopoisk_id=film.kinopoisk_id,
+                    film_genres=list(film.genres or []),
+                    film_title=film.title,
+                    film_year=film.year,
+                    film_poster_url=film.poster_url,
+                    rating=float(card.rating),
+                    company=card.company,
+                    mood_before=card.mood_before,
+                    mood_after=card.mood_after,
+                    custom_tags=tags_by_card.get(card.id, []),
+                    comments_count=counts_by_card.get(card.id, 0),
+                    comments_preview=list(preview_with_rx),
+                    reactions=card_summaries[card.id],
+                )
+            )
         next_cursor = str(cast(int, visible_rows[-1][0].id)) if has_more and visible_rows else None
         return MovieCardFeedPage(items=items, next_cursor=next_cursor)

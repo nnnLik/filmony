@@ -20,6 +20,7 @@
 - Агрегированные файлы логов больше не используются.
 
 ## Latest Entries
+- `2026-05-07T140500Z-movie-card-custom-reactions-code.md`
 - `2026-05-07T120000Z-roadmap-consolidation-docs.md`
 - `2026-05-07T090000Z-telegram-engagement-notifications-plan.md`
 - `2026-05-06T223200Z-feed-ui-card-design-docs.md`

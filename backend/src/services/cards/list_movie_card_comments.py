@@ -11,6 +11,8 @@ from sqlalchemy.orm import aliased
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.user import User
+from services.reactions import GetReactionSummariesForTargetsService
+from services.reactions.types import ReactionTargetSummary
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +36,7 @@ class MovieCardCommentItem:
     replies_count: int
     total_descendants_count: int
     author: MovieCardCommentAuthor
+    reactions: ReactionTargetSummary
 
 
 class MovieCardNotFoundError(Exception):
@@ -56,6 +59,7 @@ class ListMovieCardCommentsService:
 
     async def execute(
         self,
+        viewer_user_id: UUID,
         card_id: int,
         parent_comment_id: int | None,
         cursor: int | None,
@@ -147,6 +151,12 @@ class ListMovieCardCommentsService:
             for root_id, count in descendant_rows:
                 descendants_count_by_comment[int(root_id)] = int(count)
 
+        _, comment_summaries = await GetReactionSummariesForTargetsService(self._session).execute(
+            viewer_user_id=viewer_user_id,
+            movie_card_ids=[],
+            comment_ids=comment_ids,
+        )
+
         items = [
             MovieCardCommentItem(
                 id=comment.id,
@@ -165,6 +175,7 @@ class ListMovieCardCommentsService:
                     photo_url=user.photo_url,
                     display_name=user.display_name,
                 ),
+                reactions=comment_summaries[comment.id],
             )
             for comment, user in visible_rows
         ]

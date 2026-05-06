@@ -35,6 +35,7 @@ fi
 # Order respects FKs: user & film -> movie_card -> comments/tags -> subscriptions
 ORDER=(
   user.sql
+  reaction_type.sql
   film.sql
   movie_card.sql
   movie_card_comment.sql

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
@@ -19,6 +20,7 @@ from api.cards.schemas import (
     MovieCardFeedItemResponse,
     MovieCardFeedPageResponse,
 )
+from api.reactions.schemas import reaction_target_summary_to_response
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.movie_card_comment import MovieCardComment
@@ -68,11 +70,14 @@ from services.cards.update_movie_card import (
     MovieCardValidationError as UpdateMovieCardValidationError,
 )
 from services.cards.update_movie_card import UpdateMovieCardInput, UpdateMovieCardService
+from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
 
 
-async def _load_comment_response(db: AsyncSession, comment_id: int) -> MovieCardCommentResponse:
+async def _load_comment_response(
+    db: AsyncSession, comment_id: int, viewer_user_id: UUID
+) -> MovieCardCommentResponse:
     row = (
         await db.execute(
             select(MovieCardComment, User)
@@ -81,6 +86,11 @@ async def _load_comment_response(db: AsyncSession, comment_id: int) -> MovieCard
         )
     ).one()
     comment, author = row
+    _, comment_rx = await GetReactionSummariesForTargetsService(db).execute(
+        viewer_user_id=viewer_user_id,
+        movie_card_ids=[],
+        comment_ids=[comment.id],
+    )
     return MovieCardCommentResponse(
         id=comment.id,
         movie_card_id=comment.movie_card_id,
@@ -98,6 +108,7 @@ async def _load_comment_response(db: AsyncSession, comment_id: int) -> MovieCard
             photo_url=author.photo_url,
             display_name=author.display_name,
         ),
+        reactions=reaction_target_summary_to_response(comment_rx[comment.id]),
     )
 
 
@@ -119,6 +130,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
             photo_url=item.author.photo_url,
             display_name=item.author.display_name,
         ),
+        reactions=reaction_target_summary_to_response(item.reactions),
     )
 
 
@@ -173,12 +185,12 @@ async def create_card(
 
 @router.get('/feed', response_model=MovieCardFeedPageResponse, summary='Лента карточек')
 async def list_movie_card_feed(
-    _viewer: CurrentUser,
+    viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=50),
 ) -> MovieCardFeedPageResponse:
-    page = await ListMovieCardFeedService(db).execute(cursor, limit)
+    page = await ListMovieCardFeedService(db).execute(viewer.id, cursor, limit)
     return MovieCardFeedPageResponse(
         items=[
             MovieCardFeedItemResponse(
@@ -195,6 +207,7 @@ async def list_movie_card_feed(
                 mood_before=item.mood_before,
                 mood_after=item.mood_after,
                 custom_tags=item.custom_tags,
+                reactions=reaction_target_summary_to_response(item.reactions),
                 comments_count=item.comments_count,
                 card_author=MovieCardCommentAuthorResponse(
                     id=item.card_author.id,
@@ -222,7 +235,7 @@ async def get_card(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CardDetailResponse:
     try:
-        card = await GetMovieCardDetailsService(db).execute(card_id)
+        card = await GetMovieCardDetailsService(db).execute(card_id, viewer.id)
     except MovieCardNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
     return CardDetailResponse(
@@ -239,6 +252,7 @@ async def get_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=card.custom_tags,
+        reactions=reaction_target_summary_to_response(card.reactions),
     )
 
 
@@ -321,12 +335,14 @@ async def delete_card(
 )
 async def list_card_comments(
     card_id: int,
+    viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: int | None = Query(default=None, ge=1),
     limit: int = Query(default=20, ge=1),
 ) -> MovieCardCommentListResponse:
     try:
         page = await ListMovieCardCommentsService(db).execute(
+            viewer.id,
             card_id=card_id,
             parent_comment_id=None,
             cursor=cursor,
@@ -336,27 +352,7 @@ async def list_card_comments(
     except ListCommentsMovieCardNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
     return MovieCardCommentListResponse(
-        items=[
-            MovieCardCommentResponse(
-                id=item.id,
-                movie_card_id=item.movie_card_id,
-                parent_comment_id=item.parent_comment_id,
-                text=item.text,
-                created_at=item.created_at,
-                replies_count=item.replies_count,
-                total_descendants_count=item.total_descendants_count,
-                author=MovieCardCommentAuthorResponse(
-                    id=item.author.id,
-                    profile_slug=item.author.profile_slug,
-                    username=item.author.username,
-                    first_name=item.author.first_name,
-                    last_name=item.author.last_name,
-                    photo_url=item.author.photo_url,
-                    display_name=item.author.display_name,
-                ),
-            )
-            for item in page.items
-        ],
+        items=[_comment_item_to_response(item) for item in page.items],
         next_cursor=page.next_cursor,
     )
 
@@ -369,12 +365,14 @@ async def list_card_comments(
 async def list_card_comment_replies(
     card_id: int,
     comment_id: int,
+    viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: int | None = Query(default=None, ge=1),
     limit: int = Query(default=20, ge=1),
 ) -> MovieCardCommentListResponse:
     try:
         page = await ListMovieCardCommentsService(db).execute(
+            viewer.id,
             card_id=card_id,
             parent_comment_id=comment_id,
             cursor=cursor,
@@ -385,27 +383,7 @@ async def list_card_comment_replies(
     except CommentNotFoundError:
         raise HTTPException(status_code=404, detail='comment not found') from None
     return MovieCardCommentListResponse(
-        items=[
-            MovieCardCommentResponse(
-                id=item.id,
-                movie_card_id=item.movie_card_id,
-                parent_comment_id=item.parent_comment_id,
-                text=item.text,
-                created_at=item.created_at,
-                replies_count=item.replies_count,
-                total_descendants_count=item.total_descendants_count,
-                author=MovieCardCommentAuthorResponse(
-                    id=item.author.id,
-                    profile_slug=item.author.profile_slug,
-                    username=item.author.username,
-                    first_name=item.author.first_name,
-                    last_name=item.author.last_name,
-                    photo_url=item.author.photo_url,
-                    display_name=item.author.display_name,
-                ),
-            )
-            for item in page.items
-        ],
+        items=[_comment_item_to_response(item) for item in page.items],
         next_cursor=page.next_cursor,
     )
 
@@ -441,4 +419,4 @@ async def create_card_comment(
     except MovieCardCommentValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    return await _load_comment_response(db, created.id)
+    return await _load_comment_response(db, created.id, user.id)

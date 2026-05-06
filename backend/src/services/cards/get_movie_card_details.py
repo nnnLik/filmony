@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_tag import MovieCardTag
+from services.reactions import GetReactionSummariesForTargetsService
+from services.reactions.types import ReactionTargetSummary
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +28,7 @@ class MovieCardDetails:
     mood_before: str
     mood_after: str
     custom_tags: list[str]
+    reactions: ReactionTargetSummary
 
 
 class MovieCardNotFoundError(Exception):
@@ -36,7 +39,7 @@ class GetMovieCardDetailsService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, card_id: int) -> MovieCardDetails:
+    async def execute(self, card_id: int, viewer_user_id: UUID) -> MovieCardDetails:
         row = (
             await self._session.execute(
                 select(MovieCard, Film)
@@ -59,6 +62,11 @@ class GetMovieCardDetailsService:
             .scalars()
             .all()
         )
+        summaries, _ = await GetReactionSummariesForTargetsService(self._session).execute(
+            viewer_user_id=viewer_user_id,
+            movie_card_ids=[card.id],
+            comment_ids=[],
+        )
         return MovieCardDetails(
             id=card.id,
             user_id=card.user_id,
@@ -73,4 +81,5 @@ class GetMovieCardDetailsService:
             mood_before=card.mood_before,
             mood_after=card.mood_after,
             custom_tags=list(tags),
+            reactions=summaries[card.id],
         )

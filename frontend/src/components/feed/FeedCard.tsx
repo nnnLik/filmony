@@ -1,10 +1,11 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
-import { useCallback, useMemo, useState, type MouseEventHandler } from 'react'
+import { useCallback, useEffect, useMemo, useState, type MouseEventHandler } from 'react'
 import { Link } from 'react-router-dom'
 
 import { createMovieCardComment } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, FeedMovieCard, MovieCardComment } from '../../api/profileTypes'
+import type { CardCompany, CardMoodAfter, CardMoodBefore, FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
+import { ReactionStrip } from '../reactions/ReactionStrip'
 
 const COMPANY_SHORT: Record<CardCompany, string> = {
   alone: 'Один',
@@ -115,8 +116,16 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
   const [draft, setDraft] = useState('')
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [cardReaction, setCardReaction] = useState<ReactionSummary | undefined>(() => card.reactions)
+  const [previewReactions, setPreviewReactions] = useState<Record<number, ReactionSummary>>({})
 
   const palette = useMemo(() => ratingPalette(card.rating), [card.rating])
+  useEffect(() => {
+    setCardReaction(card.reactions)
+  }, [card.reactions])
+  useEffect(() => {
+    setPreviewReactions({})
+  }, [card.id, card.comments_preview])
   const profileHref = `/u/${encodeURIComponent(card.user_id)}`
   const cardHref = `/cards/${card.id}`
   const name = authorLabel(card)
@@ -274,6 +283,15 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
           </div>
         )}
 
+        <div className="relative z-10 mt-1" onMouseDown={stopCardNav}>
+          <ReactionStrip
+            targetKind="movie_card"
+            targetId={card.id}
+            summary={cardReaction}
+            onSummaryChange={setCardReaction}
+          />
+        </div>
+
         {/* Комментарии: как на странице карточки; аватар (и имя) ведут в профиль автора */}
         <div className="relative z-10 mt-1">
           <div className="mb-2 flex items-baseline justify-between gap-2">
@@ -336,6 +354,16 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
                         >
                           Ответить
                         </Link>
+                        <div className="mt-2" onMouseDown={stopCardNav}>
+                          <ReactionStrip
+                            targetKind="movie_card_comment"
+                            targetId={comment.id}
+                            summary={previewReactions[comment.id] ?? comment.reactions}
+                            onSummaryChange={(next) =>
+                              setPreviewReactions((prev) => ({ ...prev, [comment.id]: next }))
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
