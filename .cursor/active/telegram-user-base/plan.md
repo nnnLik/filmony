@@ -15,7 +15,7 @@
 3. Модель `User`, миграция Alembic (`src/migrations`), `compose.yml` + Postgres.
 4. Сервисы: `VerifyTelegramInitDataService`, `UpsertTelegramUserService`, `IssueSessionJwtService`, `DecodeSessionJwtService`.
 5. Роуты `api/auth`, зависимость `CurrentUser`, `GET /api/me` на `api/router`.
-6. Тесты: `test_telegram_auth.py`, хелпер подписи initData, `conftest.py` (схема, таблицы).
+6. Тесты: `auth/test_telegram.py`, `auth/telegram_init_data.py`, `support/` + корневой `conftest.py` (`ENV=test`, `pytest_plugins`).
 7. Репозиторий: `.gitignore`, `README.md`, `vars/.env.example`; правка предупреждения Pydantic (`default_schema` вместо `schema`).
 
 ## Files Expected To Change / Changed

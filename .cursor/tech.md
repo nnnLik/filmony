@@ -30,15 +30,15 @@ make start
 make backend-lint
 make backend-format
 make backend-test
-make backend-test-one target=src/tests/test_routes.py
-make backend-test-one target=src/tests/test_routes.py::test_root
+make backend-test-one target=src/tests/api/test_public_routes.py
+make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 ```
 
 **Те же действия без Makefile** (из корня репозитория, compose уже `up`):
 
 ```bash
 docker compose -f compose.yml exec -w /opt/app filmony-backend pytest
-docker compose -f compose.yml exec -w /opt/app filmony-backend pytest src/tests/test_routes.py::test_root
+docker compose -f compose.yml exec -w /opt/app filmony-backend pytest src/tests/api/test_public_routes.py::test_root
 ```
 
 ## 4. Стек

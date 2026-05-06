@@ -35,4 +35,8 @@ def setup_app(app: FastAPI) -> FastAPI:
     app.add_middleware(CORSMiddleware, **cors_kw)
     app.include_router(api_router)
 
+    @app.get("/")
+    def read_root() -> dict[str, str]:
+        return {"message": "Hello, World!"}
+
     return app

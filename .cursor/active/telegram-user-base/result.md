@@ -24,7 +24,9 @@
 - `backend/src/services/auth/*` — verify initData, upsert, JWT.
 - `backend/src/models/user.py`, `models/base.py` (наследование как в проекте).
 - `backend/src/migrations/env.py`, `versions/001_users.py`
-- `backend/src/tests/conftest.py`, `test_telegram_auth.py`, `telegram_auth_helpers.py`
+- `backend/src/tests/conftest.py`, `support/plugins.py`, `support/db_setup.py`
+- `backend/src/tests/auth/test_telegram.py`, `auth/telegram_init_data.py`
+- `backend/src/tests/api/test_public_routes.py`
 - `compose.yml`, `Makefile`, `backend/Dockerfile`
 - `.gitignore`, `README.md`, `vars/.env.example`
 
@@ -33,9 +35,9 @@
 - Итог в этой сессии: автоматический прогон pytest в Docker не был приложен к логу как артефакт; при необходимости выполните локально и допишите строку сюда.
 
 ## Automated tests (backend)
-- `backend/src/tests/test_telegram_auth.py` — невалидный hash, просроченный auth_date, успешный обмен + cookie + `/api/me`, идемпотентность, logout.
-- `backend/src/tests/test_routes.py` — существующие smoke-тесты.
-- Хелпер: `backend/src/tests/telegram_auth_helpers.py`.
+- `backend/src/tests/auth/test_telegram.py` — невалидный hash, просроченный auth_date, успешный обмен + cookie + `/api/me`, идемпотентность, logout.
+- `backend/src/tests/api/test_public_routes.py` — smoke `/` и `/api/hello`.
+- Хелпер: `backend/src/tests/auth/telegram_init_data.py`.
 
 ## Known Limitations
 - Фронт: в спецификации 001 указаны `api/client.ts`, `useTelegramAuth`, `AuthContext` и доработка `App.tsx` под бэкенд-пользователя — в текущем дереве фронта этого нет или объём меньше спеки; нужна отдельная итерация.

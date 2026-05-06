@@ -27,7 +27,7 @@
 ### 2026-05-06 (ранее)
 - Action type: code | test
 - Summary: Реализация auth API, JWT cookie, модель User, миграция, тесты telegram auth.
-- Files: `backend/src/api/auth/*`, `backend/src/services/auth/*`, `backend/src/migrations/versions/001_users.py`, `backend/src/tests/test_telegram_auth.py`
+- Files: `backend/src/api/auth/*`, `backend/src/services/auth/*`, `backend/src/migrations/versions/001_users.py`, `backend/src/tests/auth/test_telegram.py`
 - Verification: `make backend-test` (Docker-first по `.cursor/tech.md`).
 
 ### 2026-05-06 (ранее)

@@ -9,8 +9,8 @@ RUFF_FIX = ruff check --fix --config pyproject.toml src/
 # Docker-first: поднимайте стек (`make start`), затем вызывайте цели ниже — они выполняются внутри контейнера `filmony-backend`.
 # Примеры pytest:
 #   make backend-test
-#   make backend-test-one target=src/tests/test_routes.py
-#   make backend-test-one target=src/tests/test_routes.py::test_root
+#   make backend-test-one target=src/tests/api/test_public_routes.py
+#   make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 
 .PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one
 
@@ -48,9 +48,9 @@ backend-fix:
 backend-test:
 	$(DC) exec -w /opt/app $(APP) pytest
 
-# Один файл, класс или тест: make backend-test-one target=src/tests/test_routes.py::test_root
+# Один файл, класс или тест: make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 backend-test-one:
-	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/<file>::<test_name>' >&2; exit 1)
+	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/<dir>/test_<name>::<test_name>' >&2; exit 1)
 	$(DC) exec -w /opt/app $(APP) pytest $(target)
 
 logs:

@@ -14,7 +14,7 @@ alwaysApply: true
 
 ## Docker-first execution
 - Считайте хостовую машину без Docker **не окружением для бэкенда**: pytest, ruff, миграции и одноразовые скрипты по возможности запускайте **внутри** сервиса `filmony-backend` (`docker compose -f compose.yml …` или цели в корневом `Makefile`).
-- Примеры: `make start`, `make backend-test`, `make backend-test-one target=src/tests/test_routes.py::test_root` — см. также `.cursor/tech.md`.
+- Примеры: `make start`, `make backend-test`, `make backend-test-one target=src/tests/api/test_public_routes.py::test_root` — см. также `.cursor/tech.md`.
 
 ## Required Lifecycle For Every Feature
 1. Create/read `.cursor/features/{feature-slug}/feature.md` with clear scope and acceptance criteria.

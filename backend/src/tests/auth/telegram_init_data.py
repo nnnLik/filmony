@@ -1,3 +1,7 @@
+"""Подпись тестового initData под тем же bot_token, что в настройках."""
+
+from __future__ import annotations
+
 import hashlib
 import hmac
 import json

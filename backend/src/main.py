@@ -7,12 +7,6 @@ from utils.app_utils import get_app, setup_app
 app: FastAPI = setup_app(get_app())
 
 
-
-@app.get("/")
-def read_root() -> dict[str, str]:
-    return {"message": "Hello, World!"}
-
-
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
