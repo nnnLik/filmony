@@ -64,9 +64,12 @@ fixtures-load:
 
 # Залить папки `emoji/*-emojigg-pack` в RustFS (S3). Нужны: `make start` (RustFS на localhost:7900), на хосте — `uv`.
 # Переопределить: RUSTFS_ENDPOINT=... RUSTFS_BUCKET=... make sync-reactions-rustfs
+# С синхром в Postgres (хост должен достучаться до БД — см. `vars/.env.example` порты Postgres):
+#   DATABASE_URL=postgresql://filmony:filmony@127.0.0.1:55432/filmony make sync-reactions-rustfs ARGS=--sync-db
+ARGS ?=
 sync-reactions-rustfs:
 	RUSTFS_ENDPOINT=$${RUSTFS_ENDPOINT:-http://127.0.0.1:7900} \
 	RUSTFS_ACCESS_KEY=$${RUSTFS_ACCESS_KEY:-rustfsadmin} \
 	RUSTFS_SECRET_KEY=$${RUSTFS_SECRET_KEY:-rustfsadmin} \
 	RUSTFS_BUCKET=$${RUSTFS_BUCKET:-filmony-reactions} \
-	uv run --project backend python scripts/sync_reactions_to_rustfs.py
+	uv run --project backend python scripts/sync_reactions_to_rustfs.py $(ARGS)

@@ -94,6 +94,8 @@ class ReactionMediaSettings(BaseSettings):
     public_base_url: str = Field('', alias='REACTION_MEDIA_PUBLIC_BASE_URL')
     rustfs_internal_base_url: str = Field('', alias='RUSTFS_INTERNAL_BASE_URL')
     rustfs_bucket: str = Field('filmony-reactions', alias='RUSTFS_BUCKET')
+    rustfs_access_key: str = Field('', alias='RUSTFS_ACCESS_KEY')
+    rustfs_secret_key: str = Field('', alias='RUSTFS_SECRET_KEY')
 
 
 @dataclass

@@ -59,9 +59,11 @@
 
    ```bash
    make sync-reactions-rustfs
+   # опционально upsert в Postgres (с хоста — порт 55432, см. vars/.env.example):
+   DATABASE_URL=postgresql://filmony:filmony@127.0.0.1:55432/filmony make sync-reactions-rustfs ARGS=--sync-db
    ```
 
-   Должны быть запущены compose и RustFS (`http://127.0.0.1:7900`, ключи как в `compose.yml`). В `vars/.env.development` задайте `REACTION_MEDIA_PUBLIC_BASE_URL=http://127.0.0.1:7900/filmony-reactions` и строки в БД `reaction_type` с `category_slug` и `asset_key`, совпадающим с ключом в хранилище (например `reactions/pepe/file.png`). Подробнее: `docs/features/movie-card-custom-reactions.md`.
+   Должны быть запущены compose и RustFS (`http://127.0.0.1:7900`, ключи как в `compose.yml`). Картинки в UI идут через **постоянный** путь `/api/reactions/asset/...`: бэкенд качает объект из RustFS с **подписью S3** при заданных в `vars/.env.development` переменных **`RUSTFS_ACCESS_KEY`** / **`RUSTFS_SECRET_KEY`**. Временные presigned-URL из консоли (порт 7901) для этого не нужны. Подробнее: `docs/features/movie-card-custom-reactions.md`.
 
 ## Makefile (бэкенд внутри контейнера)
 
@@ -74,6 +76,7 @@
 | `make backend-test-one target=src/tests/...` | один тест / файл |
 | `make backend-lint` / `backend-format` / `backend-fix` | Ruff |
 | `make sync-reactions-rustfs` | залить каталоги `emoji/` в локальный RustFS (нужен `uv` на хосте) |
+| `DATABASE_URL=… make sync-reactions-rustfs ARGS=--sync-db` | то же + upsert `reaction_type` (строка подключения должна быть доступна с хоста) |
 
 Тесты используют тот же Postgres, что и приложение; для изоляции данных в pytest выставляется отдельная схема (см. `DATABASE_TEST_SCHEMA` и `src/tests/conftest.py`).
 

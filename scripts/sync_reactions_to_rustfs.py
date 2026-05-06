@@ -5,31 +5,94 @@
 
   make sync-reactions-rustfs
 
-Или вручную:
+Поднять Postgres + RustFS, затем **с синком строк в БД** (PostgreSQL доступен с хоста на `55432`):
 
-  RUSTFS_ENDPOINT=http://127.0.0.1:7900 \\
-  RUSTFS_ACCESS_KEY=rustfsadmin RUSTFS_SECRET_KEY=rustfsadmin \\
-  RUSTFS_BUCKET=filmony-reactions \\
-  uv run --project backend python scripts/sync_reactions_to_rustfs.py
+  DATABASE_URL=postgresql://filmony:filmony@127.0.0.1:55432/filmony \\
+  make sync-reactions-rustfs ARGS='--sync-db'
+
+Или внутри контейнера backend, где уже правильный `DATABASE_URL`:
+
+  docker compose -f compose.yml exec filmony-backend \\
+    uv run --project backend python scripts/sync_reactions_to_rustfs.py --sync-db
 
 Перед этим: ``make start`` чтобы поднялись ``filmony-rustfs`` (порт хоста **7900**) и bucket создался автоматически.
 """
 
 from __future__ import annotations
 
+import argparse
+import asyncio
 import mimetypes
 import os
 import sys
 from pathlib import Path
 
 
+def label_from_filename(filename: str) -> str:
+    stem = Path(filename).stem.replace('_', ' ').replace('-', ' ')
+    return stem[:118] if stem else Path(filename).name[:118]
+
+
+async def upsert_reaction_rows(
+    dsn: str,
+    uploaded: list[tuple[str, str, str, int]],
+) -> None:
+    """Строки: category_slug, file name, asset_key, sort_order."""
+    try:
+        import asyncpg  # noqa: PLC0415
+    except ImportError:
+        print('asyncpg не найден: используйте `uv run --project backend`.', file=sys.stderr)
+        raise SystemExit(1) from None
+
+    conn = await asyncpg.connect(dsn)
+    try:
+        sql = """
+            INSERT INTO reaction_type (
+                label, image_url, sort_order, is_active, category_slug, asset_key
+            )
+            VALUES ($1, $2, $3, true, $4, $5)
+            ON CONFLICT (asset_key) DO UPDATE SET
+                label = EXCLUDED.label,
+                image_url = EXCLUDED.image_url,
+                sort_order = EXCLUDED.sort_order,
+                category_slug = EXCLUDED.category_slug,
+                is_active = EXCLUDED.is_active
+        """
+        for category_slug, fname, asset_key, sort_order in uploaded:
+            lbl = label_from_filename(fname)
+            await conn.execute(sql, lbl, asset_key, sort_order, category_slug, asset_key)
+    finally:
+        await conn.close()
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description='Sync emoji packs to RustFS and optionally reaction_type.')
+    parser.add_argument(
+        '--sync-db',
+        action='store_true',
+        help='После загрузки в S3 сделать upsert в таблицу reaction_type.',
+    )
+    parser.add_argument(
+        '--database-url',
+        default=os.environ.get('DATABASE_URL', ''),
+        help='Строка подключения Postgres (или env DATABASE_URL). Нужно при --sync-db.',
+    )
+    return parser.parse_args(argv)
+
+
 def main() -> int:
+    argv = sys.argv[1:]
+    ns = parse_args(argv)
     try:
         import boto3  # noqa: PLC0415
         from botocore.client import Config  # noqa: PLC0415
         from botocore.exceptions import ClientError  # noqa: PLC0415
     except ImportError:
         print('Install boto3 (e.g. `uv sync --group dev` in backend/).', file=sys.stderr)
+        return 1
+
+    if ns.sync_db and not (ns.database_url or '').strip():
+        print('--sync-db требует --database-url или переменную DATABASE_URL.', file=sys.stderr)
         return 1
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -61,13 +124,16 @@ def main() -> int:
     except ClientError:
         client.create_bucket(Bucket=bucket)
 
-    uploaded = 0
+    uploaded: list[tuple[str, str, str, int]] = []
+    uploaded_count = 0
     emoji_root = repo_root / 'emoji'
-    for tab in REACTION_TAB_ORDER:
+    for tab_index, tab in enumerate(REACTION_TAB_ORDER):
         folder = emoji_root / tab.directory
+        base_order = tab_index * 10_000
         if not folder.is_dir():
             print(f'skip missing dir: {folder}')
             continue
+        sub_index = 0
         for path in sorted(folder.iterdir()):
             if not path.is_file():
                 continue
@@ -79,10 +145,18 @@ def main() -> int:
             if ctype:
                 extra['ContentType'] = ctype
             client.upload_file(str(path), bucket, key, ExtraArgs=extra or {})
-            uploaded += 1
+            uploaded_count += 1
+            sort_order = base_order + sub_index
+            sub_index += 1
+            uploaded.append((tab.slug, path.name, key, sort_order))
             print(f'OK {key}')
 
-    print(f'done: {uploaded} object(s)')
+    print(f'done: {uploaded_count} object(s) in RustFS')
+
+    if ns.sync_db:
+        asyncio.run(upsert_reaction_rows(ns.database_url.strip(), uploaded))
+        print(f'db: upserted {len(uploaded)} reaction_type row(s)')
+
     return 0
 
 

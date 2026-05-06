@@ -17,10 +17,10 @@
 ## CDN / RustFS (dev)
 - В `compose.yml` сервис **`filmony-rustfs`** (образ `rustfs/rustfs:latest`), том `filmony-rustfs-data`, хост-порты **7900→9000**, **7901→9001** (консоль при необходимости).
 - Для прямых публичных URL (без прокси) с path-style клиент собирает: `{REACTION_MEDIA_PUBLIC_BASE_URL}/{asset_key}` (без двойных слешей). Пример base: `http://127.0.0.1:7900/filmony-reactions`. Mini App без LAN к этому адресу: либо **прокси бэкенда**, либо отдельный HTTPS-домен к RustFS на том же origin, что и API.
-- С **прокси** (переменная `RUSTFS_INTERNAL_BASE_URL` на backend, см. `compose.yml` для `filmony-backend`): в ответах API при наличии `asset_key` отдаются пути **`/api/reactions/asset/<asset_key>`**; бэкенд забирает объект из контейнерного RustFS (`http://filmony-rustfs:9000/…`). Если внутренний URL не задан (например `pytest`), сохраняется режим только с **`REACTION_MEDIA_PUBLIC_BASE_URL`**.
-- Сидеры в [`fixtures/reaction_type.sql`](/fixtures/reaction_type.sql) задают **`asset_key`** под объекты, которые загружает `make sync-reactions-rustfs` из `emoji/` (`reactions/<category_slug>/<file>`).
-- Политику **анонимного чтения только префикса** `reactions/*` нужно настроить в bucket (через консоль RustFS/`mc`/policy по вашей среде).
-- Загрузка файлов из репозитория: `scripts/sync_reactions_to_rustfs.py` (boto3, `endpoint_url` + `signature_version='s3v4'`), переменные — см. `vars/.env.example` (`RUSTFS_*`).
+- С **прокси** при `RUSTFS_INTERNAL_BASE_URL` и наличии **`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`** у backend (см. `vars/.env.development`): в каталоге API отдаются **постоянные** относительные URL **`/api/reactions/asset/<asset_key>`** (без срока действия). Бэкенд забирает объект из контейнерного RustFS методом **S3 GetObject с SigV4** (не анонимный HTTP GET). Если ключи из env пустые, остаётся вырожденный путь через «голый» `httpx` (тогда при приватном бакете клиент будет получать ошибки загрузки).
+- Если задан только **`REACTION_MEDIA_PUBLIC_BASE_URL`** (без внутреннего URL или без `asset_key`), клиент строит публичные ссылки напрямую к RustFS; для Mini App с телефона обычно неудобно из‑за `127.0.0.1` / приватности бакета — предпочтителен прокси без истечения срока.
+- Сидеры в [`fixtures/reaction_type.sql`](/fixtures/reaction_type.sql) задают **`asset_key`** под объекты, которые можно залить `make sync-reactions-rustfs` или полным циклом с БД (**`ARGS=--sync-db`**, см. [`scripts/sync_reactions_to_rustfs.py`](/scripts/sync_reactions_to_rustfs.py)).
+- Политику **анонимного чтения** префикса `reactions/*` в RustFS нужно включать только если вы сознательно раздаёте картинки без прокси; для режима SigV4 из backend она не требуется.
 - Порядок вкладок и каталоги emoji: **`backend/src/const/reaction_packs.py`** (маппинг `category_slug` ↔ папка в `emoji/`).
 
 ## API
@@ -82,14 +82,15 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
 **Требование к клиенту:** списки комментариев и replies вызываются **с авторизованной сессией** (как лента).
 
 ## Fixtures
-- Сначала залить объекты в RustFS: `make sync-reactions-rustfs` (ключи вида `reactions/<slug>/…` как в сидере).
+- Сначала залить объекты в RustFS (и опционально в БД): `make sync-reactions-rustfs` и при нужде `ARGS='--sync-db'` с доступным для хоста `DATABASE_URL`.
 - После миграций: `fixtures/reaction_type.sql` или ручные `INSERT`; скрипт: `./scripts/load-fixtures.sh reaction_type.sql` / полная загрузка.
 ## Frontend
 - Загрузка каталога: `GET /api/reactions/catalog` через `reactionCatalogCache.ts` (структура `recent` + `tabs`).
-- Компонент `ReactionStrip`: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка открытия пикера — **`IconButton` + `Smile` (lucide)**; пикер с **поиском**, блоком **Недавние** и **вкладками** категорий. Вёрстка и соглашения: **`docs/frontend/ui-conventions.md`**.
+- Компонент `ReactionStrip`: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка открытия пикера — **`IconButton` + `Smile` (lucide)**; пикер с блоком **Недавние**, боковой навигацией **«Коллекции»** и сеткой по категориям. Вёрстка и соглашения: **`docs/frontend/ui-conventions.md`**.
 - Точки встраивания: `FeedCard`, `MovieCardDetailPage`.
 
 ## Tests
+- `backend/src/tests/api/test_reactions_asset_route.py` — ключи объекта для прокси, ответ без RustFS (**503**), успешный байтовый поток с мокнутым GetObject (**200**).
 - `backend/src/tests/api/test_reactions_routes.py` — каталог, auth, вкладки, недавние после POST, актёры, toggle, замена, неактивный тип, несуществующая цель, реакция на комментарий.
 - `backend/src/tests/api/test_cards_routes.py` — обновлён под поле `reactions` и обязательный auth на чтение комментариев.
 

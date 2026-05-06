@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 
 import httpx
@@ -34,6 +35,11 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetUserReactionInput,
 )
 from utils.reaction_asset_key import is_safe_reaction_asset_key
+from utils.rustfs_get_object import (
+    RustfsClientError,
+    RustfsKeyNotFoundError,
+    get_rustfs_object_bytes,
+)
 
 router = APIRouter(prefix='/reactions', tags=['reactions'])
 
@@ -49,7 +55,33 @@ async def get_reaction_asset(asset_key: str) -> Response:
     if not internal:
         raise HTTPException(status_code=503, detail='reaction asset proxy not configured') from None
     bucket = settings.reaction_media.rustfs_bucket.strip()
-    url = f'{internal}/{bucket}/{asset_key.lstrip("/")}'
+    safe_key = asset_key.lstrip('/')
+    access = settings.reaction_media.rustfs_access_key.strip()
+    secret = settings.reaction_media.rustfs_secret_key.strip()
+    headers: dict[str, str] = {'Cache-Control': 'public, max-age=86400'}
+
+    if access and secret:
+        try:
+            result = await asyncio.to_thread(
+                get_rustfs_object_bytes,
+                endpoint_url=internal,
+                access_key_id=access,
+                secret_access_key=secret,
+                bucket=bucket,
+                key=safe_key,
+            )
+        except RustfsKeyNotFoundError:
+            raise HTTPException(status_code=404, detail='not found') from None
+        except RustfsClientError:
+            raise HTTPException(status_code=502, detail='storage unreachable') from None
+        media = (
+            result.content_type.strip()
+            if isinstance(result.content_type, str) and result.content_type.strip()
+            else 'application/octet-stream'
+        )
+        return Response(content=result.body, media_type=media, headers=headers)
+
+    url = f'{internal}/{bucket}/{safe_key}'
     timeout = httpx.Timeout(18.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -59,7 +91,6 @@ async def get_reaction_asset(asset_key: str) -> Response:
     if upstream.status_code != 200:
         raise HTTPException(status_code=404, detail='not found') from None
     ct = upstream.headers.get('content-type')
-    headers: dict[str, str] = {'Cache-Control': 'public, max-age=86400'}
     media = ct.strip() if isinstance(ct, str) and ct.strip() else 'application/octet-stream'
     return Response(content=upstream.content, media_type=media, headers=headers)
 
