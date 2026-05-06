@@ -335,6 +335,7 @@ async def test_create_and_list_comments_tree(async_client: AsyncClient) -> None:
     assert root_body['parent_comment_id'] is None
     assert root_body['author']['id'] == me['id']
     assert root_body['text'] == 'Отличный фильм\nСильная режиссура'
+    assert root_body['total_descendants_count'] == 0
 
     reply = await async_client.post(
         f'/api/cards/{card_id}/comments',
@@ -343,6 +344,7 @@ async def test_create_and_list_comments_tree(async_client: AsyncClient) -> None:
     assert reply.status_code == 200
     reply_body = reply.json()
     assert reply_body['parent_comment_id'] == root_body['id']
+    assert reply_body['total_descendants_count'] == 0
 
     nested_reply = await async_client.post(
         f'/api/cards/{card_id}/comments',
@@ -361,6 +363,7 @@ async def test_create_and_list_comments_tree(async_client: AsyncClient) -> None:
     assert len(items) == 1
     assert items[0]['id'] == root_body['id']
     assert items[0]['replies_count'] == 1
+    assert items[0]['total_descendants_count'] == 2
 
     replies = await async_client.get(f'/api/cards/{card_id}/comments/{root_body["id"]}/replies')
     assert replies.status_code == 200
@@ -368,12 +371,14 @@ async def test_create_and_list_comments_tree(async_client: AsyncClient) -> None:
     assert len(reply_items) == 1
     assert reply_items[0]['id'] == reply_body['id']
     assert reply_items[0]['replies_count'] == 1
+    assert reply_items[0]['total_descendants_count'] == 1
 
     nested = await async_client.get(f'/api/cards/{card_id}/comments/{reply_body["id"]}/replies')
     assert nested.status_code == 200
     nested_items = nested.json()['items']
     assert len(nested_items) == 1
     assert nested_items[0]['id'] == nested_reply.json()['id']
+    assert nested_items[0]['total_descendants_count'] == 0
 
 
 @pytest.mark.asyncio

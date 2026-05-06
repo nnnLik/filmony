@@ -1,9 +1,14 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { createMovieCardComment, getMovieCardById, getMovieCardComments } from '../api/cardApi'
+import {
+  createMovieCardComment,
+  getMovieCardById,
+  getMovieCardCommentReplies,
+  getMovieCardComments,
+} from '../api/cardApi'
 
 type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
 type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
@@ -40,7 +45,14 @@ type MovieCardComment = {
   parent_comment_id: number | null
   text: string
   created_at: string
+  replies_count: number
+  total_descendants_count: number
   author: MovieCardCommentAuthor
+}
+
+type MovieCardCommentPage = {
+  items: MovieCardComment[]
+  next_cursor: string | null
 }
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
@@ -102,38 +114,49 @@ function authorName(comment: MovieCardComment): string {
 
 type CommentTreeNode = MovieCardComment & { children: CommentTreeNode[] }
 
-function buildCommentTree(items: MovieCardComment[]): CommentTreeNode[] {
-  const map = new Map<number, CommentTreeNode>()
-  const roots: CommentTreeNode[] = []
-
-  for (const item of items) {
-    map.set(item.id, { ...item, children: [] })
-  }
-  for (const item of items) {
-    const node = map.get(item.id)
-    if (node == null) continue
-    if (item.parent_comment_id == null) {
-      roots.push(node)
-      continue
-    }
-    const parent = map.get(item.parent_comment_id)
-    if (parent == null) {
-      roots.push(node)
-      continue
-    }
-    parent.children.push(node)
-  }
-  return roots
+function buildLoadedTree(
+  items: MovieCardComment[],
+  repliesByParentId: Record<number, MovieCardComment[]>
+): CommentTreeNode[] {
+  return items.map((item) => ({
+    ...item,
+    children: buildLoadedTree(repliesByParentId[item.id] ?? [], repliesByParentId),
+  }))
 }
 
 type CommentNodeProps = {
+  cardId: number
   node: CommentTreeNode
   depth: number
   onReply: (id: number, authorLabel: string) => void
+  repliesByParentId: Record<number, MovieCardComment[]>
+  nextCursorByParentId: Record<number, string | null>
+  loadingByParentId: Record<number, boolean>
+  expandedByParentId: Record<number, boolean>
+  onToggleReplies: (comment: MovieCardComment) => void
+  onLoadMoreReplies: (commentId: number) => void
 }
 
-function CommentNode({ node, depth, onReply }: CommentNodeProps) {
+function CommentNode({
+  cardId,
+  node,
+  depth,
+  onReply,
+  repliesByParentId,
+  nextCursorByParentId,
+  loadingByParentId,
+  expandedByParentId,
+  onToggleReplies,
+  onLoadMoreReplies,
+}: CommentNodeProps) {
   const marginLeft = Math.min(depth * 14, 56)
+  const isExpanded = expandedByParentId[node.id] ?? false
+  const hasReplies = node.replies_count > 0
+  const canOpenInline = node.total_descendants_count <= 4
+  const children = repliesByParentId[node.id] ?? []
+  const nextCursor = nextCursorByParentId[node.id] ?? null
+  const loading = loadingByParentId[node.id] ?? false
+
   return (
     <div style={{ marginLeft }} className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3">
       <div className="flex items-start gap-2">
@@ -159,13 +182,57 @@ function CommentNode({ node, depth, onReply }: CommentNodeProps) {
           >
             Ответить
           </button>
+          {hasReplies ? (
+            canOpenInline ? (
+              <button
+                type="button"
+                onClick={() => onToggleReplies(node)}
+                className="ml-3 mt-2 text-xs text-(--tgui--link_color)"
+              >
+                {isExpanded ? 'Свернуть ответы' : `Показать ответы (${node.replies_count})`}
+              </button>
+            ) : (
+              <Link
+                to={`/cards/${cardId}/comments/${node.id}/thread`}
+                className="ml-3 mt-2 inline-block text-xs text-(--tgui--link_color)"
+              >
+                Показать остальные ({node.total_descendants_count})
+              </Link>
+            )
+          ) : null}
         </div>
       </div>
-      {node.children.length > 0 ? (
+      {canOpenInline && isExpanded ? (
         <div className="mt-2 space-y-2">
-          {node.children.map((child) => (
-            <CommentNode key={child.id} node={child} depth={depth + 1} onReply={onReply} />
+          {loading ? <p className="text-xs text-(--tgui--hint_color)">Загрузка ответов…</p> : null}
+          {children.map((child) => (
+            <CommentNode
+              key={child.id}
+              cardId={cardId}
+              node={{
+                ...child,
+                children: buildLoadedTree(repliesByParentId[child.id] ?? [], repliesByParentId),
+              }}
+              depth={depth + 1}
+              onReply={onReply}
+              repliesByParentId={repliesByParentId}
+              nextCursorByParentId={nextCursorByParentId}
+              loadingByParentId={loadingByParentId}
+              expandedByParentId={expandedByParentId}
+              onToggleReplies={onToggleReplies}
+              onLoadMoreReplies={onLoadMoreReplies}
+            />
           ))}
+          {nextCursor ? (
+            <button
+              type="button"
+              onClick={() => onLoadMoreReplies(node.id)}
+              className="text-xs text-(--tgui--link_color)"
+              disabled={loading}
+            >
+              Показать еще ответы
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -176,7 +243,12 @@ export function MovieCardDetailPage() {
   const navigate = useNavigate()
   const { cardId } = useParams<{ cardId?: string }>()
   const [card, setCard] = useState<MovieCardDetails | null>(null)
-  const [comments, setComments] = useState<MovieCardComment[]>([])
+  const [rootComments, setRootComments] = useState<MovieCardComment[]>([])
+  const [rootsNextCursor, setRootsNextCursor] = useState<string | null>(null)
+  const [repliesByParentId, setRepliesByParentId] = useState<Record<number, MovieCardComment[]>>({})
+  const [nextCursorByParentId, setNextCursorByParentId] = useState<Record<number, string | null>>({})
+  const [expandedByParentId, setExpandedByParentId] = useState<Record<number, boolean>>({})
+  const [loadingByParentId, setLoadingByParentId] = useState<Record<number, boolean>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [commentsLoading, setCommentsLoading] = useState(false)
@@ -191,7 +263,15 @@ export function MovieCardDetailPage() {
     return Number.isInteger(value) && value > 0 ? value : null
   }, [cardId])
 
-  const tree = useMemo(() => buildCommentTree(comments), [comments])
+  const tree = useMemo(
+    () => buildLoadedTree(rootComments, repliesByParentId),
+    [rootComments, repliesByParentId]
+  )
+  const fetchCommentReplies = getMovieCardCommentReplies as unknown as (
+    cardId: number,
+    commentId: number,
+    params?: { cursor?: string | null; limit?: number }
+  ) => Promise<MovieCardCommentPage>
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
   const charsLeft = 250 - commentText.length
   const invalidCardId = parsedCardId == null
@@ -222,31 +302,86 @@ export function MovieCardDetailPage() {
     }
   }, [parsedCardId])
 
-  useEffect(() => {
-    if (parsedCardId == null || error != null) return
-    let alive = true
-    void (async () => {
+  const loadRootComments = useCallback(
+    async (append: boolean) => {
+      if (parsedCardId == null) return
+      const cursor = append ? rootsNextCursor : null
+      if (append && cursor == null) return
+
       setCommentsLoading(true)
-      setCommentsError(null)
+      if (!append) {
+        setCommentsError(null)
+      }
       try {
-        const items = (await getMovieCardComments(parsedCardId)) as unknown as MovieCardComment[]
-        if (!alive) return
-        setComments(items)
+        const page = (await getMovieCardComments(parsedCardId, { cursor, limit: 20 })) as unknown as MovieCardCommentPage
+        setRootComments((prev) => (append ? [...prev, ...page.items] : page.items))
+        setRootsNextCursor(page.next_cursor ?? null)
       } catch (e) {
-        if (!alive) return
         if (e instanceof ApiError) {
           setCommentsError(formatApiDetail(e.detail))
         } else {
           setCommentsError('Не удалось загрузить комментарии')
         }
       } finally {
-        if (alive) setCommentsLoading(false)
+        setCommentsLoading(false)
       }
+    },
+    [parsedCardId, rootsNextCursor]
+  )
+
+  const loadReplies = useCallback(
+    async (parentId: number, append: boolean) => {
+      if (parsedCardId == null) return
+      const cursor = append ? (nextCursorByParentId[parentId] ?? null) : null
+      if (append && cursor == null) return
+
+      setLoadingByParentId((prev) => ({ ...prev, [parentId]: true }))
+      try {
+        const page = await fetchCommentReplies(parsedCardId, parentId, { cursor, limit: 20 })
+        setRepliesByParentId((prev) => ({
+          ...prev,
+          [parentId]: append ? [...(prev[parentId] ?? []), ...page.items] : page.items,
+        }))
+        setNextCursorByParentId((prev) => ({ ...prev, [parentId]: page.next_cursor ?? null }))
+      } catch (e) {
+        if (e instanceof ApiError) {
+          setCommentsError(formatApiDetail(e.detail))
+        } else {
+          setCommentsError('Не удалось загрузить ответы')
+        }
+      } finally {
+        setLoadingByParentId((prev) => ({ ...prev, [parentId]: false }))
+      }
+    },
+    [fetchCommentReplies, nextCursorByParentId, parsedCardId]
+  )
+
+  useEffect(() => {
+    if (parsedCardId == null || error != null) return
+    let alive = true
+    void (async () => {
+      if (!alive) return
+      setRepliesByParentId({})
+      setNextCursorByParentId({})
+      setExpandedByParentId({})
+      await loadRootComments(false)
     })()
     return () => {
       alive = false
     }
-  }, [parsedCardId, error])
+  }, [parsedCardId, error, loadRootComments])
+
+  async function handleToggleReplies(comment: MovieCardComment) {
+    const expanded = expandedByParentId[comment.id] ?? false
+    if (expanded) {
+      setExpandedByParentId((prev) => ({ ...prev, [comment.id]: false }))
+      return
+    }
+    setExpandedByParentId((prev) => ({ ...prev, [comment.id]: true }))
+    if ((repliesByParentId[comment.id] ?? []).length === 0) {
+      await loadReplies(comment.id, false)
+    }
+  }
 
   async function handleCreateComment() {
     if (parsedCardId == null || submitBusy) return
@@ -259,7 +394,12 @@ export function MovieCardDetailPage() {
         text,
         parent_comment_id: replyTo?.id ?? null,
       })) as unknown as MovieCardComment
-      setComments((prev) => [...prev, created])
+      if (replyTo == null) {
+        setRootComments((prev) => [created, ...prev])
+      } else {
+        await loadReplies(replyTo.id, false)
+      }
+      await loadRootComments(false)
       setCommentText('')
       setReplyTo(null)
     } catch (e) {
@@ -442,9 +582,38 @@ export function MovieCardDetailPage() {
               {tree.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {tree.map((node) => (
-                    <CommentNode key={node.id} node={node} depth={0} onReply={(id, label) => setReplyTo({ id, label })} />
+                    <CommentNode
+                      key={node.id}
+                      cardId={parsedCardId ?? node.movie_card_id}
+                      node={node}
+                      depth={0}
+                      onReply={(id, label) => setReplyTo({ id, label })}
+                      repliesByParentId={repliesByParentId}
+                      nextCursorByParentId={nextCursorByParentId}
+                      loadingByParentId={loadingByParentId}
+                      expandedByParentId={expandedByParentId}
+                      onToggleReplies={(comment) => {
+                        void handleToggleReplies(comment)
+                      }}
+                      onLoadMoreReplies={(commentId) => {
+                        void loadReplies(commentId, true)
+                      }}
+                    />
                   ))}
                 </div>
+              ) : null}
+
+              {rootsNextCursor ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void loadRootComments(true)
+                  }}
+                  className="mt-3 text-xs text-(--tgui--link_color)"
+                  disabled={commentsLoading}
+                >
+                  Показать еще комментарии
+                </button>
               ) : null}
             </section>
           </div>

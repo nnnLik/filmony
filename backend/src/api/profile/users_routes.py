@@ -11,6 +11,8 @@ from api.profile.schemas import (
     MovieCardPageResponse,
     PublicProfileResponse,
     SubscriptionListResponse,
+    UserMovieCardStatsResponse,
+    build_user_movie_card_stats_response,
     build_movie_card_page_response,
     build_public_profile_response,
     build_subscription_list_response,
@@ -21,6 +23,7 @@ from deps.auth import CurrentUser
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
+from services.profile.get_user_movie_card_stats import GetUserMovieCardStatsService
 from services.profile.list_user_movie_cards import ListUserMovieCardsService
 from services.subscriptions.create_user_subscription import (
     CreateUserSubscriptionService,
@@ -100,6 +103,23 @@ async def list_user_cards(
     cap = min(limit, 50)
     page = await ListUserMovieCardsService(db).execute(user_id, cursor, cap)
     return build_movie_card_page_response(page)
+
+
+@router.get(
+    '/{user_id}/stats',
+    response_model=UserMovieCardStatsResponse,
+    summary='Агрегированная статистика карточек фильмов пользователя',
+)
+async def get_user_movie_card_stats(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserMovieCardStatsResponse:
+    exists = await GetPublicUserByIdService(db).execute(user_id)
+    if exists is None:
+        raise _not_found()
+    stats = await GetUserMovieCardStatsService(db).execute(user_id)
+    return build_user_movie_card_stats_response(stats)
 
 
 @router.post(

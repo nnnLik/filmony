@@ -16,9 +16,16 @@
   - проверка, что parent принадлежит той же карточке.
 - В API-ответы добавлены:
   - `replies_count` для каждого комментария,
+  - `total_descendants_count` (суммарное число вложенных ответов в ветке),
   - `next_cursor` для пагинации.
 - Добавлен индекс для ветвления комментариев:
   - `(movie_card_id, parent_comment_id, id)`.
+- Исправлен фронтенд-баг отображения ответов:
+  - `MovieCardDetailPage` больше не предполагает «полное дерево в одном ответе API»;
+  - ответы загружаются по уровням через `GET .../replies`.
+- Реализован UX длинных веток:
+  - если `total_descendants_count > 4`, на карточке показывается переход `Показать остальные`;
+  - открывается отдельный экран ветки `/cards/:cardId/comments/:commentId/thread`.
 
 ## Changed Files
 - `.cursor/features/movie-card-comments/feature.md`
@@ -34,10 +41,16 @@
 - `backend/src/api/cards/schemas.py`
 - `backend/src/api/cards/routes.py`
 - `backend/src/tests/api/test_cards_routes.py`
+- `frontend/src/api/cardApi.ts`
+- `frontend/src/api/profileTypes.ts`
+- `frontend/src/pages/MovieCardDetailPage.tsx`
+- `frontend/src/pages/MovieCardCommentThreadPage.tsx`
+- `frontend/src/routes.tsx`
 - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
 
 ## Verification
 - `ReadLints` по изменённым backend-файлам — ошибок не найдено.
+- `ReadLints` по изменённым frontend-файлам — ошибок не найдено.
 - Попытка запуска backend-команд через shell (`make backend-test*`) в этой сессии была отклонена средой (`Rejected: User chose to skip`).
 
 ## Known Limitations

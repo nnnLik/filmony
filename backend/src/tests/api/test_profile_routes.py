@@ -1,9 +1,13 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
 
 from conf import settings
+from core.database import get_session_factory
+from models.film import Film
+from models.movie_card import MovieCard
+from models.movie_card_tag import MovieCardTag
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -12,6 +16,44 @@ async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, 
     r = await async_client.post('/api/auth/telegram', json={'initData': init})
     assert r.status_code == 200
     return r.json()
+
+
+async def _seed_movie_card(
+    *,
+    user_id: UUID,
+    kinopoisk_id: int,
+    title: str,
+    year: int | None,
+    rating: float,
+    company: str,
+    mood_after: str,
+    tags: list[str],
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(
+            kinopoisk_id=kinopoisk_id,
+            title=title,
+            year=year,
+            poster_url='https://example.com/poster.jpg',
+            genres=[],
+        )
+        session.add(film)
+        await session.flush()
+        card = MovieCard(
+            user_id=user_id,
+            film_id=film.id,
+            rating=rating,
+            company=company,
+            mood_before='relax',
+            mood_after=mood_after,
+        )
+        session.add(card)
+        await session.flush()
+        for tag in tags:
+            session.add(MovieCardTag(movie_card_id=card.id, tag=tag))
+        await session.commit()
+        return card.id
 
 
 @pytest.mark.asyncio
@@ -223,3 +265,135 @@ async def test_subscriptions_require_auth(async_client: AsyncClient) -> None:
         params={'type': 'followers'},
     )
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_user_stats_requires_auth(async_client: AsyncClient) -> None:
+    r = await async_client.get(f'/api/users/{uuid4()}/stats')
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_user_stats_unknown_user_returns_404(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=525)
+    r = await async_client.get(f'/api/users/{uuid4()}/stats')
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=526)
+    user_id = UUID(str(me['id']))
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=200001,
+        title='Фильм A',
+        year=2024,
+        rating=10.0,
+        company='alone',
+        mood_after='cried',
+        tags=['Шедевр', 'Ноланомания'],
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=200002,
+        title='Фильм B',
+        year=2023,
+        rating=9.0,
+        company='friends',
+        mood_after='laughed',
+        tags=['Шедевр'],
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=200003,
+        title='Фильм C',
+        year=2023,
+        rating=9.0,
+        company='friends',
+        mood_after='laughed',
+        tags=['Эпик'],
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=200004,
+        title='Фильм D',
+        year=2021,
+        rating=7.0,
+        company='partner',
+        mood_after='enjoyed',
+        tags=['Яркий'],
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=200005,
+        title='Фильм E',
+        year=2020,
+        rating=7.0,
+        company='partner',
+        mood_after='wasted_time',
+        tags=['Фемповестка'],
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=200006,
+        title='Фильм F',
+        year=2010,
+        rating=1.0,
+        company='alone',
+        mood_after='cried',
+        tags=['Визуал'],
+    )
+
+    r = await async_client.get(f'/api/users/{user_id}/stats')
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body['total_movies'] == 6
+    assert body['average_rating'] == 7.2
+
+    ratings = {item['rating']: item['count'] for item in body['rating_distribution']}
+    assert ratings[10] == 1
+    assert ratings[9] == 2
+    assert ratings[7] == 2
+    assert ratings[1] == 1
+
+    years = {item['year']: item['count'] for item in body['year_distribution']}
+    assert years[2024] == 1
+    assert years[2023] == 2
+    assert years[2021] == 1
+    assert years[2020] == 1
+    assert years[2010] == 1
+
+    tags = {item['tag']: item['count'] for item in body['popular_tags']}
+    assert tags['Шедевр'] == 2
+    assert tags['Ноланомания'] == 1
+    assert tags['Эпик'] == 1
+    assert tags['Яркий'] == 1
+    assert tags['Фемповестка'] == 1
+
+    by_company = {item['value']: item['count'] for item in body['watch_with_distribution']}
+    assert by_company['alone'] == 2
+    assert by_company['friends'] == 2
+    assert by_company['partner'] == 2
+
+    by_mood = {item['value']: item['count'] for item in body['mood_after_distribution']}
+    assert by_mood['cried'] == 2
+    assert by_mood['laughed'] == 2
+    assert by_mood['enjoyed'] == 1
+    assert by_mood['wasted_time'] == 1
+
+    assert [item['film_title'] for item in body['top_movies']] == [
+        'Фильм A',
+        'Фильм B',
+        'Фильм C',
+        'Фильм D',
+        'Фильм E',
+    ]
+    assert [item['film_title'] for item in body['worst_movies']] == [
+        'Фильм F',
+        'Фильм D',
+        'Фильм E',
+        'Фильм B',
+        'Фильм C',
+    ]

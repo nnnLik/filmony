@@ -1,4 +1,4 @@
-import { Avatar, Button, Section, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -7,6 +7,7 @@ import { getMyProfile, getUserCards } from '../api/profileApi'
 import type { MovieCardPage, MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
+import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 
@@ -275,25 +276,8 @@ export function ProfilePage() {
         ) : null}
 
         {mainTab === 'stats' ? (
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[11px] text-(--tgui--hint_color)">Фильмов оценено</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">{profile.cards_count}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-(--tgui--hint_color)">Друзей</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">{profile.friends_count}</p>
-                </div>
-              </div>
-            </div>
-            <Section header="Детали">
-              <div className="filmony-text-panel mx-3 my-3 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
-                Распределение оценок, годы, теги и «с кем смотрел» появятся, когда бэкенд отдаст агрегаты по
-                карточкам.
-              </div>
-            </Section>
+          <div className="mt-6">
+            <ProfileStatsPanel userId={profile.id} />
           </div>
         ) : null}
       </main>

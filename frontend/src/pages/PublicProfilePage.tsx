@@ -16,6 +16,7 @@ import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
+import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 
 function shownCount(value: number | undefined): string {
   return typeof value === 'number' ? String(value) : '0'
@@ -47,6 +48,7 @@ export function PublicProfilePage() {
   const [myUserId, setMyUserId] = useState<string | null>(null)
   const [isFollowing, setIsFollowing] = useState<boolean>(false)
   const [followBusy, setFollowBusy] = useState(false)
+  const [mainTab, setMainTab] = useState<'movies' | 'stats'>('movies')
   const prevRouteId = useRef<string | null>(null)
 
   useEffect(() => {
@@ -292,28 +294,59 @@ export function PublicProfilePage() {
           <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
         ) : null}
 
-        <Section header="Фильмы">
-          {cardsError != null ? (
-            <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">{cardsError}</p>
-          ) : null}
-          {cards != null && cards.items.length === 0 && !loadingMore ? (
-            <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-              Пока нет карточек.
-            </p>
-          ) : null}
-          {cards != null && cards.items.length > 0 ? (
-            <div className="px-3 pb-3">
-              <MoviePosterGrid items={cards.items} />
-            </div>
-          ) : null}
-          {canLoadMore ? (
-            <div className="px-3 pb-3 pt-1">
-              <Button disabled={loadingMore} stretched onClick={() => void loadMoreCards()}>
-                {loadingMore ? 'Загрузка…' : 'Загрузить ещё'}
-              </Button>
-            </div>
-          ) : null}
-        </Section>
+        <div className="mb-4 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
+          <button
+            type="button"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
+              mainTab === 'movies'
+                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
+                : 'text-(--tgui--hint_color)'
+            }`}
+            onClick={() => setMainTab('movies')}
+          >
+            Фильмы
+          </button>
+          <button
+            type="button"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
+              mainTab === 'stats'
+                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
+                : 'text-(--tgui--hint_color)'
+            }`}
+            onClick={() => setMainTab('stats')}
+          >
+            Статистика
+          </button>
+        </div>
+
+        {mainTab === 'movies' ? (
+          <Section header="Фильмы">
+            {cardsError != null ? (
+              <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">{cardsError}</p>
+            ) : null}
+            {cards != null && cards.items.length === 0 && !loadingMore ? (
+              <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
+                Пока нет карточек.
+              </p>
+            ) : null}
+            {cards != null && cards.items.length > 0 ? (
+              <div className="px-3 pb-3">
+                <MoviePosterGrid items={cards.items} />
+              </div>
+            ) : null}
+            {canLoadMore ? (
+              <div className="px-3 pb-3 pt-1">
+                <Button disabled={loadingMore} stretched onClick={() => void loadMoreCards()}>
+                  {loadingMore ? 'Загрузка…' : 'Загрузить ещё'}
+                </Button>
+              </div>
+            ) : null}
+          </Section>
+        ) : (
+          <div className="space-y-4">
+            <ProfileStatsPanel userId={profile.id} />
+          </div>
+        )}
       </div>
     </div>
   )

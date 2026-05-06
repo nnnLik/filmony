@@ -88,7 +88,14 @@ export type MovieCardComment = {
   parent_comment_id: number | null
   text: string
   created_at: string
+  replies_count: number
+  total_descendants_count: number
   author: MovieCardCommentAuthor
+}
+
+export type MovieCardCommentPage = {
+  items: MovieCardComment[]
+  next_cursor: string | null
 }
 
 export type Film = {
@@ -98,4 +105,45 @@ export type Film = {
   title: string
   year: number | null
   poster_url: string | null
+}
+
+export type RatingDistributionItem = {
+  rating: number
+  count: number
+}
+
+export type YearDistributionItem = {
+  year: number
+  count: number
+}
+
+export type ValueDistributionItem = {
+  value: string
+  count: number
+}
+
+export type TagDistributionItem = {
+  tag: string
+  count: number
+}
+
+export type ProfileStatsMovieItem = {
+  card_id: number
+  film_id: number
+  film_title: string
+  film_year: number | null
+  film_poster_url: string | null
+  rating: number
+}
+
+export type UserMovieCardStats = {
+  total_movies: number
+  average_rating: number
+  rating_distribution: RatingDistributionItem[]
+  year_distribution: YearDistributionItem[]
+  popular_tags: TagDistributionItem[]
+  watch_with_distribution: ValueDistributionItem[]
+  mood_after_distribution: ValueDistributionItem[]
+  top_movies: ProfileStatsMovieItem[]
+  worst_movies: ProfileStatsMovieItem[]
 }

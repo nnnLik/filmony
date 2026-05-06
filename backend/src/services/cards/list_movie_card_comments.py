@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import Select, desc, func, select
+from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.movie_card import MovieCard
@@ -31,6 +32,7 @@ class MovieCardCommentItem:
     text: str
     created_at: dt.datetime
     replies_count: int
+    total_descendants_count: int
     author: MovieCardCommentAuthor
 
 
@@ -96,6 +98,7 @@ class ListMovieCardCommentsService:
         comment_ids = [comment.id for comment, _user in visible_rows]
 
         replies_count_by_comment: dict[int, int] = {}
+        descendants_count_by_comment: dict[int, int] = {}
         if comment_ids:
             count_rows = (
                 await self._session.execute(
@@ -112,6 +115,37 @@ class ListMovieCardCommentsService:
                     continue
                 replies_count_by_comment[parent_id] = int(count)
 
+            descendants_seed = (
+                select(
+                    MovieCardComment.id.label('root_id'),
+                    MovieCardComment.id.label('comment_id'),
+                )
+                .where(MovieCardComment.id.in_(comment_ids))
+                .cte(name='descendants_seed', recursive=True)
+            )
+            child_comment = aliased(MovieCardComment)
+            descendants_tree = descendants_seed.union_all(
+                select(
+                    descendants_seed.c.root_id,
+                    child_comment.id.label('comment_id'),
+                ).join(
+                    child_comment,
+                    child_comment.parent_comment_id == descendants_seed.c.comment_id,
+                )
+            )
+            descendant_rows = (
+                await self._session.execute(
+                    select(
+                        descendants_tree.c.root_id,
+                        func.count(descendants_tree.c.comment_id),
+                    )
+                    .where(descendants_tree.c.comment_id != descendants_tree.c.root_id)
+                    .group_by(descendants_tree.c.root_id)
+                )
+            ).all()
+            for root_id, count in descendant_rows:
+                descendants_count_by_comment[int(root_id)] = int(count)
+
         items = [
             MovieCardCommentItem(
                 id=comment.id,
@@ -120,6 +154,7 @@ class ListMovieCardCommentsService:
                 text=comment.text,
                 created_at=comment.created_at,
                 replies_count=replies_count_by_comment.get(comment.id, 0),
+                total_descendants_count=descendants_count_by_comment.get(comment.id, 0),
                 author=MovieCardCommentAuthor(
                     id=user.id,
                     profile_slug=user.profile_slug,

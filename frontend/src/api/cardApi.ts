@@ -6,6 +6,7 @@ import type {
   Film,
   MovieCard,
   MovieCardComment,
+  MovieCardCommentPage,
 } from './profileTypes'
 
 export type CreateMovieCardPayload = {
@@ -43,9 +44,29 @@ export async function getMovieCardById(cardId: number): Promise<MovieCard> {
   return apiJson<MovieCard>(`/api/cards/${cardId}`)
 }
 
-export async function getMovieCardComments(cardId: number): Promise<MovieCardComment[]> {
-  const response = await apiJson<{ items: MovieCardComment[] }>(`/api/cards/${cardId}/comments`)
-  return response.items
+export async function getMovieCardComments(
+  cardId: number,
+  params?: { cursor?: string | null; limit?: number }
+): Promise<MovieCardCommentPage> {
+  const search = new URLSearchParams()
+  if (params?.cursor) search.set('cursor', params.cursor)
+  if (params?.limit != null) search.set('limit', String(params.limit))
+  const suffix = search.toString()
+  return apiJson<MovieCardCommentPage>(`/api/cards/${cardId}/comments${suffix ? `?${suffix}` : ''}`)
+}
+
+export async function getMovieCardCommentReplies(
+  cardId: number,
+  commentId: number,
+  params?: { cursor?: string | null; limit?: number }
+): Promise<MovieCardCommentPage> {
+  const search = new URLSearchParams()
+  if (params?.cursor) search.set('cursor', params.cursor)
+  if (params?.limit != null) search.set('limit', String(params.limit))
+  const suffix = search.toString()
+  return apiJson<MovieCardCommentPage>(
+    `/api/cards/${cardId}/comments/${commentId}/replies${suffix ? `?${suffix}` : ''}`
+  )
 }
 
 export async function createMovieCardComment(

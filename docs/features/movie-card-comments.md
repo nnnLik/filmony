@@ -8,6 +8,10 @@
 - Поддержаны ответы любой глубины через `parent_comment_id`.
 - Чтение комментариев и ответов сделано публичным.
 - Создание комментариев/ответов доступно только авторизованным пользователям.
+- UI карточки переведен на поуровневую загрузку ответов (`roots + replies`), исправлен баг «ответы не отображаются».
+- Для длинных веток добавлен переход в отдельный экран:
+  - на карточке при `total_descendants_count > 4` показывается `Показать остальные`;
+  - роут ветки: `/cards/:cardId/comments/:commentId/thread`.
 
 ## Контракт
 - `POST /api/cards/{card_id}/comments`
@@ -24,6 +28,7 @@
 Оба `GET` отдают:
 - `items[]` с полями комментария и автора;
 - `replies_count` для каждого элемента;
+- `total_descendants_count` для оценки размера всей ветки;
 - `next_cursor` для постраничной загрузки.
 
 ## Основные изменения в коде
@@ -38,9 +43,15 @@
   - `backend/src/api/cards/routes.py`
 - Тесты:
   - `backend/src/tests/api/test_cards_routes.py`
+- Frontend:
+  - `frontend/src/api/cardApi.ts`
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `frontend/src/pages/MovieCardCommentThreadPage.tsx`
+  - `frontend/src/routes.tsx`
 
 ## Проверка
-- Выполнено: `ReadLints` по изменённым backend файлам, ошибок нет.
+- Выполнено: `ReadLints` по изменённым backend/frontend файлам, ошибок нет.
 - Требуется ручной запуск в локальном окружении:
   - `make backend-test-one target=src/tests/api/test_cards_routes.py`
   - `make backend-test`

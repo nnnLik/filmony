@@ -58,18 +58,14 @@ async def _load_comment_response(db: AsyncSession, comment_id: int) -> MovieCard
         )
     ).one()
     comment, author = row
-    replies_count = (
-        await db.execute(
-            select(MovieCardComment.id).where(MovieCardComment.parent_comment_id == comment.id)
-        )
-    ).scalars().all()
     return MovieCardCommentResponse(
         id=comment.id,
         movie_card_id=comment.movie_card_id,
         parent_comment_id=comment.parent_comment_id,
         text=comment.text,
         created_at=comment.created_at,
-        replies_count=len(replies_count),
+        replies_count=0,
+        total_descendants_count=0,
         author=MovieCardCommentAuthorResponse(
             id=author.id,
             profile_slug=author.profile_slug,
@@ -188,6 +184,7 @@ async def list_card_comments(
                 text=item.text,
                 created_at=item.created_at,
                 replies_count=item.replies_count,
+                total_descendants_count=item.total_descendants_count,
                 author=MovieCardCommentAuthorResponse(
                     id=item.author.id,
                     profile_slug=item.author.profile_slug,
@@ -236,6 +233,7 @@ async def list_card_comment_replies(
                 text=item.text,
                 created_at=item.created_at,
                 replies_count=item.replies_count,
+                total_descendants_count=item.total_descendants_count,
                 author=MovieCardCommentAuthorResponse(
                     id=item.author.id,
                     profile_slug=item.author.profile_slug,

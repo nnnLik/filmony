@@ -63,6 +63,7 @@ class MovieCardCommentResponse(BaseModel):
     text: str
     created_at: datetime
     replies_count: int = 0
+    total_descendants_count: int = 0
     author: MovieCardCommentAuthorResponse
 
 

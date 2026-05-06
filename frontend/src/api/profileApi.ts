@@ -5,6 +5,7 @@ import type {
   PublicProfile,
   SubscriptionListResponse,
   SubscriptionListType,
+  UserMovieCardStats,
 } from './profileTypes'
 
 export async function getMyProfile(): Promise<MyProfile> {
@@ -39,6 +40,10 @@ export async function getUserCards(
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)
+}
+
+export async function getUserMovieCardStats(userId: string): Promise<UserMovieCardStats> {
+  return apiJson<UserMovieCardStats>(`/api/users/${encodeURIComponent(userId)}/stats`)
 }
 
 export async function authTelegram(initData: string): Promise<Response> {
