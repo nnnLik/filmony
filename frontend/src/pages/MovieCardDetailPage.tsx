@@ -377,7 +377,7 @@ export function MovieCardDetailPage() {
 
         {!invalidCardId && !loading && error == null && card != null ? (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) [contain:paint]">
+            <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) contain-[paint]">
               <div className="aspect-video w-full">
                 {card.film_poster_url ? (
                   <img src={card.film_poster_url} alt={card.film_title} className="h-full w-full object-cover" />
