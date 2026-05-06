@@ -1,5 +1,12 @@
 declare module '@telegram-apps/telegram-ui' {
-  import type { ButtonHTMLAttributes, ChangeEvent, FC, ReactNode } from 'react'
+  import type {
+    ButtonHTMLAttributes,
+    ChangeEvent,
+    FC,
+    ForwardRefExoticComponent,
+    ReactNode,
+    RefAttributes,
+  } from 'react'
 
   export interface AppRootProps {
     children?: ReactNode
@@ -28,6 +35,12 @@ declare module '@telegram-apps/telegram-ui' {
     mode?: 'filled' | 'bezeled' | 'plain' | 'gray' | 'outline' | 'white'
   }
   export const Button: FC<ButtonProps>
+
+  export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+    size?: 's' | 'm' | 'l'
+    mode?: 'bezeled' | 'plain' | 'gray' | 'outline'
+  }
+  export const IconButton: ForwardRefExoticComponent<IconButtonProps & RefAttributes<HTMLButtonElement>>
 
   export interface InputProps {
     header?: ReactNode

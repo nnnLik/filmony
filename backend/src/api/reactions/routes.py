@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.reactions.schemas import (
@@ -15,6 +17,7 @@ from api.reactions.schemas import (
     UserReactionSetResponse,
     reaction_target_summary_to_response,
 )
+from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.reaction_target_kind import ReactionTargetKind
@@ -30,8 +33,35 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetOrToggleUserReactionService,
     SetUserReactionInput,
 )
+from utils.reaction_asset_key import is_safe_reaction_asset_key
 
 router = APIRouter(prefix='/reactions', tags=['reactions'])
+
+
+@router.get(
+    '/asset/{asset_key:path}',
+    summary='Прокси-картинка реакции из RustFS (для клиентов без прямого доступа к RustFS)',
+)
+async def get_reaction_asset(asset_key: str) -> Response:
+    if not is_safe_reaction_asset_key(asset_key):
+        raise HTTPException(status_code=404, detail='not found') from None
+    internal = settings.reaction_media.rustfs_internal_base_url.strip().rstrip('/')
+    if not internal:
+        raise HTTPException(status_code=503, detail='reaction asset proxy not configured') from None
+    bucket = settings.reaction_media.rustfs_bucket.strip()
+    url = f'{internal}/{bucket}/{asset_key.lstrip("/")}'
+    timeout = httpx.Timeout(18.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            upstream = await client.get(url)
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail='storage unreachable') from exc
+    if upstream.status_code != 200:
+        raise HTTPException(status_code=404, detail='not found') from None
+    ct = upstream.headers.get('content-type')
+    headers: dict[str, str] = {'Cache-Control': 'public, max-age=86400'}
+    media = ct.strip() if isinstance(ct, str) and ct.strip() else 'application/octet-stream'
+    return Response(content=upstream.content, media_type=media, headers=headers)
 
 
 def _parse_target_kind(raw: str) -> ReactionTargetKind:

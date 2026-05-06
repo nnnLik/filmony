@@ -16,7 +16,9 @@
 
 ## CDN / RustFS (dev)
 - В `compose.yml` сервис **`filmony-rustfs`** (образ `rustfs/rustfs:latest`), том `filmony-rustfs-data`, хост-порты **7900→9000**, **7901→9001** (консоль при необходимости).
-- Для публичных URL объектов через path-style клиент собирает: `{REACTION_MEDIA_PUBLIC_BASE_URL}/{asset_key}` (без двойных слешей). Пример base: `http://127.0.0.1:7900/filmony-reactions`.
+- Для прямых публичных URL (без прокси) с path-style клиент собирает: `{REACTION_MEDIA_PUBLIC_BASE_URL}/{asset_key}` (без двойных слешей). Пример base: `http://127.0.0.1:7900/filmony-reactions`. Mini App без LAN к этому адресу: либо **прокси бэкенда**, либо отдельный HTTPS-домен к RustFS на том же origin, что и API.
+- С **прокси** (переменная `RUSTFS_INTERNAL_BASE_URL` на backend, см. `compose.yml` для `filmony-backend`): в ответах API при наличии `asset_key` отдаются пути **`/api/reactions/asset/<asset_key>`**; бэкенд забирает объект из контейнерного RustFS (`http://filmony-rustfs:9000/…`). Если внутренний URL не задан (например `pytest`), сохраняется режим только с **`REACTION_MEDIA_PUBLIC_BASE_URL`**.
+- Сидеры в [`fixtures/reaction_type.sql`](/fixtures/reaction_type.sql) задают **`asset_key`** под объекты, которые загружает `make sync-reactions-rustfs` из `emoji/` (`reactions/<category_slug>/<file>`).
 - Политику **анонимного чтения только префикса** `reactions/*` нужно настроить в bucket (через консоль RustFS/`mc`/policy по вашей среде).
 - Загрузка файлов из репозитория: `scripts/sync_reactions_to_rustfs.py` (boto3, `endpoint_url` + `signature_version='s3v4'`), переменные — см. `vars/.env.example` (`RUSTFS_*`).
 - Порядок вкладок и каталоги emoji: **`backend/src/const/reaction_packs.py`** (маппинг `category_slug` ↔ папка в `emoji/`).
@@ -80,11 +82,11 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
 **Требование к клиенту:** списки комментариев и replies вызываются **с авторизованной сессией** (как лента).
 
 ## Fixtures
+- Сначала залить объекты в RustFS: `make sync-reactions-rustfs` (ключи вида `reactions/<slug>/…` как в сидере).
 - После миграций: `fixtures/reaction_type.sql` или ручные `INSERT`; скрипт: `./scripts/load-fixtures.sh reaction_type.sql` / полная загрузка.
-
 ## Frontend
 - Загрузка каталога: `GET /api/reactions/catalog` через `reactionCatalogCache.ts` (структура `recent` + `tabs`).
-- Компонент `ReactionStrip`: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка «+» — пикер с **поиском**, блоком **Недавние** и **вкладками** категорий.
+- Компонент `ReactionStrip`: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка открытия пикера — **`IconButton` + `Smile` (lucide)**; пикер с **поиском**, блоком **Недавние** и **вкладками** категорий. Вёрстка и соглашения: **`docs/frontend/ui-conventions.md`**.
 - Точки встраивания: `FeedCard`, `MovieCardDetailPage`.
 
 ## Tests

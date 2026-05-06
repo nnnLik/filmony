@@ -1,4 +1,5 @@
-import { Avatar } from '@telegram-apps/telegram-ui'
+import { Avatar, IconButton } from '@telegram-apps/telegram-ui'
+import { Smile } from 'lucide-react'
 import {
   useCallback,
   useEffect,
@@ -7,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent,
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -14,29 +16,25 @@ import { createPortal } from 'react-dom'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type {
   ReactionActor,
-  ReactionCatalogItem,
   ReactionGroupedCatalog,
   ReactionSummary,
 } from '../../api/profileTypes'
 import { setUserReaction } from '../../api/reactionApi'
 import { loadReactionActors } from '../../lib/reactionActorsCache'
 import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
+import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 
 const EMPTY: ReactionSummary = { counts: [], my_reaction_type_id: null }
 
-const POPOVER_WIDTH = 300
 const POPOVER_GAP = 10
 const SIDE_PAD = 10
+const POPOVER_W_DEFAULT = 300
+const POPOVER_W_COMPACT = 264
 
-function filterItems(items: ReactionCatalogItem[], q: string): ReactionCatalogItem[] {
-  const t = q.trim().toLowerCase()
-  if (!t) return items
-  return items.filter((item) => {
-    const label = (item.label ?? '').toLowerCase()
-    const basename = (item.asset_key?.split('/').pop() ?? '').toLowerCase()
-    return label.includes(t) || basename.includes(t)
-  })
-}
+/** Непрозрачная палитра попапа (как эталон Telegram). */
+const PICK_BG = 'bg-[#121212]'
+const PICK_SURFACE = 'bg-[#1c1c1f]'
+const PICK_BORDER = 'border-[#2c2c2e]'
 
 function displayActorName(a: ReactionActor): string {
   if (a.display_name && a.display_name.trim() !== '') return a.display_name.trim()
@@ -45,6 +43,38 @@ function displayActorName(a: ReactionActor): string {
   const parts = [a.first_name, a.last_name].filter(Boolean).join(' ').trim()
   if (parts !== '') return parts
   return a.profile_slug
+}
+
+function ReactionThumb({
+  src,
+  className,
+  roundedClassName = 'rounded-lg',
+}: {
+  src: string
+  className: string
+  roundedClassName?: string
+}) {
+  const [failed, setFailed] = useState(false)
+
+  const resolved = useMemo(() => resolveApiMediaUrl(src), [src])
+
+  if (failed) {
+    return (
+      <div
+        className={`animate-pulse bg-[color-mix(in_srgb,var(--tgui--divider_color)_45%,transparent)] ${roundedClassName} ${className}`}
+        aria-hidden
+      />
+    )
+  }
+
+  return (
+    <img
+      src={resolved}
+      alt=""
+      className={`${roundedClassName} object-cover ${className}`}
+      onError={() => setFailed(true)}
+    />
+  )
 }
 
 type CountWithActorsProps = {
@@ -57,6 +87,7 @@ type CountWithActorsProps = {
   label: string | null | undefined
   count: number
   onPick: () => void
+  compact: boolean
 }
 
 function CountPill({
@@ -69,6 +100,7 @@ function CountPill({
   label,
   count,
   onPick,
+  compact,
 }: CountWithActorsProps) {
   const [hover, setHover] = useState(false)
   const [actors, setActors] = useState<ReactionActor[] | null>(null)
@@ -118,15 +150,29 @@ function CountPill({
         type="button"
         disabled={disabled}
         onClick={onPick}
-        className={`inline-flex cursor-pointer touch-manipulation items-center gap-1 rounded-full px-2 py-0.5 text-[11px] tabular-nums shadow-sm transition-[transform,opacity,box-shadow] active:scale-95 disabled:opacity-50 ${
-          mine
-            ? 'bg-[color-mix(in_srgb,var(--tgui--link_color)_22%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--tgui--link_color)_55%,transparent)]'
-            : 'bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--tgui--divider_color)_85%,transparent)]'
-        }`}
+        className={
+          compact
+            ? `inline-flex h-[18px] min-h-[18px] cursor-pointer touch-manipulation items-center gap-0.5 rounded-full px-[3px] text-[9px] leading-none tabular-nums ring-[0.5px] transition-[transform,opacity] active:scale-[0.97] disabled:opacity-50 ${
+                mine
+                  ? 'bg-[color-mix(in_srgb,var(--tgui--link_color)_14%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]'
+                  : 'bg-[color-mix(in_srgb,var(--tgui--hint_color)_06%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--divider_color)_38%,transparent)]'
+              }`
+            : `inline-flex h-[22px] min-h-[22px] cursor-pointer touch-manipulation items-center gap-0.5 rounded-full px-1 py-px text-[10px] leading-none tabular-nums ring-1 transition-[transform,opacity] active:scale-[0.98] disabled:opacity-50 ${
+                mine
+                  ? 'bg-[color-mix(in_srgb,var(--tgui--link_color)_18%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--link_color)_38%,transparent)]'
+                  : 'bg-[color-mix(in_srgb,var(--tgui--hint_color)_06%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--divider_color)_42%,transparent)]'
+              }`
+        }
         title={label ?? undefined}
       >
-        <img src={imageUrl} alt="" className="size-[22px] rounded-md object-cover" />
-        <span className="pr-0.5 text-(--tgui--text_color)">{count}</span>
+        <span className="flex shrink-0 items-center justify-center rounded-[3px] bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] p-px">
+          <ReactionThumb
+            src={imageUrl}
+            className={compact ? 'size-[11px]' : 'size-[15px]'}
+            roundedClassName={compact ? 'rounded-[3px]' : 'rounded-[4px]'}
+          />
+        </span>
+        <span className={`leading-none text-(--tgui--text_color) ${compact ? 'pr-px' : 'pr-0.5'}`}>{count}</span>
       </button>
       {showBubble ? (
         <div
@@ -165,7 +211,11 @@ function CountPill({
   )
 }
 
-function usePopoverPosition(triggerRef: RefObject<HTMLButtonElement | null>, open: boolean) {
+function usePopoverPosition(
+  triggerRef: RefObject<HTMLButtonElement | null>,
+  open: boolean,
+  popoverWidth: number,
+) {
   const [style, setStyle] = useState<CSSProperties | null>(null)
   const [placeAbove, setPlaceAbove] = useState(true)
 
@@ -175,23 +225,23 @@ function usePopoverPosition(triggerRef: RefObject<HTMLButtonElement | null>, ope
     const r = el.getBoundingClientRect()
     const vw = window.innerWidth
     const cx = r.left + r.width / 2
-    let left = cx - POPOVER_WIDTH / 2
-    left = Math.max(SIDE_PAD, Math.min(left, vw - POPOVER_WIDTH - SIDE_PAD))
+    let left = cx - popoverWidth / 2
+    left = Math.max(SIDE_PAD, Math.min(left, vw - popoverWidth - SIDE_PAD))
 
-    const minTopSpace = 120
+    const minTopSpace = 112
     const placeUp = r.top >= minTopSpace
     setPlaceAbove(placeUp)
 
     const maxH = placeUp
-      ? Math.min(340, Math.max(160, r.top - POPOVER_GAP - 24))
-      : Math.min(340, Math.max(160, window.innerHeight - r.bottom - POPOVER_GAP - 24))
+      ? Math.min(300, Math.max(148, r.top - POPOVER_GAP - 20))
+      : Math.min(300, Math.max(148, window.innerHeight - r.bottom - POPOVER_GAP - 20))
 
     if (placeUp) {
       setStyle({
         position: 'fixed',
         left,
         bottom: `${window.innerHeight - r.top + POPOVER_GAP}px`,
-        width: POPOVER_WIDTH,
+        width: popoverWidth,
         maxHeight: maxH,
         zIndex: 200,
       })
@@ -200,18 +250,15 @@ function usePopoverPosition(triggerRef: RefObject<HTMLButtonElement | null>, ope
         position: 'fixed',
         left,
         top: `${r.bottom + POPOVER_GAP}px`,
-        width: POPOVER_WIDTH,
+        width: popoverWidth,
         maxHeight: maxH,
         zIndex: 200,
       })
     }
-  }, [triggerRef])
+  }, [popoverWidth, triggerRef])
 
   useLayoutEffect(() => {
-    if (!open) {
-      setStyle(null)
-      return
-    }
+    if (!open) return
     compute()
   }, [open, compute])
 
@@ -226,7 +273,7 @@ function usePopoverPosition(triggerRef: RefObject<HTMLButtonElement | null>, ope
     }
   }, [open, compute])
 
-  return { style, placeAbove }
+  return { style: open ? style : null, placeAbove }
 }
 
 export type ReactionStripProps = {
@@ -235,6 +282,8 @@ export type ReactionStripProps = {
   summary: ReactionSummary | undefined
   onSummaryChange: (next: ReactionSummary) => void
   className?: string
+  /** Один узкий ряд (под текстом комментария рядом с «Ответить»). */
+  compact?: boolean
 }
 
 export function ReactionStrip({
@@ -243,36 +292,36 @@ export function ReactionStrip({
   summary,
   onSummaryChange,
   className,
+  compact = false,
 }: ReactionStripProps) {
   const effective = summary ?? EMPTY
+  const popoverW = compact ? POPOVER_W_COMPACT : POPOVER_W_DEFAULT
   const [pickerOpen, setPickerOpen] = useState(false)
   const [catalog, setCatalog] = useState<ReactionGroupedCatalog | null>(null)
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
   const [activeTabSlug, setActiveTabSlug] = useState<string | null>(null)
 
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const { style: popoverStyle, placeAbove } = usePopoverPosition(triggerRef, pickerOpen)
+  const { style: popoverStyle, placeAbove } = usePopoverPosition(triggerRef, pickerOpen, popoverW)
 
-  useEffect(() => {
-    if (!pickerOpen) setSearch('')
-  }, [pickerOpen])
+  const closePicker = useCallback(() => {
+    setPickerOpen(false)
+  }, [])
 
   useEffect(() => {
     if (!pickerOpen) return undefined
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPickerOpen(false)
+      if (e.key === 'Escape') closePicker()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pickerOpen])
+  }, [pickerOpen, closePicker])
 
   useEffect(() => {
     if (!pickerOpen) return undefined
     let alive = true
-    setCatalogError(null)
     void (async () => {
       try {
         const grp = await loadReactionCatalog()
@@ -288,22 +337,19 @@ export function ReactionStrip({
     }
   }, [pickerOpen])
 
-  useEffect(() => {
-    if (!catalog || catalog.tabs.length === 0) return
-    const firstSlug = catalog.tabs.find((x) => x.items.length > 0)?.category_slug ?? catalog.tabs[0].category_slug
-    setActiveTabSlug((prev) => {
-      if (prev && catalog.tabs.some((t) => t.category_slug === prev)) return prev
-      return firstSlug
-    })
-  }, [catalog])
+  const effectiveTabSlug = useMemo(() => {
+    if (!catalog || catalog.tabs.length === 0) return null
+    if (activeTabSlug && catalog.tabs.some((t) => t.category_slug === activeTabSlug)) return activeTabSlug
+    return catalog.tabs.find((x) => x.items.length > 0)?.category_slug ?? catalog.tabs[0].category_slug
+  }, [catalog, activeTabSlug])
 
   const activeTab = useMemo(() => {
-    if (!catalog) return null
-    return catalog.tabs.find((t) => t.category_slug === activeTabSlug) ?? catalog.tabs[0] ?? null
-  }, [activeTabSlug, catalog])
+    if (!catalog || !effectiveTabSlug) return null
+    return catalog.tabs.find((t) => t.category_slug === effectiveTabSlug) ?? null
+  }, [catalog, effectiveTabSlug])
 
-  const gridItems = useMemo(() => filterItems(activeTab?.items ?? [], search), [activeTab?.items, search])
-  const recentFiltered = useMemo(() => filterItems(catalog?.recent ?? [], search), [catalog?.recent, search])
+  const gridItems = activeTab?.items ?? []
+  const recentItems = catalog?.recent ?? []
 
   const apply = useCallback(
     async (reactionTypeId: number) => {
@@ -316,21 +362,21 @@ export function ReactionStrip({
           reaction_type_id: reactionTypeId,
         })
         onSummaryChange(res.reactions)
-        setPickerOpen(false)
+        closePicker()
       } catch (e) {
         setActionError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось применить')
       } finally {
         setBusy(false)
       }
     },
-    [onSummaryChange, targetId, targetKind]
+    [closePicker, onSummaryChange, targetId, targetKind]
   )
 
   const countsById = useMemo(() => {
     const m = new Map<number, (typeof effective.counts)[0]>()
     effective.counts.forEach((c) => m.set(c.reaction_type_id, c))
     return m
-  }, [effective.counts])
+  }, [effective])
 
   const pickerPortal =
     pickerOpen &&
@@ -342,128 +388,133 @@ export function ReactionStrip({
           type="button"
           aria-label="Закрыть"
           tabIndex={-1}
-          className="fixed inset-0 z-[199] cursor-default bg-black/20"
-          onClick={() => setPickerOpen(false)}
+          className="fixed inset-0 z-199 cursor-default bg-black/72"
+          onClick={closePicker}
         />
         <div
           role="dialog"
           aria-label="Выбор реакции"
-          className="fixed z-[200] flex flex-col overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--tgui--divider_color)_90%,transparent)] bg-(--tgui--bg_color) pb-2 pt-2.5 shadow-[0_14px_50px_-8px_rgba(0,0,0,0.45)]"
-          style={popoverStyle as CSSProperties}
+          className={`fixed z-200 flex flex-col overflow-hidden rounded-[20px] border ${PICK_BORDER} ${PICK_BG} shadow-[0_16px_48px_rgba(0,0,0,0.55)]`}
+          style={popoverStyle}
         >
           <div
-            className={`pointer-events-none absolute left-1/2 size-3 -translate-x-1/2 rotate-45 rounded-sm border-[color-mix(in_srgb,var(--tgui--divider_color)_90%,transparent)] bg-(--tgui--bg_color) shadow-sm ${
-              placeAbove ? '-bottom-[5px] border-r border-b' : '-top-[5px] border-l border-t'
+            className={`pointer-events-none absolute left-1/2 size-3 -translate-x-1/2 rotate-45 ${PICK_BORDER} ${PICK_BG} border shadow-sm ${
+              placeAbove ? 'bottom-[-5px] border-r border-b border-t-0 border-l-0' : '-top-[5px] border-l border-t border-r-0 border-b-0'
             }`}
             aria-hidden
           />
 
-          <div className="relative z-[1] flex min-h-0 flex-1 flex-col px-3">
-            <input
-              type="search"
-              placeholder="Найти…"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              enterKeyHint="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="mb-2.5 w-full rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-2 text-[13px] text-(--tgui--text_color) outline-none placeholder:text-(--tgui--hint_color) focus:ring-2 focus:ring-[color-mix(in_srgb,var(--tgui--link_color)_35%,transparent)]"
-            />
-
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+          <div className="relative z-1 flex min-h-0 flex-1 flex-col px-2.5 pt-2.5 pb-2">
+            <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
               {catalogError != null ? (
-                <p className="py-6 text-center text-[12px] text-(--tgui--destructive_text_color)">{catalogError}</p>
+                <p className="w-full px-2 py-6 text-center text-[12px] text-red-400">{catalogError}</p>
               ) : null}
               {catalog === null && catalogError == null ? (
-                <p className="py-8 text-center text-[13px] text-(--tgui--hint_color)">Загрузка…</p>
-              ) : null}
-              {catalog != null && recentFiltered.length > 0 ? (
-                <>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-(--tgui--hint_color)">
-                    Частые
-                  </p>
-                  <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                    {recentFiltered.map((item) => {
-                      const mine = effective.my_reaction_type_id === item.id
-                      const badge = countsById.get(item.id)
-                      return (
-                        <button
-                          key={`r-${item.id}`}
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void apply(item.id)}
-                          className={`relative shrink-0 rounded-xl p-1 transition-[transform,opacity] active:scale-95 disabled:opacity-50 ${
-                            mine ? 'ring-2 ring-(--tgui--link_color)' : 'ring-1 ring-transparent hover:ring-(--tgui--divider_color)'
-                          }`}
-                        >
-                          <img src={item.image_url} alt="" className="size-10 rounded-lg object-cover" />
-                          {badge != null ? (
-                            <span className="absolute -bottom-1 -right-1 flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full bg-(--tgui--link_color) px-1 text-[9px] font-bold leading-none text-[var(--tgui--button_text_color,white)] shadow-sm tabular-nums">
-                              {badge.count}
-                            </span>
-                          ) : null}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
-              ) : catalog != null &&
-                catalog.recent.length === 0 &&
-                search.trim() === '' ? (
-                <p className="mb-3 text-[11px] text-(--tgui--hint_color)">Листайте коллекции ниже.</p>
+                <p className="w-full px-2 py-8 text-center text-[13px] text-zinc-500">Загрузка…</p>
               ) : null}
               {catalog != null && catalog.tabs.length > 0 ? (
                 <>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-(--tgui--hint_color)">
-                    Коллекции
-                  </p>
-                  <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                  <nav
+                    className={`flex w-[76px] shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain border-r pb-1 pl-1 pr-2 [-webkit-overflow-scrolling:touch] ${PICK_BORDER}`}
+                  >
+                    <span className="px-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
+                      Коллекции
+                    </span>
                     {catalog.tabs.map((tab) => {
-                      const sel = tab.category_slug === (activeTabSlug ?? tab.category_slug)
+                      const sel = tab.category_slug === effectiveTabSlug
                       return (
                         <button
                           key={tab.category_slug}
                           type="button"
                           disabled={busy}
                           onClick={() => setActiveTabSlug(tab.category_slug)}
-                          className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                          className={`rounded-lg px-2 py-2 text-left text-[12px] font-medium transition-colors disabled:opacity-50 ${
                             sel
-                              ? 'bg-[color-mix(in_srgb,var(--tgui--link_color)_88%,transparent)] text-[var(--tgui--button_text_color,white)]'
-                              : 'bg-(--tgui--secondary_bg_color) text-(--tgui--text_color) active:opacity-90'
+                              ? `${PICK_SURFACE} font-semibold text-white`
+                              : 'text-zinc-400 hover:bg-[#252528] hover:text-zinc-200'
                           }`}
                         >
                           {tab.label}
                         </button>
                       )
                     })}
-                  </div>
-                  {activeTab != null ? (
-                    <div className="grid grid-cols-5 gap-1 pb-3">
-                      {gridItems.map((item) => {
-                        const mine = effective.my_reaction_type_id === item.id
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void apply(item.id)}
-                            title={item.label ?? ''}
-                            className={`aspect-square shrink-0 touch-manipulation rounded-xl p-0.5 transition-[transform] active:scale-90 disabled:opacity-50 ${
-                              mine ? 'ring-2 ring-(--tgui--link_color) ring-offset-1 ring-offset-(--tgui--bg_color)' : ''
-                            }`}
-                          >
-                            <img src={item.image_url} alt="" className="size-full rounded-lg object-cover" />
-                          </button>
-                        )
-                      })}
-                      {gridItems.length === 0 ? (
-                        <p className="col-span-5 py-6 text-center text-[12px] text-(--tgui--hint_color)">
-                          Ничего не нашлось
+                  </nav>
+
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pl-3 pr-0.5 [-webkit-overflow-scrolling:touch]">
+                    {recentItems.length > 0 ? (
+                      <div className="shrink-0">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-tight text-zinc-200">
+                          Недавние
                         </p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                        <div className="-mx-0.5 flex gap-1 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                          {recentItems.map((item) => {
+                            const mine = effective.my_reaction_type_id === item.id
+                            const badge = countsById.get(item.id)
+                            return (
+                              <button
+                                key={`r-${item.id}`}
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void apply(item.id)}
+                                className={`relative shrink-0 rounded-lg p-[2px] transition-[transform,opacity] active:scale-95 disabled:opacity-50 ${
+                                  mine
+                                    ? 'ring-2 ring-[#4ade80]'
+                                    : 'ring-1 ring-transparent hover:ring-zinc-600'
+                                }`}
+                              >
+                                <ReactionThumb
+                                  src={item.image_url}
+                                  className={compact ? 'size-8' : 'size-9'}
+                                  roundedClassName="rounded-md"
+                                />
+                                {badge != null ? (
+                                  <span className="absolute -bottom-0.5 -right-0.5 flex min-h-[14px] min-w-[14px] items-center justify-center rounded-full bg-emerald-500 px-0.5 text-[8px] font-bold leading-none text-white shadow-sm tabular-nums">
+                                    {badge.count}
+                                  </span>
+                                ) : null}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : catalog.recent.length === 0 ? (
+                      <p className="shrink-0 text-[11px] text-zinc-500">Выберите коллекцию слева.</p>
+                    ) : null}
+
+                    {activeTab != null ? (
+                      <div className="flex min-h-[80px] min-w-0 flex-1 flex-col">
+                        <p className="mb-1.5 shrink-0 text-[11px] font-medium tracking-tight text-zinc-200">
+                          {activeTab.label}
+                        </p>
+                        <div className={`grid shrink-0 gap-1 pb-2 ${compact ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-5'}`}>
+                          {gridItems.map((item) => {
+                            const mine = effective.my_reaction_type_id === item.id
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void apply(item.id)}
+                                title={item.label ?? ''}
+                                className={`aspect-square shrink-0 touch-manipulation rounded-lg p-[2px] transition-transform active:scale-90 disabled:opacity-40 ${
+                                  mine
+                                    ? 'ring-2 ring-[#4ade80] ring-offset-1 ring-offset-[#121212]'
+                                    : 'ring-0 hover:ring-1 hover:ring-zinc-600'
+                                }`}
+                              >
+                                <ReactionThumb src={item.image_url} className="size-full" roundedClassName="rounded-md" />
+                              </button>
+                            )
+                          })}
+                          {gridItems.length === 0 ? (
+                            <p className="col-span-full py-8 text-center text-[12px] text-zinc-500">
+                              Ничего не нашлось
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </>
               ) : null}
             </div>
@@ -474,8 +525,14 @@ export function ReactionStrip({
     )
 
   return (
-    <div className={className}>
-      <div className="flex flex-wrap items-center gap-1">
+    <div className={compact ? `${className ?? ''} min-w-0 flex-1` : className}>
+      <div
+        className={
+          compact
+            ? 'flex min-h-[18px] w-full max-w-full min-w-0 flex-nowrap items-center gap-x-0.5 gap-y-0 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+            : 'flex flex-wrap items-center gap-1'
+        }
+      >
         {effective.counts.map((c) => {
           const mine = effective.my_reaction_type_id === c.reaction_type_id
           return (
@@ -489,28 +546,50 @@ export function ReactionStrip({
               imageUrl={c.image_url}
               label={c.label}
               count={c.count}
+              compact={compact}
               onPick={() => void apply(c.reaction_type_id)}
             />
           )
         })}
-        <button
+        <IconButton
           ref={triggerRef}
           type="button"
+          size="s"
+          mode="gray"
           disabled={busy}
-          onClick={(e) => {
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation()
-            setActionError(null)
-            setPickerOpen((v) => !v)
+            setPickerOpen((wasOpen) => {
+              if (wasOpen) {
+                return false
+              }
+              setActionError(null)
+              setCatalog(null)
+              setCatalogError(null)
+              return true
+            })
           }}
           aria-expanded={pickerOpen}
           aria-label="Выбрать реакцию"
-          className="flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-full bg-(--tgui--secondary_bg_color) text-xl leading-none ring-1 ring-[color-mix(in_srgb,var(--tgui--divider_color)_80%,transparent)] transition-[transform,box-shadow] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-90 aria-expanded:bg-[color-mix(in_srgb,var(--tgui--link_color)_22%,transparent)] aria-expanded:ring-[color-mix(in_srgb,var(--tgui--link_color)_40%,transparent)]"
+          className={
+            compact
+              ? 'relative z-0 box-border! flex! h-[22px]! w-[22px]! min-h-[22px]! min-w-[22px]! shrink-0 items-center! justify-center! rounded-full p-0! leading-none! text-(--tgui--hint_color) transition-[transform,colors] hover:text-(--tgui--text_color) active:scale-[0.97] aria-expanded:text-(--tgui--link_color)!'
+              : 'relative z-0 box-border! flex! h-9! w-9! min-h-9! min-w-9! shrink-0 items-center! justify-center! rounded-full p-0! leading-none! text-(--tgui--hint_color) transition-[transform,colors] hover:text-(--tgui--text_color) active:scale-[0.98] aria-expanded:text-(--tgui--link_color)!'
+          }
         >
-          <span className="relative top-px select-none">😊</span>
-        </button>
+          <Smile
+            className={`relative z-1 block shrink-0 ${compact ? 'size-[15px]' : 'size-[18px]'}`}
+            strokeWidth={1.75}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          />
+        </IconButton>
       </div>
       {actionError != null ? (
-        <p className="mt-1 text-[10px] text-(--tgui--destructive_text_color)">{actionError}</p>
+        <p className={`text-(--tgui--destructive_text_color) ${compact ? 'mt-0.5 text-[9px]' : 'mt-1 text-[10px]'}`}>
+          {actionError}
+        </p>
       ) : null}
       {pickerPortal}
     </div>

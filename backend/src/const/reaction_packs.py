@@ -40,7 +40,6 @@ REACTION_TAB_ORDER: tuple[ReactionPackTab, ...] = (
 
 
 def slug_by_emoji_directory(directory: str) -> str | None:
-    """Вернуть `category_slug` по имени папки emoji или None."""
     for tab in REACTION_TAB_ORDER:
         if tab.directory == directory:
             return tab.slug

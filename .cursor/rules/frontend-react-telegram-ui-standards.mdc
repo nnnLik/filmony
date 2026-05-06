@@ -11,6 +11,11 @@ alwaysApply: true
 - Prefer extending/composing ui-kit components over creating custom primitives from scratch.
 - Keep presentation components focused on one UI responsibility.
 
+## Icons and compact controls
+- Prefer **`IconButton`** from `@telegram-apps/telegram-ui` for circular icon-only actions (matches ripple / platform behavior).
+- For glyphs not bundled with TGUI in this repo, use **`lucide-react`** (tree-shakeable imports, e.g. `Smile`, `Search`). See **`docs/frontend/ui-conventions.md`** for feed/reaction patterns and **centering** rules (flex + `block` on SVG inside `IconButton` / over Tappable ripple).
+- Do not reintroduce one-off smile SVGs in `ReactionStrip` unless replacing the documented pattern across the app.
+
 ## State and UX
 - Keep state minimal, explicit, and local by default.
 - Handle loading, empty, and error states for user-facing screens.

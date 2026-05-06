@@ -4,13 +4,13 @@ overview: "Исправить восприятие «сломанных» кар
 todos:
   - id: diagnose-media
     content: Зафиксировать фактический image_url/API в Network; для TG на устройстве — LAN/tunnel/production base вместо 127.0.0.1; обновить фикстуры/seed без блокируемого placehold.co при необходимости
-    status: pending
+    status: completed
   - id: reaction-strip-visual
     content: "ReactionStrip: капсулы как эталон, SVG-smile триггер, непрозрачная панель popover и читаемый scrim/клик-вне"
-    status: pending
+    status: completed
   - id: verify-platforms
     content: Проверка десктоп + Mini App с корректным PUBLIC_BASE для медиа
-    status: pending
+    status: completed
 isProject: false
 ---
 

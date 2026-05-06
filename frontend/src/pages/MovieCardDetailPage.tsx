@@ -448,6 +448,7 @@ export function MovieCardDetailPage() {
                     onSummaryChange={(next: ReactionSummary) =>
                       setCard((prev) => (prev ? { ...prev, reactions: next } : prev))
                     }
+                    compact
                   />
                 </div>
               </section>
@@ -569,15 +570,16 @@ export function MovieCardDetailPage() {
                             ) : null}
 
                             <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{comment.text}</p>
-                            <button
-                              type="button"
-                              onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
-                              className="mt-2 text-xs text-(--tgui--link_color)"
-                            >
-                              Ответить
-                            </button>
-                            <div className="mt-2">
+                            <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-2 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
+                                className="inline-flex shrink-0 items-center bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
+                              >
+                                Ответить
+                              </button>
                               <ReactionStrip
+                                compact
                                 targetKind="movie_card_comment"
                                 targetId={comment.id}
                                 summary={comment.reactions}

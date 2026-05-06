@@ -1,5 +1,5 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
-import { useCallback, useEffect, useMemo, useState, type MouseEventHandler } from 'react'
+import { useCallback, useMemo, useState, type MouseEventHandler } from 'react'
 import { Link } from 'react-router-dom'
 
 import { createMovieCardComment } from '../../api/cardApi'
@@ -104,6 +104,14 @@ function IconSend({ className }: { className?: string }) {
   )
 }
 
+function IconChevronDown({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export type FeedCardProps = {
   card: FeedMovieCard
   onCommentsState: (
@@ -116,16 +124,28 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
   const [draft, setDraft] = useState('')
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [commentsPreviewOpen, setCommentsPreviewOpen] = useState(false)
+  const [reactionSync, setReactionSync] = useState(() => ({
+    cardId: card.id,
+    reactions: card.reactions,
+  }))
   const [cardReaction, setCardReaction] = useState<ReactionSummary | undefined>(() => card.reactions)
+  if (card.id !== reactionSync.cardId || card.reactions !== reactionSync.reactions) {
+    setReactionSync({ cardId: card.id, reactions: card.reactions })
+    setCardReaction(card.reactions)
+  }
+
+  const [previewSync, setPreviewSync] = useState(() => ({
+    cardId: card.id,
+    comments_preview: card.comments_preview,
+  }))
   const [previewReactions, setPreviewReactions] = useState<Record<number, ReactionSummary>>({})
+  if (card.id !== previewSync.cardId || card.comments_preview !== previewSync.comments_preview) {
+    setPreviewSync({ cardId: card.id, comments_preview: card.comments_preview })
+    setPreviewReactions({})
+  }
 
   const palette = useMemo(() => ratingPalette(card.rating), [card.rating])
-  useEffect(() => {
-    setCardReaction(card.reactions)
-  }, [card.reactions])
-  useEffect(() => {
-    setPreviewReactions({})
-  }, [card.id, card.comments_preview])
   const profileHref = `/u/${encodeURIComponent(card.user_id)}`
   const cardHref = `/cards/${card.id}`
   const name = authorLabel(card)
@@ -143,6 +163,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
       const nextCount = card.comments_count + 1
       const merged = [...card.comments_preview, incoming].sort((a, b) => a.id - b.id).slice(-3)
       onCommentsState(card.id, { comments_count: nextCount, comments_preview: merged })
+      setCommentsPreviewOpen(true)
     },
     [card.comments_count, card.comments_preview, card.id, onCommentsState]
   )
@@ -175,7 +196,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
   return (
     <article
       data-testid={`feed-card-${card.id}`}
-      className="flex max-w-full flex-col gap-3 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] p-3 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.45)]"
+      className="flex max-w-full flex-col gap-2 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] p-2.5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.45)]"
     >
       {/* Главная зона: постер отступает от краёв карточки, клик ведёт в карточку фильма */}
       <Link
@@ -240,8 +261,8 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
       </Link>
 
       {/* Мета: профиль (только аватар, имя в title) + теги — не накрываем overlay-ссылкой */}
-      <div className="flex min-w-0 flex-col gap-2">
-        <div className="flex min-w-0 items-center justify-between gap-2">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 items-center justify-between gap-1.5">
           <Link
             to={profileHref}
             className="relative z-10 flex shrink-0 rounded-full p-0.5 no-underline ring-1 ring-transparent transition-[box-shadow,ring-color] hover:ring-(--tgui--link_color) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--tgui--link_color)"
@@ -268,7 +289,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
         </div>
 
         {(shownTags.length > 0 || remainder > 0) && (
-          <div className="flex max-w-full flex-wrap items-center gap-1">
+          <div className="flex max-w-full flex-wrap items-center gap-0.5">
             {shownTags.map((tag) => (
               <span
                 key={tag}
@@ -283,130 +304,170 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
           </div>
         )}
 
-        <div className="relative z-10 mt-1" onMouseDown={stopCardNav}>
-          <ReactionStrip
-            targetKind="movie_card"
-            targetId={card.id}
-            summary={cardReaction}
-            onSummaryChange={setCardReaction}
-          />
-        </div>
-
-        {/* Комментарии: как на странице карточки; аватар (и имя) ведут в профиль автора */}
-        <div className="relative z-10 mt-1">
-          <div className="mb-2 flex items-baseline justify-between gap-2">
-            <span className="text-sm font-medium text-(--tgui--text_color)">Комментарии</span>
-            <span
-              className="text-xs tabular-nums text-(--tgui--hint_color)"
-              title="Всего комментариев к карточке"
-            >
-              {card.comments_count}
-            </span>
+        {/* Один ряд: реакции слева, комментарии справа */}
+        <div className="relative z-10 flex min-w-0 flex-col gap-1.5">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="min-w-0 flex-1 overflow-hidden py-px" onMouseDown={stopCardNav}>
+              <ReactionStrip
+                targetKind="movie_card"
+                targetId={card.id}
+                summary={cardReaction}
+                onSummaryChange={setCardReaction}
+                compact
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-1 border-l border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] pl-2">
+              <span
+                title="Комментарии"
+                className="max-w-[5.5rem] truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
+              >
+                Комментарии
+              </span>
+              <span
+                className="text-xs font-semibold tabular-nums leading-none text-(--tgui--text_color)"
+                title="Всего комментариев к карточке"
+              >
+                {card.comments_count}
+              </span>
+              <button
+                type="button"
+                onMouseDown={stopCardNav}
+                onClick={() => setCommentsPreviewOpen((open) => !open)}
+                aria-expanded={commentsPreviewOpen}
+                aria-label={
+                  commentsPreviewOpen
+                    ? 'Скрыть комментарии и поле ввода'
+                    : 'Показать комментарии и написать ответ'
+                }
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-(--tgui--hint_color) transition-[background-color,color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] hover:text-(--tgui--text_color) active:scale-95"
+              >
+                <IconChevronDown
+                  className={`size-4 transition-transform duration-200 ${commentsPreviewOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+            </div>
           </div>
-          {card.comments_preview.length === 0 ? (
-            <p className="text-xs text-(--tgui--hint_color)">Пока нет комментариев. Будьте первым.</p>
-          ) : (
-            <div className="space-y-2">
-              {card.comments_preview.map((comment) => {
-                const parentCommentId = comment.parent_comment_id
-                const parent =
-                  parentCommentId != null ? previewCommentsById.get(parentCommentId) ?? null : null
 
-                const authorHref = `/u/${encodeURIComponent(comment.author.id)}`
+          {commentsPreviewOpen ? (
+            <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--tgui--divider_color)_55%,transparent)] pt-2">
+              {card.comments_preview.length > 0 ? (
+                <div className="space-y-1.5">
+                  {card.comments_preview.map((comment) => {
+                    const parentCommentId = comment.parent_comment_id
+                    const parent =
+                      parentCommentId != null ? previewCommentsById.get(parentCommentId) ?? null : null
 
-                return (
-                  <div
-                    key={comment.id}
-                    className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3"
-                  >
-                    <div className="flex items-start gap-2">
-                      <Link to={authorHref} className="shrink-0 no-underline" aria-label={`Профиль: ${commentAuthorDisplay(comment)}`}>
-                        <Avatar
-                          src={comment.author.photo_url ?? undefined}
-                          acronym={commentAuthorDisplay(comment).slice(0, 2).toUpperCase()}
-                          size={28}
-                        />
-                      </Link>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-(--tgui--text_color)">{commentAuthorDisplay(comment)}</span>
-                          <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
-                        </div>
+                    const authorHref = `/u/${encodeURIComponent(comment.author.id)}`
 
-                        {parentCommentId != null ? (
-                          <Link
-                            to={cardHref}
-                            className="mt-2 block w-full rounded-lg border-l-2 border-(--tgui--link_color) bg-(--tgui--secondary_bg_color) px-2 py-1 text-left no-underline active:opacity-90"
-                          >
-                            <p className="truncate text-xs font-medium text-(--tgui--link_color)">
-                              {parent ? commentAuthorDisplay(parent) : 'Родительский комментарий'}
-                            </p>
-                            <p className="truncate text-xs text-(--tgui--hint_color)">
-                              {parent ? snippetPreview(parent.text) : 'Откройте карточку, чтобы перейти к обсуждению'}
-                            </p>
+                    return (
+                      <div
+                        key={comment.id}
+                        className="rounded-lg border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-2.5"
+                      >
+                        <div className="flex items-start gap-2">
+                          <Link to={authorHref} className="shrink-0 no-underline" aria-label={`Профиль: ${commentAuthorDisplay(comment)}`}>
+                            <Avatar
+                              src={comment.author.photo_url ?? undefined}
+                              acronym={commentAuthorDisplay(comment).slice(0, 2).toUpperCase()}
+                              size={24}
+                            />
                           </Link>
-                        ) : null}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium text-(--tgui--text_color)">{commentAuthorDisplay(comment)}</span>
+                              <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
+                            </div>
 
-                        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-(--tgui--text_color)">{comment.text}</p>
-                        <Link
-                          to={cardHref}
-                          className="mt-2 inline-block text-xs text-(--tgui--link_color) no-underline active:opacity-90"
-                        >
-                          Ответить
-                        </Link>
-                        <div className="mt-2" onMouseDown={stopCardNav}>
-                          <ReactionStrip
-                            targetKind="movie_card_comment"
-                            targetId={comment.id}
-                            summary={previewReactions[comment.id] ?? comment.reactions}
-                            onSummaryChange={(next) =>
-                              setPreviewReactions((prev) => ({ ...prev, [comment.id]: next }))
-                            }
-                          />
+                            {parentCommentId != null ? (
+                              <Link
+                                to={cardHref}
+                                className="mt-2 block w-full rounded-lg border-l-2 border-(--tgui--link_color) bg-(--tgui--secondary_bg_color) px-2 py-1 text-left no-underline active:opacity-90"
+                              >
+                                <p className="truncate text-xs font-medium text-(--tgui--link_color)">
+                                  {parent ? commentAuthorDisplay(parent) : 'Родительский комментарий'}
+                                </p>
+                                <p className="truncate text-xs text-(--tgui--hint_color)">
+                                  {parent ? snippetPreview(parent.text) : 'Откройте карточку, чтобы перейти к обсуждению'}
+                                </p>
+                              </Link>
+                            ) : null}
+
+                            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug text-(--tgui--text_color)">{comment.text}</p>
+                            <div
+                              className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-2 overflow-hidden"
+                              onMouseDown={stopCardNav}
+                            >
+                              <Link
+                                to={cardHref}
+                                className="inline-flex shrink-0 items-center py-0 text-xs leading-none text-(--tgui--link_color) no-underline active:opacity-90"
+                              >
+                                Ответить
+                              </Link>
+                              <ReactionStrip
+                                compact
+                                targetKind="movie_card_comment"
+                                targetId={comment.id}
+                                summary={previewReactions[comment.id] ?? comment.reactions}
+                                onSummaryChange={(next) =>
+                                  setPreviewReactions((prev) => ({ ...prev, [comment.id]: next }))
+                                }
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+                    )
+                  })}
+                </div>
+              ) : card.comments_count > 0 ? (
+                <p className="text-xs text-(--tgui--hint_color)">
+                  <Link to={cardHref} className="text-(--tgui--link_color) no-underline active:opacity-90">
+                    Открыть карточку
+                  </Link>
+                  , чтобы прочитать комментарии.
+                </p>
+              ) : (
+                <p className="text-xs text-(--tgui--hint_color)">Пока нет комментариев. Будьте первым.</p>
+              )}
 
-        {/* Компактное поле — всегда видно */}
-        <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNav}>
-          <input
-            type="text"
-            value={draft}
-            disabled={submitBusy}
-            maxLength={100}
-            placeholder="Комментарий…"
-            className="min-h-9 min-w-0 flex-1 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-[14px] text-(--tgui--text_color) outline-none ring-(--tgui--link_color) placeholder:text-(--tgui--hint_color) focus-visible:border-transparent focus-visible:ring-2"
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void send()
-              }
-            }}
-            aria-label="Текст комментария"
-          />
-          <Button
-            mode="filled"
-            size="s"
-            disabled={submitBusy || draft.trim().length === 0}
-            type="button"
-            className="min-h-9! min-w-9! shrink-0 px-0!"
-            onClick={() => void send()}
-            aria-label="Отправить комментарий"
-          >
-            {submitBusy ? '…' : <IconSend className="mx-auto size-4" />}
-          </Button>
-        </div>
-        <div className="flex items-center justify-between gap-2 text-[10px] text-(--tgui--hint_color)">
-          <span className="tabular-nums">{charsLeft}</span>
-          {submitError != null ? (
-            <span className="text-right text-(--tgui--destructive_text_color,#ef4444)">{submitError}</span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNav}>
+                  <input
+                    type="text"
+                    value={draft}
+                    disabled={submitBusy}
+                    maxLength={100}
+                    placeholder="Комментарий…"
+                    className="min-h-8 min-w-0 flex-1 rounded-lg border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-1.5 text-[13px] text-(--tgui--text_color) outline-none ring-(--tgui--link_color) placeholder:text-(--tgui--hint_color) focus-visible:border-transparent focus-visible:ring-2"
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        void send()
+                      }
+                    }}
+                    aria-label="Текст комментария"
+                  />
+                  <Button
+                    mode="filled"
+                    size="s"
+                    disabled={submitBusy || draft.trim().length === 0}
+                    type="button"
+                    className="min-h-8! min-w-8! shrink-0 px-0!"
+                    onClick={() => void send()}
+                    aria-label="Отправить комментарий"
+                  >
+                    {submitBusy ? '…' : <IconSend className="mx-auto size-4" />}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-[10px] text-(--tgui--hint_color)">
+                  <span className="tabular-nums">{charsLeft}</span>
+                  {submitError != null ? (
+                    <span className="text-right text-(--tgui--destructive_text_color,#ef4444)">{submitError}</span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           ) : null}
         </div>
       </div>
