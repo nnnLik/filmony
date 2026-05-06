@@ -16,7 +16,7 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", settings.database.async_sqlalchemy_url)
+config.set_main_option('sqlalchemy.url', settings.database.async_sqlalchemy_url)
 
 
 def run_migrations_offline() -> None:
@@ -24,7 +24,7 @@ def run_migrations_offline() -> None:
         url=settings.database.async_sqlalchemy_url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={'paramstyle': 'named'},
     )
 
     with context.begin_transaction():

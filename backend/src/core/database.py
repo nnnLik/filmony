@@ -19,10 +19,10 @@ _session_factory: async_sessionmaker[AsyncSession] | None = None
 def _connect_args() -> dict[str, str] | None:
     if settings.app.is_test:
         sch = settings.database.test_schema
-        return {"server_settings": {"search_path": f"{sch}, public"}}
+        return {'server_settings': {'search_path': f'{sch}, public'}}
     sch = settings.database.default_schema
-    if sch != "public":
-        return {"server_settings": {"search_path": f"{sch}, public"}}
+    if sch != 'public':
+        return {'server_settings': {'search_path': f'{sch}, public'}}
     return None
 
 
@@ -30,12 +30,12 @@ def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
         kwargs: dict[str, Any] = {
-            "echo": settings.database.echo,
-            "pool_pre_ping": True,
+            'echo': settings.database.echo,
+            'pool_pre_ping': True,
         }
         ca = _connect_args()
         if ca is not None:
-            kwargs["connect_args"] = ca
+            kwargs['connect_args'] = ca
         _engine = create_async_engine(
             settings.database.async_sqlalchemy_url,
             **kwargs,

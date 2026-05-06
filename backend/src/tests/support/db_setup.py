@@ -13,7 +13,7 @@ async def ensure_test_schema() -> None:
     schema = settings.database.test_schema
     engine = get_engine()
     async with engine.begin() as conn:
-        await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
+        await conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS {schema}'))
 
 
 async def create_all_tables() -> None:

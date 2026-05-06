@@ -12,7 +12,7 @@ from services.auth.issue_session_jwt import IssueSessionJwtService
 from services.auth.upsert_telegram_user import UpsertTelegramUserService
 from services.auth.verify_telegram_init_data import VerifyTelegramInitDataService
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix='/auth', tags=['auth'])
 
 
 def _set_session_cookie(response: Response, token: str) -> None:
@@ -22,22 +22,22 @@ def _set_session_cookie(response: Response, token: str) -> None:
         httponly=True,
         max_age=settings.auth_jwt.session_max_age_seconds,
         secure=settings.app.is_prod,
-        samesite="lax",
-        path="/",
+        samesite='lax',
+        path='/',
     )
 
 
 def _clear_session_cookie(response: Response) -> None:
     response.delete_cookie(
         key=settings.auth_jwt.session_cookie_name,
-        path="/",
+        path='/',
         httponly=True,
         secure=settings.app.is_prod,
-        samesite="lax",
+        samesite='lax',
     )
 
 
-@router.post("/telegram", response_model=UserResponse)
+@router.post('/telegram', response_model=UserResponse)
 async def auth_telegram(
     body: TelegramAuthRequest,
     response: Response,
@@ -47,7 +47,7 @@ async def auth_telegram(
     try:
         profile = verifier.execute(body.init_data)
     except TelegramInitDataInvalidError:
-        raise HTTPException(status_code=401, detail="invalid init data") from None
+        raise HTTPException(status_code=401, detail='invalid init data') from None
 
     user = await UpsertTelegramUserService(db).execute(profile)
     token = IssueSessionJwtService().execute(user.id)
@@ -55,7 +55,7 @@ async def auth_telegram(
     return user
 
 
-@router.post("/logout")
+@router.post('/logout')
 async def auth_logout(response: Response) -> dict[str, str]:
     _clear_session_cookie(response)
-    return {"status": "ok"}
+    return {'status': 'ok'}

@@ -18,16 +18,16 @@ async def get_current_user(
     ] = None,
 ) -> User:
     if not session_token:
-        raise HTTPException(status_code=401, detail="not authenticated")
+        raise HTTPException(status_code=401, detail='not authenticated')
     try:
         uid = DecodeSessionJwtService().execute(session_token)
     except ValueError:
-        raise HTTPException(status_code=401, detail="invalid session") from None
+        raise HTTPException(status_code=401, detail='invalid session') from None
 
     result = await db.execute(select(User).where(User.id == uid))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=401, detail="user not found")
+        raise HTTPException(status_code=401, detail='user not found')
     return user
 
 

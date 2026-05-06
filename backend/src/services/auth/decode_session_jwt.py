@@ -16,13 +16,13 @@ class DecodeSessionJwtService:
             payload = jwt.decode(
                 token,
                 settings.auth_jwt.jwt_secret,
-                algorithms=["HS256"],
+                algorithms=['HS256'],
             )
         except InvalidTokenError as e:
-            raise ValueError("invalid session token") from e
-        if payload.get("typ") != "session":
-            raise ValueError("unexpected token type")
-        sub = payload.get("sub")
+            raise ValueError('invalid session token') from e
+        if payload.get('typ') != 'session':
+            raise ValueError('unexpected token type')
+        sub = payload.get('sub')
         if not sub:
-            raise ValueError("missing subject")
+            raise ValueError('missing subject')
         return UUID(str(sub))

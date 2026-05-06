@@ -5,11 +5,11 @@ from pydantic import AliasChoices, BaseModel, Field
 
 class TelegramAuthRequest(BaseModel):
     init_data: str = Field(
-        validation_alias=AliasChoices("initData", "init_data"),
-        serialization_alias="initData",
+        validation_alias=AliasChoices('initData', 'init_data'),
+        serialization_alias='initData',
     )
 
-    model_config = {"populate_by_name": True}
+    model_config = {'populate_by_name': True}
 
 
 class UserResponse(BaseModel):
@@ -21,4 +21,4 @@ class UserResponse(BaseModel):
     photo_url: str | None
     language_code: str | None
 
-    model_config = {"from_attributes": True}
+    model_config = {'from_attributes': True}

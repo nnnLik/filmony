@@ -27,16 +27,16 @@ def get_app() -> FastAPI:
 
 def setup_app(app: FastAPI) -> FastAPI:
     cors_kw: dict = {
-        "allow_origins": settings.app.CORS_ALLOW_ORIGINS,
-        "allow_credentials": settings.app.CORS_ALLOW_CREDENTIALS,
-        "allow_methods": settings.app.CORS_ALLOW_METHODS,
-        "allow_headers": settings.app.CORS_ALLOW_HEADERS,
+        'allow_origins': settings.app.CORS_ALLOW_ORIGINS,
+        'allow_credentials': settings.app.CORS_ALLOW_CREDENTIALS,
+        'allow_methods': settings.app.CORS_ALLOW_METHODS,
+        'allow_headers': settings.app.CORS_ALLOW_HEADERS,
     }
     app.add_middleware(CORSMiddleware, **cors_kw)
     app.include_router(api_router)
 
-    @app.get("/")
+    @app.get('/')
     def read_root() -> dict[str, str]:
-        return {"message": "Hello, World!"}
+        return {'message': 'Hello, World!'}
 
     return app

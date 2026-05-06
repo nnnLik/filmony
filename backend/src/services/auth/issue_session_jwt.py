@@ -13,9 +13,9 @@ class IssueSessionJwtService:
     def execute(self, user_id: UUID) -> str:
         return jwt.encode(
             {
-                "sub": str(user_id),
-                "typ": "session",
+                'sub': str(user_id),
+                'typ': 'session',
             },
             settings.auth_jwt.jwt_secret,
-            algorithm="HS256",
+            algorithm='HS256',
         )

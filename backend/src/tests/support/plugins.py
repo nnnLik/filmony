@@ -6,7 +6,6 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from core.database import dispose_engine
-
 from tests.support import db_setup
 from utils.app_utils import get_app, setup_app
 
@@ -23,5 +22,5 @@ async def prepare_db() -> None:
 @pytest_asyncio.fixture
 async def async_client(prepare_db: None) -> AsyncClient:
     transport = ASGITransport(app=setup_app(get_app()))
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url='http://test') as client:
         yield client
