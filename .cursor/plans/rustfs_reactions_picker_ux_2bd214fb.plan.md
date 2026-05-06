@@ -4,19 +4,19 @@ overview: Добавить RustFS как хранилище ассетов из 
 todos:
   - id: compose-rustfs-env
     content: RustFS сервис в compose.yml, bucket, переменные REACTION_MEDIA_PUBLIC_BASE_URL и ключи boto3 для upload
-    status: pending
+    status: completed
   - id: sync-script-manifest
     content: MANIFEST пяти категорий + scripts/sync_reactions_to_rustfs.py (boto3 -> RustFS), CI/dev инструкция
-    status: pending
+    status: completed
   - id: db-api-catalog-recent
     content: Миграция reaction_type категории + таблица user_recent_reaction; расширенный catalog + запись при POST
-    status: pending
+    status: completed
   - id: api-actors
     content: ListReactionActorsService + GET эндпоинт для тултипа; pytest покрытие
-    status: pending
+    status: completed
   - id: frontend-picker-tooltip
     content: "ReactionStrip: вкладки, поиск, недавние, lazy Tooltip с авторами через новый fetch"
-    status: pending
+    status: completed
 isProject: false
 ---
 

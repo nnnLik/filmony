@@ -1,0 +1,34 @@
+- **Timestamp**: 2026-05-07T18:30:00Z
+- **Feature slug**: movie-card-custom-reactions
+- **Action type**: code
+- **Summary**: RustFS в compose, публичный base URL реакций, миграция `category_slug`/`asset_key` и `user_recent_reaction`, сгруппированный каталог + недавние + POST touch, эндпоинт актёров, фронт пикер/тултип, sync-скрипт в S3.
+- **Files**:
+  - `compose.yml`
+  - `vars/.env.example`
+  - `backend/src/conf/settings.py`
+  - `backend/pyproject.toml`
+  - `backend/src/migrations/versions/c4d5e6f789ab_reaction_media_catalog.py`
+  - `backend/src/models/reaction_type.py`
+  - `backend/src/models/user_recent_reaction.py`
+  - `backend/src/models/__init__.py`
+  - `backend/src/utils/reaction_urls.py`
+  - `backend/src/const/reaction_packs.py`
+  - `backend/src/services/reactions/get_reaction_summaries_for_targets.py`
+  - `backend/src/services/reactions/list_reaction_catalog.py`
+  - `backend/src/services/reactions/touch_user_recent_reaction.py`
+  - `backend/src/services/reactions/list_reaction_actors.py`
+  - `backend/src/services/reactions/set_or_toggle_user_reaction.py`
+  - `backend/src/services/reactions/__init__.py`
+  - `backend/src/api/reactions/schemas.py`
+  - `backend/src/api/reactions/routes.py`
+  - `backend/src/tests/api/test_reactions_routes.py`
+  - `fixtures/reaction_type.sql`
+  - `scripts/sync_reactions_to_rustfs.py`
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/api/reactionApi.ts`
+  - `frontend/src/lib/reactionCatalogCache.ts`
+  - `frontend/src/lib/reactionActorsCache.ts`
+  - `frontend/src/components/reactions/ReactionStrip.tsx`
+  - `docs/features/movie-card-custom-reactions.md`
+- **Verification**: запланировано `make backend-test` / `make backend-test-one target=src/tests/api/test_reactions_routes.py` в контейнере `filmony-backend` (локальный прогон в сессии не выполнялся).
+- **Links**: `https://docs.rustfs.com/installation/docker/`

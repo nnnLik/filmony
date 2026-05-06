@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from services.reactions.types import ReactionTargetSummary
@@ -21,12 +23,35 @@ class ReactionCatalogItemResponse(BaseModel):
     id: int
     label: str | None
     image_url: str
+    category_slug: str | None = None
+    asset_key: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class ReactionCatalogListResponse(BaseModel):
+class ReactionCatalogTabResponse(BaseModel):
+    category_slug: str
+    label: str
     items: list[ReactionCatalogItemResponse] = Field(default_factory=list)
+
+
+class ReactionCatalogGroupedResponse(BaseModel):
+    recent: list[ReactionCatalogItemResponse] = Field(default_factory=list)
+    tabs: list[ReactionCatalogTabResponse] = Field(default_factory=list)
+
+
+class ReactionActorResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    display_name: str | None
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    photo_url: str | None
+
+
+class ReactionActorsListResponse(BaseModel):
+    items: list[ReactionActorResponse] = Field(default_factory=list)
 
 
 class UserReactionSetRequest(BaseModel):

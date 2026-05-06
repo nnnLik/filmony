@@ -20,6 +20,7 @@
 - Агрегированные файлы логов больше не используются.
 
 ## Latest Entries
+- `2026-05-07T183000Z-movie-card-custom-reactions-code.md`
 - `2026-05-07T153000Z-feed-recommendation-engine-code.md`
 - `2026-05-07T140500Z-movie-card-custom-reactions-code.md`
 - `2026-05-07T120000Z-roadmap-consolidation-docs.md`

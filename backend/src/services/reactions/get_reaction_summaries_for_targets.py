@@ -6,9 +6,11 @@ from uuid import UUID
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf.settings import settings
 from models.reaction_target_kind import ReactionTargetKind
 from models.reaction_type import ReactionType
 from models.user_reaction import UserReaction
+from utils.reaction_urls import resolve_reaction_media_url
 
 from .types import ReactionCountEntry, ReactionTargetSummary
 
@@ -52,12 +54,15 @@ class GetReactionSummariesForTargetsService:
 
         scope = or_(*scope_conds)
 
+        media_base = settings.reaction_media.public_base_url
+
         count_stmt = (
             select(
                 UserReaction.target_kind,
                 UserReaction.target_id,
                 UserReaction.reaction_type_id,
                 func.count(UserReaction.id).label('cnt'),
+                ReactionType.asset_key,
                 ReactionType.image_url,
                 ReactionType.label,
                 ReactionType.sort_order,
@@ -68,6 +73,7 @@ class GetReactionSummariesForTargetsService:
                 UserReaction.target_kind,
                 UserReaction.target_id,
                 UserReaction.reaction_type_id,
+                ReactionType.asset_key,
                 ReactionType.image_url,
                 ReactionType.label,
                 ReactionType.sort_order,
@@ -77,12 +83,17 @@ class GetReactionSummariesForTargetsService:
 
         buckets: dict[tuple[str, int], list[ReactionCountEntry]] = defaultdict(list)
         for row in count_rows:
-            kind, tid, rtid, cnt, url, lab, so = row
+            kind, tid, rtid, cnt, asset_key, url, lab, so = row
+            resolved_url = resolve_reaction_media_url(
+                asset_key=asset_key,
+                image_url_fallback=str(url),
+                public_base=media_base,
+            )
             buckets[(kind, tid)].append(
                 ReactionCountEntry(
                     reaction_type_id=int(rtid),
                     count=int(cnt),
-                    image_url=str(url),
+                    image_url=resolved_url,
                     label=lab,
                     sort_order=int(so),
                 )

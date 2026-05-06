@@ -24,7 +24,7 @@
 │   ├── alembic.ini
 │   └── pyproject.toml
 ├── frontend/          # Mini App (Vite + React)
-├── vars/              # env-файлы для compose (секреты в .gitignore — см. ниже)
+├── vars/              # env: версионируемый `.env.development` + `.env.example`
 ├── compose.yml
 └── Makefile
 ```
@@ -33,13 +33,7 @@
 
 Разработка бэкенда и тестов рассчитана на **запущенный Compose** (тот же образ, что и в CI/проде).
 
-1. Скопируйте шаблон переменных и подставьте свои значения:
-
-   ```bash
-   cp vars/.env.example vars/.env.development
-   ```
-
-   Заполните как минимум `DATABASE_URL`, токен Telegram и `AUTH_JWT_SECRET`. Файлы вида `vars/.env.*` с секретами не должны попадать в git (см. `.gitignore`).
+1. Откройте [`vars/.env.development`](vars/.env.development): там уже выставлены URL для Postgres/RustFS/Vite в связке с `compose.yml`. **Замените плейсхолдеры** `TG_APP_TOKEN` и `KINOPOISK_API_KEY` (и при желании `AUTH_JWT_SECRET`, `TELEGRAM_BOT_USERNAME`) на свои значения. Дополнительный шаблон без значений по умолчанию: [`vars/.env.example`](vars/.env.example).
 
 2. Поднять сервисы:
 
@@ -61,6 +55,14 @@
    make logs
    ```
 
+5. **Стикеры реакций в RustFS** (локальные каталоги в `emoji/`):
+
+   ```bash
+   make sync-reactions-rustfs
+   ```
+
+   Должны быть запущены compose и RustFS (`http://127.0.0.1:7900`, ключи как в `compose.yml`). В `vars/.env.development` задайте `REACTION_MEDIA_PUBLIC_BASE_URL=http://127.0.0.1:7900/filmony-reactions` и строки в БД `reaction_type` с `category_slug` и `asset_key`, совпадающим с ключом в хранилище (например `reactions/pepe/file.png`). Подробнее: `docs/features/movie-card-custom-reactions.md`.
+
 ## Makefile (бэкенд внутри контейнера)
 
 | Цель | Назначение |
@@ -71,6 +73,7 @@
 | `make backend-test` | весь pytest |
 | `make backend-test-one target=src/tests/...` | один тест / файл |
 | `make backend-lint` / `backend-format` / `backend-fix` | Ruff |
+| `make sync-reactions-rustfs` | залить каталоги `emoji/` в локальный RustFS (нужен `uv` на хосте) |
 
 Тесты используют тот же Postgres, что и приложение; для изоляции данных в pytest выставляется отдельная схема (см. `DATABASE_TEST_SCHEMA` и `src/tests/conftest.py`).
 

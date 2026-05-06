@@ -1,16 +1,16 @@
 import { getReactionCatalog } from '../api/reactionApi'
-import type { ReactionCatalogItem } from '../api/profileTypes'
+import type { ReactionGroupedCatalog } from '../api/profileTypes'
 
-let inflight: Promise<ReactionCatalogItem[]> | null = null
+let inflight: Promise<ReactionGroupedCatalog> | null = null
 
 export function clearReactionCatalogCache(): void {
   inflight = null
 }
 
-export async function loadReactionCatalogItems(): Promise<ReactionCatalogItem[]> {
+export async function loadReactionCatalog(): Promise<ReactionGroupedCatalog> {
   if (!inflight) {
     inflight = getReactionCatalog()
-      .then((r) => r.items)
+      .then((r) => r)
       .catch((err) => {
         inflight = null
         throw err

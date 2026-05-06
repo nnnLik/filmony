@@ -12,7 +12,7 @@ RUFF_FIX = ruff check --fix --config pyproject.toml src/
 #   make backend-test-one target=src/tests/api/test_public_routes.py
 #   make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs
 
 start: build up
 
@@ -61,3 +61,12 @@ logs:
 # Один файл из fixtures/: make fixtures-load file=user.sql
 fixtures-load:
 	@if [ -z "$(file)" ]; then bash scripts/load-fixtures.sh; else bash scripts/load-fixtures.sh "$(file)"; fi
+
+# Залить папки `emoji/*-emojigg-pack` в RustFS (S3). Нужны: `make start` (RustFS на localhost:7900), на хосте — `uv`.
+# Переопределить: RUSTFS_ENDPOINT=... RUSTFS_BUCKET=... make sync-reactions-rustfs
+sync-reactions-rustfs:
+	RUSTFS_ENDPOINT=$${RUSTFS_ENDPOINT:-http://127.0.0.1:7900} \
+	RUSTFS_ACCESS_KEY=$${RUSTFS_ACCESS_KEY:-rustfsadmin} \
+	RUSTFS_SECRET_KEY=$${RUSTFS_SECRET_KEY:-rustfsadmin} \
+	RUSTFS_BUCKET=$${RUSTFS_BUCKET:-filmony-reactions} \
+	uv run --project backend python scripts/sync_reactions_to_rustfs.py

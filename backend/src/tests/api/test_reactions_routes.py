@@ -28,24 +28,28 @@ async def _seed_reaction_catalog() -> tuple[int, int, int, int]:
                     label='A',
                     image_url='https://example.com/a.png',
                     sort_order=1,
+                    category_slug='pepe',
                     is_active=True,
                 ),
                 ReactionType(
                     label='B',
                     image_url='https://example.com/b.png',
                     sort_order=2,
+                    category_slug='meme_pt1',
                     is_active=True,
                 ),
                 ReactionType(
                     label='C',
                     image_url='https://example.com/c.png',
                     sort_order=3,
+                    category_slug='cats',
                     is_active=True,
                 ),
                 ReactionType(
                     label='Zombie',
                     image_url='https://example.com/z.png',
                     sort_order=100,
+                    category_slug='frieren',
                     is_active=False,
                 ),
             ]
@@ -128,15 +132,41 @@ async def test_reactions_catalog_active_only_ordered(async_client: AsyncClient) 
     await _login(async_client, telegram_user_id=940)
     resp = await async_client.get('/api/reactions/catalog')
     assert resp.status_code == 200
-    items = resp.json()['items']
-    assert len(items) == 3
-    assert all((x['label'] or '') != 'Zombie' for x in items)
+    body = resp.json()
+    assert len(body['tabs']) == 5
+    assert sum(len(t['items']) for t in body['tabs']) == 3
+    assert body['recent'] == []
+    assert all((x.get('label') or '') != 'Zombie' for tab in body['tabs'] for x in tab['items'])
+
+
+@pytest.mark.asyncio
+async def test_reactions_catalog_misc_tab_includes_orphans(async_client: AsyncClient) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            ReactionType(
+                label='Solo',
+                image_url='https://example.com/s.png',
+                sort_order=5,
+                category_slug=None,
+                is_active=True,
+            )
+        )
+        await session.commit()
+    await _login(async_client, telegram_user_id=951)
+    resp = await async_client.get('/api/reactions/catalog')
+    assert resp.status_code == 200
+    tabs = resp.json()['tabs']
+    misc = next((t for t in tabs if t['category_slug'] == 'misc'), None)
+    assert misc is not None
+    assert len(misc['items']) == 1
+    assert misc['items'][0]['label'] == 'Solo'
 
 
 @pytest.mark.asyncio
 async def test_set_reaction_on_card_toggle_replace_validate(async_client: AsyncClient) -> None:
     a, b, c, off = await _seed_reaction_catalog()
-    cid = await _create_card_any(async_client, 941, kid=941_941)
+    cid = await _create_card_any(async_client, 941, 941_941)
     await _login(async_client, telegram_user_id=941)
 
     r1 = await async_client.post(
@@ -189,6 +219,69 @@ async def test_set_reaction_on_card_toggle_replace_validate(async_client: AsyncC
         json={'target_kind': 'nope', 'target_id': cid, 'reaction_type_id': c},
     )
     assert bad_kind.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_reactions_catalog_recent_after_post(async_client: AsyncClient) -> None:
+    a, *_rest = await _seed_reaction_catalog()
+    cid = await _create_card_any(async_client, 943, 943_943)
+    cat0 = await async_client.get('/api/reactions/catalog')
+    assert cat0.status_code == 200
+    assert cat0.json()['recent'] == []
+
+    rr = await async_client.post(
+        '/api/reactions',
+        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': a},
+    )
+    assert rr.status_code == 200
+
+    cat1 = await async_client.get('/api/reactions/catalog')
+    assert cat1.status_code == 200
+    recent = cat1.json()['recent']
+    assert len(recent) == 1
+    assert recent[0]['id'] == a
+
+
+@pytest.mark.asyncio
+async def test_reactions_actors_requires_auth(async_client: AsyncClient) -> None:
+    tid, *_ = await _seed_reaction_catalog()
+    r = await async_client.get(
+        '/api/reactions/actors',
+        params={
+            'target_kind': 'movie_card',
+            'target_id': 1,
+            'reaction_type_id': tid,
+        },
+    )
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_reactions_actors_returns_reactors(async_client: AsyncClient) -> None:
+    rx, *_ = await _seed_reaction_catalog()
+    cid = await _create_card_any(async_client, 944, 944_944)
+    await _login(async_client, telegram_user_id=945)
+    post = await async_client.post(
+        '/api/reactions',
+        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': rx},
+    )
+    assert post.status_code == 200
+    me = await async_client.get('/api/me')
+    assert me.status_code == 200
+    user_id_str = me.json()['id']
+
+    act = await async_client.get(
+        '/api/reactions/actors',
+        params={
+            'target_kind': 'movie_card',
+            'target_id': cid,
+            'reaction_type_id': rx,
+        },
+    )
+    assert act.status_code == 200
+    items = act.json()['items']
+    assert len(items) == 1
+    assert str(items[0]['id']) == user_id_str
 
 
 @pytest.mark.asyncio

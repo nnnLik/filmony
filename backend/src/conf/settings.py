@@ -24,7 +24,14 @@ class AppSettings(BaseSettings):
     HOST: str = Field('0.0.0.0')
     PORT: int = Field(8000)
 
-    CORS_ALLOW_ORIGINS: list[str] = Field(default_factory=lambda: ['http://localhost:5173'])
+    CORS_ALLOW_ORIGINS: list[str] = Field(
+        default_factory=lambda: [
+            'http://localhost:5173',
+            'http://localhost:5176',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:5176',
+        ]
+    )
     CORS_ALLOW_CREDENTIALS: bool = Field(True)
     CORS_ALLOW_METHODS: list[str] = Field(['*'])
     CORS_ALLOW_HEADERS: list[str] = Field(['*'])
@@ -83,6 +90,10 @@ class KinopoiskSettings(BaseSettings):
     timeout_seconds: float = Field(8.0, alias='KINOPOISK_API_TIMEOUT_SECONDS')
 
 
+class ReactionMediaSettings(BaseSettings):
+    public_base_url: str = Field('', alias='REACTION_MEDIA_PUBLIC_BASE_URL')
+
+
 @dataclass
 class Settings:
     app: AppSettings
@@ -90,6 +101,7 @@ class Settings:
     telegram: TelegramAuthSettings
     auth_jwt: AuthJwtSettings
     kinopoisk: KinopoiskSettings
+    reaction_media: ReactionMediaSettings
 
     @classmethod
     def build(cls) -> Self:
@@ -99,6 +111,7 @@ class Settings:
             telegram=TelegramAuthSettings(),
             auth_jwt=AuthJwtSettings(),
             kinopoisk=KinopoiskSettings(),
+            reaction_media=ReactionMediaSettings(),
         )
 
 

@@ -6,6 +6,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "boto3==1.42.41",
     "ipython==9.13.0",
     "pytest==9.0.3",
     "pytest-asyncio==1.3.0",
@@ -21,6 +22,7 @@ prod = [
     "sqlalchemy[asyncio]==2.0.49",
     "uvicorn==0.46.0",
     "asyncpg==0.31.0",
+    "boto3>=1.42.41",
 ]
 
 [tool.pytest.ini_options]

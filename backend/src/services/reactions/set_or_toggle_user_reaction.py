@@ -15,6 +15,7 @@ from models.reaction_type import ReactionType
 from models.user_reaction import UserReaction
 
 from .get_reaction_summaries_for_targets import GetReactionSummariesForTargetsService
+from .touch_user_recent_reaction import TouchUserRecentReactionService
 from .types import ReactionTargetSummary
 
 ALLOW_SELF_REACTION = True
@@ -116,6 +117,13 @@ class SetOrToggleUserReactionService:
             movie_card_ids=cards,
             comment_ids=comments,
         )
-        if cards:
-            return card_m[payload.target_id]
-        return comment_m[payload.target_id]
+        summary = card_m[payload.target_id] if cards else comment_m[payload.target_id]
+
+        if summary.my_reaction_type_id is not None:
+            await TouchUserRecentReactionService(self._session).execute(
+                user_id=user_id,
+                reaction_type_id=summary.my_reaction_type_id,
+            )
+            await self._session.commit()
+
+        return summary

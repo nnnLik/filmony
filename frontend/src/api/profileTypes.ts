@@ -73,6 +73,33 @@ export type ReactionCatalogItem = {
   id: number
   label: string | null
   image_url: string
+  category_slug?: string | null
+  asset_key?: string | null
+}
+
+export type ReactionCatalogTab = {
+  category_slug: string
+  label: string
+  items: ReactionCatalogItem[]
+}
+
+export type ReactionGroupedCatalog = {
+  recent: ReactionCatalogItem[]
+  tabs: ReactionCatalogTab[]
+}
+
+export type ReactionActor = {
+  id: string
+  profile_slug: string
+  display_name: string | null
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+}
+
+export type ReactionActorsResponse = {
+  items: ReactionActor[]
 }
 
 export type MovieCard = {
