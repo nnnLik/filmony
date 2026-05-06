@@ -1,5 +1,74 @@
 # 2026-05-06T10:30:00Z
 
+## 2026-05-06T05:12:00Z
+- Feature slug: `movie-card-comments`
+- Action type: plan | docs
+- Summary: Созданы обязательные workflow-артефакты фичи (`feature.md`, `plan.md`, `progress.md`, `result.md`, `docs/features`).
+- Files:
+  - `.cursor/features/movie-card-comments/feature.md`
+  - `.cursor/active/movie-card-comments/plan.md`
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `.cursor/active/movie-card-comments/result.md`
+  - `docs/features/movie-card-comments.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - Проверка наличия созданных файлов.
+- Links:
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `docs/features/movie-card-comments.md`
+
+## 2026-05-06T05:18:00Z
+- Feature slug: `movie-card-comments`
+- Action type: code
+- Summary: Реализованы backend сервисы и API для комментариев/ответов под карточкой с публичным чтением, auth-only созданием, валидацией текста, проверкой принадлежности parent и cursor пагинацией (`comments`, `replies`).
+- Files:
+  - `backend/src/services/cards/create_movie_card_comment.py`
+  - `backend/src/services/cards/list_movie_card_comments.py`
+  - `backend/src/services/cards/__init__.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `.cursor/active/movie-card-comments/result.md`
+  - `docs/features/movie-card-comments.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - `ReadLints` по изменённым backend-файлам: ошибок нет.
+- Links:
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `docs/features/movie-card-comments.md`
+
+## 2026-05-06T05:19:00Z
+- Feature slug: `movie-card-comments`
+- Action type: code
+- Summary: Добавлен индекс ветвления комментариев `(movie_card_id, parent_comment_id, id)` в модели и отдельной Alembic-миграции.
+- Files:
+  - `backend/src/models/movie_card_comment.py`
+  - `backend/src/migrations/versions/c9d2e8a1b7c3_comment_branch_index.py`
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `.cursor/active/movie-card-comments/result.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - `ReadLints` по изменённым backend-файлам: ошибок нет.
+- Links:
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `docs/features/movie-card-comments.md`
+
+## 2026-05-06T05:20:00Z
+- Feature slug: `movie-card-comments`
+- Action type: test | docs
+- Summary: Зафиксирована попытка Docker-first проверки, но shell-команды отклонены средой; обновлены result/docs с прозрачным статусом верификации.
+- Files:
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `.cursor/active/movie-card-comments/result.md`
+  - `docs/features/movie-card-comments.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - `Shell: ls` -> `Rejected: User chose to skip`.
+- Links:
+  - `.cursor/active/movie-card-comments/progress.md`
+  - `docs/features/movie-card-comments.md`
+
 ## 2026-05-06T04:40:00Z
 - Feature slug: `profile-address-lockdown`
 - Action type: refactor | code
@@ -150,6 +219,32 @@
 - Verification:
   - `ReadLints` по измененным backend/frontend файлам — ошибок нет.
   - Shell-команды на запуск тестов/сборки в этой сессии недоступны (пропускаются средой).
+- Links:
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `docs/features/movie-card-create-flow.md`
+
+## 2026-05-06T05:30:00Z
+- Feature slug: `movie-card-create-flow`
+- Action type: code | docs
+- Summary: Переработан UI оценки на деталке (одно число + динамический цветовой акцент), удален блок "Лучшая оценка", внедрена полноценная система комментариев с хранением в БД, древовидными ответами, многострочным вводом (<=250), отображением автора/аватарки/времени и переходом на профиль автора.
+- Files:
+  - `backend/src/models/movie_card_comment.py`
+  - `backend/src/migrations/versions/d3d7c8a2ef11_add_movie_card_comments.py`
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/services/cards/create_movie_card_comment.py`
+  - `backend/src/services/cards/list_movie_card_comments.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `backend/src/models/__init__.py`
+  - `frontend/src/api/cardApi.ts`
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `.cursor/active/movie-card-create-flow/progress.md`
+  - `.cursor/active/movie-card-create-flow/result.md`
+  - `docs/features/movie-card-create-flow.md`
+  - `.cursor/memory/logs/action-log-from-2026-05-06T103000Z.md`
+- Verification:
+  - `ReadLints` по измененным backend/frontend файлам — ошибок нет.
 - Links:
   - `.cursor/active/movie-card-create-flow/progress.md`
   - `docs/features/movie-card-create-flow.md`

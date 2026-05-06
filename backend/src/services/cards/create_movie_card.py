@@ -30,6 +30,8 @@ class MovieCardValidationError(Exception):
 @dataclass(frozen=True, slots=True)
 class CreateMovieCardInput:
     film_id: int
+    kinopoisk_id: int
+    genres: Sequence[str]
     rating: float
     company: CardCompany
     mood_before: CardMoodBefore
@@ -67,6 +69,25 @@ def _normalize_tags(tags: Sequence[str]) -> list[str]:
     return normalized
 
 
+def _normalize_genres(genres: Sequence[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in genres:
+        genre = raw.strip()
+        if genre == '':
+            continue
+        if len(genre) > 80:
+            raise MovieCardValidationError('genre max length is 80')
+        key = genre.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(genre)
+    if len(normalized) > 20:
+        raise MovieCardValidationError('max 20 genres allowed')
+    return normalized
+
+
 class CreateMovieCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -74,10 +95,16 @@ class CreateMovieCardService:
     async def execute(self, user_id: UUID, payload: CreateMovieCardInput) -> MovieCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
+        genres = _normalize_genres(payload.genres)
 
-        film = await self._session.execute(select(Film.id).where(Film.id == payload.film_id))
-        if film.scalar_one_or_none() is None:
+        film_result = await self._session.execute(select(Film).where(Film.id == payload.film_id))
+        film = film_result.scalar_one_or_none()
+        if film is None:
             raise FilmNotFoundError
+        if film.kinopoisk_id != payload.kinopoisk_id:
+            raise MovieCardValidationError('kinopoisk_id does not match film_id')
+        if genres != (film.genres or []):
+            film.genres = genres
 
         entity = MovieCard(
             user_id=user_id,

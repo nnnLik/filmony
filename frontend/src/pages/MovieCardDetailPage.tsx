@@ -1,10 +1,16 @@
-import { Button, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { getMovieCardById } from '../api/cardApi'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard } from '../api/profileTypes'
+import { createMovieCardComment, getMovieCardById, getMovieCardComments } from '../api/cardApi'
+import type {
+  CardCompany,
+  CardMoodAfter,
+  CardMoodBefore,
+  MovieCard,
+  MovieCardComment,
+} from '../api/profileTypes'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',
@@ -28,20 +34,110 @@ const MOOD_AFTER_LABELS: Record<CardMoodAfter, string> = {
   wasted_time: 'Зря потратил время',
 }
 
+function ratingPalette(value: number): { ring: string; glow: string; text: string } {
+  if (value <= 3) return { ring: '#ef4444', glow: 'rgba(239,68,68,0.35)', text: '#fca5a5' }
+  if (value <= 5) return { ring: '#f59e0b', glow: 'rgba(245,158,11,0.35)', text: '#fcd34d' }
+  if (value <= 7) return { ring: '#84cc16', glow: 'rgba(132,204,22,0.35)', text: '#bef264' }
+  return { ring: '#22c55e', glow: 'rgba(34,197,94,0.35)', text: '#86efac' }
+}
+
 function formatRating(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
-function scoreColor(score: number): string {
-  if (score <= 3) return 'bg-[#ef4444]'
-  if (score <= 5) return 'bg-[#f59e0b]'
-  if (score <= 7) return 'bg-[#84cc16]'
-  return 'bg-[#22c55e]'
+function formatCommentTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
-function ratingScale(current: number): number[] {
-  return Array.from({ length: 10 }, (_v, index) => index + 1).map((score) =>
-    score === 10 ? 10 : score
+function authorName(comment: MovieCardComment): string {
+  if (comment.author.display_name && comment.author.display_name.trim() !== '') {
+    return comment.author.display_name
+  }
+  if (comment.author.username && comment.author.username.trim() !== '') {
+    return `@${comment.author.username}`
+  }
+  const full = [comment.author.first_name, comment.author.last_name].filter(Boolean).join(' ').trim()
+  return full === '' ? 'Пользователь' : full
+}
+
+type CommentTreeNode = MovieCardComment & { children: CommentTreeNode[] }
+
+function buildCommentTree(items: MovieCardComment[]): CommentTreeNode[] {
+  const map = new Map<number, CommentTreeNode>()
+  const roots: CommentTreeNode[] = []
+
+  for (const item of items) {
+    map.set(item.id, { ...item, children: [] })
+  }
+  for (const item of items) {
+    const node = map.get(item.id)
+    if (node == null) continue
+    if (item.parent_comment_id == null) {
+      roots.push(node)
+      continue
+    }
+    const parent = map.get(item.parent_comment_id)
+    if (parent == null) {
+      roots.push(node)
+      continue
+    }
+    parent.children.push(node)
+  }
+  return roots
+}
+
+type CommentNodeProps = {
+  node: CommentTreeNode
+  depth: number
+  onReply: (id: number, authorLabel: string) => void
+}
+
+function CommentNode({ node, depth, onReply }: CommentNodeProps) {
+  const marginLeft = Math.min(depth * 14, 56)
+  return (
+    <div style={{ marginLeft }} className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3">
+      <div className="flex items-start gap-2">
+        <Link to={`/u/${encodeURIComponent(node.author.id)}`} className="no-underline">
+          <Avatar
+            src={node.author.photo_url ?? undefined}
+            acronym={authorName(node).slice(0, 2).toUpperCase()}
+            size={28}
+          />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <Link to={`/u/${encodeURIComponent(node.author.id)}`} className="text-sm font-medium text-(--tgui--link_color) no-underline">
+              {authorName(node)}
+            </Link>
+            <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(node.created_at)}</span>
+          </div>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{node.text}</p>
+          <button
+            type="button"
+            onClick={() => onReply(node.id, authorName(node))}
+            className="mt-2 text-xs text-(--tgui--link_color)"
+          >
+            Ответить
+          </button>
+        </div>
+      </div>
+      {node.children.length > 0 ? (
+        <div className="mt-2 space-y-2">
+          {node.children.map((child) => (
+            <CommentNode key={child.id} node={child} depth={depth + 1} onReply={onReply} />
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -49,14 +145,24 @@ export function MovieCardDetailPage() {
   const navigate = useNavigate()
   const { cardId } = useParams<{ cardId?: string }>()
   const [card, setCard] = useState<MovieCard | null>(null)
+  const [comments, setComments] = useState<MovieCardComment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsError, setCommentsError] = useState<string | null>(null)
+  const [commentText, setCommentText] = useState('')
+  const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
+  const [submitBusy, setSubmitBusy] = useState(false)
 
   const parsedCardId = useMemo(() => {
     if (cardId == null) return null
     const value = Number(cardId)
     return Number.isInteger(value) && value > 0 ? value : null
   }, [cardId])
+
+  const tree = useMemo(() => buildCommentTree(comments), [comments])
+  const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
+  const charsLeft = 250 - commentText.length
 
   useEffect(() => {
     if (parsedCardId == null) {
@@ -80,15 +186,64 @@ export function MovieCardDetailPage() {
           setError('Не удалось загрузить карточку фильма')
         }
       } finally {
-        if (alive) {
-          setLoading(false)
-        }
+        if (alive) setLoading(false)
       }
     })()
     return () => {
       alive = false
     }
   }, [parsedCardId])
+
+  useEffect(() => {
+    if (parsedCardId == null || error != null) return
+    let alive = true
+    void (async () => {
+      setCommentsLoading(true)
+      setCommentsError(null)
+      try {
+        const items = await getMovieCardComments(parsedCardId)
+        if (!alive) return
+        setComments(items)
+      } catch (e) {
+        if (!alive) return
+        if (e instanceof ApiError) {
+          setCommentsError(formatApiDetail(e.detail))
+        } else {
+          setCommentsError('Не удалось загрузить комментарии')
+        }
+      } finally {
+        if (alive) setCommentsLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [parsedCardId, error])
+
+  async function handleCreateComment() {
+    if (parsedCardId == null || submitBusy) return
+    const text = commentText.trim()
+    if (text === '') return
+    setSubmitBusy(true)
+    setCommentsError(null)
+    try {
+      const created = await createMovieCardComment(parsedCardId, {
+        text,
+        parent_comment_id: replyTo?.id ?? null,
+      })
+      setComments((prev) => [...prev, created])
+      setCommentText('')
+      setReplyTo(null)
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setCommentsError(formatApiDetail(e.detail))
+      } else {
+        setCommentsError('Не удалось отправить комментарий')
+      }
+    } finally {
+      setSubmitBusy(false)
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) text-(--tgui--text_color)">
@@ -140,19 +295,18 @@ export function MovieCardDetailPage() {
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
               <p className="text-sm font-medium text-(--tgui--text_color)">Твоя оценка</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {ratingScale(card.rating).map((score) => (
-                  <div
-                    key={score}
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white ${
-                      scoreColor(score)
-                    } ${Math.round(card.rating) === score ? 'ring-2 ring-white/80' : 'opacity-80'}`}
-                  >
-                    {score}
-                  </div>
-                ))}
+              <div className="mt-3 flex items-center justify-center">
+                <div
+                  className="relative flex h-28 w-28 items-center justify-center rounded-full border-4 text-4xl font-extrabold"
+                  style={{
+                    borderColor: palette.ring,
+                    color: palette.text,
+                    boxShadow: `0 0 0 6px ${palette.glow}, inset 0 0 24px ${palette.glow}`,
+                  }}
+                >
+                  {formatRating(card.rating)}
+                </div>
               </div>
-              <p className="mt-2 text-xs text-(--tgui--hint_color)">Итог: {formatRating(card.rating)}</p>
             </section>
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
@@ -204,21 +358,55 @@ export function MovieCardDetailPage() {
             </section>
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <p className="text-sm font-medium">Лучшая оценка</p>
-              <p className="mt-2 text-sm text-(--tgui--hint_color)">Аня — 10</p>
-            </section>
-
-            <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
               <p className="text-sm font-medium">Комментарии</p>
-              <div className="mt-3 space-y-3 text-sm">
-                <p>
-                  <span className="font-medium">Аня:</span> Киллиан — гений! Лучшая роль года.
-                </p>
-                <p>
-                  <span className="font-medium">Максим:</span> Затянуто местами, но финал оправдывает всё.
-                </p>
+
+              {replyTo != null ? (
+                <div className="mt-2 flex items-center justify-between rounded-lg bg-(--tgui--bg_color) px-3 py-2 text-xs">
+                  <span className="text-(--tgui--hint_color)">Ответ для: {replyTo.label}</span>
+                  <button type="button" onClick={() => setReplyTo(null)} className="text-(--tgui--link_color)">
+                    отменить
+                  </button>
+                </div>
+              ) : null}
+
+              <div className="mt-3">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.currentTarget.value)}
+                  rows={4}
+                  maxLength={250}
+                  placeholder="Напишите комментарий..."
+                  className="w-full resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-sm outline-none"
+                />
+                <div className="mt-1 flex items-center justify-between">
+                  <span className={`text-xs ${charsLeft < 20 ? 'text-(--tgui--destructive_text_color)' : 'text-(--tgui--hint_color)'}`}>
+                    Осталось: {charsLeft}
+                  </span>
+                  <Button size="s" disabled={submitBusy || commentText.trim() === ''} onClick={() => void handleCreateComment()}>
+                    {submitBusy ? 'Отправка...' : 'Отправить'}
+                  </Button>
+                </div>
               </div>
-              <p className="mt-3 text-xs text-(--tgui--hint_color)">Этот блок пока статический mock.</p>
+
+              {commentsError != null ? (
+                <p className="mt-2 text-sm text-(--tgui--destructive_text_color)">{commentsError}</p>
+              ) : null}
+
+              {commentsLoading ? (
+                <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка комментариев…</p>
+              ) : null}
+
+              {!commentsLoading && tree.length === 0 ? (
+                <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока нет комментариев. Будьте первым.</p>
+              ) : null}
+
+              {tree.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {tree.map((node) => (
+                    <CommentNode key={node.id} node={node} depth={0} onReply={(id, label) => setReplyTo({ id, label })} />
+                  ))}
+                </div>
+              ) : null}
             </section>
           </div>
         ) : null}

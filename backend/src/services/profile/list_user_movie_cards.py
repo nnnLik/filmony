@@ -16,6 +16,8 @@ from models.movie_card_tag import MovieCardTag
 class MovieCardListItem:
     id: int
     film_id: int
+    film_kinopoisk_id: int
+    film_genres: list[str]
     film_title: str
     film_year: int | None
     film_poster_url: str | None
@@ -73,6 +75,8 @@ class ListUserMovieCardsService:
             MovieCardListItem(
                 id=card.id,
                 film_id=film.id,
+                film_kinopoisk_id=film.kinopoisk_id,
+                film_genres=list(film.genres or []),
                 film_title=film.title,
                 film_year=film.year,
                 film_poster_url=film.poster_url,

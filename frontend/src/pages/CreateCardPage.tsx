@@ -206,6 +206,8 @@ export function CreateCardPage() {
     try {
       await createMovieCard({
         film_id: film.id,
+        kinopoisk_id: film.kinopoisk_id,
+        genres: film.genres ?? [],
         rating: normalizeRating(rating),
         company,
         mood_before: moodBefore,

@@ -54,6 +54,8 @@ class PublicProfileResponse(BaseModel):
 class MovieCardItemResponse(BaseModel):
     id: int
     film_id: int
+    film_kinopoisk_id: int
+    film_genres: list[str] = Field(default_factory=list)
     film_title: str
     film_year: int | None
     film_poster_url: str | None
@@ -121,6 +123,8 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
         MovieCardItemResponse(
             id=item.id,
             film_id=item.film_id,
+            film_kinopoisk_id=item.film_kinopoisk_id,
+            film_genres=item.film_genres,
             film_title=item.film_title,
             film_year=item.film_year,
             film_poster_url=item.film_poster_url,

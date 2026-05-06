@@ -68,3 +68,21 @@
 - Verification:
   - `ReadLints` по измененным backend/frontend файлам — ошибок нет.
   - Запуск shell-команд для тестов/сборки в этой сессии недоступен (команды пропускаются средой).
+
+### 2026-05-06 05:30
+- Action type: code
+- Summary: Деталка карточки переработана: блок "Твоя оценка" заменен на один акцентный numeric badge с динамическим цветом от оценки; удален блок "Лучшая оценка"; реализованы полноценные древовидные комментарии (backend+frontend): многострочный ввод до 250 символов, ответы без ограничения глубины, автор/аватар/время, переход к профилю автора.
+- Files:
+  - `backend/src/models/movie_card_comment.py`
+  - `backend/src/migrations/versions/d3d7c8a2ef11_add_movie_card_comments.py`
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/services/cards/create_movie_card_comment.py`
+  - `backend/src/services/cards/list_movie_card_comments.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/api/cardApi.ts`
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `backend/src/models/__init__.py`
+- Verification:
+  - `ReadLints` по измененным backend/frontend файлам — ошибок нет.

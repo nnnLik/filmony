@@ -60,6 +60,8 @@ export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_
 export type MovieCard = {
   id: number
   film_id: number
+  film_kinopoisk_id: number
+  film_genres: string[]
   film_title: string
   film_year: number | null
   film_poster_url: string | null
@@ -70,9 +72,29 @@ export type MovieCard = {
   custom_tags: string[]
 }
 
+export type MovieCardCommentAuthor = {
+  id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+}
+
+export type MovieCardComment = {
+  id: number
+  movie_card_id: number
+  parent_comment_id: number | null
+  text: string
+  created_at: string
+  author: MovieCardCommentAuthor
+}
+
 export type Film = {
   id: number
   kinopoisk_id: number
+  genres: string[]
   title: string
   year: number | null
   poster_url: string | null

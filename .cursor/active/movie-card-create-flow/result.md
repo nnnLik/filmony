@@ -92,3 +92,26 @@
 ### Additional verification
 - `ReadLints` по затронутым backend/frontend файлам — ошибок нет.
 - Автотесты через Docker и frontend команды (`npm run lint/build`) требуют ручного запуска: shell-команды в этой сессии пропускаются средой.
+
+## Iteration update (rating redesign and real comments, 2026-05-06)
+- На экране детали карточки блок "Твоя оценка" переработан: отображается одно большое число, а цвет и glow вокруг зависят от значения оценки.
+- Удален блок "Лучшая оценка".
+- Реализована полноценная логика комментариев:
+  - backend endpoints `GET /api/cards/{card_id}/comments` и `POST /api/cards/{card_id}/comments`;
+  - сохранение комментариев в БД (`movie_card_comment`) с поддержкой `parent_comment_id`;
+  - многострочный ввод на фронте с лимитом 250 символов;
+  - древовидный рендер ответов без ограничений глубины;
+  - отображение автора, аватарки, времени и переход на профиль автора.
+
+### Additional changed files
+- `backend/src/models/movie_card_comment.py`
+- `backend/src/migrations/versions/d3d7c8a2ef11_add_movie_card_comments.py`
+- `backend/src/api/cards/routes.py`
+- `backend/src/api/cards/schemas.py`
+- `backend/src/services/cards/create_movie_card_comment.py`
+- `backend/src/services/cards/list_movie_card_comments.py`
+- `backend/src/tests/api/test_cards_routes.py`
+- `frontend/src/api/cardApi.ts`
+- `frontend/src/api/profileTypes.ts`
+- `frontend/src/pages/MovieCardDetailPage.tsx`
+- `backend/src/models/__init__.py`

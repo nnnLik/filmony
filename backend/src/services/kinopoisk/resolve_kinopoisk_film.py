@@ -19,15 +19,22 @@ class ResolveKinopoiskFilmService:
             select(Film).where(Film.kinopoisk_id == kinopoisk_id)
         )
         film = existing.scalar_one_or_none()
+        payload = await self._client.get_film(kinopoisk_id)
         if film is not None:
+            film.title = payload.title
+            film.year = payload.year
+            film.poster_url = payload.poster_url
+            film.genres = payload.genres
+            await self._session.commit()
+            await self._session.refresh(film)
             return film
 
-        payload = await self._client.get_film(kinopoisk_id)
         film = Film(
             kinopoisk_id=payload.kinopoisk_id,
             title=payload.title,
             year=payload.year,
             poster_url=payload.poster_url,
+            genres=payload.genres,
         )
         self._session.add(film)
         await self._session.commit()

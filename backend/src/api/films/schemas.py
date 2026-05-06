@@ -12,6 +12,7 @@ class FilmResolveRequest(BaseModel):
 class FilmResponse(BaseModel):
     id: int
     kinopoisk_id: int
+    genres: list[str] = Field(default_factory=list)
     title: str
     year: int | None
     poster_url: str | None

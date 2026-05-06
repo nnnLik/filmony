@@ -1,8 +1,17 @@
 import { apiJson } from './client'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, Film, MovieCard } from './profileTypes'
+import type {
+  CardCompany,
+  CardMoodAfter,
+  CardMoodBefore,
+  Film,
+  MovieCard,
+  MovieCardComment,
+} from './profileTypes'
 
 export type CreateMovieCardPayload = {
   film_id: number
+  kinopoisk_id: number
+  genres: string[]
   rating: number
   company: CardCompany
   mood_before: CardMoodBefore
@@ -32,4 +41,20 @@ export async function getFilmById(filmId: number): Promise<Film> {
 
 export async function getMovieCardById(cardId: number): Promise<MovieCard> {
   return apiJson<MovieCard>(`/api/cards/${cardId}`)
+}
+
+export async function getMovieCardComments(cardId: number): Promise<MovieCardComment[]> {
+  const response = await apiJson<{ items: MovieCardComment[] }>(`/api/cards/${cardId}/comments`)
+  return response.items
+}
+
+export async function createMovieCardComment(
+  cardId: number,
+  body: { text: string; parent_comment_id?: number | null }
+): Promise<MovieCardComment> {
+  return apiJson<MovieCardComment>(`/api/cards/${cardId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
 }

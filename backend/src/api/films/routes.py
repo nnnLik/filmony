@@ -34,6 +34,7 @@ async def resolve_film(
     return FilmResponse(
         id=film.id,
         kinopoisk_id=film.kinopoisk_id,
+        genres=list(film.genres or []),
         title=film.title,
         year=film.year,
         poster_url=film.poster_url,
@@ -53,6 +54,7 @@ async def get_film(
     return FilmResponse(
         id=film.id,
         kinopoisk_id=film.kinopoisk_id,
+        genres=list(film.genres or []),
         title=film.title,
         year=film.year,
         poster_url=film.poster_url,

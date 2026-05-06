@@ -17,6 +17,29 @@ class KinopoiskFilmPayload:
     title: str
     year: int | None
     poster_url: str | None
+    genres: list[str]
+
+
+def _parse_genres(payload: object) -> list[str]:
+    if not isinstance(payload, list):
+        return []
+    genres: list[str] = []
+    seen: set[str] = set()
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        value = item.get('genre')
+        if not isinstance(value, str):
+            continue
+        genre = value.strip()
+        if genre == '':
+            continue
+        key = genre.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        genres.append(genre)
+    return genres
 
 
 class KinopoiskClient:
@@ -48,9 +71,11 @@ class KinopoiskClient:
             int(year_raw) if isinstance(year_raw, int | str) and str(year_raw).isdigit() else None
         )
         poster_url = payload.get('posterUrl')
+        genres = _parse_genres(payload.get('genres'))
         return KinopoiskFilmPayload(
             kinopoisk_id=kinopoisk_id,
             title=title.strip(),
             year=year,
             poster_url=poster_url if isinstance(poster_url, str) else None,
+            genres=genres,
         )

@@ -16,6 +16,8 @@ class MovieCardDetails:
     id: int
     user_id: UUID
     film_id: int
+    film_kinopoisk_id: int
+    film_genres: list[str]
     film_title: str
     film_year: int | None
     film_poster_url: str | None
@@ -61,6 +63,8 @@ class GetMovieCardDetailsService:
             id=card.id,
             user_id=card.user_id,
             film_id=film.id,
+            film_kinopoisk_id=film.kinopoisk_id,
+            film_genres=list(film.genres or []),
             film_title=film.title,
             film_year=film.year,
             film_poster_url=film.poster_url,

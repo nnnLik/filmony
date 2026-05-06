@@ -1,6 +1,7 @@
 from .base import Base
 from .film import Film
 from .movie_card import MovieCard
+from .movie_card_comment import MovieCardComment
 from .movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from .movie_card_tag import MovieCardTag
 from .user import User
@@ -13,6 +14,7 @@ __all__ = (
     'CardMoodBefore',
     'Film',
     'MovieCard',
+    'MovieCardComment',
     'MovieCardTag',
     'User',
     'UserSubscription',
