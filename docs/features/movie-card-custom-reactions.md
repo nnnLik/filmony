@@ -86,7 +86,7 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
 ## Frontend
 - Загрузка каталога: `GET /api/reactions/catalog` через `reactionCatalogCache.ts` (структура `recent` + `tabs`).
 - Компонент **`ReactionStrip`**: ряд «иконка + count» с **hover-popover** и ленивой загрузкой **`GET /api/reactions/actors`**; кнопка открытия пикера — **`IconButton` + `Smile` (lucide)**; пикер с блоком **Недавние**, боковой навигацией **«Коллекции»** и сеткой по категориям. Вёрстка и соглашения: **`docs/frontend/ui-conventions.md`**. Код: публичный импорт [`frontend/src/components/reactions/ReactionStrip.tsx`](/frontend/src/components/reactions/ReactionStrip.tsx), модули в [`frontend/src/components/reactions/reactionStrip/`](/frontend/src/components/reactions/reactionStrip/).
-- Точки встраивания: `FeedCard`, `MovieCardDetailPage`.
+- Точки встраивания: `FeedCard` (реакции на карточку и на комментарии в раскрываемом **прокручиваемом** списке), `MovieCardDetailPage`.
 
 ## Tests
 - `backend/src/tests/api/test_reactions_asset_route.py` — ключи объекта для прокси, ответ без RustFS (**503**), успешный байтовый поток с мокнутым GetObject (**200**).

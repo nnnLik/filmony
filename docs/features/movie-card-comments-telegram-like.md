@@ -22,12 +22,16 @@
 - `GET /api/cards/{card_id}/comments/{comment_id}/replies`
   - Сохранен для совместимости.
 
+## Лента (feed)
+- Раскрываемый блок комментариев в [`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx) использует тот же плоский контракт `GET /api/cards/{card_id}/comments`: догрузка всех страниц (`listAllMovieCardComments` в [`frontend/src/api/cardApi.ts`](../../frontend/src/api/cardApi.ts)), отображение в **фиксированной высоте** с `overflow-y: auto` (не полный экран карточки фильма).
+
 ## Основные изменения в коде
 - Backend:
   - `backend/src/services/cards/list_movie_card_comments.py`
   - `backend/src/api/cards/routes.py`
   - `backend/src/tests/api/test_cards_routes.py`
 - Frontend:
+  - `frontend/src/components/feed/FeedCard.tsx` (лента: полный список в скролле при раскрытии)
   - `frontend/src/pages/MovieCardDetailPage.tsx`
   - `frontend/src/routes.tsx`
   - `frontend/src/pages/MovieCardCommentThreadPage.tsx` (удален)

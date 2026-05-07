@@ -112,6 +112,23 @@ export async function getMovieCardComments(
   return apiJson<MovieCardCommentPage>(`/api/cards/${cardId}/comments${suffix ? `?${suffix}` : ''}`)
 }
 
+/** Fetches every comment for the card (flat list, oldest first), following `next_cursor` until exhausted. */
+export async function listAllMovieCardComments(cardId: number): Promise<MovieCardComment[]> {
+  const all: MovieCardComment[] = []
+  let cursor: string | null | undefined
+  const maxPages = 500
+  for (let page = 0; page < maxPages; page++) {
+    const chunk = await getMovieCardComments(cardId, {
+      cursor: cursor ?? undefined,
+      limit: 50,
+    })
+    all.push(...chunk.items)
+    if (chunk.next_cursor == null || chunk.items.length === 0) break
+    cursor = chunk.next_cursor
+  }
+  return all
+}
+
 export async function getMovieCardCommentReplies(
   cardId: number,
   commentId: number,
@@ -133,6 +150,21 @@ export async function createMovieCardComment(
   return apiJson<MovieCardComment>(`/api/cards/${cardId}/comments`, {
     method: 'POST',
     body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export type ShareMovieCardResponse = {
+  queued: number
+}
+
+export async function shareMovieCardWithFollowers(
+  cardId: number,
+  recipientUserIds: string[]
+): Promise<ShareMovieCardResponse> {
+  return apiJson<ShareMovieCardResponse>(`/api/cards/${cardId}/share`, {
+    method: 'POST',
+    body: JSON.stringify({ recipient_user_ids: recipientUserIds }),
     headers: { 'Content-Type': 'application/json' },
   })
 }

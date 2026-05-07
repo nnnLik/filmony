@@ -2,7 +2,7 @@
 
 ## Goal
 
-Реализовать единый UX карточки в ленте с превью комментариев и возможностью оставить комментарий без ухода с главной, опираясь на новый контракт API ленты.
+Реализовать единый UX карточки в ленте: компактное превью комментариев в ответе API, при раскрытии — полный список в прокручиваемой зоне и быстрый комментарий без ухода с главной.
 
 ## API контракт
 
@@ -14,14 +14,14 @@
   - Все поля как у детальной карточки: `user_id`, `film_*`, `rating`, `company`, `mood_before`, `mood_after`, `custom_tags`.
   - `card_author` — автор карточки (как автор комментария: `MovieCardCommentAuthorResponse`).
   - `comments_count` — число всех комментариев карточки (включая ответы).
-  - `comments_preview` — не более **трёх** последних комментариев по времени добавления (`id`): отсортированы по возрастанию `id` в ответе; поля счётчиков ответов в превью равны 0.
+  - `comments_preview` — не более **трёх** последних комментариев по времени добавления (`id`): отсортированы по возрастанию `id` в ответе; поля счётчиков ответов в превью равны 0. Это **компактное превью для ответа ленты** (и локальное обновление после отправки комментария из ленты); **полный список** в UI ленты при раскрытии блока под карточкой строится отдельным запросом `GET /api/cards/{id}/comments` (с догрузкой по `next_cursor`), см. `listAllMovieCardComments()` в [`frontend/src/api/cardApi.ts`](../../frontend/src/api/cardApi.ts).
 
 Клиентское обёртывание: `getMovieCardFeedPage()` в [`frontend/src/api/cardApi.ts`](../../frontend/src/api/cardApi.ts), тип [`FeedMovieCard`](../../frontend/src/api/profileTypes.ts).
 
 ## Frontend
 
 - **[`frontend/src/pages/FeedPage.tsx`](../../frontend/src/pages/FeedPage.tsx):** загрузка первой страницы, обработка пустых/ошибочных состояний, подгрузка по `next_cursor`, список карточек.
-- **[`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx):** постер, название и год, оценка автора с подписью `card_author`, системные атрибуты досуга как компактные чипы (не простой текстовый список), пользовательские теги ограничены двумя видимыми и индексом `+N`, превью комментариев, текст «Комментариев: …», кнопка «Комментировать» раскрывает поле отправки через существующий `createMovieCardComment`, переход «Все комментарии» на `/cards/:id`. После успешной отправки только соответствующая карточка в состоянии обновляется. Вспомогательно: [`feedCardUtils.ts`](../../frontend/src/components/feed/feedCardUtils.ts), [`FeedCardIcons.tsx`](../../frontend/src/components/feed/FeedCardIcons.tsx).
+- **[`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx):** постер, название и год, оценка автора с подписью `card_author`, системные атрибуты досуга как компактные чипы (не простой текстовый список), пользовательские теги ограничены двумя видимыми и индексом `+N`, строка «Комментарии» и счётчик, **стрелка раскрывает** блок: список **всех** комментариев в **прокручиваемой** зоне фиксированной высоты + быстрый ввод через `createMovieCardComment`; ссылки «Ответить» / превью родителя ведут на `/cards/:id` для полного треда. Счётчик и `comments_preview` в состоянии ленты по-прежнему обновляются локально после отправки. Вспомогательно: [`feedCardUtils.ts`](../../frontend/src/components/feed/feedCardUtils.ts), [`FeedCardIcons.tsx`](../../frontend/src/components/feed/FeedCardIcons.tsx).
 - **[`frontend/src/components/feed/FeedCardSkeleton.tsx`](../../frontend/src/components/feed/FeedCardSkeleton.tsx):** состояние загрузки одиночной карточки.
 
 ## Success Criteria (соответствие)

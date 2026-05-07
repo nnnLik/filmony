@@ -5,6 +5,7 @@ import { CreateCardPage } from './pages/CreateCardPage'
 import { EditMovieCardPage } from './pages/EditMovieCardPage'
 import { FeedPage } from './pages/FeedPage'
 import { MovieCardDetailPage } from './pages/MovieCardDetailPage'
+import { ShareMovieCardPage } from './pages/ShareMovieCardPage'
 import { ProfileEditPage } from './pages/ProfileEditPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
@@ -23,6 +24,7 @@ export function AppRoutes() {
       <Route path="/u/:userId" element={<PublicProfilePage />} />
       <Route path="/u/:userId/subscriptions" element={<SubscriptionsPage />} />
       <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
+      <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />
       <Route path="/cards/:cardId/edit" element={<EditMovieCardPage />} />
     </Routes>
   )

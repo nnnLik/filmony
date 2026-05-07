@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from sqlalchemy.ext.asyncio import (
@@ -51,6 +52,26 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
             expire_on_commit=False,
         )
     return _session_factory
+
+
+@asynccontextmanager
+async def disposable_async_session() -> AsyncGenerator[AsyncSession]:
+    """Отдельный engine на время вызова — для asyncio.run() в Celery (иной event loop)."""
+    kwargs: dict[str, Any] = {
+        'echo': settings.database.echo,
+        'pool_pre_ping': True,
+    }
+    ca = _connect_args()
+    if ca is not None:
+        kwargs['connect_args'] = ca
+    engine = create_async_engine(
+        settings.database.async_sqlalchemy_url,
+        **kwargs,
+    )
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as session:
+        yield session
+    await engine.dispose()
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:

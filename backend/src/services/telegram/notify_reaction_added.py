@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from core.database import get_session_factory
+from core.database import disposable_async_session
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
@@ -52,8 +52,7 @@ class NotifyTelegramReactionAddedService:
     ) -> None:
         _ = reaction_type_id  # событие «поставили реакцию» без названия типа в тексте
 
-        factory = get_session_factory()
-        async with factory() as session:
+        async with disposable_async_session() as session:
             owner_id: UUID | None = None
             card_id_for_link: int | None = None
             comment_text_for_dm: str | None = None
@@ -89,9 +88,7 @@ class NotifyTelegramReactionAddedService:
 
             if target_kind == ReactionTargetKind.MOVIE_CARD:
                 film_hint = (
-                    _format_film_title_html(film_for_dm)
-                    if film_for_dm is not None
-                    else '«…»'
+                    _format_film_title_html(film_for_dm) if film_for_dm is not None else '«…»'
                 )
                 body_lines = [
                     f'⭐ <b>{actor_safe}</b> отреагировал на вашу карточку фильма {film_hint}',

@@ -19,8 +19,11 @@ from api.cards.schemas import (
     MovieCardCommentResponse,
     MovieCardFeedItemResponse,
     MovieCardFeedPageResponse,
+    ShareCardRequest,
+    ShareCardResponse,
 )
 from api.reactions.schemas import reaction_target_summary_to_response
+from celery_app import app as celery_application
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.movie_card_comment import MovieCardComment
@@ -60,6 +63,14 @@ from services.cards.list_movie_card_comments import (
     MovieCardNotFoundError as ListCommentsMovieCardNotFoundError,
 )
 from services.cards.list_movie_card_feed import ListMovieCardFeedService
+from services.cards.share_movie_card import (
+    MovieCardNotFoundForShareError,
+    ShareMovieCardForbiddenError,
+    ShareMovieCardService,
+    ShareRecipientsEmptyError,
+    ShareRecipientsNotFollowersError,
+    ShareRecipientsTooManyError,
+)
 from services.cards.update_movie_card import (
     MovieCardForbiddenError as UpdateMovieCardForbiddenError,
 )
@@ -69,9 +80,10 @@ from services.cards.update_movie_card import (
 from services.cards.update_movie_card import (
     MovieCardValidationError as UpdateMovieCardValidationError,
 )
-from services.cards.update_movie_card import UpdateMovieCardInput, UpdateMovieCardService
-from celery_app import app as celery_application
-
+from services.cards.update_movie_card import (
+    UpdateMovieCardInput,
+    UpdateMovieCardService,
+)
 from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
@@ -330,6 +342,50 @@ async def delete_card(
     return Response(status_code=204)
 
 
+@router.post(
+    '/{card_id}/share',
+    response_model=ShareCardResponse,
+    summary='Отправить карточку подписчикам в Telegram',
+)
+async def share_movie_card(
+    card_id: int,
+    body: ShareCardRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ShareCardResponse:
+    try:
+        outcome = await ShareMovieCardService(db).execute(
+            actor_user_id=user.id,
+            card_id=card_id,
+            recipient_user_ids=list(body.recipient_user_ids),
+        )
+    except MovieCardNotFoundForShareError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    except ShareMovieCardForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    except ShareRecipientsEmptyError:
+        raise HTTPException(status_code=422, detail='recipients required') from None
+    except ShareRecipientsTooManyError:
+        raise HTTPException(status_code=422, detail='too many recipients') from None
+    except ShareRecipientsNotFollowersError:
+        raise HTTPException(
+            status_code=422,
+            detail='recipients must be your subscribers only',
+        ) from None
+
+    for rid in outcome.recipient_ids:
+        celery_application.send_task(
+            'tasks.telegram_engagement.deliver_shared_movie_card',
+            kwargs={
+                'actor_user_id': str(user.id),
+                'card_id': card_id,
+                'recipient_user_id': str(rid),
+            },
+        )
+
+    return ShareCardResponse(queued=len(outcome.recipient_ids))
+
+
 @router.get(
     '/{card_id}/comments',
     response_model=MovieCardCommentListResponse,
@@ -421,7 +477,16 @@ async def create_card_comment(
     except MovieCardCommentValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    if body.parent_comment_id is not None:
+    if body.parent_comment_id is None:
+        celery_application.send_task(
+            'tasks.telegram_engagement.notify_movie_card_root_comment',
+            kwargs={
+                'actor_user_id': str(user.id),
+                'card_id': card_id,
+                'comment_text': created.text,
+            },
+        )
+    else:
         celery_application.send_task(
             'tasks.telegram_engagement.notify_comment_reply',
             kwargs={

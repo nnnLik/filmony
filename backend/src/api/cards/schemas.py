@@ -117,3 +117,13 @@ class FilmResolveResponse(BaseModel):
     title: str
     year: int | None
     poster_url: str | None
+
+
+class ShareCardRequest(BaseModel):
+    recipient_user_ids: list[UUID] = Field(..., min_length=1, max_length=100)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class ShareCardResponse(BaseModel):
+    queued: int

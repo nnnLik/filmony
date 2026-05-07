@@ -1,4 +1,5 @@
-import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
+import { Share2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -386,10 +387,26 @@ export function MovieCardDetailPage() {
                 )}
               </div>
               <div className="px-4 pb-3 pt-3">
-                <Title level="2" weight="2">
-                  {card.film_title}
-                </Title>
-                <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Title level="2" weight="2">
+                      {card.film_title}
+                    </Title>
+                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                  </div>
+                  {isOwner ? (
+                    <IconButton
+                      type="button"
+                      size="s"
+                      mode="gray"
+                      aria-label="Поделиться карточкой"
+                      className="shrink-0"
+                      onClick={() => void navigate(`/cards/${card.id}/share`)}
+                    >
+                      <Share2 className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+                    </IconButton>
+                  ) : null}
+                </div>
                 {card.user_id != null ? (
                   <div className="mt-2.5 min-w-0">
                     <ReactionStrip
@@ -448,17 +465,6 @@ export function MovieCardDetailPage() {
                 ) : (
                   <span className="text-xs text-(--tgui--hint_color)">Пока нет собственных тегов</span>
                 )}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <div className="flex gap-2">
-                <Button stretched mode="gray" disabled>
-                  Пригласить друзей (mock)
-                </Button>
-                <Button stretched mode="gray" disabled>
-                  Рекомендовать (mock)
-                </Button>
               </div>
             </section>
 

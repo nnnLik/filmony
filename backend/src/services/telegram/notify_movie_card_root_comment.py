@@ -1,4 +1,4 @@
-"""Notify parent comment author when someone replies (Telegram DM)."""
+"""Уведомление владельца карточки о новом корневом комментарии (Telegram DM)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ from uuid import UUID
 from sqlalchemy import select
 
 from core.database import disposable_async_session
-from models.movie_card_comment import MovieCardComment
+from models.film import Film
+from models.movie_card import MovieCard
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import html_card_deep_link_block
@@ -30,36 +31,47 @@ def _format_actor_display(user: User) -> str:
 
 
 @dataclass
-class NotifyTelegramCommentReplyService:
-    """Sends a Telegram DM when a user replies to another user's card comment."""
+class NotifyTelegramMovieCardRootCommentService:
+    """Отправляет DM владельцу карточки, когда оставлен корневой комментарий (не ответ)."""
 
     async def execute(
         self,
         *,
         actor_user_id: UUID,
         card_id: int,
-        parent_comment_id: int,
-        reply_text: str,
+        comment_text: str,
     ) -> None:
         async with disposable_async_session() as session:
-            parent_author_id = (
+            row = (
                 await session.execute(
-                    select(MovieCardComment.user_id).where(MovieCardComment.id == parent_comment_id)
+                    select(MovieCard, Film)
+                    .join(Film, Film.id == MovieCard.film_id)
+                    .where(MovieCard.id == card_id)
                 )
-            ).scalar_one_or_none()
-            if parent_author_id is None or parent_author_id == actor_user_id:
+            ).one_or_none()
+            if row is None:
+                return
+            card, film = row
+
+            owner_id = card.user_id
+            if owner_id == actor_user_id:
                 return
 
             actor = await session.get(User, actor_user_id)
-            recipient = await session.get(User, parent_author_id)
-            if actor is None or recipient is None:
+            recipient = await session.get(User, owner_id)
+            if actor is None or recipient is None or recipient.telegram_user_id is None:
                 return
 
             actor_safe = html.escape(_format_actor_display(actor))
-            snippet = html.escape(reply_text.strip()[:160])
-            deep_link = html_card_deep_link_block(card_id)
+            snippet = html.escape(comment_text.strip()[:160])
+            title_safe = html.escape((film.title or '').strip() or 'Фильм')
+            year_part = f' ({film.year})' if film.year is not None else ''
+            deep_link = html_card_deep_link_block(card.id)
+
             body_lines = [
-                '💬 Новый ответ',
+                '💬 Новый комментарий к вашей карточке',
+                '',
+                f'🎬 <b>{title_safe}</b>{html.escape(year_part)}',
                 '',
                 f'👤 <b>{actor_safe}</b>',
                 f'📝 <i>«{snippet}»</i>',
@@ -75,23 +87,20 @@ class NotifyTelegramCommentReplyService:
         return cls()
 
 
-async def run_notify_comment_reply_safe(
+async def run_notify_movie_card_root_comment_safe(
     *,
     actor_user_id: UUID,
     card_id: int,
-    parent_comment_id: int,
-    reply_text: str,
+    comment_text: str,
 ) -> None:
     try:
-        await NotifyTelegramCommentReplyService.build().execute(
+        await NotifyTelegramMovieCardRootCommentService.build().execute(
             actor_user_id=actor_user_id,
             card_id=card_id,
-            parent_comment_id=parent_comment_id,
-            reply_text=reply_text,
+            comment_text=comment_text,
         )
     except Exception:
         logger.exception(
-            'notify comment reply telegram failed card_id=%s parent=%s',
+            'notify movie card root comment telegram failed card_id=%s',
             card_id,
-            parent_comment_id,
         )

@@ -18,6 +18,7 @@ from api.reactions.schemas import (
     UserReactionSetResponse,
     reaction_target_summary_to_response,
 )
+from celery_app import app as celery_application
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
@@ -34,7 +35,6 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetOrToggleUserReactionService,
     SetUserReactionInput,
 )
-from celery_app import app as celery_application
 from utils.reaction_asset_key import is_safe_reaction_asset_key
 from utils.rustfs_get_object import (
     RustfsClientError,

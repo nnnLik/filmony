@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import celery_app
 import pytest
 from httpx import AsyncClient
 
+import celery_app
 from tests.api.test_reactions_routes import (
     _create_card_any,
     _login,
@@ -54,6 +54,27 @@ async def test_comment_reply_triggers_telegram_dm(async_client: AsyncClient) -> 
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_101
         assert 'Новый ответ' in args[1] and 'Карточка №' in args[1]
+
+
+@pytest.mark.asyncio
+async def test_root_comment_on_card_notifies_owner(async_client: AsyncClient) -> None:
+    await _seed_reaction_catalog()
+    with patch(
+        'services.telegram.engagement_delivery.deliver_engagement_html_message',
+        new_callable=AsyncMock,
+    ) as mock_dm:
+        mock_dm.return_value = None
+        cid = await _create_card_any(async_client, tg=860_801, kid=860_801)
+        await _login(async_client, telegram_user_id=860_802)
+        r = await async_client.post(
+            f'/api/cards/{cid}/comments',
+            json={'text': 'первый комментарий под карточкой'},
+        )
+        assert r.status_code == 200
+        mock_dm.assert_awaited_once()
+        args, _kwargs = mock_dm.await_args
+        assert args[0] == 860_801
+        assert 'Новый комментарий' in args[1] and 'Карточка №' in args[1]
 
 
 @pytest.mark.asyncio

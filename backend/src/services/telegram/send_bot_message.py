@@ -74,3 +74,28 @@ class SendTelegramBotMessageService:
 
         desc = str(payload.get('description') or 'telegram send failed')
         raise self.TelegramDeliveryFailed(desc)
+
+    async def send_photo(
+        self,
+        chat_id: int,
+        photo_url: str,
+        caption: str,
+        *,
+        parse_mode: str | None = 'HTML',
+    ) -> None:
+        try:
+            result = await self._client.send_photo(
+                chat_id, photo_url, caption, parse_mode=parse_mode
+            )
+        except Exception as e:
+            raise self.TelegramDeliveryFailed('telegram transport error') from e
+
+        if result.ok:
+            return
+
+        payload = result.payload
+        if _telegram_chat_unavailable(payload):
+            raise self.TelegramChatUnavailable from None
+
+        desc = str(payload.get('description') or 'telegram sendPhoto failed')
+        raise self.TelegramDeliveryFailed(desc)

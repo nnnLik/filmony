@@ -11,7 +11,9 @@ from celery import Celery
 
 from models.reaction_target_kind import ReactionTargetKind
 from services.telegram.notify_comment_reply import run_notify_comment_reply_safe
+from services.telegram.notify_movie_card_root_comment import run_notify_movie_card_root_comment_safe
 from services.telegram.notify_reaction_added import run_notify_reaction_added_safe
+from services.telegram.notify_shared_movie_card import run_deliver_shared_movie_card_safe
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,23 @@ def register_tasks(app: Celery) -> None:
         except Exception:
             logger.exception('celery task notify_comment_reply_task failed')
 
+    @app.task(name='tasks.telegram_engagement.notify_movie_card_root_comment')
+    def notify_movie_card_root_comment_task(
+        actor_user_id: str,
+        card_id: int,
+        comment_text: str,
+    ) -> None:
+        try:
+            _run_async_isolated(
+                run_notify_movie_card_root_comment_safe(
+                    actor_user_id=UUID(actor_user_id),
+                    card_id=card_id,
+                    comment_text=comment_text,
+                )
+            )
+        except Exception:
+            logger.exception('celery task notify_movie_card_root_comment_task failed')
+
     @app.task(name='tasks.telegram_engagement.notify_reaction_added')
     def notify_reaction_added_task(
         actor_user_id: str,
@@ -66,3 +85,20 @@ def register_tasks(app: Celery) -> None:
             )
         except Exception:
             logger.exception('celery task notify_reaction_added_task failed')
+
+    @app.task(name='tasks.telegram_engagement.deliver_shared_movie_card')
+    def deliver_shared_movie_card_task(
+        actor_user_id: str,
+        card_id: int,
+        recipient_user_id: str,
+    ) -> None:
+        try:
+            _run_async_isolated(
+                run_deliver_shared_movie_card_safe(
+                    actor_user_id=UUID(actor_user_id),
+                    card_id=card_id,
+                    recipient_user_id=UUID(recipient_user_id),
+                )
+            )
+        except Exception:
+            logger.exception('celery task deliver_shared_movie_card_task failed')
