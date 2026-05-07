@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { Share2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, apiJson, formatApiDetail } from '../api/client'
 import { getMovieCardById, type ShareMovieCardResponse } from '../api/cardApi'
@@ -10,9 +10,14 @@ import type { MovieCard, SubscriptionListItem } from '../api/profileTypes'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { useAuthStatus } from '../auth/useAuthStatus'
 
+type ShareMovieCardLocationState = {
+  shareOpenedFromCardDetail?: boolean
+}
+
 export function ShareMovieCardPage() {
   const auth = useAuthStatus()
   const navigate = useNavigate()
+  const location = useLocation()
   const { cardId } = useParams<{ cardId?: string }>()
   const parsedId = useMemo(() => {
     if (cardId == null) return null
@@ -79,7 +84,13 @@ export function ShareMovieCardPage() {
         headers: { 'Content-Type': 'application/json' },
       })
       setSelected(new Set())
-      void navigate(`/cards/${parsedId}`)
+      const openedFromCardDetail =
+        (location.state as ShareMovieCardLocationState | null)?.shareOpenedFromCardDetail === true
+      if (openedFromCardDetail) {
+        void navigate(-1)
+      } else {
+        void navigate(`/cards/${parsedId}`, { replace: true })
+      }
     } catch (error: unknown) {
       setError(error instanceof ApiError ? formatApiDetail(error.detail) : 'Не удалось отправить')
     } finally {

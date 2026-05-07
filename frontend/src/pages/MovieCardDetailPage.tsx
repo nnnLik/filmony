@@ -474,7 +474,11 @@ export function MovieCardDetailPage() {
                       mode="gray"
                       aria-label="Поделиться карточкой"
                       className="shrink-0"
-                      onClick={() => void navigate(`/cards/${card.id}/share`)}
+                      onClick={() =>
+                        void navigate(`/cards/${card.id}/share`, {
+                          state: { shareOpenedFromCardDetail: true },
+                        })
+                      }
                     >
                       <Share2 className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
                     </IconButton>

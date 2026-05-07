@@ -38,6 +38,7 @@
 | Ошибки / ссылки | `frontend/src/lib/telegramNotificationError.ts` |
 | UI | `frontend/src/pages/ProfilePage.tsx` |
 
-## Дальше (не в этом MVP)
+## Связанные сценарии (вне этого документа)
 
-- Очередь (Celery), дедупликация, события домена (друзья, шаринг карточек) — см. `.cursor/features/009-telegram-notifications.md`.
+- **Продуктовые уведомления** (шаринг карточки, реакции, комментарии, ответы) ставятся в очередь **Celery** и отправляются воркером — см. [`engagement-telegram-notifications.md`](./engagement-telegram-notifications.md), [`telegram-engagement-notifications.md`](./telegram-engagement-notifications.md), [`celery-redis-workers.md`](./celery-redis-workers.md).
+- Расширенный бэклог по инфраструктуре бота (webhook, общая политика ретраев) — `.cursor/features/009-telegram-notifications.md`.

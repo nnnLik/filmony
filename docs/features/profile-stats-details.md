@@ -38,5 +38,6 @@
 - `frontend/src/pages/PublicProfilePage.tsx`
 
 ## Верификация
-- По IDE-диагностике (`ReadLints`) ошибок нет.
-- Команды `pytest`/`npm` в этой сессии не запускались: shell отклоняется средой (`Rejected: User chose to skip`).
+
+- Бэкенд: `make backend-test-one target=src/tests/api/test_profile_routes.py` или полный `make backend-test` (в контейнере `filmony-backend`, см. `.cursor/tech.md`).
+- Фронтенд: `cd frontend && npm run lint && npm run build`.

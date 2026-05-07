@@ -10,8 +10,9 @@
 Нужен рабочий поток создания карточки фильма: получение фильма по ссылке Кинопоиска, создание карточки с контекстными тегами и оценкой 1..10 с шагом 0.5, отображение карточек на профилях.
 
 ## Scope
-- In scope: `POST /api/films/resolve`, `GET /api/films/{film_id}`, `POST /api/cards`, реальный `GET /api/users/{user_id}/cards`, реальный `cards_count` в профиле, frontend экран создания карточки и точка входа из ленты.
-- Out of scope: приглашения друзей «дооценить», комментарии/лайки, рекомендации.
+- In scope: `POST /api/films/resolve`, `GET /api/films/{film_id}`, `POST /api/cards`, реальный `GET /api/users/{user_id}/cards`, реальный `cards_count` в профиле, frontend экран создания карточки и точка входа из ленты; опциональный шаг «поделиться» при создании через `POST /api/cards/{id}/share` (подписчики автора).
+- Связанные фичи (не дублировать здесь): комментарии и реакции — `docs/features/movie-card-comments*.md`, `movie-card-custom-reactions.md`; лента — `feed-recommendation-engine.md`; Telegram — `engagement-telegram-notifications.md`.
+- Out of scope этого slug: отдельный упрощённый онбординг «дооценить» только двумя полями без создания полной карточки (если понадобится — отдельная фича); полный слой «двойников» 008 — вне текущего MVP ленты.
 
 ## Functional Requirements
 - [x] Оценка карточки валидируется в диапазоне 1..10 с шагом 0.5.

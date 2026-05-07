@@ -30,7 +30,12 @@ async def test_send_photo_uses_multipart_when_download_succeeds() -> None:
     with patch(
         'services.telegram.send_bot_message._download_poster_bytes',
         new_callable=AsyncMock,
-        return_value=(b'\xff\xd8\xff\xe0', 'kp.jpg', 'image/jpeg'),
+        return_value=(
+            b'\xff\xd8\xff\xe0',
+            'kp.jpg',
+            'image/jpeg',
+            'https://example.com/kp.jpg',
+        ),
     ):
         await svc.send_photo(42, 'https://example.com/kp.jpg', '<b>hi</b>', parse_mode='HTML')
 
@@ -77,9 +82,19 @@ async def test_send_photo_falls_back_to_url_when_multipart_not_ok() -> None:
     with patch(
         'services.telegram.send_bot_message._download_poster_bytes',
         new_callable=AsyncMock,
-        return_value=(b'data', 'a.jpg', 'image/jpeg'),
+        return_value=(
+            b'\xff\xd8\xff\xe0\x00',
+            'a.jpg',
+            'image/jpeg',
+            'https://avatars.mds.yandex.net/get-kinopoisk-image/blob/x1000',
+        ),
     ):
-        await svc.send_photo(1, 'https://h/a.jpg', 'c')
+        await svc.send_photo(1, 'https://kinopoiskapiunofficial.tech/images/posters/kp/100101.jpg', 'c')
 
     client.send_photo_multipart.assert_awaited_once()
-    client.send_photo.assert_awaited_once()
+    client.send_photo.assert_awaited_once_with(
+        1,
+        'https://avatars.mds.yandex.net/get-kinopoisk-image/blob/x1000',
+        'c',
+        parse_mode='HTML',
+    )

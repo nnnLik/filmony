@@ -48,8 +48,7 @@ def _safe_photo_filename(url_path_tail: str) -> str:
     return base
 
 
-async def _download_poster_bytes(url: str) -> tuple[bytes, str, str] | None:
-    """Скачивает постер для отправки в Telegram multipart (обход ограничений URL у Bot API)."""
+async def _download_poster_bytes(url: str) -> tuple[bytes, str, str, str] | None:
     host = urlparse(url).netloc
     try:
         async with httpx.AsyncClient(timeout=35.0, follow_redirects=True) as client:
@@ -63,6 +62,13 @@ async def _download_poster_bytes(url: str) -> tuple[bytes, str, str] | None:
     except Exception as exc:
         logger.warning('poster download failed host=%s err=%s', host, exc)
         return None
+    final_url = str(response.url)
+    if urlparse(final_url).netloc != host:
+        logger.info(
+            'poster redirect resolved host=%s -> %s',
+            host,
+            urlparse(final_url).netloc,
+        )
     if response.status_code != 200:
         logger.warning(
             'poster download bad status host=%s status=%s',
@@ -97,7 +103,7 @@ async def _download_poster_bytes(url: str) -> tuple[bytes, str, str] | None:
     if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
         stem = filename.rsplit('.', 1)[0] if '.' in filename else filename
         filename = f'{stem}{suffix}' if stem else f'poster{suffix}'
-    return body, filename, sniffed
+    return body, filename, sniffed, final_url
 
 
 def _telegram_chat_unavailable(payload: dict[str, object]) -> bool:
@@ -177,8 +183,9 @@ class SendTelegramBotMessageService:
         parse_mode: str | None = 'HTML',
     ) -> None:
         downloaded = await _download_poster_bytes(photo_url)
+        resolved_public_url: str | None = None
         if downloaded is not None:
-            photo_bytes, filename, content_type = downloaded
+            photo_bytes, filename, content_type, resolved_public_url = downloaded
             try:
                 mp = await self._client.send_photo_multipart(
                     chat_id,
@@ -200,9 +207,10 @@ class SendTelegramBotMessageService:
                 mp.payload.get('description'),
             )
 
+        url_for_telegram_fetch = resolved_public_url or photo_url
         try:
             result = await self._client.send_photo(
-                chat_id, photo_url, caption, parse_mode=parse_mode
+                chat_id, url_for_telegram_fetch, caption, parse_mode=parse_mode
             )
         except Exception as e:
             raise self.TelegramDeliveryFailed('telegram transport error') from e

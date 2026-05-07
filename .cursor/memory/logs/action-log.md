@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-08T200000Z-mvp-docs-alignment-docs.md`
 - `2026-05-08T180000Z-feed-card-comments-scroll-docs.md`
 - `2026-05-08T160100Z-celery-redis-workers-code.md`
 - `2026-05-08T160000Z-celery-redis-workers-docs.md`
