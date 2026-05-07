@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+from api.reactions import routes as reactions_routes
 from conf import settings
-from utils import rustfs_get_object as rustfs_get_object_mod
 from utils.rustfs_get_object import RustfsGetObjectResult, RustfsKeyNotFoundError
 
 
@@ -47,7 +47,7 @@ async def test_reaction_asset_returns_bytes_when_signed_get_succeeds(
     def fake_get(**_kwargs: object) -> RustfsGetObjectResult:
         return RustfsGetObjectResult(body=b'\x89PNG\r\n\x1a\n', content_type='image/png')
 
-    monkeypatch.setattr(rustfs_get_object_mod, 'get_rustfs_object_bytes', fake_get)
+    monkeypatch.setattr(reactions_routes, 'get_rustfs_object_bytes', fake_get)
 
     r = await async_client.get('/api/reactions/asset/reactions/pepe/9137-gasp.png')
     assert r.status_code == 200
@@ -70,7 +70,7 @@ async def test_reaction_asset_returns_404_when_object_missing(
     def fake_get(**_kwargs: object) -> RustfsGetObjectResult:
         raise RustfsKeyNotFoundError('NoSuchKey')
 
-    monkeypatch.setattr(rustfs_get_object_mod, 'get_rustfs_object_bytes', fake_get)
+    monkeypatch.setattr(reactions_routes, 'get_rustfs_object_bytes', fake_get)
 
     r = await async_client.get('/api/reactions/asset/reactions/pepe/missing.png')
     assert r.status_code == 404

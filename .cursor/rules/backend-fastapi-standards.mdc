@@ -28,3 +28,172 @@ alwaysApply: true
 - Keep `.cursor/active/{feature-slug}/plan.md`, `progress.md`, and `result.md` updated.
 - Publish final outcome in `docs/features/{feature-slug}.md`.
 - Append every meaningful backend action to the appropriate action-log fragment under `.cursor/memory/logs/` (индекс `action-log.md`) with changed file links.
+
+
+### 1) Presentation layer
+
+**What belongs here:** HTTP entrypoints (**views** / DRF viewsets), **Celery tasks**, **management commands**, thin serializers used only to **validate and shape I/O**, permissions that gate access, response formatting.
+
+**Responsibilities:**
+
+- **Validate or normalize input** (query/path/body → primitives, ids, enums) using serializers or equivalent.
+- **Call exactly one application service** (typically `SomeService.build().execute(...)`) as the step that performs the use case.
+- **Translate outcomes** to HTTP status codes, JSON payloads, task return values, or command exit codes.
+- **Catch and map** expected service-layer exceptions to API or user-visible errors; let truly unexpected failures bubble to framework error handling unless a deliberate top-level handler exists.
+
+**Strict prohibitions in this layer:**
+
+- **No business rules** (pricing rules, eligibility, state transitions, “if user is X then Y”) — those live in services.
+- **No infrastructure orchestration** (no “which DAO to call next” decisions beyond delegating to a service).
+- **No database work** — no `Model.objects.filter(...)`, no `transaction.atomic` blocks that implement domain logic, no raw SQL for use-case data. The presentation layer does not decide persistence strategy.
+
+### 2) Business layer
+
+**What belongs here:** **`@dataclass` services** (`**/services/`, orchestration packages) — the **only** place for **use-case and domain orchestration**.
+
+**Responsibilities:**
+
+- **Single public entry point per orchestrator:** **`execute`** (plus **`build`** for wiring). The service **decides** which nested services, DAOs, builders, and DTOs to use to fulfill the use case.
+- Encode **rules, workflows, invariants**, and **what** should happen in the system (create/update/delegate).
+- Remain **transport-agnostic** — no `Request`, `Response`, Celery `self`, or CLI `stdout` concerns.
+
+**Prohibitions:**
+
+- Do not embed **HTTP** or **task retry** policy inside core business rules unless the rule itself is explicitly about that boundary (prefer passing flags or dedicated ports from presentation).
+
+### 3) Infrastructure layer
+
+**What belongs here:** **DAOs** (`**/daos/`, `**/dao/`), ORM query construction, database transactions scoped to persistence, integration **clients** (HTTP/SDK), filesystem, message producers, and **DTOs** used as **typed I/O or persistence shapes** between DAOs and services.
+
+**Responsibilities:**
+
+- **Load and persist data**; expose narrow methods (`get_*`, `create_*`, `update_*`) without embedding use-case narrative.
+- Return **facts** (models, DTOs, scalars) — not “what the API should return.”
+
+**Prohibitions:**
+
+- **No business orchestration** (“if offer expired then also notify X”) — push that up to a service that calls multiple DAOs/clients.
+- **No knowledge of** serializers, views, or HTTP status codes.
+
+### Crossing boundaries
+
+- Prefer **dataclasses** or **explicit primitives** when passing data **between** business and infrastructure; avoid passing loose **`dict`**s when a DTO makes the contract obvious.
+- **Presentation → business:** pass unpacked parameters (see **Public `execute` parameters** below); **business → infrastructure:** call DAOs/clients with types they define.
+
+---
+
+## Service class template (orchestrators)
+
+Write **application orchestration services** in a **uniform shape** (names below are the contract; do not copy one-off identifiers from any single feature):
+
+1. **`@dataclass`** on the service class.
+2. **Dependencies** as fields, typically **named with a leading underscore** (e.g. `_order_dao`, `_pricing_service`) so construction stays explicit and grep-friendly.
+3. **Encapsulate wiring** in a single **`@classmethod def build(cls) -> Self`** that instantiates DAOs, nested services, and other collaborators. Call sites that are not tests should prefer **`Service.build()`** over manual `Service(...)` unless you inject fakes.
+4. **Exactly one public “do work” method** on the instance: **`def execute(self, ...) -> ...`**. All other instance helpers are **private** (`def _helper(self, ...)`).
+5. **Class-level docstring (required for new/changed services):** first paragraph = **what** the service does in product terms; add a second paragraph when needed for **business impact** (what changes in the system, who is affected, which invariants you enforce).
+6. **Typed errors:** optional **nested `Exception` subclasses** on the service for domain-specific failures; map them to HTTP or outer handling in views/commands — do not swallow them silently.
+
+### Public `execute` parameters (no “request bag” DTO)
+
+- **`execute` must not take a single hand-rolled “request/context” DTO** that only bundles caller fields. **Unpack inputs:** ids (`UUID`, `int`), enums, flags, `str`, `list[int]`, optional scalars — whatever the operation needs — so the signature documents the contract at a glance.
+- **Callers** (views, serializers, other services) **map** their data into those explicit arguments.
+- **Returning** DTOs or lists of DTOs from `execute` is normal.
+- **Rare exception:** a **typed integration payload** that already is the atomic document from an external sync/API **may** appear as one argument **only** when the whole object is the natural unit of work; if you use that, **justify it in the class docstring** and still avoid generic “params” DTOs for internal app APIs.
+
+### Composition vs inheritance
+
+- **Do not** subclass **concrete** services to reuse behavior — extract another service or a small helper type.
+- **Prefer composition:** services hold other services, DAOs, and **strategy objects** constructed in `build()` or at the start of `execute`.
+- **When polymorphism is required** (several variants of the same construction protocol): use a **small `ABC` + `@dataclass` concrete types** — each implementation holds **its own internal data** (including integration DTOs **inside** the implementation, not on the public `execute` of the orchestrator unless the rare exception applies). A coordinator service accepts the **abstract protocol type**, calls its methods (`build_*`, getters, etc.), and stays unaware of concrete classes. Export public builder/protocol names from the package’s **`__all__`** in `__init__.py` when the folder is part of the public surface.
+
+---
+
+## Idealized abstract example (DTO → DAO → service → view)
+
+The snippets below are **fictional** names only — they illustrate **shape**, not a real app module. In real code, split into separate files per package.
+
+### DTO (typed boundary / return payload)
+
+DTOs describe **data crossing a boundary** (DAO → service, or service → caller). They are **not** the single “request bag” argument to `execute`.
+
+```python
+from dataclasses import dataclass
+from datetime import datetime
+from uuid import UUID
+
+
+@dataclass(frozen=True, slots=True)
+class ShipmentSummaryDTO:
+    """Immutable facts returned from persistence for this use case."""
+    id: UUID
+    ref_code: str
+    created_at: datetime
+```
+
+### DAO (infrastructure — persistence only)
+
+```python
+from __future__ import annotations
+
+from datetime import datetime
+from uuid import UUID
+
+
+class ShipmentDAO:
+    """Narrow gateway around ORM / SQL — no business branching beyond null checks."""
+
+    def get_summary_by_id(self, shipment_id: UUID) -> ShipmentSummaryDTO | None:
+        # Build ORM query, map row → ShipmentSummaryDTO, or return None.
+        ...
+
+    def mark_dispatched(self, shipment_id: UUID, occurred_at: datetime) -> None:
+        # UPDATE ... — no HTTP, no domain policy beyond persistence.
+        ...
+```
+
+### Service (business — orchestration + `build` / `execute`)
+
+```python
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Self
+from uuid import UUID
+
+
+@dataclass
+class DispatchShipmentService:
+    """Marks a shipment as dispatched after business checks and persistence."""
+
+    _shipment_dao: ShipmentDAO
+
+    class DispatchShipmentServiceError(Exception):
+        pass
+
+    class ShipmentNotFound(DispatchShipmentServiceError):
+        pass
+
+    @classmethod
+    def build(cls) -> Self:
+        return cls(_shipment_dao=ShipmentDAO())
+
+    def execute(
+        self,
+        shipment_id: UUID,
+        actor_user_id: int,
+        occurred_at: datetime,
+    ) -> ShipmentSummaryDTO:
+        summary = self._shipment_dao.get_summary_by_id(shipment_id)
+        if summary is None:
+            raise self.ShipmentNotFound
+
+        # Business rules and invariants live here (not in the view or DAO).
+        _ = actor_user_id  # e.g. permission preconditions already enforced in presentation
+
+        self._shipment_dao.mark_dispatched(shipment_id, occurred_at)
+        updated = self._shipment_dao.get_summary_by_id(shipment_id)
+        if updated is None:
+            raise RuntimeError('invariant violated: row missing after update')
+        return updated
+```
