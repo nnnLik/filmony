@@ -28,6 +28,12 @@ class SetUserReactionInput:
     reaction_type_id: int
 
 
+@dataclass(frozen=True, slots=True)
+class SetUserReactionOutcome:
+    summary: ReactionTargetSummary
+    reaction_was_added: bool
+
+
 class ReactionTypeInvalidError(Exception):
     pass
 
@@ -44,7 +50,7 @@ class SetOrToggleUserReactionService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, user_id: UUID, payload: SetUserReactionInput) -> ReactionTargetSummary:
+    async def execute(self, user_id: UUID, payload: SetUserReactionInput) -> SetUserReactionOutcome:
         reaction_type_row = (
             await self._session.execute(
                 select(ReactionType.id, ReactionType.is_active).where(
@@ -89,6 +95,7 @@ class SetOrToggleUserReactionService:
             )
         ).scalar_one_or_none()
 
+        reaction_was_added = existing is None
         if existing is not None:
             await self._session.delete(existing)
         else:
@@ -124,4 +131,4 @@ class SetOrToggleUserReactionService:
         )
         await self._session.commit()
 
-        return summary
+        return SetUserReactionOutcome(summary=summary, reaction_was_added=reaction_was_added)

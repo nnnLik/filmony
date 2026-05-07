@@ -98,6 +98,11 @@ class ReactionMediaSettings(BaseSettings):
     rustfs_secret_key: str = Field('', alias='RUSTFS_SECRET_KEY')
 
 
+class CelerySettings(BaseSettings):
+    broker_url: str = Field(..., alias='CELERY_BROKER_URL')
+    result_backend: str | None = Field(None, alias='CELERY_RESULT_BACKEND')
+
+
 @dataclass
 class Settings:
     app: AppSettings
@@ -106,6 +111,7 @@ class Settings:
     auth_jwt: AuthJwtSettings
     kinopoisk: KinopoiskSettings
     reaction_media: ReactionMediaSettings
+    celery: CelerySettings
 
     @classmethod
     def build(cls) -> Self:
@@ -116,6 +122,7 @@ class Settings:
             auth_jwt=AuthJwtSettings(),
             kinopoisk=KinopoiskSettings(),
             reaction_media=ReactionMediaSettings(),
+            celery=CelerySettings(),
         )
 
 

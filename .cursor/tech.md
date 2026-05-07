@@ -12,8 +12,17 @@
 ```
 Telegram Mini App (React) ──► FastAPI (Uvicorn, filmony-backend)
                                     │
-                    PostgreSQL ◄────┴────► RustFS (S3-совместимое хранилище медиа реакций)
+                    PostgreSQL ◄────┴────► RustFS
+                                    │
+                              Redis ◄┘
+                                    ▲
+                          Celery worker (filmony-celery-worker)
 ```
+
+- **Redis** (`filmony-redis`): брокер сообщений и backend результатов Celery; с хоста порт **56379** → `6379` в контейнере.
+- **Celery** (`filmony-celery-worker`): отложенные задачи (очередь `default`), **без** Celery Beat — периодическое расписание не используется.
+
+Подробности для разработчиков и агентов: [`docs/features/celery-redis-workers.md`](../docs/features/celery-redis-workers.md).
 
 Порты и имена сервисов см. в корневом `compose.yml` и `README.md`.
 
@@ -29,7 +38,7 @@ Telegram Mini App (React) → Nginx → FastAPI (Uvicorn)
                               Telegram Bot
 ```
 
-Nginx, Redis, Celery и бот на webhook в **этом** `compose.yml` могут отсутствовать — см. описание в корневом `README.md`.
+Nginx и бот на webhook в **этом** `compose.yml` по-прежнему могут отсутствовать — см. корневой `README.md`. **Redis и Celery worker** включены в локальный compose для фоновых задач.
 
 ## 3. Локальная разработка (Docker)
 
@@ -66,8 +75,8 @@ docker compose -f compose.yml exec -w /opt/app filmony-backend pytest src/tests/
 | Бэкенд | FastAPI + Uvicorn | в Docker |
 | База данных | PostgreSQL | в локальном compose см. образ в `compose.yml` |
 | Объектное хранилище | RustFS (S3 API) | медиа реакций, см. `docs/features/movie-card-custom-reactions.md` |
-| Кеш | Redis | в целевой архитектуре |
-| Очереди | Celery (брокер — Redis) | в целевой архитектуре |
+| Кеш / брокер | **Redis** (локально в compose, сервис `filmony-redis`) |
+| Очереди | **Celery** + Redis (`filmony-celery-worker`), без Beat — см. `docs/features/celery-redis-workers.md` |
 | Reverse proxy | Nginx | в целевой архитектуре |
 | Уведомления в реальном времени | SSE | по необходимости |
 | Фронтенд | React + @telegram-apps/telegram-ui + **lucide-react** (иконки) + Vite + TypeScript | |

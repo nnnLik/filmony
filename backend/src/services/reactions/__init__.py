@@ -11,7 +11,10 @@ from services.reactions.list_reaction_catalog import (
     ReactionCatalogItem,
     ReactionCatalogTab,
 )
-from services.reactions.set_or_toggle_user_reaction import SetOrToggleUserReactionService
+from services.reactions.set_or_toggle_user_reaction import (
+    SetOrToggleUserReactionService,
+    SetUserReactionOutcome,
+)
 from services.reactions.types import ReactionCountEntry, ReactionTargetSummary
 
 __all__ = (
@@ -26,4 +29,5 @@ __all__ = (
     'ReactionCountEntry',
     'ReactionTargetSummary',
     'SetOrToggleUserReactionService',
+    'SetUserReactionOutcome',
 )

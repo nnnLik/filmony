@@ -12,7 +12,7 @@ RUFF_FIX = ruff check --fix --config pyproject.toml src/
 #   make backend-test-one target=src/tests/api/test_public_routes.py
 #   make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs
 
 start: build up
 
@@ -55,6 +55,9 @@ backend-test-one:
 
 logs:
 	$(DC) logs -f -n 50 $(APP)
+
+celery-worker-logs:
+	$(DC) logs -f -n 50 filmony-celery-worker
 
 # Загрузка SQL-фикстур в Postgres (контейнер filmony-postgres должен быть запущен: make start).
 # Все файлы: make fixtures-load

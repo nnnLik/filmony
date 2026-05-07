@@ -17,6 +17,10 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-08T160100Z-celery-redis-workers-code.md`
+- `2026-05-08T160000Z-celery-redis-workers-docs.md`
+- `2026-05-08T140000Z-engagement-telegram-notifications-code.md`
+- `2026-05-08T120000Z-telegram-notifications-docs.md`
 - `2026-05-07T220000Z-feed-explainability-export-offline-docs.md`
 - `2026-05-07T233000Z-frontend-component-split-code.md`
 - `2026-05-07T220000Z-repo-structure-style-docs.md`

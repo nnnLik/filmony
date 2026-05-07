@@ -70,6 +70,8 @@ from services.cards.update_movie_card import (
     MovieCardValidationError as UpdateMovieCardValidationError,
 )
 from services.cards.update_movie_card import UpdateMovieCardInput, UpdateMovieCardService
+from celery_app import app as celery_application
+
 from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
@@ -418,5 +420,16 @@ async def create_card_comment(
         ) from None
     except MovieCardCommentValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    if body.parent_comment_id is not None:
+        celery_application.send_task(
+            'tasks.telegram_engagement.notify_comment_reply',
+            kwargs={
+                'actor_user_id': str(user.id),
+                'card_id': card_id,
+                'parent_comment_id': body.parent_comment_id,
+                'reply_text': created.text,
+            },
+        )
 
     return await _load_comment_response(db, created.id, user.id)

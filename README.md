@@ -12,9 +12,9 @@
 | Backend | Python 3.12+, FastAPI, Uvicorn, SQLAlchemy 2 (async), Alembic, asyncpg |
 | Данные | PostgreSQL (версия образа — см. `compose.yml`) |
 | Сборка / зависимости бэкенда | [uv](https://docs.astral.sh/uv/) (`pyproject.toml`, `uv.lock`) |
-| Инфра | Docker Compose (`compose.yml`), Makefile |
+| Инфра | Docker Compose (`compose.yml`), Makefile; локально также **Redis** и **Celery worker** для фоновых задач |
 
-В целевой архитектуре также задуманы Redis, Celery, Nginx и бот на webhook — см. `.cursor/tech.md`.
+В **локальном** compose уже есть Redis и Celery worker для отложенных задач; в целевой прод-архитектуре также задуманы Nginx и бот на webhook — см. `.cursor/tech.md`.
 
 ## Структура репозитория
 
@@ -34,7 +34,7 @@
 
 Разработка бэкенда и тестов рассчитана на **запущенный Compose** (тот же образ, что и в CI/проде).
 
-1. Откройте [`vars/.env.development`](vars/.env.development): там уже выставлены URL для Postgres/RustFS/Vite в связке с `compose.yml`. **Замените плейсхолдеры** `TG_APP_TOKEN` и `KINOPOISK_API_KEY` (и при желании `AUTH_JWT_SECRET`, `TELEGRAM_BOT_USERNAME`) на свои значения. Дополнительный шаблон без значений по умолчанию: [`vars/.env.example`](vars/.env.example).
+1. Откройте [`vars/.env.development`](vars/.env.development): там уже выставлены URL для Postgres, RustFS, Redis/Celery и Vite в связке с `compose.yml`. **Замените плейсхолдеры** `TG_APP_TOKEN` и `KINOPOISK_API_KEY` (и при желании `AUTH_JWT_SECRET`, `TELEGRAM_BOT_USERNAME`) на свои значения. Дополнительный шаблон без значений по умолчанию: [`vars/.env.example`](vars/.env.example).
 
 2. Поднять сервисы:
 
@@ -54,6 +54,12 @@
 
    ```bash
    make logs
+   ```
+
+   Логи воркера Celery (очередь задач):
+
+   ```bash
+   make celery-worker-logs
    ```
 
 5. **Стикеры реакций в RustFS** (локальные каталоги в `emoji/`):
@@ -77,9 +83,8 @@
 | `make backend-test-one target=src/tests/...` | один тест / файл |
 | `make backend-lint` / `backend-format` / `backend-fix` | Ruff |
 | `make sync-reactions-rustfs` | только RustFS: каталоги `emoji/` → бакет (нужен `uv`, `make start`) |
-| `make sync-reactions-rustfs WITH_DB=1` | RustFS + upsert `reaction_type`; из `DATABASE_URL` в `vars/.env.development` для запуска **с хоста** автоматически подставляется `127.0.0.1:55432` вместо `filmony-postgres:5432`. Порт другой — `COMPOSE_PG_PORT=...`. Отключить: `SKIP_DATABASE_URL_HOST_REWRITE=1`. |
-
-Тесты используют тот же Postgres, что и приложение; для изоляции данных в pytest выставляется отдельная схема (см. `DATABASE_TEST_SCHEMA` и `src/tests/conftest.py`).
+| `make celery-worker-logs` | хвост логов контейнера `filmony-celery-worker` |
+| `make sync-reactions-rustfs WITH_DB=1` | RustFS + upsert `reaction_type`; из `DATABASE_URL` в `vars/.env.development` для запуска **с хоста** автоматически подставляется `127.0.0.1:55432` вместо `filmony-postgres:5432`. Порт другой — `COMPOSE_PG_PORT=...`. Отключить: `SKIP_DATABASE_URL_HOST_REWRITE=1`. |, что и приложение; для изоляции данных в pytest выставляется отдельная схема (см. `DATABASE_TEST_SCHEMA` и `src/tests/conftest.py`).
 
 ## Фронтенд (локально)
 

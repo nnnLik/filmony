@@ -5,13 +5,19 @@ networks:
 volumes:
   filmony-pgdata:
   filmony-rustfs-data:
+  filmony-redis-data:
+
+x-on-filmony-network: &on-filmony-network
+  restart: unless-stopped
+  networks:
+    - filmony-network
 
 x-app-service: &app-service
+  <<: *on-filmony-network
   build:
     context: backend
     dockerfile: Dockerfile
     target: dev
-  restart: unless-stopped
   env_file:
     - vars/.env.development
   working_dir: /opt/app
@@ -20,14 +26,19 @@ x-app-service: &app-service
     - ./backend/pyproject.toml:/opt/app/pyproject.toml
     - ./backend/uv.lock:/opt/app/uv.lock
     - ./backend/alembic.ini:/opt/app/alembic.ini
-  networks:
-    - filmony-network
+
+x-app-with-deps: &app-with-deps
+  <<: *app-service
+  depends_on:
+    - filmony-postgres
+    - filmony-rustfs
+    - filmony-redis
 
 services:
   filmony-postgres:
+    <<: *on-filmony-network
     image: postgres:18-alpine
     container_name: filmony-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_USER: filmony
       POSTGRES_PASSWORD: filmony
@@ -36,13 +47,20 @@ services:
       - "55432:5432"
     volumes:
       - filmony-pgdata:/var/lib/postgresql/data
-    networks:
-      - filmony-network
+
+  filmony-redis:
+    <<: *on-filmony-network
+    image: redis:8-alpine
+    container_name: filmony-redis
+    ports:
+      - '56379:6379'
+    volumes:
+      - filmony-redis-data:/data
 
   filmony-rustfs:
+    <<: *on-filmony-network
     image: rustfs/rustfs:latest
     container_name: filmony-rustfs
-    restart: unless-stopped
     ports:
       - '7900:9000'
       - '7901:9001'
@@ -53,17 +71,17 @@ services:
       RUSTFS_SECRET_KEY: rustfsadmin
       RUSTFS_CONSOLE_ENABLE: 'true'
     command: ['/data']
-    networks:
-      - filmony-network
 
   filmony-backend:
+    <<: *app-with-deps
     container_name: filmony-backend
-    <<: *app-service
     command: python src/main.py
     ports:
       - "6749:8000"
     environment:
       RUSTFS_INTERNAL_BASE_URL: http://filmony-rustfs:9000
-    depends_on:
-      - filmony-postgres
-      - filmony-rustfs
+
+  filmony-celery-worker:
+    <<: *app-with-deps
+    container_name: filmony-celery-worker
+    command: celery -A celery_app worker --loglevel=INFO

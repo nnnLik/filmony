@@ -34,6 +34,7 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetOrToggleUserReactionService,
     SetUserReactionInput,
 )
+from celery_app import app as celery_application
 from utils.reaction_asset_key import is_safe_reaction_asset_key
 from utils.rustfs_get_object import (
     RustfsClientError,
@@ -171,7 +172,7 @@ async def set_user_reaction(
 ) -> UserReactionSetResponse:
     kind = _parse_target_kind(body.target_kind)
     try:
-        summary = await SetOrToggleUserReactionService(db).execute(
+        outcome = await SetOrToggleUserReactionService(db).execute(
             user.id,
             SetUserReactionInput(
                 target_kind=kind,
@@ -186,8 +187,19 @@ async def set_user_reaction(
     except SelfReactionForbiddenError:
         raise HTTPException(status_code=403, detail='self reaction not allowed') from None
 
+    if outcome.reaction_was_added:
+        celery_application.send_task(
+            'tasks.telegram_engagement.notify_reaction_added',
+            kwargs={
+                'actor_user_id': str(user.id),
+                'target_kind': kind.value,
+                'target_id': body.target_id,
+                'reaction_type_id': body.reaction_type_id,
+            },
+        )
+
     return UserReactionSetResponse(
         target_kind=kind.value,
         target_id=body.target_id,
-        reactions=reaction_target_summary_to_response(summary),
+        reactions=reaction_target_summary_to_response(outcome.summary),
     )

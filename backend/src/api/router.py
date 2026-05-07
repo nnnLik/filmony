@@ -4,6 +4,7 @@ from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
 from api.cards.routes import router as cards_router
 from api.films.routes import router as films_router
+from api.notifications.routes import router as notifications_router
 from api.profile.me_routes import router as profile_me_router
 from api.profile.users_routes import router as profile_users_router
 from api.reactions.routes import router as reactions_router
@@ -16,6 +17,7 @@ router.include_router(auth_router)
 router.include_router(cards_router)
 router.include_router(films_router)
 router.include_router(reactions_router)
+router.include_router(notifications_router)
 router.include_router(profile_me_router)
 router.include_router(profile_users_router)
 
