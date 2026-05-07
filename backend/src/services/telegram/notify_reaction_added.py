@@ -8,18 +8,24 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-
 from core.database import get_session_factory
+from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.reaction_target_kind import ReactionTargetKind
-from models.reaction_type import ReactionType
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
-from services.telegram.mini_app_link import telegram_mini_app_card_url
+from services.telegram.mini_app_link import html_card_deep_link_block
 
 logger = logging.getLogger(__name__)
+
+
+def _format_film_title_html(film: Film) -> str:
+    raw = (film.title or '').strip() or 'Фильм'
+    title = html.escape(raw)
+    if film.year is not None:
+        return f'«{title}» ({int(film.year)})'
+    return f'«{title}»'
 
 
 def _format_actor_display(user: User) -> str:
@@ -44,38 +50,34 @@ class NotifyTelegramReactionAddedService:
         target_id: int,
         reaction_type_id: int,
     ) -> None:
+        _ = reaction_type_id  # событие «поставили реакцию» без названия типа в тексте
+
         factory = get_session_factory()
         async with factory() as session:
             owner_id: UUID | None = None
             card_id_for_link: int | None = None
+            comment_text_for_dm: str | None = None
+            film_for_dm: Film | None = None
 
             if target_kind == ReactionTargetKind.MOVIE_CARD:
-                row = await session.execute(
-                    select(MovieCard.user_id).where(MovieCard.id == target_id)
-                )
-                owner_id = row.scalar_one_or_none()
-                card_id_for_link = target_id
-            elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
-                row = (
-                    await session.execute(
-                        select(MovieCardComment.user_id, MovieCardComment.movie_card_id).where(
-                            MovieCardComment.id == target_id
-                        )
-                    )
-                ).one_or_none()
-                if row is None:
+                card = await session.get(MovieCard, target_id)
+                if card is None:
                     return
-                owner_id = row[0]
-                card_id_for_link = row[1]
+                owner_id = card.user_id
+                card_id_for_link = card.id
+                film_for_dm = await session.get(Film, card.film_id)
+            elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+                comment = await session.get(MovieCardComment, target_id)
+                if comment is None:
+                    return
+                owner_id = comment.user_id
+                card_id_for_link = comment.movie_card_id
+                comment_text_for_dm = comment.text
             else:
                 return
 
             if owner_id is None or owner_id == actor_user_id or card_id_for_link is None:
                 return
-
-            rt = await session.get(ReactionType, reaction_type_id)
-            raw_label = (rt.label.strip() if rt and rt.label else '') or ''
-            reaction_label = raw_label if raw_label else 'реакция'
 
             actor = await session.get(User, actor_user_id)
             recipient = await session.get(User, owner_id)
@@ -83,34 +85,30 @@ class NotifyTelegramReactionAddedService:
                 return
 
             actor_safe = html.escape(_format_actor_display(actor))
-            reaction_safe = html.escape(reaction_label)
-            target_phrase = (
-                '🎬 вашу карточку'
-                if target_kind == ReactionTargetKind.MOVIE_CARD
-                else '💭 ваш комментарий'
-            )
-            header = (
-                '🎬 ✨ Реакция на карточку'
-                if target_kind == ReactionTargetKind.MOVIE_CARD
-                else '💬 ✨ Реакция на комментарий'
-            )
+            deep_link = html_card_deep_link_block(card_id_for_link)
 
-            url = telegram_mini_app_card_url(card_id_for_link)
-            link_html = (
-                f'🔗 <a href="{html.escape(url, quote=True)}">Открыть в Filmony</a>'
-                if url
-                else '📱 Откройте Mini App из Telegram'
-            )
-            body_lines = [
-                f'🔔 <b>Filmony</b> · уведомление',
-                '',
-                header,
-                '',
-                f'👤 <b>{actor_safe}</b>',
-                f'❤️ На {target_phrase}: <b>{reaction_safe}</b>',
-                '',
-                link_html,
-            ]
+            if target_kind == ReactionTargetKind.MOVIE_CARD:
+                film_hint = (
+                    _format_film_title_html(film_for_dm)
+                    if film_for_dm is not None
+                    else '«…»'
+                )
+                body_lines = [
+                    f'⭐ <b>{actor_safe}</b> отреагировал на вашу карточку фильма {film_hint}',
+                    '',
+                    deep_link,
+                ]
+            else:
+                raw_snippet = (comment_text_for_dm or '').strip()
+                snippet = html.escape(raw_snippet[:100] if raw_snippet else '…')
+                body_lines = [
+                    '⭐ Реакция на ваш комментарий',
+                    '',
+                    f'👤 <b>{actor_safe}</b>',
+                    f'📝 <i>«{snippet}»</i>',
+                    '',
+                    deep_link,
+                ]
             body = '\n'.join(body_lines)
 
             await deliver_engagement_html_message(recipient.telegram_user_id, body)

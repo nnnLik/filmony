@@ -14,7 +14,7 @@ from core.database import get_session_factory
 from models.movie_card_comment import MovieCardComment
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
-from services.telegram.mini_app_link import telegram_mini_app_card_url
+from services.telegram.mini_app_link import html_card_deep_link_block
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +60,14 @@ class NotifyTelegramCommentReplyService:
 
             actor_safe = html.escape(_format_actor_display(actor))
             snippet = html.escape(reply_text.strip()[:160])
-            url = telegram_mini_app_card_url(card_id)
-            link_html = (
-                f'🔗 <a href="{html.escape(url, quote=True)}">Открыть в Filmony</a>'
-                if url
-                else '📱 Откройте Mini App из Telegram'
-            )
+            deep_link = html_card_deep_link_block(card_id)
             body_lines = [
-                '🔔 ✨ <b>Filmony</b> · новый ответ 💬',
+                '💬 Новый ответ',
                 '',
                 f'👤 <b>{actor_safe}</b>',
                 f'📝 <i>«{snippet}»</i>',
                 '',
-                link_html,
+                deep_link,
             ]
             body = '\n'.join(body_lines)
 

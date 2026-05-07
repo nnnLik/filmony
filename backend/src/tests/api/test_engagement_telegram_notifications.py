@@ -53,7 +53,7 @@ async def test_comment_reply_triggers_telegram_dm(async_client: AsyncClient) -> 
         mock_dm.assert_awaited_once()
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_101
-        assert 'Filmony' in args[1] and '💬' in args[1]
+        assert 'Новый ответ' in args[1] and 'Карточка №' in args[1]
 
 
 @pytest.mark.asyncio
@@ -111,4 +111,78 @@ async def test_reaction_added_triggers_dm_once(async_client: AsyncClient) -> Non
         mock_dm.assert_awaited_once()
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_301
-        assert 'Реакция' in args[1] and '👤' in args[1]
+        body = args[1]
+        assert 'отреагировал' in body and 'Карточка №' in body
+        assert 'Rf 860301' in body
+
+
+@pytest.mark.asyncio
+async def test_two_users_same_reaction_type_both_trigger_dm(async_client: AsyncClient) -> None:
+    """Вторая персона ставит тот же тип реакции, что уже есть у другого — всё равно «добавление», нужен отдельный DM."""
+    rx1, *_rest = await _seed_reaction_catalog()
+    with patch(
+        'services.telegram.engagement_delivery.deliver_engagement_html_message',
+        new_callable=AsyncMock,
+    ) as mock_dm:
+        mock_dm.return_value = None
+        cid = await _create_card_any(async_client, tg=860_601, kid=860_601)
+
+        await _login(async_client, telegram_user_id=860_602)
+        first = await async_client.post(
+            '/api/reactions',
+            json={
+                'target_kind': 'movie_card',
+                'target_id': cid,
+                'reaction_type_id': rx1,
+            },
+        )
+        assert first.status_code == 200
+
+        await _login(async_client, telegram_user_id=860_603)
+        second = await async_client.post(
+            '/api/reactions',
+            json={
+                'target_kind': 'movie_card',
+                'target_id': cid,
+                'reaction_type_id': rx1,
+            },
+        )
+        assert second.status_code == 200
+
+        assert mock_dm.await_count == 2
+        for call in mock_dm.await_args_list:
+            assert call.args[0] == 860_601
+        bodies = [c.args[1] for c in mock_dm.await_args_list]
+        assert all('отреагировал' in b and 'Карточка №' in b and 'Rf 860601' in b for b in bodies)
+
+
+@pytest.mark.asyncio
+async def test_reaction_on_comment_triggers_dm(async_client: AsyncClient) -> None:
+    rx1, *_rest = await _seed_reaction_catalog()
+    with patch(
+        'services.telegram.engagement_delivery.deliver_engagement_html_message',
+        new_callable=AsyncMock,
+    ) as mock_dm:
+        mock_dm.return_value = None
+        cid = await _create_card_any(async_client, tg=860_401, kid=860_401)
+        cm = await async_client.post(f'/api/cards/{cid}/comments', json={'text': 'root'})
+        assert cm.status_code == 200
+        com_id = cm.json()['id']
+
+        await _login(async_client, telegram_user_id=860_402)
+        rr = await async_client.post(
+            '/api/reactions',
+            json={
+                'target_kind': 'movie_card_comment',
+                'target_id': com_id,
+                'reaction_type_id': rx1,
+            },
+        )
+        assert rr.status_code == 200
+
+        mock_dm.assert_awaited_once()
+        args, _kwargs = mock_dm.await_args
+        assert args[0] == 860_401
+        body = args[1]
+        assert 'Реакция на ваш комментарий' in body and 'Карточка №' in body
+        assert 'root' in body
