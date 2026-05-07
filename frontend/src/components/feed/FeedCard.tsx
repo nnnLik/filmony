@@ -101,6 +101,10 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
     e.stopPropagation()
   }
 
+  const stopCardNavKeepFocus: MouseEventHandler = (e) => {
+    e.stopPropagation()
+  }
+
   return (
     <article
       data-testid={`feed-card-${card.id}`}
@@ -337,7 +341,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
               )}
 
               <div className="flex min-w-0 flex-col gap-1">
-                <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNav}>
+                <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNavKeepFocus}>
                   <input
                     type="text"
                     value={draft}

@@ -1,12 +1,19 @@
-import { Avatar, Button, Input, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, Input, Section, Title } from '@telegram-apps/telegram-ui'
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
+import { postNotificationPing } from '../api/notificationApi'
 import { getMyProfile, patchMyProfile } from '../api/profileApi'
 import type { MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
+import {
+  isTelegramChatUnavailableDetail,
+  notificationFailureMessage,
+  openTelegramDeepLink,
+  telegramBotOpenUrl,
+} from '../lib/telegramNotificationError'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
 function toPublicShape(p: MyProfile): PublicProfile {
@@ -38,6 +45,14 @@ export function ProfileEditPage() {
 
   const [displayName, setDisplayName] = useState(() => cached?.profile.display_name ?? '')
   const [bio, setBio] = useState(() => cached?.profile.bio ?? '')
+
+  const [pingBusy, setPingBusy] = useState(false)
+  const [pingOk, setPingOk] = useState<string | null>(null)
+  const [pingTelegramErr, setPingTelegramErr] = useState<{
+    message: string
+    botUsername: string | null
+  } | null>(null)
+  const [pingGenericErr, setPingGenericErr] = useState<string | null>(null)
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -99,6 +114,32 @@ export function ProfileEditPage() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     void saveProfile()
+  }
+
+  async function runNotificationPing() {
+    setPingBusy(true)
+    setPingOk(null)
+    setPingTelegramErr(null)
+    setPingGenericErr(null)
+    try {
+      await postNotificationPing()
+      setPingOk('Сообщение отправлено — загляните в чат с ботом Filmony.')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (isTelegramChatUnavailableDetail(e.detail)) {
+          setPingTelegramErr({
+            message: e.detail.message,
+            botUsername: e.detail.bot_username ?? null,
+          })
+        } else {
+          setPingGenericErr(notificationFailureMessage(e.detail))
+        }
+      } else {
+        setPingGenericErr(e instanceof Error ? e.message : 'Не удалось отправить')
+      }
+    } finally {
+      setPingBusy(false)
+    }
   }
 
   if (auth.kind === 'loading') {
@@ -204,6 +245,52 @@ export function ProfileEditPage() {
             {saving ? 'Сохранение…' : 'Сохранить'}
           </Button>
         </form>
+
+        <Section className="mt-8" header="Уведомления в Telegram">
+          <p className="filmony-text-panel px-4 pb-2 text-sm leading-relaxed text-(--tgui--hint_color)">
+            Проверьте, что бот может писать вам личные сообщения — без этого напоминания из Filmony не
+            дойдут.
+          </p>
+          {pingOk != null ? (
+            <p className="filmony-text-panel px-4 pb-3 text-center text-sm text-[color-mix(in_srgb,var(--tgui--hint_color)_92%,var(--tgui--link_color)_8%)]">
+              {pingOk}
+            </p>
+          ) : null}
+          {pingTelegramErr != null ? (
+            <div className="mx-4 mb-3 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-4 py-3">
+              <p className="text-sm font-medium text-(--tgui--text_color)">Нужен чат с ботом</p>
+              <p className="filmony-text-panel mt-1 text-sm leading-relaxed text-(--tgui--hint_color)">
+                {pingTelegramErr.message}
+              </p>
+              {telegramBotOpenUrl(pingTelegramErr.botUsername) != null ? (
+                <div className="mt-3">
+                  <Button
+                    size="s"
+                    stretched
+                    onClick={() => {
+                      const u = telegramBotOpenUrl(pingTelegramErr.botUsername)
+                      if (u) {
+                        openTelegramDeepLink(u)
+                      }
+                    }}
+                  >
+                    Открыть бота
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {pingGenericErr != null ? (
+            <p className="filmony-text-panel px-4 pb-2 text-center text-sm text-(--tgui--destructive_text_color)">
+              {pingGenericErr}
+            </p>
+          ) : null}
+          <div className="px-4 pb-4">
+            <Button stretched disabled={pingBusy} onClick={() => void runNotificationPing()}>
+              {pingBusy ? 'Отправка…' : 'Отправить тестовое уведомление'}
+            </Button>
+          </div>
+        </Section>
       </main>
     </div>
   )
