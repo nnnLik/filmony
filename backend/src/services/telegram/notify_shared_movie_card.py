@@ -18,6 +18,7 @@ from models.movie_card_tag import MovieCardTag
 from models.user import User
 from services.telegram.mini_app_link import html_card_deep_link_block
 from services.telegram.send_bot_message import SendTelegramBotMessageService
+from utils.http_url import normalize_absolute_http_url
 
 logger = logging.getLogger(__name__)
 
@@ -162,13 +163,11 @@ class DeliverSharedMovieCardTelegramService:
 
             chat_id = int(recipient.telegram_user_id)
             send_svc = SendTelegramBotMessageService.build()
-            poster = film.poster_url
-            if isinstance(poster, str) and poster.strip().lower().startswith(
-                ('http://', 'https://')
-            ):
+            poster = normalize_absolute_http_url(film.poster_url)
+            if poster is not None:
                 try:
                     return await send_svc.send_photo(
-                        chat_id, poster.strip(), caption, parse_mode='HTML'
+                        chat_id, poster, caption, parse_mode='HTML'
                     )
                 except SendTelegramBotMessageService.TelegramChatUnavailable:
                     logger.info(

@@ -6,6 +6,8 @@ import httpx
 
 from conf import settings
 
+from utils.http_url import normalize_absolute_http_url
+
 
 class KinopoiskClientError(Exception):
     pass
@@ -72,10 +74,13 @@ class KinopoiskClient:
         )
         poster_url = payload.get('posterUrl')
         genres = _parse_genres(payload.get('genres'))
+        poster_norm = normalize_absolute_http_url(
+            poster_url if isinstance(poster_url, str) else None
+        )
         return KinopoiskFilmPayload(
             kinopoisk_id=kinopoisk_id,
             title=title.strip(),
             year=year,
-            poster_url=poster_url if isinstance(poster_url, str) else None,
+            poster_url=poster_norm,
             genres=genres,
         )

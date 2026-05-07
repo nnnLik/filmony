@@ -53,7 +53,7 @@ async def test_comment_reply_triggers_telegram_dm(async_client: AsyncClient) -> 
         mock_dm.assert_awaited_once()
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_101
-        assert 'Новый ответ' in args[1] and 'Карточка №' in args[1]
+        assert 'Новый ответ' in args[1] and 'Открыть в Filmony' in args[1]
 
 
 @pytest.mark.asyncio
@@ -74,7 +74,7 @@ async def test_root_comment_on_card_notifies_owner(async_client: AsyncClient) ->
         mock_dm.assert_awaited_once()
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_801
-        assert 'Новый комментарий' in args[1] and 'Карточка №' in args[1]
+        assert 'Новый комментарий' in args[1] and 'Открыть в Filmony' in args[1]
 
 
 @pytest.mark.asyncio
@@ -133,7 +133,7 @@ async def test_reaction_added_triggers_dm_once(async_client: AsyncClient) -> Non
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_301
         body = args[1]
-        assert 'отреагировал' in body and 'Карточка №' in body
+        assert 'отреагировал' in body and 'Открыть в Filmony' in body
         assert 'Rf 860301' in body
 
 
@@ -174,7 +174,7 @@ async def test_two_users_same_reaction_type_both_trigger_dm(async_client: AsyncC
         for call in mock_dm.await_args_list:
             assert call.args[0] == 860_601
         bodies = [c.args[1] for c in mock_dm.await_args_list]
-        assert all('отреагировал' in b and 'Карточка №' in b and 'Rf 860601' in b for b in bodies)
+        assert all('отреагировал' in b and 'Открыть в Filmony' in b and 'Rf 860601' in b for b in bodies)
 
 
 @pytest.mark.asyncio
@@ -205,5 +205,5 @@ async def test_reaction_on_comment_triggers_dm(async_client: AsyncClient) -> Non
         args, _kwargs = mock_dm.await_args
         assert args[0] == 860_401
         body = args[1]
-        assert 'Реакция на ваш комментарий' in body and 'Карточка №' in body
+        assert 'Реакция на ваш комментарий' in body and 'Открыть в Filmony' in body
         assert 'root' in body

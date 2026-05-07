@@ -76,6 +76,7 @@ class DatabaseSettings(BaseSettings):
 class TelegramAuthSettings(BaseSettings):
     bot_token: str = Field(..., alias='TG_APP_TOKEN')
     bot_username: str | None = Field('dev_filmony_bot', alias='TELEGRAM_BOT_USERNAME')
+    mini_app_short_name: str = Field('FilmonyDev', alias='TELEGRAM_MINI_APP_SHORT_NAME')
 
 
 class AuthJwtSettings(BaseSettings):
