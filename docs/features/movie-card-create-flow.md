@@ -50,6 +50,8 @@
 ## Основные frontend-файлы
 
 - `frontend/src/pages/CreateCardPage.tsx`
+- `frontend/src/components/share/ShareFollowersPicker.tsx`
+- `frontend/src/pages/ShareMovieCardPage.tsx`
 - `frontend/src/api/cardApi.ts`
 - `frontend/src/routes.tsx`
 - `frontend/src/pages/FeedPage.tsx`
@@ -71,10 +73,15 @@
 - Этап 2: подтверждение найденного фильма (постер + название) с вариантом вернуться к шагу 1.
 - Этап 3: оценка (1..10, шаг 0.5) и выбор контекста через цветные chips, включая блок «С кем смотрели».
 - Этап 4: добавление собственных тегов (до 5).
-- Этап 5: mock-этап про будущую функцию шаринга и финальная кнопка `Готово`.
-- После `Готово` поведение неизменно: создается карточка и выполняется переход в профиль.
+- Этап 5: тот же выбор подписчиков, что и на экране «Поделиться» (`/cards/:id/share`): превью фильма, список подписчиков с множественным выбором, подсказка про Telegram. Кнопка **Готово** создаёт карточку; если выбраны получатели, сразу вызывается `POST /api/cards/{id}/share` (как при шаринге из карточки). При ошибке отправки после успешного создания выполняется переход на `/cards/{id}/share`, чтобы повторить отправку.
+- После успешного создания (и шаринга, если был) — переход в профиль, как раньше.
 
 Дополнительно упрощен экран Ленты (`frontend/src/pages/FeedPage.tsx`): убран устаревший текст-заглушка, оставлен лаконичный CTA для запуска wizard.
+
+## UX update: шаг 5 — поделиться при создании (2026-05-08)
+
+- Общий UI вынесен в `frontend/src/components/share/ShareFollowersPicker.tsx` (превью + список подписчиков + состояние загрузки).
+- `frontend/src/pages/ShareMovieCardPage.tsx` использует тот же компонент; отправка запроса шаринга идёт через `apiJson` + тип `ShareMovieCardResponse` из `cardApi` (контракт совпадает с `shareMovieCardWithFollowers`).
 
 ## UX update: постеры в профиле и деталка карточки (2026-05-06)
 
@@ -82,7 +89,7 @@
 - В профилях (`frontend/src/pages/ProfilePage.tsx`, `frontend/src/pages/PublicProfilePage.tsx`) список карточек заменен на единый грид постеров через `frontend/src/components/profile/MoviePosterGrid.tsx`.
 - Все постеры в гриде одинаковых пропорций/размеров; в ячейках показывается только постер.
 - По клику на постер открывается новая страница деталки `frontend/src/pages/MovieCardDetailPage.tsx` по маршруту `/cards/:cardId`.
-- На детальном экране отображаются реальные поля карточки и статические mock-блоки по макету (друзья оценили, лучшая оценка, комментарии, invite/recommend).
+- На детальном экране отображаются реальные поля карточки; блок «Друзья оценили» заполняется из `GET /api/cards/{id}/following-ratings` (подписки с оценкой того же фильма, см. [`movie-card-following-ratings.md`](./movie-card-following-ratings.md)). Комментарии — рабочая фича; шаринг карточки — отдельный маршрут `/cards/:id/share`.
 
 ## UX update: rating + real comments (2026-05-06)
 

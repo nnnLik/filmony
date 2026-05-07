@@ -174,7 +174,9 @@ async def test_two_users_same_reaction_type_both_trigger_dm(async_client: AsyncC
         for call in mock_dm.await_args_list:
             assert call.args[0] == 860_601
         bodies = [c.args[1] for c in mock_dm.await_args_list]
-        assert all('отреагировал' in b and 'Открыть в Filmony' in b and 'Rf 860601' in b for b in bodies)
+        assert all(
+            'отреагировал' in b and 'Открыть в Filmony' in b and 'Rf 860601' in b for b in bodies
+        )
 
 
 @pytest.mark.asyncio

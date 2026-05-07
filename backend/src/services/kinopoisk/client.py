@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import httpx
 
 from conf import settings
-
 from utils.http_url import normalize_absolute_http_url
 
 
@@ -46,7 +45,8 @@ def _parse_genres(payload: object) -> list[str]:
 
 class KinopoiskClient:
     async def get_film(self, kinopoisk_id: int) -> KinopoiskFilmPayload:
-        url = f'{settings.kinopoisk.base_url}/films/{kinopoisk_id}'
+        base = settings.kinopoisk.base_url.rstrip('/')
+        url = f'{base}/v2.2/films/{kinopoisk_id}'
         headers = {'X-API-KEY': settings.kinopoisk.api_key}
         timeout = settings.kinopoisk.timeout_seconds
 

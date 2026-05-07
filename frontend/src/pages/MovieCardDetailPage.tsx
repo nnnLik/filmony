@@ -1,12 +1,20 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { Share2 } from 'lucide-react'
+import { CopyPlus, Share2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { createMovieCardComment, getMovieCardById, getMovieCardComments } from '../api/cardApi'
+import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile } from '../api/profileApi'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MovieCardComment, ReactionSummary } from '../api/profileTypes'
+import type {
+  CardCompany,
+  CardMoodAfter,
+  CardMoodBefore,
+  MovieCard,
+  MovieCardComment,
+  ReactionSummary,
+} from '../api/profileTypes'
+import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
@@ -74,6 +82,46 @@ function snippet(text: string): string {
   return `${compact.slice(0, 69)}...`
 }
 
+type FollowingRatingRow = {
+  user_id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+  rating: number
+}
+
+type FollowingNamePick = {
+  display_name: string | null
+  first_name: string | null
+  last_name: string | null
+  username: string | null
+}
+
+function followingRowToProfileFields(row: FollowingRatingRow): FollowingNamePick {
+  return {
+    display_name: row.display_name,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    username: row.username,
+  }
+}
+
+function followingRowDisplayName(row: FollowingRatingRow): string {
+  return displayNameFromProfile(followingRowToProfileFields(row))
+}
+
+function followingRowInitials(row: FollowingRatingRow): string {
+  const p = followingRowToProfileFields(row)
+  return profileInitials({
+    display_name: p.display_name,
+    first_name: p.first_name,
+    username: p.username,
+  })
+}
+
 export function MovieCardDetailPage() {
   const navigate = useNavigate()
   const removeMovieCardRequest = useRemoveMovieCard()
@@ -93,6 +141,7 @@ export function MovieCardDetailPage() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [actionMenuOpen, setActionMenuOpen] = useState(false)
   const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null)
+  const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
   const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   const parsedCardId = useMemo(() => {
@@ -123,7 +172,7 @@ export function MovieCardDetailPage() {
         if (!alive) return
         setViewerId(profile.id)
       } catch {
-        // no-op: owner-only controls stay hidden
+        void 0
       }
     })()
     return () => {
@@ -162,6 +211,30 @@ export function MovieCardDetailPage() {
         }
       } finally {
         if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [parsedCardId])
+
+  useEffect(() => {
+    if (parsedCardId == null) return
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setFollowingRatings(null)
+    })
+    void (async () => {
+      try {
+        const fetchFollowing = getFollowingRatingsForCard as (
+          cardId: number,
+        ) => Promise<{ items: FollowingRatingRow[] }>
+        const data = await fetchFollowing(parsedCardId)
+        if (!alive) return
+        setFollowingRatings(data.items)
+      } catch {
+        if (!alive) return
+        setFollowingRatings([])
       }
     })()
     return () => {
@@ -405,6 +478,17 @@ export function MovieCardDetailPage() {
                     >
                       <Share2 className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
                     </IconButton>
+                  ) : viewerId != null ? (
+                    <IconButton
+                      type="button"
+                      size="s"
+                      mode="gray"
+                      aria-label="Взять за основу — создать свою карточку по этому фильму"
+                      className="shrink-0"
+                      onClick={() => void navigate(`/cards/new?fromCard=${card.id}`)}
+                    >
+                      <CopyPlus className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+                    </IconButton>
                   ) : null}
                 </div>
                 {card.user_id != null ? (
@@ -469,12 +553,46 @@ export function MovieCardDetailPage() {
             </section>
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <p className="text-sm font-medium">Друзья оценили</p>
-              <div className="mt-3 space-y-2 text-sm text-(--tgui--hint_color)">
-                <p>Аня — 10</p>
-                <p>Максим — 8</p>
-                <p>Катя — 9</p>
-              </div>
+              <p className="text-sm font-medium text-(--tgui--text_color)">Друзья оценили</p>
+              <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
+                Подписки с оценкой этого фильма, по убыванию (до 5).
+              </p>
+              {followingRatings == null ? (
+                <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
+              ) : followingRatings.length === 0 ? (
+                <p className="mt-3 text-sm text-(--tgui--hint_color)">
+                  Пока никто из ваших подписок не оценил этот фильм.
+                </p>
+              ) : (
+                <ul className="mt-3 list-none space-y-3 p-0">
+                  {followingRatings.map((row: FollowingRatingRow) => {
+                    const rp = ratingPalette(row.rating)
+                    return (
+                      <li key={row.user_id}>
+                        <Link
+                          to={`/u/${encodeURIComponent(row.user_id)}`}
+                          className="flex items-center gap-3 rounded-xl no-underline outline-none ring-(--tgui--link_color) focus-visible:ring-2"
+                        >
+                          <Avatar
+                            src={row.photo_url ?? undefined}
+                            acronym={followingRowInitials(row)}
+                            size={40}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-(--tgui--text_color)">
+                            {followingRowDisplayName(row)}
+                          </span>
+                          <span
+                            className="shrink-0 text-lg font-semibold tabular-nums"
+                            style={{ color: rp.text }}
+                          >
+                            {formatRating(row.rating)}
+                          </span>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </section>
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">

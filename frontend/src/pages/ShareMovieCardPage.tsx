@@ -1,31 +1,14 @@
-import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
+import { Button } from '@telegram-apps/telegram-ui'
 import { Share2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { ApiError, formatApiDetail } from '../api/client'
-import { getMovieCardById, shareMovieCardWithFollowers } from '../api/cardApi'
+import { ApiError, apiJson, formatApiDetail } from '../api/client'
+import { getMovieCardById, type ShareMovieCardResponse } from '../api/cardApi'
 import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
-import type { MovieCard, PublicProfile, SubscriptionListItem } from '../api/profileTypes'
+import type { MovieCard, SubscriptionListItem } from '../api/profileTypes'
+import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { useAuthStatus } from '../auth/useAuthStatus'
-import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
-
-function toPublicFromSubscription(row: SubscriptionListItem): PublicProfile {
-  return {
-    id: row.id,
-    profile_slug: row.profile_slug,
-    username: row.username,
-    first_name: row.first_name,
-    last_name: row.last_name,
-    photo_url: row.photo_url,
-    display_name: row.display_name,
-    bio: null,
-    cards_count: 0,
-    friends_count: 0,
-    followers_count: 0,
-    following_count: 0,
-  }
-}
 
 export function ShareMovieCardPage() {
   const auth = useAuthStatus()
@@ -64,9 +47,9 @@ export function ShareMovieCardPage() {
         const subs = await getUserSubscriptions(me.id, 'followers')
         if (!alive) return
         setFollowers(subs.items.filter((x) => x.relation_type === 'follower'))
-      } catch (e) {
+      } catch (error: unknown) {
         if (!alive) return
-        setError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось загрузить данные')
+        setError(error instanceof ApiError ? formatApiDetail(error.detail) : 'Не удалось загрузить данные')
       } finally {
         if (alive) setLoading(false)
       }
@@ -90,11 +73,15 @@ export function ShareMovieCardPage() {
     setSubmitBusy(true)
     setError(null)
     try {
-      await shareMovieCardWithFollowers(parsedId, [...selected])
+      await apiJson<ShareMovieCardResponse>(`/api/cards/${parsedId}/share`, {
+        method: 'POST',
+        body: JSON.stringify({ recipient_user_ids: Array.from(selected) }),
+        headers: { 'Content-Type': 'application/json' },
+      })
       setSelected(new Set())
       void navigate(`/cards/${parsedId}`)
-    } catch (e) {
-      setError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось отправить')
+    } catch (error: unknown) {
+      setError(error instanceof ApiError ? formatApiDetail(error.detail) : 'Не удалось отправить')
     } finally {
       setSubmitBusy(false)
     }
@@ -152,60 +139,19 @@ export function ShareMovieCardPage() {
 
         {!loading && card != null ? (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
-              <div className="aspect-video w-full">
-                {card.film_poster_url ? (
-                  <img src={card.film_poster_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-(--tgui--hint_color)">Нет постера</div>
-                )}
-              </div>
-              <div className="px-4 py-3">
-                <Title level="3" weight="2" className="line-clamp-2">
-                  {card.film_title}
-                </Title>
-                <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? '—'}</p>
-              </div>
-            </div>
+            <ShareFollowersPicker
+              preview={{
+                posterUrl: card.film_poster_url,
+                title: card.film_title,
+                yearLabel: card.film_year != null ? String(card.film_year) : '—',
+              }}
+              followers={followers}
+              loading={false}
+              selected={selected}
+              onToggle={toggle}
+            />
 
-            <p className="filmony-text-panel text-sm leading-relaxed text-(--tgui--hint_color)">
-              Выберите подписчиков — им уйдёт сообщение в Telegram с постером, оценкой и тегами карточки.
-            </p>
-
-            {followers.length === 0 ? (
-              <p className="filmony-text-panel text-center text-sm text-(--tgui--hint_color)">
-                Пока нет подписчиков. Когда кто-то подпишется на вас, вы сможете делиться здесь.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {followers.map((row) => {
-                  const pub = toPublicFromSubscription(row)
-                  const name = displayNameFromProfile(pub)
-                  const checked = selected.has(row.id)
-                  return (
-                    <li key={row.id}>
-                      <button
-                        type="button"
-                        onClick={() => toggle(row.id)}
-                        className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
-                          checked
-                            ? 'border-(--tgui--link_color) bg-[color-mix(in_srgb,var(--tgui--link_color)_12%,var(--tgui--secondary_bg_color))]'
-                            : 'border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)'
-                        }`}
-                      >
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded border border-(--tgui--divider_color) bg-(--tgui--bg_color)">
-                          {checked ? <span className="text-xs text-(--tgui--link_color)">✓</span> : null}
-                        </span>
-                        <Avatar src={row.photo_url ?? undefined} acronym={profileInitials(pub)} size={40} />
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-
-            {error != null && card != null ? (
+            {error != null ? (
               <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">{error}</p>
             ) : null}
 

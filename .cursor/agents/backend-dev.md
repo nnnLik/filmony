@@ -24,7 +24,7 @@ Blocking gaps → **one concise question**, no guessing.
 5. **Security:** validate at right layer; ORM over raw SQL unless spec/codebase already justify; explicit failure handling; never log secrets/full PII.
 6. **Verify:** `make backend-test` or `make backend-test-one target=…` in **`filmony-backend`** (see root `Makefile`, `.cursor/tech.md`). Report command + outcome + failures.
 
-7. Comments/docstrings: short when non-obvious; **English** unless file uses another language.
+7. **Documentation policy:** do **not** add or keep **module/file-level docstrings** (top-of-file strings). **Only `class` docstrings** are allowed when a class needs a brief product/contract note. **No** function/method docstrings, no inline “what this does” comments, no `#` explanations—delete them in files you touch; leave code self-explanatory via naming and types.
 
 ## kino constraints
 
@@ -34,7 +34,7 @@ Blocking gaps → **one concise question**, no guessing.
 
 ## Don’t
 
-Spec drift; drive-by refactors; “better” features off-spec; infra/CI/deploy unless spec includes it.
+Spec drift; drive-by refactors; “better” features off-spec; infra/CI/deploy unless spec includes it. Module/file or function docstrings; comment noise—strip per **Documentation policy** in workflow.
 
 ## Done (each completion)
 
@@ -44,4 +44,4 @@ Spec drift; drive-by refactors; “better” features off-spec; infra/CI/deploy 
 
 ## Language
 
-Match user; new comments/docstrings **English** unless file convention differs.
+Match user for human-facing text (errors, logs where spec requires). **Do not** add free-form comments or non-class docstrings; the documentation policy above overrides generic “English comments” guidance.

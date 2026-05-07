@@ -106,7 +106,7 @@ def _truncate_caption(raw: str, max_len: int = 1000) -> str:
 
 @dataclass
 class DeliverSharedMovieCardTelegramService:
-    """Формирует DM с контекстом карточки; постер — если есть публичный URL постера."""
+    """Формирует DM с контекстом карточки; постер скачивается на сервере и уходит в Telegram как файл."""
 
     async def execute(
         self,
@@ -166,9 +166,7 @@ class DeliverSharedMovieCardTelegramService:
             poster = normalize_absolute_http_url(film.poster_url)
             if poster is not None:
                 try:
-                    return await send_svc.send_photo(
-                        chat_id, poster, caption, parse_mode='HTML'
-                    )
+                    return await send_svc.send_photo(chat_id, poster, caption, parse_mode='HTML')
                 except SendTelegramBotMessageService.TelegramChatUnavailable:
                     logger.info(
                         'shared card skipped (no chat) recipient=%s card_id=%s',
@@ -176,10 +174,11 @@ class DeliverSharedMovieCardTelegramService:
                         card_id,
                     )
                     return
-                except SendTelegramBotMessageService.TelegramDeliveryFailed:
+                except SendTelegramBotMessageService.TelegramDeliveryFailed as exc:
                     logger.warning(
-                        'shared card sendPhoto failed, fallback to text card_id=%s',
+                        'shared card sendPhoto failed, fallback to text card_id=%s err=%s',
                         card_id,
+                        exc,
                     )
 
             try:

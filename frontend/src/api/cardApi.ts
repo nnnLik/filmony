@@ -5,6 +5,7 @@ import type {
   CardMoodBefore,
   FeedMovieCardPage,
   Film,
+  FollowingRatingsResponse,
   MovieCard,
   MovieCardComment,
   MovieCardCommentPage,
@@ -70,6 +71,10 @@ export async function getFilmById(filmId: number): Promise<Film> {
 
 export async function getMovieCardById(cardId: number): Promise<MovieCard> {
   return apiJson<MovieCard>(`/api/cards/${cardId}`)
+}
+
+export async function getFollowingRatingsForCard(cardId: number): Promise<FollowingRatingsResponse> {
+  return apiJson<FollowingRatingsResponse>(`/api/cards/${cardId}/following-ratings`)
 }
 
 export async function getMovieCardFeedPage(params?: {

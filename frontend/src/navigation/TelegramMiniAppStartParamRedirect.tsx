@@ -2,9 +2,14 @@ import { isTMA } from '@telegram-apps/sdk'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-/**
- * Обрабатывает Direct Link Mini App: ``?startapp=c<card_id>`` → ``start_param`` в initData → маршрут ``/cards/:id``.
- */
+function readTelegramStartParam(): string | undefined {
+  const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
+  if (fromUnsafe) {
+    return fromUnsafe
+  }
+  return new URLSearchParams(window.location.search).get('tgWebAppStartParam')?.trim() || undefined
+}
+
 export function TelegramMiniAppStartParamRedirect() {
   const navigate = useNavigate()
   const ran = useRef(false)
@@ -13,7 +18,7 @@ export function TelegramMiniAppStartParamRedirect() {
     if (!isTMA() || ran.current) {
       return
     }
-    const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
+    const sp = readTelegramStartParam()
     if (sp == null || sp === '') {
       return
     }

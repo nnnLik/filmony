@@ -1,10 +1,13 @@
 import { Button, Input, Section, Title } from '@telegram-apps/telegram-ui'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { createMovieCard, getFilmById, resolveFilmByKinopoiskUrl } from '../api/cardApi'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, Film } from '../api/profileTypes'
+import { createMovieCard, getFilmById, getMovieCardById, resolveFilmByKinopoiskUrl, shareMovieCardWithFollowers } from '../api/cardApi'
+import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
+import type { CardCompany, CardMoodAfter, CardMoodBefore, Film, MovieCard, SubscriptionListItem } from '../api/profileTypes'
+import { useAuthStatus } from '../auth/useAuthStatus'
+import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -44,7 +47,7 @@ const STEP_TITLES: Record<WizardStep, string> = {
   2: 'Подтверждение',
   3: 'Оценка и контекст',
   4: 'Ваши теги',
-  5: 'Финальный шаг',
+  5: 'Поделиться',
 }
 
 function normalizeRating(value: number): number {
@@ -71,9 +74,13 @@ function mapResolveError(detail: string): string {
 }
 
 export function CreateCardPage() {
+  const auth = useAuthStatus()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialFilmId = searchParams.get('filmId')
+  const fromCardQuery = searchParams.get('fromCard')
+  const [fromCardPrefillDone, setFromCardPrefillDone] = useState(() => fromCardQuery == null || fromCardQuery === '')
+  const [remixFromCard, setRemixFromCard] = useState(false)
   const [step, setStep] = useState<WizardStep>(1)
   const [kinopoiskUrl, setKinopoiskUrl] = useState('')
   const [loadingFilm, setLoadingFilm] = useState(false)
@@ -86,8 +93,20 @@ export function CreateCardPage() {
   const [moodAfter, setMoodAfter] = useState<CardMoodAfter>('enjoyed')
   const [customTags, setCustomTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [shareFollowers, setShareFollowers] = useState<SubscriptionListItem[]>([])
+  const [shareFollowersLoading, setShareFollowersLoading] = useState(false)
+  const [shareSelected, setShareSelected] = useState<Set<string>>(() => new Set())
+  const fromCardBootstrapSeq = useRef(0)
+
+  const skipFilmIdBootstrap = useMemo(() => {
+    const raw = fromCardQuery
+    return raw != null && raw !== ''
+  }, [fromCardQuery])
 
   useEffect(() => {
+    if (skipFilmIdBootstrap) {
+      return
+    }
     if (initialFilmId == null || initialFilmId === '') {
       return
     }
@@ -111,7 +130,98 @@ export function CreateCardPage() {
         setLoadingFilm(false)
       }
     })()
-  }, [initialFilmId])
+  }, [initialFilmId, skipFilmIdBootstrap])
+
+  useEffect(() => {
+    const raw = searchParams.get('fromCard')
+    if (raw == null || raw === '') {
+      queueMicrotask(() => {
+        setFromCardPrefillDone(true)
+      })
+      return
+    }
+    const cardId = Number(raw)
+    if (!Number.isInteger(cardId) || cardId <= 0) {
+      queueMicrotask(() => {
+        setError('Некорректная ссылка на карточку-шаблон')
+        setFromCardPrefillDone(true)
+        void navigate('/cards/new', { replace: true })
+      })
+      return
+    }
+
+    const seq = ++fromCardBootstrapSeq.current
+    let alive = true
+    void (async () => {
+      setLoadingFilm(true)
+      setError(null)
+      try {
+        const [card, me] = await Promise.all([getMovieCardById(cardId), getMyProfile()])
+        if (!alive || seq !== fromCardBootstrapSeq.current) return
+        if (card.user_id != null && card.user_id === me.id) {
+          setError('Свою карточку нельзя взять за основу — отредактируйте её или создайте новую по ссылке на Кинопоиск.')
+          void navigate('/cards/new', { replace: true })
+          return
+        }
+        const item = await getFilmById(card.film_id)
+        if (!alive || seq !== fromCardBootstrapSeq.current) return
+        setFilm(item)
+        setRemixFromCard(true)
+        setStep(2)
+        void navigate('/cards/new', { replace: true })
+      } catch (e) {
+        if (!alive || seq !== fromCardBootstrapSeq.current) return
+        if (e instanceof ApiError) {
+          setError(formatApiDetail(e.detail))
+        } else {
+          setError('Не удалось загрузить карточку-шаблон')
+        }
+        void navigate('/cards/new', { replace: true })
+      } finally {
+        setLoadingFilm(false)
+        if (alive && seq === fromCardBootstrapSeq.current) {
+          setFromCardPrefillDone(true)
+        }
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [navigate, searchParams])
+
+  useEffect(() => {
+    if (step !== 5 || auth.kind !== 'ready') {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setShareFollowersLoading(true)
+      try {
+        const me = await getMyProfile()
+        if (!alive) return
+        const subs = await getUserSubscriptions(me.id, 'followers')
+        if (!alive) return
+        setShareFollowers(subs.items.filter((x) => x.relation_type === 'follower'))
+      } catch {
+        if (!alive) return
+        setShareFollowers([])
+      } finally {
+        if (alive) setShareFollowersLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [step, auth.kind])
+
+  function toggleShareRecipient(userId: string) {
+    setShareSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
 
   async function handleResolveFilm() {
     if (kinopoiskUrl.trim() === '') {
@@ -204,7 +314,7 @@ export function CreateCardPage() {
     setSubmitLoading(true)
     setError(null)
     try {
-      await createMovieCard({
+      const newCard: MovieCard = await createMovieCard({
         film_id: film.id,
         kinopoisk_id: film.kinopoisk_id,
         genres: film.genres ?? [],
@@ -215,6 +325,18 @@ export function CreateCardPage() {
         custom_tags: customTags,
       })
       clearMyProfileBundleCache()
+      if (shareSelected.size > 0) {
+        const postShare = shareMovieCardWithFollowers as (
+          cardId: number,
+          recipientUserIds: string[],
+        ) => Promise<{ queued: number }>
+        try {
+          await postShare(newCard.id, [...shareSelected])
+        } catch {
+          void navigate(`/cards/${newCard.id}/share`)
+          return
+        }
+      }
       void navigate('/profile')
     } catch (e) {
       if (e instanceof ApiError) {
@@ -242,6 +364,7 @@ export function CreateCardPage() {
           <div className="text-center">
             <h1 className="text-base font-semibold tracking-tight text-(--tgui--text_color)">Новая карточка</h1>
             <p className="text-xs text-(--tgui--hint_color)">
+              {remixFromCard ? 'По мотивам чужой карточки · ' : null}
               Шаг {step} из {TOTAL_STEPS}: {STEP_TITLES[step]}
             </p>
           </div>
@@ -258,7 +381,13 @@ export function CreateCardPage() {
       </header>
 
       <main className="px-4 py-6">
-        {step === 1 ? (
+        {!fromCardPrefillDone ? (
+          <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
+            Загружаем фильм из карточки…
+          </p>
+        ) : null}
+
+        {fromCardPrefillDone && step === 1 ? (
           <Section header="1. Ссылка на Кинопоиск">
             <div className="flex flex-col gap-4 px-3 py-3">
               <p className="text-sm text-(--tgui--hint_color)">
@@ -277,10 +406,16 @@ export function CreateCardPage() {
           </Section>
         ) : null}
 
-        {step === 2 ? (
+        {fromCardPrefillDone && step === 2 ? (
           <Section header="2. Подтверждение фильма">
             {film != null ? (
               <div className="px-3 py-3">
+                {remixFromCard ? (
+                  <p className="filmony-text-panel mb-3 text-sm text-(--tgui--hint_color)">
+                    Фильм уже выбран. Дальше — только ваша оценка, настроение и теги; новая карточка будет отдельной
+                    записью у вас в профиле.
+                  </p>
+                ) : null}
                 <div className="filmony-text-panel flex gap-3">
                   <div className="h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-(--tgui--secondary_bg_color)">
                     {film.poster_url ? (
@@ -301,6 +436,7 @@ export function CreateCardPage() {
                     stretched
                     onClick={() => {
                       setFilm(null)
+                      setRemixFromCard(false)
                       setError(null)
                       setStep(1)
                     }}
@@ -327,7 +463,7 @@ export function CreateCardPage() {
           </Section>
         ) : null}
 
-        {step === 3 ? (
+        {fromCardPrefillDone && step === 3 ? (
           <Section header="3. Оценка и теги">
             <div className="px-3 py-3">
               <div className="filmony-text-panel text-center">
@@ -367,7 +503,7 @@ export function CreateCardPage() {
           </Section>
         ) : null}
 
-        {step === 4 ? (
+        {fromCardPrefillDone && step === 4 ? (
           <Section header="4. Ваши теги (до 5)">
             <div className="px-3 py-3">
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -406,17 +542,22 @@ export function CreateCardPage() {
           </Section>
         ) : null}
 
-        {step === 5 ? (
+        {fromCardPrefillDone && step === 5 ? (
           <Section header="5. Поделиться карточкой">
             <div className="px-3 py-3">
-              <div className="filmony-text-panel">
-                <Title level="3" weight="2">
-                  Скоро здесь будет больше
-                </Title>
-                <p className="mt-2 text-sm text-(--tgui--hint_color)">
-                  На этом шаге позже можно будет отправлять карточку подписчикам и друзьям.
-                </p>
-              </div>
+              {film != null ? (
+                <ShareFollowersPicker
+                  preview={{
+                    posterUrl: film.poster_url,
+                    title: film.title,
+                    yearLabel: film.year != null ? String(film.year) : '—',
+                  }}
+                  followers={shareFollowers}
+                  loading={shareFollowersLoading}
+                  selected={shareSelected}
+                  onToggle={toggleShareRecipient}
+                />
+              ) : null}
               <div className="mt-5">
                 <Button stretched disabled={film == null || submitLoading} onClick={() => void handleSubmit()}>
                   {submitLoading ? 'Создаем...' : 'Готово'}

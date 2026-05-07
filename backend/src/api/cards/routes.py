@@ -13,6 +13,8 @@ from api.cards.schemas import (
     CardDetailResponse,
     CardResponse,
     CardUpdateRequest,
+    FollowingRatingEntryResponse,
+    FollowingRatingsListResponse,
     MovieCardCommentAuthorResponse,
     MovieCardCommentCreateRequest,
     MovieCardCommentListResponse,
@@ -54,6 +56,10 @@ from services.cards.delete_movie_card import (
     MovieCardNotFoundError as DeleteMovieCardNotFoundError,
 )
 from services.cards.get_movie_card_details import GetMovieCardDetailsService, MovieCardNotFoundError
+from services.cards.list_following_ratings_for_movie_card import (
+    ListFollowingRatingsForMovieCardService,
+    MovieCardAnchorNotFoundError,
+)
 from services.cards.list_movie_card_comments import (
     CommentNotFoundError,
     ListMovieCardCommentsService,
@@ -237,6 +243,37 @@ async def list_movie_card_feed(
             for item in page.items
         ],
         next_cursor=page.next_cursor,
+    )
+
+
+@router.get(
+    '/{card_id}/following-ratings',
+    response_model=FollowingRatingsListResponse,
+    summary='Оценки того же фильма среди ваших подписок',
+)
+async def list_following_ratings_for_movie_card(
+    card_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FollowingRatingsListResponse:
+    try:
+        rows = await ListFollowingRatingsForMovieCardService(db).execute(viewer.id, card_id)
+    except MovieCardAnchorNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    return FollowingRatingsListResponse(
+        items=[
+            FollowingRatingEntryResponse(
+                user_id=r.user_id,
+                profile_slug=r.profile_slug,
+                username=r.username,
+                first_name=r.first_name,
+                last_name=r.last_name,
+                photo_url=r.photo_url,
+                display_name=r.display_name,
+                rating=r.rating,
+            )
+            for r in rows
+        ],
     )
 
 

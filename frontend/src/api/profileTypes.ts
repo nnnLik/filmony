@@ -142,6 +142,21 @@ export type MovieCardCommentAuthor = {
   display_name: string | null
 }
 
+export type FollowingRatingEntry = {
+  user_id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+  rating: number
+}
+
+export type FollowingRatingsResponse = {
+  items: FollowingRatingEntry[]
+}
+
 export type MovieCardComment = {
   id: number
   movie_card_id: number

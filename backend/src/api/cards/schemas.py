@@ -127,3 +127,18 @@ class ShareCardRequest(BaseModel):
 
 class ShareCardResponse(BaseModel):
     queued: int
+
+
+class FollowingRatingEntryResponse(BaseModel):
+    user_id: UUID
+    profile_slug: str
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    photo_url: str | None
+    display_name: str | None
+    rating: float
+
+
+class FollowingRatingsListResponse(BaseModel):
+    items: list[FollowingRatingEntryResponse] = Field(default_factory=list)
