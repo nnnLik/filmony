@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Load SQL fixtures into filmony-postgres (see compose.yml).
+# Inserts use ON CONFLICT / upsert where needed so rerunning the script is safe
+# against duplicate keys after data was already loaded.
 # Usage:
 #   ./scripts/load-fixtures.sh              # all fixtures in dependency order
 #   ./scripts/load-fixtures.sh user.sql     # one file from fixtures/

@@ -43,7 +43,14 @@ INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_a
 	 ('f0000005-0000-4000-8000-000000000005'::uuid,21,7.4,'partner','thrill','enjoyed','2026-05-08 14:35:00+03','2026-05-08 12:52:00'),
 	 ('f0000006-0000-4000-8000-000000000006'::uuid,20,5.7,'friends','relax','wasted_time','2026-05-08 14:40:00+03','2026-05-08 12:54:00'),
 	 ('84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,20,9.0,'alone','laugh','enjoyed','2026-05-08 14:45:00+03','2026-05-08 12:56:00'),
-	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,21,7.0,'family','relax','enjoyed','2026-05-08 14:50:00+03','2026-05-08 12:58:00');
+	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,21,7.0,'family','relax','enjoyed','2026-05-08 14:50:00+03','2026-05-08 12:58:00')
+ON CONFLICT (user_id, film_id) DO UPDATE SET
+  rating = EXCLUDED.rating,
+  company = EXCLUDED.company,
+  mood_before = EXCLUDED.mood_before,
+  mood_after = EXCLUDED.mood_after,
+  updated_at = EXCLUDED.updated_at,
+  created_at = EXCLUDED.created_at;
 
 -- Доп. карточки: общие фильмы (обсуждения), любимые, пересечения для ленты/оценок друзей
 INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_after,is_favorite,favorite_marked_at,updated_at,created_at) VALUES
@@ -66,4 +73,13 @@ INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_a
 	 ('f0000003-0000-4000-8000-000000000003'::uuid,28,8.5,'partner','relax','enjoyed',false,NULL,'2026-05-10 13:20:00+03','2026-05-10 12:20:00'),
 	 ('84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,28,9.1,'alone','thrill','enjoyed',false,NULL,'2026-05-10 13:25:00+03','2026-05-10 12:25:00'),
 	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,29,7.3,'friends','relax','enjoyed',false,NULL,'2026-05-10 13:30:00+03','2026-05-10 12:30:00'),
-	 ('f0000004-0000-4000-8000-000000000004'::uuid,29,6.0,'partner','sad','wasted_time',false,NULL,'2026-05-10 13:35:00+03','2026-05-10 12:35:00');
+	 ('f0000004-0000-4000-8000-000000000004'::uuid,29,6.0,'partner','sad','wasted_time',false,NULL,'2026-05-10 13:35:00+03','2026-05-10 12:35:00')
+ON CONFLICT (user_id, film_id) DO UPDATE SET
+  rating = EXCLUDED.rating,
+  company = EXCLUDED.company,
+  mood_before = EXCLUDED.mood_before,
+  mood_after = EXCLUDED.mood_after,
+  is_favorite = EXCLUDED.is_favorite,
+  favorite_marked_at = EXCLUDED.favorite_marked_at,
+  updated_at = EXCLUDED.updated_at,
+  created_at = EXCLUDED.created_at;

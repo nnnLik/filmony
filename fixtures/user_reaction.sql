@@ -50,7 +50,9 @@ INSERT INTO public.user_reaction (user_id, reaction_type_id, target_kind, target
 	 ('f0000004-0000-4000-8000-000000000004'::uuid, 1, 'movie_card_comment', 88, '2026-05-10 15:16:00'),
 	 ('f0000006-0000-4000-8000-000000000006'::uuid, 3, 'movie_card_comment', 94, '2026-05-10 15:17:00'),
 	 ('f0000008-0000-4000-8000-000000000008'::uuid, 1, 'movie_card_comment', 101, '2026-05-10 15:18:00'),
-	 ('f000000a-0000-4000-8000-00000000000a'::uuid, 2, 'movie_card_comment', 108, '2026-05-10 15:19:00');
+	 ('f000000a-0000-4000-8000-00000000000a'::uuid, 2, 'movie_card_comment', 108, '2026-05-10 15:19:00')
+ON CONFLICT (user_id, target_kind, target_id, reaction_type_id) DO UPDATE SET
+  created_at = EXCLUDED.created_at;
 
 SELECT setval(
   pg_get_serial_sequence('user_reaction', 'id'),

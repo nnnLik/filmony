@@ -54,6 +54,33 @@ async def test_drop_all_tables_rejects_non_test_env(monkeypatch: pytest.MonkeyPa
 
 
 @pytest.mark.asyncio
+async def test_drop_all_tables_ensures_test_schema_before_drop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Avoid dropping app tables in public when search_path skips missing test schema."""
+
+    monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
+    monkeypatch.setattr(settings.database, 'default_schema', 'public')
+    monkeypatch.setattr(settings.database, 'test_schema', 'filmony_test')
+
+    order: list[str] = []
+
+    async def fake_ensure() -> None:
+        order.append('ensure')
+
+    monkeypatch.setattr(db_setup, 'ensure_test_schema', fake_ensure)
+
+    conn = _DummyConnection()
+    engine = _DummyEngine(conn)
+    monkeypatch.setattr(db_setup, 'get_engine', lambda: engine)
+
+    await db_setup.drop_all_tables()
+
+    assert order == ['ensure']
+    assert conn.run_sync_called
+
+
+@pytest.mark.asyncio
 async def test_ensure_test_schema_rejects_public_schema(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
     monkeypatch.setattr(settings.database, 'default_schema', 'app')

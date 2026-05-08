@@ -41,6 +41,9 @@ async def create_all_tables() -> None:
 
 async def drop_all_tables() -> None:
     _ensure_safe_test_database()
+    # PostgreSQL skips non-existent schemas in search_path; if `filmony_test` is not
+    # created yet, unqualified DROP targets `public` and wipes the real database.
+    await ensure_test_schema()
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

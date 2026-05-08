@@ -43,12 +43,22 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
     env:
       DATABASE_URL: postgresql://filmony:filmony@localhost:5432/filmony
       DATABASE_TEST_SCHEMA: filmony_test
+      CELERY_BROKER_URL: redis://127.0.0.1:6379/15
       TG_APP_TOKEN: ci-placeholder-token
       KINOPOISK_API_KEY: ci-placeholder-key
       KINOPOISK_API_BASE_URL: https://kinopoiskapiunofficial.tech/api

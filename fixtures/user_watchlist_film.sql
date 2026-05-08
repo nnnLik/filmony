@@ -14,4 +14,6 @@ INSERT INTO public.user_watchlist_film (user_id, film_id, created_at) VALUES
 	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,2,'2026-05-08 16:11:00'),
 	 ('84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,7,'2026-05-08 16:12:00'),
 	 ('f000000b-0000-4000-8000-00000000000b'::uuid,4,'2026-05-08 16:13:00'),
-	 ('f000000c-0000-4000-8000-00000000000c'::uuid,1,'2026-05-08 16:14:00');
+	 ('f000000c-0000-4000-8000-00000000000c'::uuid,1,'2026-05-08 16:14:00')
+ON CONFLICT (user_id, film_id) DO UPDATE SET
+  created_at = EXCLUDED.created_at;

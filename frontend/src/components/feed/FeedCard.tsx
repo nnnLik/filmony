@@ -63,7 +63,8 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const palette = useMemo(() => ratingPalette(card.rating), [card.rating])
   const isOwnCard =
     viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
-  const authorFavoriteRibbon = !isOwnCard && Boolean(card.is_favorite)
+  /** Карточка с `is_favorite`: второй бейдж «Особая карточка» в шапке (свои и чужие в ленте). */
+  const authorFavoriteRibbon = Boolean(card.is_favorite)
   const sourceBadgeText = useMemo(
     () => feedCardSourceBadge(card, viewerUserId ?? null),
     [card, viewerUserId],
@@ -193,7 +194,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
         {authorFavoriteRibbon ? (
           <span
             className="shrink-0 rounded-md border border-[color-mix(in_srgb,#ec4899_48%,transparent)] bg-[color-mix(in_srgb,#ec4899_16%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-pink-600 dark:text-pink-300"
-            title="Автор отметил эту карточку как особую"
+            title={
+              isOwnCard
+                ? 'Вы отметили эту карточку как особую'
+                : 'Автор отметил эту карточку как особую'
+            }
           >
             Особая карточка
           </span>

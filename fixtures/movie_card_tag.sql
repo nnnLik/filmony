@@ -118,4 +118,6 @@ INSERT INTO public.movie_card_tag (movie_card_id,tag,created_at) VALUES
 	 (62,'саунд','2026-05-10 15:20:00'),
 	 (63,'офис','2026-05-10 15:20:00'),
 	 (64,'настроение','2026-05-10 15:20:00'),
-	 (65,'метро','2026-05-10 15:20:00');
+	 (65,'метро','2026-05-10 15:20:00')
+ON CONFLICT (movie_card_id, tag) DO UPDATE SET
+  created_at = EXCLUDED.created_at;

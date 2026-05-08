@@ -12,4 +12,16 @@ INSERT INTO public."user" (id,telegram_user_id,username,first_name,last_name,pho
 	 ('f0000009-0000-4000-8000-000000000009'::uuid,910000109,'fixture_julia','Юлия','Семёнова','https://cdn.example/avatars/julia.png','ufixturejulia09','Юлия С.','Анимация для взрослых и психологическая драма.','ru','2026-05-08 10:20:00+03','2026-05-08 09:20:00'),
 	 ('f000000a-0000-4000-8000-00000000000a'::uuid,910000110,'fixture_kirill','Кирилл','Данилов','https://cdn.example/avatars/kirill.png','ufixturekirill0a','Кирилл Д.','Ретро до 2000-х и кассетная эстетика.','ru','2026-05-08 10:25:00+03','2026-05-08 09:25:00'),
 	 ('f000000b-0000-4000-8000-00000000000b'::uuid,910000111,'fixture_lara','Лара','Ким','https://cdn.example/avatars/lara.png','ufixturelara0b','Лара К.','Арткино и азиатские детективы по настроению.','ru','2026-05-08 10:30:00+03','2026-05-08 09:30:00'),
-	 ('f000000c-0000-4000-8000-00000000000c'::uuid,910000112,'fixture_mikhail','Михаил','Брюсов','https://cdn.example/avatars/mikhail.png','ufixturemikhail0c','Михаил Б.','Спортивные документалки и биографии музыкантов.','ru','2026-05-08 10:35:00+03','2026-05-08 09:35:00');
+	 ('f000000c-0000-4000-8000-00000000000c'::uuid,910000112,'fixture_mikhail','Михаил','Брюсов','https://cdn.example/avatars/mikhail.png','ufixturemikhail0c','Михаил Б.','Спортивные документалки и биографии музыкантов.','ru','2026-05-08 10:35:00+03','2026-05-08 09:35:00')
+ON CONFLICT (id) DO UPDATE SET
+  telegram_user_id = EXCLUDED.telegram_user_id,
+  username = EXCLUDED.username,
+  first_name = EXCLUDED.first_name,
+  last_name = EXCLUDED.last_name,
+  photo_url = EXCLUDED.photo_url,
+  profile_slug = EXCLUDED.profile_slug,
+  display_name = EXCLUDED.display_name,
+  bio = EXCLUDED.bio,
+  language_code = EXCLUDED.language_code,
+  updated_at = EXCLUDED.updated_at,
+  created_at = EXCLUDED.created_at;
