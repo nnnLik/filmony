@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,6 +15,24 @@ from tests.api.test_reactions_routes import (
     _login,
     _seed_reaction_catalog,
 )
+
+_DELIVER_ENGAGEMENT_PATCHES = (
+    'services.telegram.notify_comment_reply.deliver_engagement_html_message',
+    'services.telegram.notify_movie_card_root_comment.deliver_engagement_html_message',
+    'services.telegram.notify_reaction_added.deliver_engagement_html_message',
+)
+
+
+@contextmanager
+def _patch_deliver_engagement_dm() -> Iterator[AsyncMock]:
+    """Patch DM sender where notify modules bind it (`from … import` keeps a separate reference)."""
+
+    mock_dm = AsyncMock()
+    mock_dm.return_value = None
+    with ExitStack() as stack:
+        for target in _DELIVER_ENGAGEMENT_PATCHES:
+            stack.enter_context(patch(target, mock_dm))
+        yield mock_dm
 
 
 @pytest.fixture(autouse=True)
@@ -30,11 +50,7 @@ def _celery_always_eager() -> None:
 @pytest.mark.asyncio
 async def test_comment_reply_triggers_telegram_dm(async_client: AsyncClient) -> None:
     await _seed_reaction_catalog()
-    with patch(
-        'services.telegram.engagement_delivery.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as mock_dm:
-        mock_dm.return_value = None
+    with _patch_deliver_engagement_dm() as mock_dm:
         cid = await _create_card_any(async_client, tg=860_101, kid=860_101)
         root = await async_client.post(
             f'/api/cards/{cid}/comments',
@@ -59,11 +75,7 @@ async def test_comment_reply_triggers_telegram_dm(async_client: AsyncClient) -> 
 @pytest.mark.asyncio
 async def test_root_comment_on_card_notifies_owner(async_client: AsyncClient) -> None:
     await _seed_reaction_catalog()
-    with patch(
-        'services.telegram.engagement_delivery.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as mock_dm:
-        mock_dm.return_value = None
+    with _patch_deliver_engagement_dm() as mock_dm:
         cid = await _create_card_any(async_client, tg=860_801, kid=860_801)
         await _login(async_client, telegram_user_id=860_802)
         r = await async_client.post(
@@ -80,11 +92,7 @@ async def test_root_comment_on_card_notifies_owner(async_client: AsyncClient) ->
 @pytest.mark.asyncio
 async def test_comment_reply_skips_self_reply(async_client: AsyncClient) -> None:
     await _seed_reaction_catalog()
-    with patch(
-        'services.telegram.engagement_delivery.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as mock_dm:
-        mock_dm.return_value = None
+    with _patch_deliver_engagement_dm() as mock_dm:
         cid = await _create_card_any(async_client, tg=860_201, kid=860_201)
         root = await async_client.post(
             f'/api/cards/{cid}/comments',
@@ -103,11 +111,7 @@ async def test_comment_reply_skips_self_reply(async_client: AsyncClient) -> None
 @pytest.mark.asyncio
 async def test_reaction_added_triggers_dm_once(async_client: AsyncClient) -> None:
     rx1, *_rest = await _seed_reaction_catalog()
-    with patch(
-        'services.telegram.engagement_delivery.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as mock_dm:
-        mock_dm.return_value = None
+    with _patch_deliver_engagement_dm() as mock_dm:
         cid = await _create_card_any(async_client, tg=860_301, kid=860_301)
         await _login(async_client, telegram_user_id=860_302)
         first = await async_client.post(
@@ -141,11 +145,7 @@ async def test_reaction_added_triggers_dm_once(async_client: AsyncClient) -> Non
 async def test_two_users_same_reaction_type_both_trigger_dm(async_client: AsyncClient) -> None:
     """Вторая персона ставит тот же тип реакции, что уже есть у другого — всё равно «добавление», нужен отдельный DM."""
     rx1, *_rest = await _seed_reaction_catalog()
-    with patch(
-        'services.telegram.engagement_delivery.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as mock_dm:
-        mock_dm.return_value = None
+    with _patch_deliver_engagement_dm() as mock_dm:
         cid = await _create_card_any(async_client, tg=860_601, kid=860_601)
 
         await _login(async_client, telegram_user_id=860_602)
@@ -182,11 +182,7 @@ async def test_two_users_same_reaction_type_both_trigger_dm(async_client: AsyncC
 @pytest.mark.asyncio
 async def test_reaction_on_comment_triggers_dm(async_client: AsyncClient) -> None:
     rx1, *_rest = await _seed_reaction_catalog()
-    with patch(
-        'services.telegram.engagement_delivery.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as mock_dm:
-        mock_dm.return_value = None
+    with _patch_deliver_engagement_dm() as mock_dm:
         cid = await _create_card_any(async_client, tg=860_401, kid=860_401)
         cm = await async_client.post(f'/api/cards/{cid}/comments', json={'text': 'root'})
         assert cm.status_code == 200

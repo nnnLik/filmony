@@ -44,7 +44,7 @@ services:
       POSTGRES_PASSWORD: filmony
       POSTGRES_DB: filmony
     ports:
-      - "55432:5432"
+      - '55432:5432'
     volumes:
       - filmony-pgdata:/var/lib/postgresql/data
 
@@ -59,7 +59,7 @@ services:
 
   filmony-rustfs:
     <<: *on-filmony-network
-    image: rustfs/rustfs:latest
+    image: rustfs/rustfs:1.0.0-beta.1
     container_name: filmony-rustfs
     ports:
       - '7900:9000'
@@ -76,12 +76,21 @@ services:
     <<: *app-with-deps
     container_name: filmony-backend
     command: python src/main.py
-    ports:
-      - "6749:8000"
-    environment:
-      RUSTFS_INTERNAL_BASE_URL: http://filmony-rustfs:9000
 
   filmony-celery-worker:
     <<: *app-with-deps
     container_name: filmony-celery-worker
     command: celery -A celery_app worker --loglevel=INFO
+
+  filmony-nginx:
+    <<: *on-filmony-network
+    image: nginx:1.27.5-alpine
+    container_name: filmony-nginx
+    ports:
+      - '8888:80'
+    volumes:
+      - ./deploy/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      - filmony-backend

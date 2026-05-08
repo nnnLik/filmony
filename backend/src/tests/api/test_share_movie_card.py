@@ -8,6 +8,7 @@ from uuid import UUID
 import pytest
 from httpx import AsyncClient
 
+from celery_app import app as celery_app_instance
 from tests.api.test_profile_routes import _login, _seed_movie_card
 
 
@@ -15,8 +16,9 @@ from tests.api.test_profile_routes import _login, _seed_movie_card
 async def test_share_movie_card_queues_tasks_for_followers(
     async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    mock_send = MagicMock()
-    monkeypatch.setattr('api.cards.routes.celery_application.send_task', mock_send)
+    mock_delay = MagicMock()
+    share_task = celery_app_instance.tasks['tasks.telegram_engagement.deliver_shared_movie_card']
+    monkeypatch.setattr(share_task, 'delay', mock_delay)
 
     owner = await _login(async_client, telegram_user_id=90101)
     follower = await _login(async_client, telegram_user_id=90102)
@@ -43,13 +45,11 @@ async def test_share_movie_card_queues_tasks_for_followers(
     assert res.status_code == 200
     assert res.json()['queued'] == 1
 
-    mock_send.assert_called_once()
-    args, kw = mock_send.call_args
-    assert args[0] == 'tasks.telegram_engagement.deliver_shared_movie_card'
-    payload = kw['kwargs']
-    assert payload['card_id'] == card_id
-    assert payload['actor_user_id'] == str(owner['id'])
-    assert payload['recipient_user_id'] == str(follower['id'])
+    mock_delay.assert_called_once_with(
+        actor_user_id=str(owner['id']),
+        card_id=card_id,
+        recipient_user_id=str(follower['id']),
+    )
 
 
 @pytest.mark.asyncio

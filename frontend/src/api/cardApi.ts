@@ -3,6 +3,7 @@ import type {
   CardCompany,
   CardMoodAfter,
   CardMoodBefore,
+  FeedListMode,
   FeedMovieCardPage,
   Film,
   FollowingRatingsResponse,
@@ -80,10 +81,13 @@ export async function getFollowingRatingsForCard(cardId: number): Promise<Follow
 export async function getMovieCardFeedPage(params?: {
   cursor?: string | null
   limit?: number
+  /** Совпадает с query `mode` на бэкенде; передавайте при пагинации тот же режим */
+  mode?: FeedListMode
 }): Promise<FeedMovieCardPage> {
   const search = new URLSearchParams()
   if (params?.cursor) search.set('cursor', params.cursor)
   if (params?.limit != null) search.set('limit', String(params.limit))
+  if (params?.mode != null && params.mode !== 'default') search.set('mode', params.mode)
   const suffix = search.toString()
   return apiJson<FeedMovieCardPage>(`/api/cards/feed${suffix ? `?${suffix}` : ''}`)
 }

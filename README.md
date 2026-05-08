@@ -25,8 +25,10 @@
 │   └── pyproject.toml
 ├── frontend/          # Mini App (Vite + React)
 ├── docs/              # итоговые доки фич (`docs/features/`) и инженерные гайды
-├── vars/              # env: версионируемый `.env.development` + `.env.example`
-├── compose.yml
+├── vars/              # env: `.env.development`, `.env.example`, шаблон прод — `.env.production.example`
+├── deploy/nginx/      # nginx dev.conf (Vite на хосте + API) и prod.conf (статика + API)
+├── compose.yml        # dev: backend в Docker, nginx :8888 → API и прокси на Vite :5176
+├── compose.prod.yml   # prod: Postgres, Redis, RustFS, API, Celery, nginx :8080 → dist + API
 └── Makefile
 ```
 
@@ -42,7 +44,7 @@
    make start
    ```
 
-   Бэкенд слушает порт **6749** → `http://127.0.0.1:6749` (см. `compose.yml`). PostgreSQL в compose доступен сервису `filmony-backend` по имени `filmony-postgres`.
+   HTTP-вход для приложения и `/api`: **nginx на порту 8888** → `http://127.0.0.1:8888`. Контейнер `filmony-backend` в сети compose без публикации порта на хост. PostgreSQL доступен как `filmony-postgres:5432` из контейнеров; с хоста при необходимости — порт **55432**. После `make start` запустите на хосте **`npm run dev`** в `frontend/` (Vite на **5176**); nginx проксирует на него запросы к UI.
 
 3. Миграции БД:
 
@@ -72,6 +74,18 @@
 
    Должны быть запущены compose и RustFS (`http://127.0.0.1:7900`, ключи как в `compose.yml`). Картинки в UI идут через **постоянный** путь `/api/reactions/asset/...`: бэкенд качает объект из RustFS с **подписью S3** при заданных в `vars/.env.development` переменных **`RUSTFS_ACCESS_KEY`** / **`RUSTFS_SECRET_KEY`**. Временные presigned-URL из консоли (порт 7901) для этого не нужны. Подробнее: `docs/features/movie-card-custom-reactions.md`.
 
+## Эталонный продакшен (Compose)
+
+Файл **[`compose.prod.yml`](compose.prod.yml)**: образ бэкенда **`target: prod`**, без bind-mount кода; **`nginx`** слушает **`127.0.0.1:8080`** и отдаёт `frontend/dist` + прокси `/api` на backend. Перед `up` выполните `npm run build` во `frontend/`.
+
+1. Скопируйте [`vars/.env.production.example`](vars/.env.production.example) → `vars/.env.production`, заполните секреты; для контейнера Postgres нужны **`POSTGRES_USER`**, **`POSTGRES_PASSWORD`**, **`POSTGRES_DB`** в этом же файле.
+2. `docker compose -f compose.prod.yml --env-file vars/.env.production build && docker compose -f compose.prod.yml --env-file vars/.env.production up -d`
+3. Миграции: `docker compose -f compose.prod.yml --env-file vars/.env.production exec filmony-backend alembic upgrade head`
+
+Снаружи TLS обычно терминируется на хостовом Nginx/Caddy с проксированием на `127.0.0.1:8080`.
+
+Чеклист выката: [`.cursor/features/production-readiness/feature.md`](.cursor/features/production-readiness/feature.md).
+
 ## Makefile (бэкенд внутри контейнера)
 
 | Цель | Назначение |
@@ -95,7 +109,7 @@ npm install
 npm run dev
 ```
 
-Vite по умолчанию проксирует `/api` на бэкенд (настройка `VITE_API_ORIGIN` в `vars/` — см. `frontend/vite.config.ts`).
+Сначала поднимите `make start` (nginx + backend в compose). Vite слушает **5176** на хосте; браузер и Mini App открывайте через **http://127.0.0.1:8888** (nginx проксирует UI на Vite и `/api` на backend). Для прямого входа на dev-сервер Vite переменная `VITE_API_ORIGIN` в `vars/` должна указывать на тот же nginx (`http://127.0.0.1:8888`), см. `frontend/vite.config.ts`.
 
 ## Telegram: бот, /start и создание пользователя
 

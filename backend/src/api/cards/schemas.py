@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -99,7 +100,11 @@ class FilmResolveRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+FeedCardSource = Literal['own', 'subscriptions', 'subscribers', 'personal_affinity', 'discovery']
+
+
 class MovieCardFeedItemResponse(CardDetailResponse):
+    feed_source: FeedCardSource
     card_author: MovieCardCommentAuthorResponse
     comments_count: int
     comments_preview: list[MovieCardCommentResponse] = Field(default_factory=list)

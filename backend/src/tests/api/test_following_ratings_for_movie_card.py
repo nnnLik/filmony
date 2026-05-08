@@ -44,6 +44,7 @@ async def test_following_ratings_lists_subscriptions_same_film_sorted_desc(
     dave = await _login(async_client, telegram_user_id=93102)
     eve = await _login(async_client, telegram_user_id=93103)
 
+    await _login(async_client, telegram_user_id=93104)
     await async_client.post(f'/api/users/{dave["id"]}/subscriptions')
     await async_client.post(f'/api/users/{eve["id"]}/subscriptions')
 

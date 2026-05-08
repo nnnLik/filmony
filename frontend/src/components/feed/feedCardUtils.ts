@@ -1,4 +1,11 @@
-import type { CardCompany, CardMoodAfter, CardMoodBefore, FeedMovieCard, MovieCardComment } from '../../api/profileTypes'
+import type {
+  CardCompany,
+  CardMoodAfter,
+  CardMoodBefore,
+  FeedCardSource,
+  FeedMovieCard,
+  MovieCardComment,
+} from '../../api/profileTypes'
 
 export const COMPANY_SHORT: Record<CardCompany, string> = {
   alone: 'Один',
@@ -20,6 +27,21 @@ export const MOOD_AFTER_SHORT: Record<CardMoodAfter, string> = {
   enjoyed: 'Топ',
   tense: 'Выжат',
   wasted_time: 'Зря',
+}
+
+export function feedSourceLabel(source: FeedCardSource): string {
+  switch (source) {
+    case 'own':
+      return 'Ваша карточка'
+    case 'subscriptions':
+      return 'Подписки'
+    case 'subscribers':
+      return 'Подписчики'
+    case 'personal_affinity':
+      return 'Похоже на ваши теги'
+    case 'discovery':
+      return 'Новое для вас'
+  }
 }
 
 export function ratingPalette(value: number): {

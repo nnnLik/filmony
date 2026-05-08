@@ -11,6 +11,7 @@ import {
   authorLabel,
   commentAuthorDisplay,
   COMPANY_SHORT,
+  feedSourceLabel,
   formatCommentTime,
   formatRating,
   MOOD_AFTER_SHORT,
@@ -149,6 +150,9 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
       data-testid={`feed-card-${card.id}`}
       className="flex max-w-full flex-col gap-2 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] p-2.5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.45)]"
     >
+      <p className="mb-0.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-(--filmony-mint,#5eead4)">
+        {feedSourceLabel(card.feed_source)}
+      </p>
       {/* Главная зона: постер отступает от краёв карточки, клик ведёт в карточку фильма */}
       <Link
         to={cardHref}

@@ -47,7 +47,7 @@ score = GENRE_OVERLAP_WEIGHT * |norm_genres(film) ∩ G_viewer|
 ### Cursor (`v1.*`)
 
 - Префикс `v1.` + URL-safe base64(JSON).
-- Поля: `v`, `offsets` (следующий индекс в каждом упорядоченном списке потока), `slot_index`, `seen` (все уже выданные id), `tail_authors` / `tail_films` (хвост для anti-spam).
+- Поля: `v`, `offsets` (следующий индекс в каждом упорядоченном списке потока), `slot_index`, `seen` (все уже выданные id), `tail_authors` / `tail_films` (хвост для anti-spam), **`mode`** (режим ленты; должен совпадать с query `mode` текущего запроса — иначе курсор отбрасывается и начинается с первой страницы).
 - Повтор запроса с тем же cursor при неизменной БД даёт ту же следующую страницу.
 - Старый формат курсора (одно число `movie_card.id`) **не** поддерживается — клиент начинает с первой страницы.
 
@@ -58,11 +58,15 @@ score = GENRE_OVERLAP_WEIGHT * |norm_genres(film) ∩ G_viewer|
 
 ### API
 
-- Контракт ответа не менялся: `MovieCardFeedPageResponse` (`items`, `next_cursor`), тот же набор полей элементов (включая реакции).
+- Query **`mode`**: `default` | `subscriptions_only` | `subscribers_only`.
+  - **`default`**: все потоки.
+  - **`subscriptions_only`**: тот же алгоритм merge, но в выдаче участвуют только потоки **`own`** и **`subscriptions`** (остальные списки считаются пустыми).
+  - **`subscribers_only`**: только **`own`** и **`subscribers`**.
+- В каждом элементе **`feed_source`**: какой поток дал карточку в этой позиции слота (`own` | `subscriptions` | `subscribers` | `personal_affinity` | `discovery`).
 
 ## Тесты
 
-- `backend/src/tests/api/test_movie_card_feed_recommendation.py` — happy path, пустой граф, стабильность cursor, discovery при наличии соцграфа, уникальность id на странице.
+- `backend/src/tests/api/test_movie_card_feed_recommendation.py` — happy path, пустой граф, стабильность cursor, discovery при наличии соцграфа, уникальность id на странице, **`feed_source`**, режим **`subscriptions_only`**.
 - `backend/src/tests/api/test_cards_routes.py` — обновлён `test_movie_card_feed_cursor_pagination` под новый cursor.
 
 Прогон: `make backend-test` / `make backend-test-one target=…` в контейнере `filmony-backend`.

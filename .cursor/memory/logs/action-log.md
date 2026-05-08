@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-08T220000Z-production-readiness-compose-nginx-code.md`
+- `2026-05-08T210000Z-production-readiness-docs.md`
 - `2026-05-08T200000Z-mvp-docs-alignment-docs.md`
 - `2026-05-08T180000Z-feed-card-comments-scroll-docs.md`
 - `2026-05-08T160100Z-celery-redis-workers-code.md`

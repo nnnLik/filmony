@@ -26,6 +26,7 @@ from api.cards.schemas import (
 )
 from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
+from const.feed import FeedMode
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.movie_card_comment import MovieCardComment
@@ -209,8 +210,12 @@ async def list_movie_card_feed(
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=50),
+    mode: FeedMode = Query(
+        default='default',
+        description='Смешанная лента, только подписки (и свои карточки), или только подписчики (и свои)',
+    ),
 ) -> MovieCardFeedPageResponse:
-    page = await ListMovieCardFeedService(db).execute(viewer.id, cursor, limit)
+    page = await ListMovieCardFeedService(db).execute(viewer.id, cursor, limit, feed_mode=mode)
     return MovieCardFeedPageResponse(
         items=[
             MovieCardFeedItemResponse(
@@ -227,6 +232,7 @@ async def list_movie_card_feed(
                 mood_before=item.mood_before,
                 mood_after=item.mood_after,
                 custom_tags=item.custom_tags,
+                feed_source=item.feed_source,
                 reactions=reaction_target_summary_to_response(item.reactions),
                 comments_count=item.comments_count,
                 card_author=MovieCardCommentAuthorResponse(
@@ -411,13 +417,10 @@ async def share_movie_card(
         ) from None
 
     for rid in outcome.recipient_ids:
-        celery_application.send_task(
-            'tasks.telegram_engagement.deliver_shared_movie_card',
-            kwargs={
-                'actor_user_id': str(user.id),
-                'card_id': card_id,
-                'recipient_user_id': str(rid),
-            },
+        celery_application.tasks['tasks.telegram_engagement.deliver_shared_movie_card'].delay(
+            actor_user_id=str(user.id),
+            card_id=card_id,
+            recipient_user_id=str(rid),
         )
 
     return ShareCardResponse(queued=len(outcome.recipient_ids))
@@ -515,23 +518,17 @@ async def create_card_comment(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     if body.parent_comment_id is None:
-        celery_application.send_task(
-            'tasks.telegram_engagement.notify_movie_card_root_comment',
-            kwargs={
-                'actor_user_id': str(user.id),
-                'card_id': card_id,
-                'comment_text': created.text,
-            },
+        celery_application.tasks['tasks.telegram_engagement.notify_movie_card_root_comment'].delay(
+            actor_user_id=str(user.id),
+            card_id=card_id,
+            comment_text=created.text,
         )
     else:
-        celery_application.send_task(
-            'tasks.telegram_engagement.notify_comment_reply',
-            kwargs={
-                'actor_user_id': str(user.id),
-                'card_id': card_id,
-                'parent_comment_id': body.parent_comment_id,
-                'reply_text': created.text,
-            },
+        celery_application.tasks['tasks.telegram_engagement.notify_comment_reply'].delay(
+            actor_user_id=str(user.id),
+            card_id=card_id,
+            parent_comment_id=body.parent_comment_id,
+            reply_text=created.text,
         )
 
     return await _load_comment_response(db, created.id, user.id)

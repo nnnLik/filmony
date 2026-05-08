@@ -57,6 +57,7 @@ temp/
 vars/.env.*
 !vars/.env.example
 !vars/.env.development
+!vars/.env.production.example
 
 # --- Docker (локальные артефакты) ---
 *.env.local

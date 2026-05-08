@@ -119,9 +119,21 @@ export type MovieCard = {
   reactions?: ReactionSummary
 }
 
+/** Query-параметр `mode` для GET /api/cards/feed */
+export type FeedListMode = 'default' | 'subscriptions_only' | 'subscribers_only'
+
+/** Источник карточки в персональной ленте (ответ GET /api/cards/feed) */
+export type FeedCardSource =
+  | 'own'
+  | 'subscriptions'
+  | 'subscribers'
+  | 'personal_affinity'
+  | 'discovery'
+
 /** Карточка ленты: поля фильма и автора из GET /api/cards/feed */
 export type FeedMovieCard = MovieCard & {
   user_id: string
+  feed_source: FeedCardSource
   card_author: MovieCardCommentAuthor
   comments_count: number
   comments_preview: MovieCardComment[]

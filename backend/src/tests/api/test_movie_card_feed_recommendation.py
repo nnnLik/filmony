@@ -82,6 +82,7 @@ async def test_feed_happy_path_shows_followed_author_cards(async_client: AsyncCl
     ours = next((it for it in body['items'] if it['id'] == cid), None)
     assert ours is not None
     assert ours['user_id'] == str(a_id)
+    assert ours['feed_source'] == 'subscriptions'
 
 
 @pytest.mark.asyncio
@@ -97,7 +98,16 @@ async def test_feed_empty_social_graph_fills_from_discovery(async_client: AsyncC
     await _login(async_client, telegram_user_id=9603)
     feed = await async_client.get('/api/cards/feed?limit=10')
     assert feed.status_code == 200
-    ids_on_page = [it['user_id'] for it in feed.json()['items']]
+    body = feed.json()
+    for it in body['items']:
+        assert it['feed_source'] in (
+            'own',
+            'subscriptions',
+            'subscribers',
+            'personal_affinity',
+            'discovery',
+        )
+    ids_on_page = [it['user_id'] for it in body['items']]
     assert str(s_id) in ids_on_page
     assert str(v_id) not in ids_on_page
 
@@ -186,3 +196,34 @@ async def test_feed_discovery_appears_with_social_graph(async_client: AsyncClien
     items = feed.json()['items']
     stranger_hits = sum(1 for it in items if it['user_id'] == str(s_id))
     assert stranger_hits >= 1
+    for it in items:
+        if it['user_id'] == str(s_id):
+            assert it['feed_source'] in ('discovery', 'personal_affinity')
+
+
+@pytest.mark.asyncio
+async def test_feed_subscriptions_only_excludes_non_subscription_streams(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=9620)
+    followed = await _login(async_client, telegram_user_id=9621)
+    stranger = await _login(async_client, telegram_user_id=9622)
+    v_id = UUID(str(me['id']))
+    f_id = UUID(str(followed['id']))
+    s_id = UUID(str(stranger['id']))
+    await _subscribe(v_id, f_id)
+
+    await _seed_movie_card_for_user(user_id=f_id, kinopoisk_id=1962001, genres=['драма'])
+    await _seed_movie_card_for_user(user_id=s_id, kinopoisk_id=1962002, genres=['комедия'])
+
+    await _login(async_client, telegram_user_id=9620)
+    mix = await async_client.get('/api/cards/feed?limit=50')
+    assert mix.status_code == 200
+    mix_items = mix.json()['items']
+    assert any(it['user_id'] == str(s_id) for it in mix_items)
+
+    sub_only = await async_client.get('/api/cards/feed?limit=50&mode=subscriptions_only')
+    assert sub_only.status_code == 200
+    sub_items = sub_only.json()['items']
+    assert str(s_id) not in [it['user_id'] for it in sub_items]
+    assert all(it['feed_source'] in ('own', 'subscriptions') for it in sub_items)

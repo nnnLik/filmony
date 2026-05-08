@@ -15,7 +15,7 @@ function resolveApiOrigin(raw: string | undefined, fallback: string): string {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir, '')
-  const apiOrigin = resolveApiOrigin(env.VITE_API_ORIGIN, 'http://127.0.0.1:8000')
+  const apiOrigin = resolveApiOrigin(env.VITE_API_ORIGIN, 'http://127.0.0.1:8888')
 
   const proxy = {
     '/api': {

@@ -863,6 +863,7 @@ async def test_movie_card_feed_includes_comments_count_and_preview(
     assert ours is not None
     assert ours['user_id'] == me['id']
     assert ours['comments_count'] == 3
+    assert ours['feed_source'] == 'own'
     assert ours['card_author']['id'] == me['id']
     assert 'reactions' in ours
     previews = ours['comments_preview']

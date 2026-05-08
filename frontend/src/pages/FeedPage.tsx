@@ -1,12 +1,18 @@
 import { Button } from '@telegram-apps/telegram-ui'
+import { ChevronDown } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getMovieCardFeedPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
-import type { FeedMovieCard, MovieCardComment } from '../api/profileTypes'
+import type {
+  FeedListMode,
+  FeedMovieCard,
+  MovieCardComment,
+} from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
+import { FeedModePickerSheet, feedModeTitle } from '../components/feed/FeedModePickerSheet'
 
 export function FeedPage() {
   const aliveRef = useRef(true)
@@ -20,6 +26,8 @@ export function FeedPage() {
 
   const [items, setItems] = useState<FeedMovieCard[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [feedMode, setFeedMode] = useState<FeedListMode>('default')
+  const [modeSheetOpen, setModeSheetOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +36,7 @@ export function FeedPage() {
     setLoading(true)
     setError(null)
     try {
-      const page = await getMovieCardFeedPage({ limit: 20 })
+      const page = await getMovieCardFeedPage({ limit: 20, mode: feedMode })
       if (!aliveRef.current) return
       setItems(page.items)
       setNextCursor(page.next_cursor ?? null)
@@ -40,7 +48,7 @@ export function FeedPage() {
         setLoading(false)
       }
     }
-  }, [])
+  }, [feedMode])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -52,7 +60,7 @@ export function FeedPage() {
     if (nextCursor == null || loadingMore) return
     setLoadingMore(true)
     try {
-      const page = await getMovieCardFeedPage({ cursor: nextCursor, limit: 20 })
+      const page = await getMovieCardFeedPage({ cursor: nextCursor, limit: 20, mode: feedMode })
       if (!aliveRef.current) return
       setItems((prev) => [...prev, ...page.items])
       setNextCursor(page.next_cursor ?? null)
@@ -64,7 +72,7 @@ export function FeedPage() {
         setLoadingMore(false)
       }
     }
-  }, [nextCursor, loadingMore])
+  }, [nextCursor, loadingMore, feedMode])
 
   const onCommentsState = useCallback(
     (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
@@ -78,43 +86,39 @@ export function FeedPage() {
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-              Filmony
-            </h1>
+        <div className="flex items-center gap-2 px-4 py-3">
+          <h1 className="min-w-0 flex-1 truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+            Лента
+          </h1>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              mode="gray"
+              size="s"
+              type="button"
+              className="inline-flex max-w-42 min-w-0 shrink items-center gap-1"
+              onClick={() => setModeSheetOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={modeSheetOpen}
+              aria-label={`Источник ленты: ${feedModeTitle(feedMode)}. Открыть выбор`}
+            >
+              <span className="min-w-0 truncate">{feedModeTitle(feedMode)}</span>
+              <ChevronDown className="block size-4 shrink-0 opacity-75" aria-hidden />
+            </Button>
+            <Link to="/cards/new" aria-label="Добавить фильм" className="shrink-0 no-underline">
+              <Button mode="gray">+</Button>
+            </Link>
           </div>
-          <Link to="/cards/new" aria-label="Добавить фильм" className="no-underline">
-            <Button mode="gray">+</Button>
-          </Link>
         </div>
       </header>
 
-      <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
-        <div className="mb-8">
-          <div className="flex items-center gap-2.5">
-            <span
-              className="h-9 w-[3px] shrink-0 rounded-full bg-linear-to-b from-(--filmony-mint,#5eead4) via-(--filmony-amber,#e8b86d) to-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] shadow-[0_0_14px_-1px_var(--filmony-mint,#5eead4)]"
-              aria-hidden
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium uppercase tracking-wide text-(--filmony-mint,#5eead4)">
-                Обзор
-              </p>
-              <h2 className="mt-1 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-(--tgui--text_color)">
-                Лента
-              </h2>
-              <p className="mt-2 max-w-[20rem] text-[13px] leading-snug text-(--tgui--hint_color)">
-                Свежие оценки и обсуждения в одном списке
-              </p>
-            </div>
-          </div>
-          <div
-            className="mt-6 h-px w-full rounded-full bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--filmony-mint,#5eead4)_28%,transparent),color-mix(in_srgb,var(--tgui--divider_color)_95%,transparent),transparent)]"
-            aria-hidden
-          />
-        </div>
+      <FeedModePickerSheet
+        open={modeSheetOpen}
+        onClose={() => setModeSheetOpen(false)}
+        value={feedMode}
+        onSelect={setFeedMode}
+      />
 
+      <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
         <div className="flex flex-col gap-5">
           {loading && (
             <div className="flex flex-col gap-4">
