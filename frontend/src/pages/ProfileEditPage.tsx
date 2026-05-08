@@ -27,6 +27,8 @@ function toPublicShape(p: MyProfile): PublicProfile {
     display_name: p.display_name,
     bio: p.bio,
     cards_count: p.cards_count,
+    favorites_count: p.favorites_count,
+    watchlist_count: p.watchlist_count,
     friends_count: p.friends_count,
     followers_count: p.followers_count,
     following_count: p.following_count,
