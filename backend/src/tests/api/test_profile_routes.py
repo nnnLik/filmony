@@ -1,3 +1,4 @@
+import asyncio
 from uuid import UUID, uuid4
 
 import pytest
@@ -72,6 +73,8 @@ async def test_my_profile_returns_slug_and_counts(async_client: AsyncClient) -> 
     assert body['profile_slug']
     assert body['profile_slug'].startswith('u')
     assert body['cards_count'] == 0
+    assert body['favorites_count'] == 0
+    assert body['watchlist_count'] == 0
     assert body['friends_count'] == 0
     assert body['followers_count'] == 0
     assert body['following_count'] == 0
@@ -423,3 +426,55 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         'Фильм B',
         'Фильм C',
     ]
+
+
+@pytest.mark.asyncio
+async def test_favorites_count_and_favorites_only_list(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=9604)
+    uid = UUID(str(me['id']))
+    card_early = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=300001,
+        title='Early fav',
+        year=2020,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+    )
+    card_late = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=300002,
+        title='Late fav',
+        year=2021,
+        rating=7.5,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+    )
+
+    p1 = await async_client.patch(f'/api/cards/{card_early}', json={'is_favorite': True})
+    assert p1.status_code == 200
+    await asyncio.sleep(0.02)
+    p2 = await async_client.patch(f'/api/cards/{card_late}', json={'is_favorite': True})
+    assert p2.status_code == 200
+
+    prof = await async_client.get('/api/me/profile')
+    assert prof.status_code == 200
+    assert prof.json()['favorites_count'] == 2
+
+    pub = await async_client.get(f'/api/users/{me["id"]}')
+    assert pub.status_code == 200
+    assert pub.json()['favorites_count'] == 2
+
+    fav = await async_client.get(f'/api/users/{me["id"]}/cards', params={'favorites_only': True})
+    assert fav.status_code == 200
+    body = fav.json()
+    assert [it['id'] for it in body['items']] == [card_late, card_early]
+    assert all(it['is_favorite'] for it in body['items'])
+
+    all_cards = await async_client.get(f'/api/users/{me["id"]}/cards')
+    assert all_cards.status_code == 200
+    fav_ids = {it['id']: it['is_favorite'] for it in all_cards.json()['items']}
+    assert fav_ids[card_early] is True
+    assert fav_ids[card_late] is True

@@ -13,7 +13,6 @@ class UserReaction(Base):
         Uuid(as_uuid=True),
         ForeignKey('user.id', ondelete='CASCADE'),
         nullable=False,
-        index=True,
     )
     reaction_type_id: Mapped[int] = mapped_column(
         Integer,
@@ -33,4 +32,5 @@ class UserReaction(Base):
             name='uq_user_reaction_user_target_kind_type',
         ),
         Index('ix_user_reaction_target', 'target_kind', 'target_id'),
+        Index('ix_user_reaction_user_target_kind', 'user_id', 'target_kind', 'target_id'),
     )

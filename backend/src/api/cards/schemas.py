@@ -31,6 +31,7 @@ class CardResponse(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str]
+    is_favorite: bool = False
 
 
 class CardDetailResponse(BaseModel):
@@ -47,6 +48,7 @@ class CardDetailResponse(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str]
+    is_favorite: bool = False
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
 
 
@@ -56,6 +58,7 @@ class CardUpdateRequest(BaseModel):
     mood_before: CardMoodBefore | None = None
     mood_after: CardMoodAfter | None = None
     custom_tags: list[str] | None = Field(default=None, max_length=5)
+    is_favorite: bool | None = None
 
     model_config = ConfigDict(extra='forbid')
 

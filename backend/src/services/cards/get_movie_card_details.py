@@ -29,6 +29,7 @@ class MovieCardDetails:
     mood_after: str
     custom_tags: list[str]
     reactions: ReactionTargetSummary
+    is_favorite: bool
 
 
 class MovieCardNotFoundError(Exception):
@@ -82,4 +83,5 @@ class GetMovieCardDetailsService:
             mood_after=card.mood_after,
             custom_tags=list(tags),
             reactions=summaries[card.id],
+            is_favorite=bool(card.is_favorite),
         )

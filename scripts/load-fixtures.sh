@@ -32,13 +32,16 @@ if [[ "${1:-}" ]]; then
   exit 0
 fi
 
-# Order respects FKs: user & film -> movie_card -> comments/tags -> subscriptions
+# Order respects FKs: user & film -> movie_card -> favorite flags -> comments -> reactions -> tags -> subscriptions
 ORDER=(
   user.sql
   reaction_type.sql
   film.sql
   movie_card.sql
+  movie_card_favorite_updates.sql
+  user_watchlist_film.sql
   movie_card_comment.sql
+  user_reaction.sql
   movie_card_tag.sql
   user_subscription.sql
 )

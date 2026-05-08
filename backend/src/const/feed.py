@@ -16,6 +16,9 @@ StreamName = Literal[
 # может исчерпать пул — см. docs/features/feed-recommendation-engine.md).
 STREAM_POOL_LIMIT: Final[int] = 400
 
+# Максимум card id в поле seen курсора ленты (хвост), чтобы payload не раздувался безлимитно.
+FEED_CURSOR_SEEN_MAX: Final[int] = 2048
+
 # Сколько свежих карточек сканировать под скоринг affinity до финальной сортировки.
 AFFINITY_CANDIDATE_SCAN: Final[int] = 500
 

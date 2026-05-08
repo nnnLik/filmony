@@ -263,6 +263,7 @@ async def test_get_card_success_surfaces_movie_and_author(async_client: AsyncCli
     body = fetched.json()
     assert body['id'] == card_id
     assert body['user_id'] == data['id']
+    assert body['is_favorite'] is False
     assert body['film_kinopoisk_id'] == film.kinopoisk_id
     assert body['film_title'] == 'Интерстеллар'
     assert 'reactions' in body
@@ -366,6 +367,65 @@ async def test_patch_card_forbidden_for_another_user(async_client: AsyncClient) 
     card_id = created.json()['id']
     await _login(async_client, telegram_user_id=625)
     blocked = await async_client.patch(f'/api/cards/{card_id}', json={'rating': 9.0})
+    assert blocked.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_patch_card_is_favorite_toggle(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=9601)
+    film = await _create_film(kinopoisk_id=199601)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    assert created.json()['is_favorite'] is False
+
+    fav = await async_client.patch(f'/api/cards/{card_id}', json={'is_favorite': True})
+    assert fav.status_code == 200
+    assert fav.json()['is_favorite'] is True
+    got = await async_client.get(f'/api/cards/{card_id}')
+    assert got.json()['is_favorite'] is True
+
+    unfav = await async_client.patch(f'/api/cards/{card_id}', json={'is_favorite': False})
+    assert unfav.status_code == 200
+    assert unfav.json()['is_favorite'] is False
+    got2 = await async_client.get(f'/api/cards/{card_id}')
+    assert got2.json()['is_favorite'] is False
+
+
+@pytest.mark.asyncio
+async def test_patch_card_foreign_user_cannot_toggle_favorite(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=9602)
+    film = await _create_film(kinopoisk_id=199602)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    await _login(async_client, telegram_user_id=9603)
+    blocked = await async_client.patch(f'/api/cards/{card_id}', json={'is_favorite': True})
     assert blocked.status_code == 403
 
 

@@ -12,10 +12,12 @@ from api.profile.schemas import (
     PublicProfileResponse,
     SubscriptionListResponse,
     UserMovieCardStatsResponse,
+    WatchlistFilmPageResponse,
     build_movie_card_page_response,
     build_public_profile_response,
     build_subscription_list_response,
     build_user_movie_card_stats_response,
+    build_watchlist_film_page_response,
 )
 from conf import settings
 from core.database import get_db
@@ -47,6 +49,7 @@ from services.subscriptions.list_user_subscriptions import (
 from services.subscriptions.list_user_subscriptions import (
     TargetUserNotFoundError as SubscriptionTargetUserNotFoundListError,
 )
+from services.watchlist.list_user_watchlist_films import ListUserWatchlistFilmsService
 
 router = APIRouter(prefix='/users', tags=['users'])
 
@@ -96,13 +99,41 @@ async def list_user_cards(
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = None,
     limit: int = Query(default=20, ge=1),
+    favorites_only: bool = Query(
+        default=False, description='Только избранные карточки (порядок по времени отметки)'
+    ),
 ) -> MovieCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
     cap = min(limit, 50)
-    page = await ListUserMovieCardsService(db).execute(user_id, cursor, cap)
+    page = await ListUserMovieCardsService(db).execute(
+        user_id,
+        cursor,
+        cap,
+        favorites_only=favorites_only,
+    )
     return build_movie_card_page_response(page)
+
+
+@router.get(
+    '/{user_id}/watchlist',
+    response_model=WatchlistFilmPageResponse,
+    summary='Фильмы в списке «к просмотру» (публично)',
+)
+async def list_user_watchlist_films(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: str | None = None,
+    limit: int = Query(default=20, ge=1),
+) -> WatchlistFilmPageResponse:
+    exists = await GetPublicUserByIdService(db).execute(user_id)
+    if exists is None:
+        raise _not_found()
+    cap = min(limit, 50)
+    page = await ListUserWatchlistFilmsService(db).execute(user_id, cursor, cap)
+    return build_watchlist_film_page_response(page)
 
 
 @router.get(

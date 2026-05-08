@@ -8,6 +8,7 @@ import { getMovieCardById, type ShareMovieCardResponse } from '../api/cardApi'
 import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
 import type { MovieCard, SubscriptionListItem } from '../api/profileTypes'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
+import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import { useAuthStatus } from '../auth/useAuthStatus'
 
 type ShareMovieCardLocationState = {
@@ -160,6 +161,7 @@ export function ShareMovieCardPage() {
               loading={false}
               selected={selected}
               onToggle={toggle}
+              deepLinkToCopy={buildMiniAppCardDeepLink(parsedId)}
             />
 
             {error != null ? (

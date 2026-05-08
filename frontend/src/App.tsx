@@ -4,6 +4,7 @@ import { AppRoot } from '@telegram-apps/telegram-ui'
 
 import { TelegramMiniAppStartParamRedirect } from './navigation/TelegramMiniAppStartParamRedirect'
 import { AuthProvider } from './auth/AuthProvider'
+import { ScrollToTopFab } from './components/navigation/ScrollToTopFab'
 import { AppRoutes } from './routes'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>
+        <ScrollToTopFab />
       </div>
     </AppRoot>
   )

@@ -1,7 +1,9 @@
-import { Avatar, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
 
 import type { PublicProfile, SubscriptionListItem } from '../../api/profileTypes'
+import { copyTextToClipboard } from '../../lib/copyTextToClipboard'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
+import { safeHapticSuccess } from '../../lib/safeHaptic'
 
 function toPublicFromSubscription(row: SubscriptionListItem): PublicProfile {
   return {
@@ -14,6 +16,8 @@ function toPublicFromSubscription(row: SubscriptionListItem): PublicProfile {
     display_name: row.display_name,
     bio: null,
     cards_count: 0,
+    favorites_count: 0,
+    watchlist_count: 0,
     friends_count: 0,
     followers_count: 0,
     following_count: 0,
@@ -33,6 +37,7 @@ export type ShareFollowersPickerProps = {
   loading: boolean
   selected: Set<string>
   onToggle: (userId: string) => void
+  deepLinkToCopy?: string | null
 }
 
 export function ShareFollowersPicker({
@@ -42,6 +47,7 @@ export function ShareFollowersPicker({
   loading,
   selected,
   onToggle,
+  deepLinkToCopy = null,
 }: ShareFollowersPickerProps) {
   return (
     <div className="space-y-4">
@@ -60,6 +66,24 @@ export function ShareFollowersPicker({
           <p className="mt-1 text-sm text-(--tgui--hint_color)">{preview.yearLabel}</p>
         </div>
       </div>
+
+      {deepLinkToCopy != null && deepLinkToCopy !== '' ? (
+        <Button
+          mode="gray"
+          stretched
+          type="button"
+          onClick={() => {
+            void (async () => {
+              const ok = await copyTextToClipboard(deepLinkToCopy)
+              if (ok) {
+                safeHapticSuccess()
+              }
+            })()
+          }}
+        >
+          Скопировать ссылку
+        </Button>
+      ) : null}
 
       <p className="filmony-text-panel text-sm leading-relaxed text-(--tgui--hint_color)">{hint}</p>
 

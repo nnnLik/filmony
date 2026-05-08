@@ -32,6 +32,8 @@ function toPublicShapeFromMe(me: MyProfile): PublicProfile {
     display_name: me.display_name,
     bio: me.bio,
     cards_count: me.cards_count,
+    favorites_count: me.favorites_count,
+    watchlist_count: me.watchlist_count,
     friends_count: me.friends_count,
     followers_count: me.followers_count,
     following_count: me.following_count,

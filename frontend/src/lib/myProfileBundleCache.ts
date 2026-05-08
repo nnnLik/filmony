@@ -2,6 +2,17 @@ import type { MovieCardPage, MyProfile } from '../api/profileTypes'
 
 import { MY_PROFILE_BUNDLE_STORAGE_KEY, MY_PROFILE_CACHE_MAX_AGE_MS } from './filmonySession'
 
+/** Событие на `window`: профиль в sessionStorage обновился или очищен */
+export const MY_PROFILE_BUNDLE_CHANGED_EVENT = 'filmony-my-profile-bundle-changed'
+
+function notifyMyProfileBundleChanged(): void {
+  try {
+    window.dispatchEvent(new CustomEvent(MY_PROFILE_BUNDLE_CHANGED_EVENT))
+  } catch {
+    /* ignore */
+  }
+}
+
 export type MyProfileBundle = {
   profile: MyProfile
   cards: MovieCardPage | null
@@ -31,6 +42,8 @@ export function readMyProfileBundleCache(): MyProfileBundle | null {
       ...parsed.profile,
       followers_count: parsed.profile.followers_count ?? 0,
       following_count: parsed.profile.following_count ?? 0,
+      watchlist_count: parsed.profile.watchlist_count ?? 0,
+      favorites_count: parsed.profile.favorites_count ?? 0,
     }
     return parsed
   } catch {
@@ -51,6 +64,7 @@ export function writeMyProfileBundleCache(profile: MyProfile, cards: MovieCardPa
       storedAt: Date.now(),
     }
     sessionStorage.setItem(MY_PROFILE_BUNDLE_STORAGE_KEY, JSON.stringify(payload))
+    notifyMyProfileBundleChanged()
   } catch {
     /* ignore */
   }
@@ -59,6 +73,7 @@ export function writeMyProfileBundleCache(profile: MyProfile, cards: MovieCardPa
 export function clearMyProfileBundleCache(): void {
   try {
     sessionStorage.removeItem(MY_PROFILE_BUNDLE_STORAGE_KEY)
+    notifyMyProfileBundleChanged()
   } catch {
     /* ignore */
   }

@@ -12,7 +12,15 @@ import type {
 } from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
-import { FeedModePickerSheet, feedModeTitle } from '../components/feed/FeedModePickerSheet'
+import { FeedModePickerSheet } from '../components/feed/FeedModePickerSheet'
+import { feedModeTitle } from '../components/feed/feedModePickerConstants'
+import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
+import {
+  MY_PROFILE_BUNDLE_CHANGED_EVENT,
+  readMyProfileBundleCache,
+} from '../lib/myProfileBundleCache'
+import { greetingFirstName } from '../lib/profileDisplay'
+import { readRecentCardViews } from '../lib/recentCardViews'
 
 export function FeedPage() {
   const aliveRef = useRef(true)
@@ -31,6 +39,23 @@ export function FeedPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
+  const viewerUserId = myProfileBundle?.profile.id ?? null
+  const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
+
+  const [recentStrip, setRecentStrip] = useState(() => {
+    const uid = readMyProfileBundleCache()?.profile.id
+    return uid != null ? readRecentCardViews(uid) : []
+  })
+
+  const refreshRecentStrip = useCallback(() => {
+    const uid = readMyProfileBundleCache()?.profile.id
+    setRecentStrip(uid != null ? readRecentCardViews(uid) : [])
+  }, [])
+
+  const refreshProfileBundle = useCallback(() => {
+    setMyProfileBundle(readMyProfileBundleCache())
+  }, [])
 
   const loadInitial = useCallback(async () => {
     setLoading(true)
@@ -55,6 +80,29 @@ export function FeedPage() {
       void loadInitial()
     })
   }, [loadInitial])
+
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      refreshRecentStrip()
+      refreshProfileBundle()
+    })
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        refreshRecentStrip()
+        refreshProfileBundle()
+      }
+    }
+    const onRecent = () => refreshRecentStrip()
+    const onProfile = () => refreshProfileBundle()
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('filmony-recent-cards-changed', onRecent)
+    window.addEventListener(MY_PROFILE_BUNDLE_CHANGED_EVENT, onProfile)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('filmony-recent-cards-changed', onRecent)
+      window.removeEventListener(MY_PROFILE_BUNDLE_CHANGED_EVENT, onProfile)
+    }
+  }, [refreshRecentStrip, refreshProfileBundle])
 
   const loadMore = useCallback(async () => {
     if (nextCursor == null || loadingMore) return
@@ -111,6 +159,8 @@ export function FeedPage() {
         </div>
       </header>
 
+      <RecentCardsStrip items={recentStrip} />
+
       <FeedModePickerSheet
         open={modeSheetOpen}
         onClose={() => setModeSheetOpen(false)}
@@ -140,7 +190,9 @@ export function FeedPage() {
           {!loading && error == null && items.length === 0 && (
             <div className="flex flex-col items-center gap-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-10">
               <p className="text-center text-[14px] leading-relaxed text-(--tgui--hint_color)">
-                Здесь появятся карточки пользователей. Добавьте свой фильм первым.
+                {emptyFeedGreeting != null
+                  ? `${emptyFeedGreeting}, добавь первый фильм`
+                  : 'Добавь первый фильм — здесь появятся карточки друзей и рекомендации.'}
               </p>
               <Link to="/cards/new" className="w-full no-underline">
                 <Button stretched>Добавить фильм</Button>
@@ -151,7 +203,12 @@ export function FeedPage() {
           {!loading && error == null && items.length > 0 && (
             <>
               {items.map((card) => (
-                <FeedCard key={card.id} card={card} onCommentsState={onCommentsState} />
+                <FeedCard
+                  key={card.id}
+                  card={card}
+                  viewerUserId={viewerUserId}
+                  onCommentsState={onCommentsState}
+                />
               ))}
               {nextCursor != null ? (
                 <div className="flex justify-center pt-1 pb-4">

@@ -216,3 +216,26 @@ class SendTelegramBotMessageService:
             raise self.TelegramDeliveryFailed('telegram transport error') from e
 
         self._raise_for_telegram_result(result, default_err='telegram sendPhoto failed')
+
+    async def send_document(
+        self,
+        chat_id: int,
+        document_bytes: bytes,
+        *,
+        filename: str,
+        content_type: str = 'text/csv',
+        caption: str | None = None,
+        parse_mode: str | None = None,
+    ) -> None:
+        try:
+            result = await self._client.send_document_multipart(
+                chat_id,
+                document_bytes,
+                filename=filename,
+                content_type=content_type,
+                caption=caption,
+                parse_mode=parse_mode,
+            )
+        except Exception as e:
+            raise self.TelegramDeliveryFailed('telegram transport error') from e
+        self._raise_for_telegram_result(result, default_err='telegram sendDocument failed')

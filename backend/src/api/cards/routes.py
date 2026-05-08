@@ -201,6 +201,7 @@ async def create_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=list(tags),
+        is_favorite=bool(card.is_favorite),
     )
 
 
@@ -245,6 +246,7 @@ async def list_movie_card_feed(
                     display_name=item.card_author.display_name,
                 ),
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
+                is_favorite=item.is_favorite,
             )
             for item in page.items
         ],
@@ -310,6 +312,7 @@ async def get_card(
         mood_after=card.mood_after,
         custom_tags=card.custom_tags,
         reactions=reaction_target_summary_to_response(card.reactions),
+        is_favorite=card.is_favorite,
     )
 
 
@@ -334,6 +337,7 @@ async def patch_card(
                 mood_before=body.mood_before,
                 mood_after=body.mood_after,
                 custom_tags=body.custom_tags,
+                is_favorite=body.is_favorite,
             ),
         )
     except UpdateMovieCardNotFoundError:
@@ -362,6 +366,7 @@ async def patch_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=list(tags),
+        is_favorite=bool(card.is_favorite),
     )
 
 

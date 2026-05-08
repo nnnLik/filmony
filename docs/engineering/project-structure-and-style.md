@@ -9,7 +9,7 @@
 | [`backend/src/`](/backend/src/) | FastAPI-приложение (`main.py`), `api/`, `services/`, `models/`, `migrations/`, `tests/` |
 | [`frontend/src/`](/frontend/src/) | React Mini App: `pages/`, `components/`, `api/`, `auth/`, `layout/` |
 | [`compose.yml`](/compose.yml) | Локальный стек (Postgres, RustFS, `filmony-backend`) |
-| [`fixtures/`](/fixtures/) | SQL-фикстуры; порядок загрузки — [`scripts/load-fixtures.sh`](/scripts/load-fixtures.sh) |
+| [`fixtures/`](/fixtures/) | SQL-фикстуры; порядок загрузки — [`scripts/load-fixtures.sh`](/scripts/load-fixtures.sh); объём и правила — [`fixtures/README.md`](/fixtures/README.md) |
 | [`scripts/`](/scripts/) | Утилиты (фикстуры, синхронизация реакций в RustFS) |
 | [`.cursor/rules/`](/.cursor/rules/) | Обязательные правила агентов (workflow, FastAPI, React/TGUI) |
 | [`.cursor/features/`](/.cursor/features/) | Входящие спеки фич: папки `<slug>/feature.md` + унаследованные нумерованные `.md` |

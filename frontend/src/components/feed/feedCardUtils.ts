@@ -2,7 +2,6 @@ import type {
   CardCompany,
   CardMoodAfter,
   CardMoodBefore,
-  FeedCardSource,
   FeedMovieCard,
   MovieCardComment,
 } from '../../api/profileTypes'
@@ -29,18 +28,24 @@ export const MOOD_AFTER_SHORT: Record<CardMoodAfter, string> = {
   wasted_time: 'Зря',
 }
 
-export function feedSourceLabel(source: FeedCardSource): string {
-  switch (source) {
-    case 'own':
-      return 'Ваша карточка'
+/** Короткий текст бейджа источника ленты (без длинных подписей в шапке карточки) */
+export function feedCardSourceBadge(card: FeedMovieCard, viewerUserId: string | null): string {
+  const isOwn =
+    viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
+  if (isOwn || card.feed_source === 'own') {
+    return 'Твоё'
+  }
+  switch (card.feed_source) {
     case 'subscriptions':
-      return 'Подписки'
+      return 'Подписка'
     case 'subscribers':
       return 'Подписчики'
     case 'personal_affinity':
-      return 'Похоже на ваши теги'
+      return 'По тегам'
     case 'discovery':
-      return 'Новое для вас'
+      return 'Новое'
+    default:
+      return 'Лента'
   }
 }
 

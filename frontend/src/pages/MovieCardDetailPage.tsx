@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { CopyPlus, Share2 } from 'lucide-react'
+import { CopyPlus, Link2, Share2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -15,7 +15,12 @@ import type {
   ReactionSummary,
 } from '../api/profileTypes'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
+import { copyTextToClipboard } from '../lib/copyTextToClipboard'
+import { safeHapticSuccess } from '../lib/safeHaptic'
+import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
+import { recordRecentCardView } from '../lib/recentCardViews'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
+import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
@@ -160,6 +165,10 @@ export function MovieCardDetailPage() {
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
   const isOwner =
     card != null && card.user_id != null && viewerId != null && card.user_id === viewerId
+  const cardDeepLinkUrl = useMemo(
+    () => (card != null ? buildMiniAppCardDeepLink(card.id) : null),
+    [card],
+  )
   const charsLeft = 100 - commentText.length
   const invalidCardId = parsedCardId == null
 
@@ -226,10 +235,7 @@ export function MovieCardDetailPage() {
     })
     void (async () => {
       try {
-        const fetchFollowing = getFollowingRatingsForCard as (
-          cardId: number,
-        ) => Promise<{ items: FollowingRatingRow[] }>
-        const data = await fetchFollowing(parsedCardId)
+        const data = await getFollowingRatingsForCard(parsedCardId)
         if (!alive) return
         setFollowingRatings(data.items)
       } catch {
@@ -241,6 +247,15 @@ export function MovieCardDetailPage() {
       alive = false
     }
   }, [parsedCardId])
+
+  useEffect(() => {
+    if (card == null || viewerId == null) return
+    recordRecentCardView(viewerId, {
+      id: card.id,
+      film_title: card.film_title,
+      film_poster_url: card.film_poster_url,
+    })
+  }, [card, viewerId])
 
   const loadComments = useCallback(
     async (append: boolean) => {
@@ -295,6 +310,7 @@ export function MovieCardDetailPage() {
       await loadComments(false)
       setCommentText('')
       setReplyTo(null)
+      safeHapticSuccess()
     } catch (e) {
       if (e instanceof ApiError) {
         setCommentsError(formatApiDetail(e.detail))
@@ -467,33 +483,60 @@ export function MovieCardDetailPage() {
                     </Title>
                     <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
                   </div>
-                  {isOwner ? (
-                    <IconButton
-                      type="button"
-                      size="s"
-                      mode="gray"
-                      aria-label="Поделиться карточкой"
-                      className="shrink-0"
-                      onClick={() =>
-                        void navigate(`/cards/${card.id}/share`, {
-                          state: { shareOpenedFromCardDetail: true },
-                        })
-                      }
-                    >
-                      <Share2 className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
-                    </IconButton>
-                  ) : viewerId != null ? (
-                    <IconButton
-                      type="button"
-                      size="s"
-                      mode="gray"
-                      aria-label="Взять за основу — создать свою карточку по этому фильму"
-                      className="shrink-0"
-                      onClick={() => void navigate(`/cards/new?fromCard=${card.id}`)}
-                    >
-                      <CopyPlus className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
-                    </IconButton>
-                  ) : null}
+                  <div className="flex shrink-0 items-center gap-1">
+                    {cardDeepLinkUrl != null ? (
+                      <IconButton
+                        type="button"
+                        size="s"
+                        mode="gray"
+                        aria-label="Скопировать ссылку на карточку"
+                        onClick={() => {
+                          void (async () => {
+                            const ok = await copyTextToClipboard(cardDeepLinkUrl)
+                            if (ok) {
+                              safeHapticSuccess()
+                            }
+                          })()
+                        }}
+                      >
+                        <Link2 className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+                      </IconButton>
+                    ) : null}
+                    {isOwner ? (
+                      <FavoriteCardHeartButton
+                        cardId={card.id}
+                        isFavorite={card.is_favorite ?? false}
+                        onFavoriteChange={(next) =>
+                          setCard((prev) => (prev ? { ...prev, is_favorite: next } : prev))
+                        }
+                      />
+                    ) : null}
+                    {isOwner ? (
+                      <IconButton
+                        type="button"
+                        size="s"
+                        mode="gray"
+                        aria-label="Поделиться карточкой"
+                        onClick={() =>
+                          void navigate(`/cards/${card.id}/share`, {
+                            state: { shareOpenedFromCardDetail: true },
+                          })
+                        }
+                      >
+                        <Share2 className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+                      </IconButton>
+                    ) : viewerId != null ? (
+                      <IconButton
+                        type="button"
+                        size="s"
+                        mode="gray"
+                        aria-label="Взять за основу — создать свою карточку по этому фильму"
+                        onClick={() => void navigate(`/cards/new?fromCard=${card.id}`)}
+                      >
+                        <CopyPlus className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+                      </IconButton>
+                    ) : null}
+                  </div>
                 </div>
                 {card.user_id != null ? (
                   <div className="mt-2.5 min-w-0">

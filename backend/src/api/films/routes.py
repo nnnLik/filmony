@@ -3,13 +3,12 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.films.schemas import FilmResolveRequest, FilmResponse
 from core.database import get_db
 from deps.auth import CurrentUser
-from models.film import Film
+from services.films.get_film_by_id import GetFilmByIdService
 from services.kinopoisk.resolve_kinopoisk_film import (
     KinopoiskClientError,
     KinopoiskUrlParseError,
@@ -47,8 +46,7 @@ async def get_film(
     _viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> FilmResponse:
-    result = await db.execute(select(Film).where(Film.id == film_id))
-    film = result.scalar_one_or_none()
+    film = await GetFilmByIdService(db).execute(film_id)
     if film is None:
         raise HTTPException(status_code=404, detail='film not found')
     return FilmResponse(

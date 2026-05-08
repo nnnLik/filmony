@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from math import isfinite
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.movie_card_tag import MovieCardTag
+from models.user_watchlist_film import UserWatchlistFilm
 
 
 class FilmNotFoundError(Exception):
@@ -121,6 +122,13 @@ class CreateMovieCardService:
         except IntegrityError as exc:
             await self._session.rollback()
             raise MovieCardAlreadyExistsError from exc
+
+        await self._session.execute(
+            delete(UserWatchlistFilm).where(
+                UserWatchlistFilm.user_id == user_id,
+                UserWatchlistFilm.film_id == payload.film_id,
+            )
+        )
 
         if custom_tags:
             self._session.add_all(

@@ -8,14 +8,17 @@ import {
   getPublicProfileById,
   getUserCards,
   getUserSubscriptions,
+  getUserWatchlist,
   subscribeToUser,
   unsubscribeFromUser,
 } from '../api/profileApi'
-import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
+import type { MovieCard, MovieCardPage, PublicProfile, WatchlistFilmPage } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
+import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 
 function shownCount(value: number | undefined): string {
   return typeof value === 'number' ? String(value) : '0'
@@ -25,8 +28,12 @@ const loadMyProfile: () => Promise<{ id: string }> = getMyProfile
 const loadPublicProfileById: (userId: string) => Promise<PublicProfile> = getPublicProfileById
 const loadUserCards: (
   userId: string,
-  params: { cursor?: string | null; limit?: number },
+  params: { cursor?: string | null; limit?: number; favoritesOnly?: boolean },
 ) => Promise<MovieCardPage> = getUserCards
+const loadUserWatchlist: (
+  userId: string,
+  params: { cursor?: string | null; limit?: number },
+) => Promise<WatchlistFilmPage> = getUserWatchlist
 const loadUserSubscriptions: (
   userId: string,
   type: 'followers' | 'following' | 'both',
@@ -42,12 +49,25 @@ export function PublicProfilePage() {
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [cards, setCards] = useState<MovieCardPage | null>(null)
+  const [watchlist, setWatchlist] = useState<WatchlistFilmPage | null>(null)
   const [cardsError, setCardsError] = useState<string | null>(null)
+  const [watchlistError, setWatchlistError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [loadingMoreWatchlist, setLoadingMoreWatchlist] = useState(false)
   const [myUserId, setMyUserId] = useState<string | null>(null)
   const [isFollowing, setIsFollowing] = useState<boolean>(false)
   const [followBusy, setFollowBusy] = useState(false)
   const [mainTab, setMainTab] = useState<'movies' | 'stats'>('movies')
+  const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>('rated')
+  const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
+  const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
+  const favoriteStripItems = useMemo(() => {
+    if (profile == null) return []
+    const n = profile.favorites_count ?? 0
+    if (n <= 0) return []
+    if (favoriteStripForUserId !== profile.id) return []
+    return favoriteStripFetched
+  }, [profile, favoriteStripFetched, favoriteStripForUserId])
   const prevRouteId = useRef<string | null>(null)
 
   useEffect(() => {
@@ -57,6 +77,7 @@ export function PublicProfilePage() {
     if (prevRouteId.current != null && prevRouteId.current !== resolvedUserId) {
       setProfile(null)
       setCards(null)
+      setWatchlist(null)
     }
     prevRouteId.current = resolvedUserId
     let alive = true
@@ -67,7 +88,9 @@ export function PublicProfilePage() {
       }
       setError(null)
       setCards(null)
+      setWatchlist(null)
       setCardsError(null)
+      setWatchlistError(null)
       try {
         const me = await loadMyProfile()
         if (!alive) {
@@ -94,6 +117,20 @@ export function PublicProfilePage() {
           return
         }
         setCards(page)
+
+        try {
+          const wl = await loadUserWatchlist(p.id, { limit: 20 })
+          if (!alive) {
+            return
+          }
+          setWatchlist(wl)
+        } catch {
+          if (!alive) {
+            return
+          }
+          setWatchlist(null)
+          setWatchlistError('Не удалось загрузить список «к просмотру»')
+        }
       } catch (e) {
         if (!alive) {
           return
@@ -105,12 +142,42 @@ export function PublicProfilePage() {
         }
         setProfile(null)
         setCards(null)
+        setWatchlist(null)
       }
     })()
     return () => {
       alive = false
     }
   }, [auth.kind, resolvedUserId])
+
+  useEffect(() => {
+    if (profile == null) {
+      return
+    }
+    const n = profile.favorites_count ?? 0
+    if (n <= 0) {
+      return
+    }
+    let alive = true
+    void (async () => {
+      try {
+        const page = await loadUserCards(profile.id, { favoritesOnly: true, limit: 30 })
+        if (!alive) {
+          return
+        }
+        setFavoriteStripFetched(page.items)
+        setFavoriteStripForUserId(profile.id)
+      } catch {
+        if (alive) {
+          setFavoriteStripFetched([])
+          setFavoriteStripForUserId(profile.id)
+        }
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [profile])
 
   const loadMoreCards = useCallback(async () => {
     if (profile == null || cards?.next_cursor == null || cards.next_cursor === '') {
@@ -140,7 +207,57 @@ export function PublicProfilePage() {
     }
   }, [profile, cards])
 
+  const loadMoreWatchlist = useCallback(async () => {
+    if (profile == null || watchlist?.next_cursor == null || watchlist.next_cursor === '') {
+      return
+    }
+    setLoadingMoreWatchlist(true)
+    setWatchlistError(null)
+    try {
+      const page = await loadUserWatchlist(profile.id, { cursor: watchlist.next_cursor, limit: 20 })
+      setWatchlist((prev) => {
+        if (prev == null) {
+          return page
+        }
+        return {
+          items: [...prev.items, ...page.items],
+          next_cursor: page.next_cursor,
+        }
+      })
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setWatchlistError(formatApiDetail(e.detail))
+      } else {
+        setWatchlistError(e instanceof Error ? e.message : 'Ошибка списка')
+      }
+    } finally {
+      setLoadingMoreWatchlist(false)
+    }
+  }, [profile, watchlist])
+
+  const handleFavoriteToggled = useCallback((cardId: number, nextFavorite: boolean) => {
+    setCards((prev) => {
+      if (prev == null) {
+        return prev
+      }
+      return {
+        ...prev,
+        items: prev.items.map((c) => (c.id === cardId ? { ...c, is_favorite: nextFavorite } : c)),
+      }
+    })
+    setProfile((p) => {
+      if (p == null) {
+        return p
+      }
+      return {
+        ...p,
+        favorites_count: Math.max(0, p.favorites_count + (nextFavorite ? 1 : -1)),
+      }
+    })
+  }, [])
+
   const canLoadMore = Boolean(cards?.next_cursor)
+  const canLoadMoreWatchlist = Boolean(watchlist?.next_cursor)
 
   async function toggleFollowing() {
     if (profile == null || myUserId == null || profile.id === myUserId) {
@@ -236,6 +353,8 @@ export function PublicProfilePage() {
     )
   }
 
+  const isOwnPublicProfile = myUserId != null && myUserId === profile.id
+
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) pb-6 text-(--tgui--text_color)">
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] px-2 py-2 backdrop-blur-md">
@@ -254,7 +373,7 @@ export function PublicProfilePage() {
           profile={profile}
           subtitle=""
         />
-        <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="mb-4 grid grid-cols-2 gap-2">
           <button
             type="button"
             className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
@@ -276,8 +395,16 @@ export function PublicProfilePage() {
             <span className="text-[11px] text-(--tgui--hint_color)">подписок</span>
           </button>
           <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
-            <span className="block text-xl font-semibold tabular-nums">{profile.cards_count}</span>
-            <span className="text-[11px] text-(--tgui--hint_color)">фильмов</span>
+            <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.cards_count)}</span>
+            <span className="text-[11px] text-(--tgui--hint_color)">оценено</span>
+          </div>
+          <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
+            <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.watchlist_count)}</span>
+            <span className="text-[11px] text-(--tgui--hint_color)">к просмотру</span>
+          </div>
+          <div className="col-span-2 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
+            <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.favorites_count)}</span>
+            <span className="text-[11px] text-(--tgui--hint_color)">в любимых</span>
           </div>
         </div>
 
@@ -320,26 +447,91 @@ export function PublicProfilePage() {
 
         {mainTab === 'movies' ? (
           <Section header="Фильмы">
-            {cardsError != null ? (
-              <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">{cardsError}</p>
-            ) : null}
-            {cards != null && cards.items.length === 0 && !loadingMore ? (
-              <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                Пока нет карточек.
-              </p>
-            ) : null}
-            {cards != null && cards.items.length > 0 ? (
-              <div className="px-3 pb-3">
-                <MoviePosterGrid items={cards.items} />
-              </div>
-            ) : null}
-            {canLoadMore ? (
-              <div className="px-3 pb-3 pt-1">
-                <Button disabled={loadingMore} stretched onClick={() => void loadMoreCards()}>
-                  {loadingMore ? 'Загрузка…' : 'Загрузить ещё'}
-                </Button>
-              </div>
-            ) : null}
+            <div className="mx-4 mb-3 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
+              <button
+                type="button"
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
+                  moviesSegment === 'rated'
+                    ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
+                    : 'text-(--tgui--hint_color)'
+                }`}
+                onClick={() => setMoviesSegment('rated')}
+              >
+                Оценённые
+              </button>
+              <button
+                type="button"
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
+                  moviesSegment === 'watchlist'
+                    ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
+                    : 'text-(--tgui--hint_color)'
+                }`}
+                onClick={() => setMoviesSegment('watchlist')}
+              >
+                К просмотру
+              </button>
+            </div>
+
+            {moviesSegment === 'rated' ? (
+              <>
+                <FavoriteMoviesStrip items={favoriteStripItems} />
+                {cardsError != null ? (
+                  <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">
+                    {cardsError}
+                  </p>
+                ) : null}
+                {cards != null && cards.items.length === 0 && !loadingMore ? (
+                  <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
+                    Пока нет карточек.
+                  </p>
+                ) : null}
+                {cards != null && cards.items.length > 0 ? (
+                  <div className="px-3 pb-3">
+                    <MoviePosterGrid
+                      items={cards.items}
+                      showFavoriteToggle={isOwnPublicProfile}
+                      onFavoriteToggled={isOwnPublicProfile ? handleFavoriteToggled : undefined}
+                    />
+                  </div>
+                ) : null}
+                {canLoadMore ? (
+                  <div className="px-3 pb-3 pt-1">
+                    <Button disabled={loadingMore} stretched onClick={() => void loadMoreCards()}>
+                      {loadingMore ? 'Загрузка…' : 'Загрузить ещё'}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {watchlistError != null ? (
+                  <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">
+                    {watchlistError}
+                  </p>
+                ) : null}
+                {watchlist != null && watchlist.items.length === 0 ? (
+                  <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
+                    Нет фильмов в списке.
+                  </p>
+                ) : null}
+                {watchlist != null && watchlist.items.length > 0 ? (
+                  <div className="px-3 pb-3">
+                    <WatchlistPosterGrid items={watchlist.items} />
+                  </div>
+                ) : null}
+                {canLoadMoreWatchlist ? (
+                  <div className="px-3 pb-3 pt-1">
+                    <Button
+                      disabled={loadingMoreWatchlist}
+                      stretched
+                      onClick={() => void loadMoreWatchlist()}
+                    >
+                      {loadingMoreWatchlist ? 'Загрузка…' : 'Загрузить ещё'}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
           </Section>
         ) : (
           <div className="space-y-4">

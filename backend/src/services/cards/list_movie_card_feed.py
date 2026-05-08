@@ -67,6 +67,7 @@ class MovieCardFeedItem:
     comments_preview: list[MovieCardCommentItem]
     reactions: ReactionTargetSummary
     feed_source: const.feed.StreamName
+    is_favorite: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,11 +124,15 @@ class _MergeState:
         )
 
     def to_payload(self) -> dict[str, Any]:
+        seen_list = sorted(self.seen)
+        cap = const.feed.FEED_CURSOR_SEEN_MAX
+        if len(seen_list) > cap:
+            seen_list = seen_list[-cap:]
         return {
             'v': 1,
             'offsets': {k: self.offsets[k] for k in const.feed.STREAM_KEYS},
             'slot_index': self.slot_index,
-            'seen': sorted(self.seen),
+            'seen': seen_list,
             'tail_authors': list(self.tail_author_ids),
             'tail_films': list(self.tail_film_ids),
             'mode': self.feed_mode,
@@ -636,6 +641,7 @@ class ListMovieCardFeedService:
                     comments_preview=preview_with_rx,
                     reactions=card_summaries[card.id],
                     feed_source=source_by_id[card.id],
+                    is_favorite=bool(card.is_favorite),
                 )
             )
         return items

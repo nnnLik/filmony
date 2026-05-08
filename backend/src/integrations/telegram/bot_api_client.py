@@ -28,7 +28,7 @@ class TelegramSendMessageResult:
 
 
 class TelegramBotApiClient:
-    """POST sendMessage / sendPhoto; maps JSON body regardless of HTTP status (Telegram uses 200 + ok:false)."""
+    """POST sendMessage / sendPhoto / sendDocument; maps JSON body regardless of HTTP status (Telegram uses 200 + ok:false)."""
 
     def __init__(self, bot_token: str) -> None:
         self._token = bot_token
@@ -77,6 +77,29 @@ class TelegramBotApiClient:
         if parse_mode:
             data['parse_mode'] = parse_mode
         async with httpx.AsyncClient(timeout=45.0) as client:
+            response = await client.post(url, data=data, files=files)
+        payload = _telegram_payload_from_response(response)
+        return TelegramSendMessageResult(ok=bool(payload.get('ok')), payload=payload)
+
+    async def send_document_multipart(
+        self,
+        chat_id: int,
+        document_bytes: bytes,
+        *,
+        filename: str = 'export.csv',
+        content_type: str = 'text/csv',
+        caption: str | None = None,
+        parse_mode: str | None = None,
+    ) -> TelegramSendMessageResult:
+        """Upload a file blob as a Telegram document."""
+        url = f'https://api.telegram.org/bot{self._token}/sendDocument'
+        files = {'document': (filename, document_bytes, content_type)}
+        data: dict[str, str] = {'chat_id': str(chat_id)}
+        if caption is not None:
+            data['caption'] = caption
+        if parse_mode:
+            data['parse_mode'] = parse_mode
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(url, data=data, files=files)
         payload = _telegram_payload_from_response(response)
         return TelegramSendMessageResult(ok=bool(payload.get('ok')), payload=payload)

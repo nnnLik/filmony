@@ -8,11 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.movie_card import MovieCard
 from models.user_subscription import UserSubscription
+from models.user_watchlist_film import UserWatchlistFilm
 
 
 @dataclass(frozen=True, slots=True)
 class UserProfileCounts:
     movie_cards: int
+    watchlist_films: int
+    favorites: int
     friends: int
     followers_count: int
     following_count: int
@@ -25,23 +28,39 @@ class GetUserProfileCountsService:
         self._session = session
 
     async def execute(self, user_id: UUID) -> UserProfileCounts:
-        cards_result = await self._session.execute(
-            select(func.count(MovieCard.id)).where(MovieCard.user_id == user_id)
+        movie_cards = (
+            select(func.count(MovieCard.id)).where(MovieCard.user_id == user_id).scalar_subquery()
         )
-        cards_count = int(cards_result.scalar_one())
-        followers_result = await self._session.execute(
-            select(func.count(UserSubscription.id)).where(
-                UserSubscription.following_user_id == user_id
+        favorites = (
+            select(func.count(MovieCard.id))
+            .where(MovieCard.user_id == user_id, MovieCard.is_favorite.is_(True))
+            .scalar_subquery()
+        )
+        watchlist_films = (
+            select(func.count(UserWatchlistFilm.id))
+            .where(UserWatchlistFilm.user_id == user_id)
+            .scalar_subquery()
+        )
+        followers_count = (
+            select(func.count(UserSubscription.id))
+            .where(UserSubscription.following_user_id == user_id)
+            .scalar_subquery()
+        )
+        following_count = (
+            select(func.count(UserSubscription.id))
+            .where(UserSubscription.follower_user_id == user_id)
+            .scalar_subquery()
+        )
+        row = (
+            await self._session.execute(
+                select(movie_cards, watchlist_films, favorites, followers_count, following_count)
             )
-        )
-        following_result = await self._session.execute(
-            select(func.count(UserSubscription.id)).where(
-                UserSubscription.follower_user_id == user_id
-            )
-        )
+        ).one()
         return UserProfileCounts(
-            movie_cards=cards_count,
+            movie_cards=int(row[0]),
+            watchlist_films=int(row[1]),
+            favorites=int(row[2]),
             friends=0,
-            followers_count=int(followers_result.scalar_one()),
-            following_count=int(following_result.scalar_one()),
+            followers_count=int(row[3]),
+            following_count=int(row[4]),
         )

@@ -11,6 +11,7 @@ from services.profile.list_user_movie_cards import MovieCardListItem, MovieCardP
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
 )
+from services.watchlist.list_user_watchlist_films import WatchlistFilmPage
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -32,11 +33,17 @@ class MyProfileResponse(BaseModel):
     display_name: str | None
     bio: str | None
     cards_count: int = 0
+    favorites_count: int = 0
+    watchlist_count: int = 0
     friends_count: int = 0
     followers_count: int = 0
     following_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MovieCardsExportCsvResponse(BaseModel):
+    status: str = Field(examples=['sent'])
 
 
 class PublicProfileResponse(BaseModel):
@@ -49,6 +56,8 @@ class PublicProfileResponse(BaseModel):
     display_name: str | None
     bio: str | None
     cards_count: int = 0
+    favorites_count: int = 0
+    watchlist_count: int = 0
     friends_count: int = 0
     followers_count: int = 0
     following_count: int = 0
@@ -69,11 +78,36 @@ class MovieCardItemResponse(BaseModel):
     mood_before: str
     mood_after: str
     custom_tags: list[str] = Field(default_factory=list)
+    is_favorite: bool = False
 
 
 class MovieCardPageResponse(BaseModel):
     items: list[MovieCardItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
+
+
+class WatchlistFilmItemResponse(BaseModel):
+    film_id: int
+    film_kinopoisk_id: int
+    film_genres: list[str] = Field(default_factory=list)
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
+
+
+class WatchlistFilmPageResponse(BaseModel):
+    items: list[WatchlistFilmItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+
+class WatchlistMembershipResponse(BaseModel):
+    in_watchlist: bool
+
+
+class WatchlistFilmAddRequest(BaseModel):
+    film_id: int = Field(..., ge=1)
+
+    model_config = ConfigDict(extra='forbid')
 
 
 class SubscriptionListItemResponse(BaseModel):
@@ -145,6 +179,8 @@ def build_my_profile_response(user: User, counts: UserProfileCounts) -> MyProfil
         display_name=user.display_name,
         bio=user.bio,
         cards_count=counts.movie_cards,
+        favorites_count=counts.favorites,
+        watchlist_count=counts.watchlist_films,
         friends_count=counts.friends,
         followers_count=counts.followers_count,
         following_count=counts.following_count,
@@ -162,6 +198,8 @@ def build_public_profile_response(user: User, counts: UserProfileCounts) -> Publ
         display_name=user.display_name,
         bio=user.bio,
         cards_count=counts.movie_cards,
+        favorites_count=counts.favorites,
+        watchlist_count=counts.watchlist_films,
         friends_count=counts.friends,
         followers_count=counts.followers_count,
         following_count=counts.following_count,
@@ -183,10 +221,26 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
             mood_before=item.mood_before,
             mood_after=item.mood_after,
             custom_tags=item.custom_tags,
+            is_favorite=item.is_favorite,
         )
         for item in page.items
     ]
     return MovieCardPageResponse(items=items, next_cursor=page.next_cursor)
+
+
+def build_watchlist_film_page_response(page: WatchlistFilmPage) -> WatchlistFilmPageResponse:
+    items = [
+        WatchlistFilmItemResponse(
+            film_id=item.film_id,
+            film_kinopoisk_id=item.film_kinopoisk_id,
+            film_genres=item.film_genres,
+            film_title=item.film_title,
+            film_year=item.film_year,
+            film_poster_url=item.film_poster_url,
+        )
+        for item in page.items
+    ]
+    return WatchlistFilmPageResponse(items=items, next_cursor=page.next_cursor)
 
 
 def build_subscription_list_response(items: list[SubscriptionListItem]) -> SubscriptionListResponse:

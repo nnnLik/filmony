@@ -4,11 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { createMovieCard, getFilmById, getMovieCardById, resolveFilmByKinopoiskUrl, shareMovieCardWithFollowers } from '../api/cardApi'
-import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
+import { getMyProfile, getUserSubscriptions, postMyWatchlistFilm } from '../api/profileApi'
 import type { CardCompany, CardMoodAfter, CardMoodBefore, Film, MovieCard, SubscriptionListItem } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { safeHapticSuccess } from '../lib/safeHaptic'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -85,6 +86,7 @@ export function CreateCardPage() {
   const [kinopoiskUrl, setKinopoiskUrl] = useState('')
   const [loadingFilm, setLoadingFilm] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [watchlistBusy, setWatchlistBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [film, setFilm] = useState<Film | null>(null)
   const [rating, setRating] = useState(7.5)
@@ -245,6 +247,37 @@ export function CreateCardPage() {
     }
   }
 
+  async function handleAddToWatchlist() {
+    if (film == null) {
+      return
+    }
+    setWatchlistBusy(true)
+    setError(null)
+    try {
+      await postMyWatchlistFilm(film.id)
+      clearMyProfileBundleCache()
+      safeHapticSuccess()
+      void navigate('/profile', { replace: true, state: { moviesSegment: 'watchlist' as const } })
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (e.status === 409) {
+          setError('Этот фильм уже в списке «к просмотру».')
+          return
+        }
+        const msg = formatApiDetail(e.detail).toLowerCase()
+        if (msg.includes('movie card already exists')) {
+          setError('У вас уже есть оценённая карточка для этого фильма.')
+          return
+        }
+        setError(formatApiDetail(e.detail))
+      } else {
+        setError('Не удалось добавить в список')
+      }
+    } finally {
+      setWatchlistBusy(false)
+    }
+  }
+
   function addTag() {
     const trimmed = tagInput.trim()
     if (trimmed === '') {
@@ -325,13 +358,10 @@ export function CreateCardPage() {
         custom_tags: customTags,
       })
       clearMyProfileBundleCache()
+      safeHapticSuccess()
       if (shareSelected.size > 0) {
-        const postShare = shareMovieCardWithFollowers as (
-          cardId: number,
-          recipientUserIds: string[],
-        ) => Promise<{ queued: number }>
         try {
-          await postShare(newCard.id, [...shareSelected])
+          await shareMovieCardWithFollowers(newCard.id, [...shareSelected])
         } catch {
           void navigate(`/cards/${newCard.id}/share`)
           return
@@ -411,9 +441,8 @@ export function CreateCardPage() {
             {film != null ? (
               <div className="px-3 py-3">
                 {remixFromCard ? (
-                  <p className="filmony-text-panel mb-3 text-sm text-(--tgui--hint_color)">
-                    Фильм уже выбран. Дальше — только ваша оценка, настроение и теги; новая карточка будет отдельной
-                    записью у вас в профиле.
+                  <p className="filmony-text-panel mb-3 text-xs text-(--tgui--hint_color)">
+                    Своя оценка и теги — отдельная карточка у вас в профиле.
                   </p>
                 ) : null}
                 <div className="filmony-text-panel flex gap-3">
@@ -429,8 +458,18 @@ export function CreateCardPage() {
                     <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
                   </div>
                 </div>
-                <p className="mt-4 text-sm text-(--tgui--hint_color)">Это тот фильм?</p>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <div className="mt-5 flex flex-col gap-2">
+                  <Button stretched onClick={() => setStep(3)}>
+                    Оценить просмотр
+                  </Button>
+                  <Button
+                    mode="gray"
+                    stretched
+                    disabled={watchlistBusy}
+                    onClick={() => void handleAddToWatchlist()}
+                  >
+                    {watchlistBusy ? 'Добавляем…' : 'К просмотру'}
+                  </Button>
                   <Button
                     mode="gray"
                     stretched
@@ -441,10 +480,7 @@ export function CreateCardPage() {
                       setStep(1)
                     }}
                   >
-                    Нет, другой фильм
-                  </Button>
-                  <Button stretched onClick={() => setStep(3)}>
-                    Да, далее
+                    Другой фильм
                   </Button>
                 </div>
               </div>

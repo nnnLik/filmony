@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import Sequence
 from dataclasses import dataclass
 from math import isfinite
@@ -32,6 +33,7 @@ class UpdateMovieCardInput:
     mood_before: CardMoodBefore | None = None
     mood_after: CardMoodAfter | None = None
     custom_tags: Sequence[str] | None = None
+    is_favorite: bool | None = None
 
 
 def _normalize_rating(value: float) -> float:
@@ -84,8 +86,17 @@ class UpdateMovieCardService:
             and payload.mood_before is None
             and payload.mood_after is None
             and payload.custom_tags is None
+            and payload.is_favorite is None
         ):
             raise MovieCardValidationError('at least one field must be provided')
+
+        if payload.is_favorite is not None:
+            if payload.is_favorite:
+                card.is_favorite = True
+                card.favorite_marked_at = dt.datetime.now(dt.UTC)
+            else:
+                card.is_favorite = False
+                card.favorite_marked_at = None
 
         if payload.rating is not None:
             card.rating = _normalize_rating(payload.rating)

@@ -17,6 +17,12 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-09T120000Z-movie-card-favorites-docs.md`
+- `2026-05-08T235000Z-scroll-to-top-fab-code.md`
+- `2026-05-08T230000Z-recent-views-copy-card-link-docs.md`
+- `2026-05-08T231600Z-profile-csv-export-docs.md`
+- `2026-05-08T231550Z-profile-csv-export-test.md`
+- `2026-05-08T231500Z-profile-csv-export-code.md`
 - `2026-05-08T220000Z-production-readiness-compose-nginx-code.md`
 - `2026-05-08T210000Z-production-readiness-docs.md`
 - `2026-05-08T200000Z-mvp-docs-alignment-docs.md`

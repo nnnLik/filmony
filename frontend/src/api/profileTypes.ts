@@ -10,6 +10,8 @@ export type MyProfile = {
   display_name: string | null
   bio: string | null
   cards_count: number
+  favorites_count: number
+  watchlist_count: number
   friends_count: number
   followers_count: number
   following_count: number
@@ -25,6 +27,8 @@ export type PublicProfile = {
   display_name: string | null
   bio: string | null
   cards_count: number
+  favorites_count: number
+  watchlist_count: number
   friends_count: number
   followers_count: number
   following_count: number
@@ -51,6 +55,24 @@ export type SubscriptionListResponse = {
 export type MovieCardPage = {
   items: MovieCard[]
   next_cursor: string | null
+}
+
+export type WatchlistFilmItem = {
+  film_id: number
+  film_kinopoisk_id: number
+  film_genres: string[]
+  film_title: string
+  film_year: number | null
+  film_poster_url: string | null
+}
+
+export type WatchlistFilmPage = {
+  items: WatchlistFilmItem[]
+  next_cursor: string | null
+}
+
+export type WatchlistMembership = {
+  in_watchlist: boolean
 }
 
 export type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
@@ -117,6 +139,7 @@ export type MovieCard = {
   mood_after: CardMoodAfter
   custom_tags: string[]
   reactions?: ReactionSummary
+  is_favorite?: boolean
 }
 
 /** Query-параметр `mode` для GET /api/cards/feed */

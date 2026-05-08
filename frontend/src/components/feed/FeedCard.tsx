@@ -5,13 +5,16 @@ import { Link } from 'react-router-dom'
 import { createMovieCardComment, listAllMovieCardComments } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
+import { FavoriteCardHeartButton } from '../cards/FavoriteCardHeartButton'
+import { FeedAuthorFavoritePosterChrome } from './FeedAuthorFavoritePosterChrome'
+import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
 import {
   authorLabel,
   commentAuthorDisplay,
   COMPANY_SHORT,
-  feedSourceLabel,
+  feedCardSourceBadge,
   formatCommentTime,
   formatRating,
   MOOD_AFTER_SHORT,
@@ -23,13 +26,15 @@ import {
 
 export type FeedCardProps = {
   card: FeedMovieCard
+  /** Id текущего пользователя из кэша профиля; для подсветки своих карточек */
+  viewerUserId?: string | null
   onCommentsState: (
     cardId: number,
     next: { comments_count: number; comments_preview: MovieCardComment[] }
   ) => void
 }
 
-export function FeedCard({ card, onCommentsState }: FeedCardProps) {
+export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCardProps) {
   const [draft, setDraft] = useState('')
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -57,27 +62,54 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
     setPreviewReactions({})
   }
 
+  const [favoriteSync, setFavoriteSync] = useState(() => ({
+    cardId: card.id,
+    isFavorite: card.is_favorite ?? false,
+  }))
+  const [localFavorite, setLocalFavorite] = useState(() => card.is_favorite ?? false)
+  if (
+    favoriteSync.cardId !== card.id ||
+    favoriteSync.isFavorite !== (card.is_favorite ?? false)
+  ) {
+    const nextFavorite = card.is_favorite ?? false
+    setFavoriteSync({ cardId: card.id, isFavorite: nextFavorite })
+    setLocalFavorite(nextFavorite)
+  }
+
   const palette = useMemo(() => ratingPalette(card.rating), [card.rating])
+  const isOwnCard =
+    viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
+  /** Визуальный «киношный» акцент: любимое автора (в чужой ленте без подписи; у себя синхронизируем с локальным тогглом). */
+  const favoriteSpotlight = isOwnCard ? localFavorite : Boolean(card.is_favorite)
+  const sourceBadgeText = useMemo(
+    () => feedCardSourceBadge(card, viewerUserId ?? null),
+    [card, viewerUserId],
+  )
   const profileHref = `/u/${encodeURIComponent(card.user_id)}`
   const cardHref = `/cards/${card.id}`
   const name = authorLabel(card)
   const dashOffset = ratingDashOffset(card.rating)
   useEffect(() => {
-    if (!commentsPreviewOpen) {
-      setPanelComments([])
-      setPanelLoading(false)
-      setPanelError(null)
-      return
-    }
-    if (card.comments_count === 0) {
-      setPanelComments([])
-      setPanelLoading(false)
-      setPanelError(null)
-      return
-    }
     let cancelled = false
-    setPanelLoading(true)
-    setPanelError(null)
+    if (!commentsPreviewOpen || card.comments_count === 0) {
+      void Promise.resolve().then(() => {
+        if (cancelled) return
+        setPanelComments([])
+        setPanelLoading(false)
+        setPanelError(null)
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        setPanelLoading(true)
+        setPanelError(null)
+      }
+    })
+
     void listAllMovieCardComments(card.id).then(
       (items) => {
         if (!cancelled) {
@@ -93,6 +125,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
         }
       },
     )
+
     return () => {
       cancelled = true
     }
@@ -125,6 +158,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
       const created = await createMovieCardComment(card.id, { text })
       mergedPreviewAfterCreate(created)
       setDraft('')
+      safeHapticSuccess()
     } catch (e) {
       setSubmitError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось отправить')
     } finally {
@@ -148,18 +182,60 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
   return (
     <article
       data-testid={`feed-card-${card.id}`}
-      className="flex max-w-full flex-col gap-2 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] p-2.5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.45)]"
+      className={`flex max-w-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.45)] ${
+        isOwnCard
+          ? 'border-2 border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_42%,transparent)] bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)]'
+          : 'border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)]'
+      }`}
     >
-      <p className="mb-0.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-(--filmony-mint,#5eead4)">
-        {feedSourceLabel(card.feed_source)}
-      </p>
+      <div className="mb-0.5 flex items-center gap-2 px-0.5">
+        <span
+          className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_38%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-(--tgui--text_color)"
+          title={
+            isOwnCard
+              ? 'Твоя карточка'
+              : card.feed_source === 'subscriptions'
+                ? 'Из подписок'
+                : card.feed_source === 'subscribers'
+                  ? 'Из подписчиков'
+                  : card.feed_source === 'personal_affinity'
+                    ? 'Похоже на ваши теги'
+                    : card.feed_source === 'discovery'
+                      ? 'Рекомендации'
+                      : 'Источник в ленте'
+          }
+        >
+          {sourceBadgeText}
+        </span>
+      </div>
       {/* Главная зона: постер отступает от краёв карточки, клик ведёт в карточку фильма */}
       <Link
         to={cardHref}
-        className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) no-underline ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]"
+        className={`group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) no-underline transition-shadow active:opacity-95 ${
+          favoriteSpotlight
+            ? 'ring-1 ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_52%,transparent)] shadow-[0_14px_46px_-14px_rgba(94,234,212,0.2),0_12px_36px_-12px_rgba(0,0,0,0.42)] group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_68%,transparent)]'
+            : 'ring-1 ring-(--tgui--divider_color) group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]'
+        }`}
         aria-label={`Открыть «${card.film_title}»`}
       >
         <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full sm:max-h-64">
+          {isOwnCard ? (
+            <div
+              className="absolute left-2 top-2 z-[4]"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onKeyDown={(e) => e.stopPropagation()}
+              role="presentation"
+            >
+              <FavoriteCardHeartButton
+                cardId={card.id}
+                isFavorite={localFavorite}
+                onFavoriteChange={setLocalFavorite}
+              />
+            </div>
+          ) : null}
           {card.film_poster_url ? (
             <img
               src={card.film_poster_url}
@@ -171,7 +247,8 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
               Нет постера
             </div>
           )}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/82 via-black/35 to-transparent pt-14 pb-2.5 pl-3 pr-19">
+          <FeedAuthorFavoritePosterChrome active={favoriteSpotlight} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] bg-linear-to-t from-black/82 via-black/35 to-transparent pt-14 pb-2.5 pl-3 pr-19">
             <Title
               level="3"
               weight="2"
@@ -184,7 +261,7 @@ export function FeedCard({ card, onCommentsState }: FeedCardProps) {
             </Title>
           </div>
           <div
-            className="absolute right-2.5 top-2.5 flex size-12 items-center justify-center rounded-full backdrop-blur-md select-none"
+            className="absolute right-2.5 top-2.5 z-[3] flex size-12 items-center justify-center rounded-full backdrop-blur-md select-none"
             style={{
               backgroundColor: palette.track,
               boxShadow: `0 6px 20px rgba(0,0,0,0.35), inset 0 0 20px ${palette.glow}`,

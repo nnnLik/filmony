@@ -29,6 +29,7 @@ export type UpdateMovieCardPayload = {
   mood_before?: CardMoodBefore
   mood_after?: CardMoodAfter
   custom_tags?: string[]
+  is_favorite?: boolean
 }
 
 export async function createMovieCard(body: CreateMovieCardPayload): Promise<MovieCard> {
