@@ -3,6 +3,8 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const envDir = path.resolve(import.meta.dirname, '../vars')
 
 function resolveApiOrigin(raw: string | undefined, fallback: string): string {
@@ -27,7 +29,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir,
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), cloudflare()],
     server: {
       proxy,
       host: true,
@@ -35,5 +37,5 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true
     },
     preview: { proxy },
-  }
+  };
 })
