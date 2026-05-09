@@ -21,7 +21,7 @@
 
 | Переменная | Обязательность | Смысл |
 |------------|----------------|--------|
-| `CELERY_BROKER_URL` | Да | Например `redis://:filmony@homelab-redis:6379/2` (дев, homelab) |
+| `CELERY_BROKER_URL` | Да | Например `redis://homelab-redis:6379/2` (дев, homelab, без пароля в сети Docker) |
 | `CELERY_RESULT_BACKEND` | Нет | Если не задан — `task_ignore_result=True` в `celery_app.py` |
 
 Чтение настроек: `CelerySettings` в `backend/src/conf/settings.py` → `backend/src/celery_app.py`.
