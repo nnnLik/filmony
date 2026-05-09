@@ -1,11 +1,15 @@
 networks:
-  app:
+  filmony:
+    name: filmony-network
     driver: bridge
+  homelab-infra:
+    name: homelab-infra-network
+    external: true
 
 x-backend: &backend
   restart: unless-stopped
   networks:
-    - app
+    - filmony
   build:
     context: backend
     dockerfile: Dockerfile
@@ -19,11 +23,15 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     networks:
-      - app
+      - filmony
     command: ['redis-server', '--appendonly', 'yes']
 
   backend:
     <<: *backend
+    container_name: filmony-backend
+    networks:
+      - filmony
+      - homelab-infra
     command: python src/main.py
     ports:
       - '8100:8000'

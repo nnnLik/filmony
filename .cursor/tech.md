@@ -7,7 +7,7 @@
 
 ### 2.1. Локальная разработка (`docker-compose.yml` + homelab-infra)
 
-**homelab-infra** (`make dev-up`): PostgreSQL, Redis, Caddy. Этот репозиторий: **RustFS**, **backend**, **celery-worker** (сеть `homelab` + `app`).
+**homelab-infra** (`make dev-up`): PostgreSQL, Redis, Caddy (сеть **`homelab-infra-network`**). Этот репозиторий: **RustFS**, **backend**, **celery-worker** (внутренняя сеть **`filmony-network`**, плюс подключение к **`homelab-infra-network`** для БД, Redis и Caddy).
 
 ```
 Telegram Mini App (React) ──► FastAPI (backend)
