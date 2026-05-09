@@ -17,7 +17,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: astral-sh/setup-uv@v5
 
@@ -63,7 +63,7 @@ jobs:
       KINOPOISK_API_KEY: ci-placeholder-key
       KINOPOISK_API_BASE_URL: https://kinopoiskapiunofficial.tech/api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: astral-sh/setup-uv@v5
 

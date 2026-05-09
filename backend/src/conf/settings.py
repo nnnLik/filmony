@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Self
@@ -38,7 +37,7 @@ class AppSettings(BaseSettings):
 
     @property
     def worker_count(self) -> int:
-        return os.cpu_count() * 2 + 1 if self.is_prod else 1
+        return 1
 
     @property
     def is_prod(self) -> bool:
