@@ -15,14 +15,26 @@ x-backend: &backend
   working_dir: /opt/app
 
 services:
+  filmony-redis:
+    image: redis:7-alpine
+    container_name: filmony-redis-prod
+    restart: unless-stopped
+    networks:
+      - filmony-network
+    command: ['redis-server', '--appendonly', 'yes']
+
   filmony-backend:
     <<: *backend
     container_name: filmony-backend-prod
     command: python src/main.py
     ports:
-      - '127.0.0.1:8000:8000'
+      - '127.0.0.1:8100:8000'
+    depends_on:
+      - filmony-redis
 
   filmony-celery-worker:
     <<: *backend
     container_name: filmony-celery-worker-prod
     command: celery -A celery_app worker --loglevel=INFO
+    depends_on:
+      - filmony-redis
