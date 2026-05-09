@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 
 import { getMovieCardFeedPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
+import { useAuthStatus } from '../auth/useAuthStatus'
 import type {
   FeedListMode,
   FeedMovieCard,
@@ -23,6 +24,7 @@ import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
 
 export function FeedPage() {
+  const auth = useAuthStatus()
   const aliveRef = useRef(true)
 
   useEffect(() => {
@@ -76,10 +78,13 @@ export function FeedPage() {
   }, [feedMode])
 
   useEffect(() => {
+    if (auth.kind !== 'ready') {
+      return
+    }
     queueMicrotask(() => {
       void loadInitial()
     })
-  }, [loadInitial])
+  }, [auth.kind, loadInitial])
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -131,6 +136,27 @@ export function FeedPage() {
     []
   )
 
+  if (auth.kind === 'error') {
+    return (
+      <div className="min-h-full px-4 py-12">
+        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
+        <p className="mt-3 text-sm text-(--tgui--hint_color)">Обновите страницу или откройте мини-приложение снова из Telegram.</p>
+      </div>
+    )
+  }
+
+  if (auth.kind === 'skipped') {
+    return (
+      <div className="min-h-full px-4 py-12">
+        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
+          Откройте приложение в Telegram, чтобы увидеть ленту.
+        </p>
+      </div>
+    )
+  }
+
+  const authPending = auth.kind === 'loading'
+
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
@@ -170,7 +196,7 @@ export function FeedPage() {
 
       <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
         <div className="flex flex-col gap-5">
-          {loading && (
+          {(authPending || loading) && (
             <div className="flex flex-col gap-4">
               <FeedCardSkeleton />
               <FeedCardSkeleton />
@@ -178,7 +204,7 @@ export function FeedPage() {
             </div>
           )}
 
-          {!loading && error != null && (
+          {!authPending && !loading && error != null && (
             <div className="rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-4">
               <p className="text-[14px] text-(--tgui--hint_color)">{error}</p>
               <Button stretched className="mt-4" onClick={() => void loadInitial()}>
@@ -187,7 +213,7 @@ export function FeedPage() {
             </div>
           )}
 
-          {!loading && error == null && items.length === 0 && (
+          {!authPending && !loading && error == null && items.length === 0 && (
             <div className="flex flex-col items-center gap-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-10">
               <p className="text-center text-[14px] leading-relaxed text-(--tgui--hint_color)">
                 {emptyFeedGreeting != null
@@ -200,7 +226,7 @@ export function FeedPage() {
             </div>
           )}
 
-          {!loading && error == null && items.length > 0 && (
+          {!authPending && !loading && error == null && items.length > 0 && (
             <>
               {items.map((card) => (
                 <FeedCard
