@@ -1,6 +1,6 @@
 # .cursor Workflow
 
-Разработка бэкенда и проверки качества по умолчанию ведутся **из Docker** (см. корневой `Makefile`, `compose.yml`, подробные примеры — `.cursor/tech.md`).
+Разработка бэкенда и проверки качества по умолчанию ведутся **из Docker** (см. корневой `Makefile`, `docker-compose.yml`, `.cursor/tech.md`).
 
 ## 1) Describe Feature
 Create `.cursor/features/<feature-slug>/feature.md` from `.cursor/features/templates/feature-request-template.md`.

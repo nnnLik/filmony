@@ -1,16 +1,10 @@
-DC = docker compose -f compose.yml
+DC = docker compose -f docker-compose.yml
 DEXEC = docker exec -it -w /opt/app/src
-APP = filmony-backend
+APP = backend
 DLOG = docker logs -f -n 50
 RUFF_FMT = ruff format --config pyproject.toml src/
 RUFF_LINT = ruff check --config pyproject.toml src/
 RUFF_FIX = ruff check --fix --config pyproject.toml src/
-
-# Docker-first: поднимайте стек (`make start`), затем вызывайте цели ниже — они выполняются внутри контейнера `filmony-backend`.
-# Примеры pytest:
-#   make backend-test
-#   make backend-test-one target=src/tests/api/test_public_routes.py
-#   make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 
 .PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs
 
@@ -44,11 +38,9 @@ backend-lint:
 backend-fix:
 	$(DC) exec -w /opt/app $(APP) $(RUFF_FIX)
 
-# Все тесты бэкенда (pytest + pytest-asyncio); требуется запущенный compose.
 backend-test:
 	$(DC) exec -w /opt/app $(APP) pytest
 
-# Один файл, класс или тест: make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 backend-test-one:
 	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/<dir>/test_<name>::<test_name>' >&2; exit 1)
 	$(DC) exec -w /opt/app $(APP) pytest $(target)
@@ -57,25 +49,14 @@ logs:
 	$(DC) logs -f -n 50 $(APP)
 
 celery-worker-logs:
-	$(DC) logs -f -n 50 filmony-celery-worker
+	$(DC) logs -f -n 50 celery-worker
 
-# Загрузка SQL-фикстур в Postgres (контейнер filmony-postgres должен быть запущен: make start).
-# Все файлы: make fixtures-load
-# Один файл из fixtures/: make fixtures-load file=user.sql
 fixtures-load:
 	@if [ -z "$(file)" ]; then bash scripts/load-fixtures.sh; else bash scripts/load-fixtures.sh "$(file)"; fi
 
-# Залить `emoji/*-emojigg-pack` в RustFS (S3). Нужны: `make start` (RustFS на localhost:7900), на хосте — `uv`.
-# Только объекты:     make sync-reactions-rustfs
-# RustFS + upsert БД:  make sync-reactions-rustfs WITH_DB=1
-#   (source `vars/.env.development`; для хоста `DATABASE_URL` с `filmony-postgres:5432`
-#    подменяется на `127.0.0.1:$(COMPOSE_PG_PORT)`, см. ниже COMPOSE_PG_PORT)
-# Отключить подмену:     SKIP_DATABASE_URL_HOST_REWRITE=1 make sync-reactions-rustfs WITH_DB=1
-# Доп. флаги скрипта:  make sync-reactions-rustfs ARGS='--help'
-# Переопределить S3:    RUSTFS_ENDPOINT=... make sync-reactions-rustfs
 ENV_FILE ?= vars/.env.development
 WITH_DB ?= 0
-COMPOSE_PG_PORT ?= 55432
+COMPOSE_PG_PORT ?= 15432
 SKIP_DATABASE_URL_HOST_REWRITE ?= 0
 ARGS ?=
 sync-reactions-rustfs:
@@ -83,8 +64,8 @@ sync-reactions-rustfs:
 	  if [[ "$(WITH_DB)" == "1" || "$(WITH_DB)" == "true" || "$(WITH_DB)" == "yes" ]]; then \
 	    test -f "$(ENV_FILE)" || { echo "sync WITH_DB=1: нет файла $(ENV_FILE)" >&2; exit 1; }; \
 	    set -a; . "./$(ENV_FILE)"; set +a; \
-	    if [[ "$(SKIP_DATABASE_URL_HOST_REWRITE)" != "1" && "$${DATABASE_URL:-}" == *"@filmony-postgres:5432"* ]]; then \
-	      export DATABASE_URL="$${DATABASE_URL//@filmony-postgres:5432/@127.0.0.1:$(COMPOSE_PG_PORT)/}"; \
+	    if [[ "$(SKIP_DATABASE_URL_HOST_REWRITE)" != "1" && "$${DATABASE_URL:-}" == *"@homelab-postgres:5432"* ]]; then \
+	      export DATABASE_URL="$${DATABASE_URL//@homelab-postgres:5432/@127.0.0.1:$(COMPOSE_PG_PORT)/}"; \
 	      echo "sync WITH_DB=1: DATABASE_URL -> 127.0.0.1:$(COMPOSE_PG_PORT) для запуска с хоста" >&2; \
 	    fi; \
 	    DB_FLAG=--sync-db; \

@@ -8,7 +8,7 @@
 |------|------------|
 | [`backend/src/`](/backend/src/) | FastAPI-приложение (`main.py`), `api/`, `services/`, `models/`, `migrations/`, `tests/` |
 | [`frontend/src/`](/frontend/src/) | React Mini App: `pages/`, `components/`, `api/`, `auth/`, `layout/` |
-| [`compose.yml`](/compose.yml) | Локальный стек (Postgres, RustFS, `filmony-backend`) |
+| [`docker-compose.yml`](/docker-compose.yml) | RustFS, `backend`, `celery-worker`; Postgres/Redis — homelab-infra |
 | [`fixtures/`](/fixtures/) | SQL-фикстуры; порядок загрузки — [`scripts/load-fixtures.sh`](/scripts/load-fixtures.sh); объём и правила — [`fixtures/README.md`](/fixtures/README.md) |
 | [`scripts/`](/scripts/) | Утилиты (фикстуры, синхронизация реакций в RustFS) |
 | [`.cursor/rules/`](/.cursor/rules/) | Обязательные правила агентов (workflow, FastAPI, React/TGUI) |
@@ -147,4 +147,4 @@ cd frontend && npm run lint && npm run build
 
 ---
 
-*Синхронизация с инфраструктурой: локальный `compose.yml` vs целевой контур (Redis, Celery, Nginx) описана в [`.cursor/tech.md`](/.cursor/tech.md) и [`README.md`](/README.md).*
+*Синхронизация с инфраструктурой: `docker-compose.yml` + homelab-infra vs прод — [`.cursor/tech.md`](/.cursor/tech.md), [`README.md`](/README.md).*

@@ -1,0 +1,60 @@
+networks:
+  app:
+    driver: bridge
+  homelab:
+    external: true
+
+volumes:
+  rustfs-data:
+
+x-app: &app
+  restart: unless-stopped
+  build:
+    context: backend
+    dockerfile: Dockerfile
+    target: dev
+  env_file:
+    - vars/.env.development
+  working_dir: /opt/app
+  volumes:
+    - ./backend/src:/opt/app/src
+    - ./backend/pyproject.toml:/opt/app/pyproject.toml
+    - ./backend/uv.lock:/opt/app/uv.lock
+    - ./backend/alembic.ini:/opt/app/alembic.ini
+
+services:
+  rustfs:
+    restart: unless-stopped
+    networks:
+      - app
+    image: rustfs/rustfs:1.0.0-beta.1
+    ports:
+      - '7900:9000'
+      - '7901:9001'
+    volumes:
+      - rustfs-data:/data
+    environment:
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_CONSOLE_ENABLE: 'true'
+    command: ['/data']
+
+  backend:
+    <<: *app
+    networks:
+      - app
+      - homelab
+    depends_on:
+      - rustfs
+    command: python src/main.py
+    ports:
+      - '8888:8000'
+
+  celery-worker:
+    <<: *app
+    networks:
+      - app
+      - homelab
+    depends_on:
+      - rustfs
+    command: celery -A celery_app worker --loglevel=INFO

@@ -8,7 +8,7 @@
 
 ## Ключевые файлы
 
-- `compose.yml`, `vars/.env.development`, `vars/.env.example`
+- `docker-compose.yml`, `vars/.env.development`, `vars/.env.example`
 - `backend/src/conf/settings.py`, `backend/src/celery_app.py`
 - `backend/src/tests/conftest.py`
 - `docs/features/celery-redis-workers.md`, `README.md`, `.cursor/tech.md`, `Makefile`

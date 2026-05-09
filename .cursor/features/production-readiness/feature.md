@@ -4,7 +4,7 @@
 - **Feature slug:** `production-readiness`
 - **Priority:** P0 (блокер публичного запуска)
 - **Target area:** infra + fullstack (конфиг, деплой, проверки)
-- **Каноничные спеки в репо:** [`.cursor/tech.md`](../../tech.md), корневой [`README.md`](../../../README.md), эталонный стек **[`compose.prod.yml`](../../../compose.prod.yml)** / [`vars/.env.production.example`](../../../vars/.env.production.example), [`docs/features/telegram-user-base.md`](../../../docs/features/telegram-user-base.md), [`docs/features/celery-redis-workers.md`](../../../docs/features/celery-redis-workers.md)
+- **Каноничные спеки в репо:** [`.cursor/tech.md`](../../tech.md), корневой [`README.md`](../../../README.md), **[`docker-compose.prod.yml`](../../../docker-compose.prod.yml)** / `vars/.env.production`, [`docs/features/telegram-user-base.md`](../../../docs/features/telegram-user-base.md), [`docs/features/celery-redis-workers.md`](../../../docs/features/celery-redis-workers.md)
 
 ## Problem
 
@@ -48,7 +48,7 @@
 - [ ] Задан надёжный пароль/роль; `DATABASE_URL` хранится в секретах окружения.
 
 ### Этап 4 — Redis и Celery
-- [ ] Redis доступен сервису бэкенда и **filmony-celery-worker** (как в `compose.yml`, или эквивалент в оркестраторе).
+- [ ] Redis доступен сервису бэкенда и **celery-worker** (как в `docker-compose.prod.yml`, или эквивалент в оркестраторе).
 - [ ] Worker запускается с тем же образом/кодом и env, что и API (один токен бота, одна `DATABASE_URL`).
 - [ ] Проверено: задача в очереди обрабатывается (логи worker без постоянных ошибок подключения).
 
@@ -69,9 +69,9 @@
 - [ ] Версия схемы совпадает с ожидаемой веткой релиза.
 
 ### Этап 8 — сборка и выкат артефактов
-- [ ] `npm run build` во `frontend/`; `compose.prod.yml` монтирует `frontend/dist` в nginx на **`127.0.0.1:8080`**.
-- [ ] `docker compose -f compose.prod.yml --env-file vars/.env.production build && … up -d`; переменные Postgres и RustFS для контейнеров — в **`vars/.env.production`** (`POSTGRES_*`, `RUSTFS_*`, без дублирования в YAML).
-- [ ] Снаружи: TLS на хостовом прокси → `127.0.0.1:8080`.
+- [ ] `npm run build` во `frontend/`; статика отдаётся хостингом фронта (Workers/Pages и т.д.).
+- [ ] `docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml up -d`; секреты — в **`vars/.env.production`**.
+- [ ] Снаружи: TLS-прокси → порт бэкенда (например **8100**).
 
 ### Этап 9 — Telegram / BotFather
 - [ ] У бота в BotFather указан **HTTPS** URL Mini App (Menu Button / Web App).

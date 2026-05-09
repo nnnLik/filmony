@@ -22,7 +22,7 @@ Blocking gaps → **one concise question**, no guessing.
 3. **TDD:** tests encoding spec **before** or lock-step with code; green locally.
 4. Edge cases: tests + explicit handling per spec.
 5. **Security:** validate at right layer; ORM over raw SQL unless spec/codebase already justify; explicit failure handling; never log secrets/full PII.
-6. **Verify:** `make backend-test` or `make backend-test-one target=…` in **`filmony-backend`** (see root `Makefile`, `.cursor/tech.md`). Report command + outcome + failures.
+6. **Verify:** `make backend-test` or `make backend-test-one target=…` in **`backend`** (see root `Makefile`, `.cursor/tech.md`). Report command + outcome + failures.
 
 7. **Documentation policy:** do **not** add or keep **module/file-level docstrings** (top-of-file strings). **Only `class` docstrings** are allowed when a class needs a brief product/contract note. **No** function/method docstrings, no inline “what this does” comments, no `#` explanations—delete them in files you touch; leave code self-explanatory via naming and types.
 

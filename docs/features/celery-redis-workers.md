@@ -10,19 +10,18 @@
 
 ## Docker Compose
 
-| Сервис | Контейнер | Назначение |
-|--------|------------|------------|
-| `filmony-redis` | `filmony-redis` | Redis 8 (Alpine), том `filmony-redis-data` |
-| `filmony-celery-worker` | `filmony-celery-worker` | `celery -A celery_app worker --loglevel=INFO` |
-| `filmony-backend` | `filmony-backend` | FastAPI; `depends_on` включает Redis |
+Локально **Redis** поднимается в **homelab-infra** (`homelab-redis`). В этом репозитории сервис **`celery-worker`** в `docker-compose.yml` ходит в него по `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` из `vars/.env.development` (см. `homelab-postgres`, `homelab-redis`).
 
-С хоста Redis: **`127.0.0.1:56379`** → `6379` в контейнере; внутри compose хост **`filmony-redis`**.
+| Сервис | Назначение |
+|--------|------------|
+| `celery-worker` | `celery -A celery_app worker --loglevel=INFO` |
+| `backend` | FastAPI |
 
 ## Переменные окружения
 
 | Переменная | Обязательность | Смысл |
 |------------|----------------|--------|
-| `CELERY_BROKER_URL` | Да | Брокер, в compose: `redis://filmony-redis:6379/0` |
+| `CELERY_BROKER_URL` | Да | Например `redis://:filmony@homelab-redis:6379/2` (дев, homelab) |
 | `CELERY_RESULT_BACKEND` | Нет | Если не задан — `task_ignore_result=True` в `celery_app.py` |
 
 Чтение настроек: `CelerySettings` в `backend/src/conf/settings.py` → `backend/src/celery_app.py`.
@@ -88,6 +87,6 @@
 
 ## Ссылки
 
-- `compose.yml`, `Makefile`
+- `docker-compose.yml`, `Makefile`
 - `.cursor/tech.md`
 - `.cursor/features/celery-redis-workers/feature.md`

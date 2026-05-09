@@ -1,6 +1,6 @@
 # SQL-фикстуры для Postgres
 
-Загрузка: из корня репозитория `make fixtures-load` или полный порядок задаётся в [`scripts/load-fixtures.sh`](../scripts/load-fixtures.sh).
+Загрузка: из корня `make fixtures-load` (нужен контейнер **`homelab-postgres`**, homelab-infra `make dev-up`). Порядок — [`scripts/load-fixtures.sh`](../scripts/load-fixtures.sh).
 
 ## Порядок и зависимости
 

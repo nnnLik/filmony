@@ -69,7 +69,7 @@ score = GENRE_OVERLAP_WEIGHT * |norm_genres(film) ∩ G_viewer|
 - `backend/src/tests/api/test_movie_card_feed_recommendation.py` — happy path, пустой граф, стабильность cursor, discovery при наличии соцграфа, уникальность id на странице, **`feed_source`**, режим **`subscriptions_only`**.
 - `backend/src/tests/api/test_cards_routes.py` — обновлён `test_movie_card_feed_cursor_pagination` под новый cursor.
 
-Прогон: `make backend-test` / `make backend-test-one target=…` в контейнере `filmony-backend`.
+Прогон: `make backend-test` / `make backend-test-one target=…` в контейнере `backend`.
 
 ## Следующие шаги
 

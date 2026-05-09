@@ -25,7 +25,7 @@
 
 ## Verification
 
-- Рекомендуемая проверка: `make backend-test` (Docker, сервис `filmony-backend`).
+- Рекомендуемая проверка: `make backend-test` (Docker, сервис `backend`).
 - Точечно: `make backend-test-one target=src/tests/api/test_movie_card_feed_recommendation.py`
 - В сессии агента прогон pytest не выполнялся (команда к Docker была пропущена).
 

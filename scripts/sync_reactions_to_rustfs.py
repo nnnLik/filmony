@@ -5,14 +5,12 @@
 
   make sync-reactions-rustfs
 
-RustFS и upsert строк в Postgres (через `make sync-reactions-rustfs WITH_DB=1`; Makefile после `source vars/.env.development` заменит в `DATABASE_URL` хост `filmony-postgres:5432` на **127.0.0.1:55432** для запуска с хоста):
+RustFS и upsert в Postgres (`make sync-reactions-rustfs WITH_DB=1`): Makefile подменяет `homelab-postgres:5432` на **127.0.0.1:15432** для запуска с хоста.
 
-  make sync-reactions-rustfs WITH_DB=1
-
-Без Makefile передайте **достигабельный с хоста** `DATABASE_URL` и флаг **`--sync-db`**.
+Без Makefile передайте с хоста достижимый `DATABASE_URL` и **`--sync-db`**.
 Скрипт нормализует строку: ``postgresql+asyncpg://…``, лишние слеши перед именем БД (``…:port//filmony``).
 
-Перед первым запуском: ``make start`` (RustFS на хост-порту **7900**, Postgres проброшен на **55432**).
+Перед запуском: homelab `make dev-up`, затем `make start` (RustFS **7900**).
 """
 
 from __future__ import annotations

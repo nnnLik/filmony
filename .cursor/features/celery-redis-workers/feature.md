@@ -6,7 +6,7 @@
 
 ## Acceptance criteria
 
-- [x] В `compose.yml`: Redis, `filmony-celery-worker`, `filmony-backend` зависит от Redis.
+- [x] Локально: Redis в homelab, `celery-worker` и `backend` в `docker-compose.yml`; прод — `docker-compose.prod.yml`.
 - [x] `celery[redis]` в `backend/pyproject.toml` и `uv.lock`.
 - [x] `CelerySettings` + `celery_app.py` (только `CELERY_BROKER_URL` / опционально `CELERY_RESULT_BACKEND`).
 - [x] Документация: `docs/features/celery-redis-workers.md`.

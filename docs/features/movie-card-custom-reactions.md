@@ -14,7 +14,7 @@
 - Уведомления в Telegram **вне scope**; хук возможен через комментарий в сервисе после commit.
 
 ## CDN / RustFS (dev)
-- В `compose.yml` сервис **`filmony-rustfs`** (образ `rustfs/rustfs:latest`), том `filmony-rustfs-data`, хост-порты **7900→9000**, **7901→9001** (консоль при необходимости).
+- В `docker-compose.yml` сервис **`rustfs`** (образ `rustfs/rustfs:1.0.0-beta.1`), том `rustfs-data`, хост-порты **7900→9000**, **7901→9001**.
 - Для прямых публичных URL (без прокси) с path-style клиент собирает: `{REACTION_MEDIA_PUBLIC_BASE_URL}/{asset_key}` (без двойных слешей). Пример base: `http://127.0.0.1:7900/filmony-reactions`. Mini App без LAN к этому адресу: либо **прокси бэкенда**, либо отдельный HTTPS-домен к RustFS на том же origin, что и API.
 - С **прокси** при `RUSTFS_INTERNAL_BASE_URL` и наличии **`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`** у backend (см. `vars/.env.development`): в каталоге API отдаются **постоянные** относительные URL **`/api/reactions/asset/<asset_key>`** (без срока действия). Бэкенд забирает объект из контейнерного RustFS методом **S3 GetObject с SigV4** (не анонимный HTTP GET). Если ключи из env пустые, остаётся вырожденный путь через «голый» `httpx` (тогда при приватном бакете клиент будет получать ошибки загрузки).
 - Если задан только **`REACTION_MEDIA_PUBLIC_BASE_URL`** (без внутреннего URL или без `asset_key`), клиент строит публичные ссылки напрямую к RustFS; для Mini App с телефона обычно неудобно из‑за `127.0.0.1` / приватности бакета — предпочтителен прокси без истечения срока.
@@ -81,7 +81,7 @@ Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `l
 **Требование к клиенту:** списки комментариев и replies вызываются **с авторизованной сессией** (как лента).
 
 ## Fixtures
-- Сначала залить объекты в RustFS (и опционально в БД): `make sync-reactions-rustfs` или `make sync-reactions-rustfs WITH_DB=1`; при втором после `vars/.env.development` хост Postgres **filmony-postgres:5432** на сборочной машине автоматически меняется на **127.0.0.1:55432** (см. `Makefile`; отключить — `SKIP_DATABASE_URL_HOST_REWRITE=1`).
+- Сначала залить объекты в RustFS (и опционально в БД): `make sync-reactions-rustfs` или `make sync-reactions-rustfs WITH_DB=1`; при втором хост **homelab-postgres:5432** подменяется на **127.0.0.1:15432** (см. `Makefile`).
 - После миграций: `fixtures/reaction_type.sql` или ручные `INSERT`; скрипт: `./scripts/load-fixtures.sh reaction_type.sql` / полная загрузка.
 ## Frontend
 - Загрузка каталога: `GET /api/reactions/catalog` через `reactionCatalogCache.ts` (структура `recent` + `tabs`).

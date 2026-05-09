@@ -19,7 +19,7 @@
 - `backend/src/services/telegram/notify_reaction_added.py`
 - `backend/src/services/telegram/notify_movie_card_root_comment.py`
 - `backend/src/services/reactions/set_or_toggle_user_reaction.py` — `SetUserReactionOutcome.reaction_was_added`
-- Доставка через **Celery** (`tasks.telegram_engagement.*`), воркер `filmony-celery-worker`. История: раньше использовались `BackgroundTasks`.
+- Доставка через **Celery** (`tasks.telegram_engagement.*`), воркер `celery-worker`. История: раньше использовались `BackgroundTasks`.
 
 ## Тесты
 

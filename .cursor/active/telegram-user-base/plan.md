@@ -12,7 +12,7 @@
 ## Step-by-Step Plan (фактический порядок работ)
 1. Настройки: `DatabaseSettings`, `TelegramAuthSettings`, `AuthJwtSettings`, `AppEnv.TEST` для pytest.
 2. `core/database.py`: asyncpg, `search_path` для `ENV=test` + `DATABASE_TEST_SCHEMA`.
-3. Модель `User`, миграция Alembic (`src/migrations`), `compose.yml` + Postgres.
+3. Модель `User`, миграция Alembic (`src/migrations`), `docker-compose.yml` + homelab Postgres.
 4. Сервисы: `VerifyTelegramInitDataService`, `UpsertTelegramUserService`, `IssueSessionJwtService`, `DecodeSessionJwtService`.
 5. Роуты `api/auth`, зависимость `CurrentUser`, `GET /api/me` на `api/router`.
 6. Тесты: `auth/test_telegram.py`, `auth/telegram_init_data.py`, `support/` + корневой `conftest.py` (`ENV=test`, `pytest_plugins`).
@@ -24,7 +24,7 @@
 - `backend/src/api/auth/*`, `backend/src/api/router.py`
 - `backend/src/deps/*`, `backend/src/services/auth/*`
 - `backend/src/models/user.py`, `backend/src/migrations/*`
-- `backend/src/tests/*`, `compose.yml`, `Makefile`, `Dockerfile`
+- `backend/src/tests/*`, `docker-compose.yml`, `Makefile`, `Dockerfile`
 - Корень: `.gitignore`, `README.md`, `vars/.env.example`
 
 ## Verification Plan

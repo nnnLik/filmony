@@ -27,7 +27,7 @@
 - `backend/src/tests/conftest.py`, `support/plugins.py`, `support/db_setup.py`
 - `backend/src/tests/auth/test_telegram.py`, `auth/telegram_init_data.py`
 - `backend/src/tests/api/test_public_routes.py`
-- `compose.yml`, `Makefile`, `backend/Dockerfile`
+- `docker-compose.yml`, `Makefile`, `backend/Dockerfile`
 - `.gitignore`, `README.md`, `vars/.env.example`
 
 ## Verification

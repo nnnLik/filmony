@@ -39,5 +39,5 @@
 
 ## Верификация
 
-- Бэкенд: `make backend-test-one target=src/tests/api/test_profile_routes.py` или полный `make backend-test` (в контейнере `filmony-backend`, см. `.cursor/tech.md`).
+- Бэкенд: `make backend-test-one target=src/tests/api/test_profile_routes.py` или полный `make backend-test` (в контейнере `backend`, см. `.cursor/tech.md`).
 - Фронтенд: `cd frontend && npm run lint && npm run build`.
