@@ -459,7 +459,7 @@ export function ProfilePage() {
             }`}
             onClick={() => setMainTab('movies')}
           >
-            Фильмы
+            Карточки
           </button>
           <button
             type="button"
@@ -511,7 +511,7 @@ export function ProfilePage() {
                 ) : null}
                 {myCards != null && myCards.items.length === 0 ? (
                   <div className="filmony-text-panel py-8 text-center">
-                    <p className="text-sm text-(--tgui--hint_color)">Ещё нет оценённых фильмов</p>
+                    <p className="text-sm text-(--tgui--hint_color)">Ещё нет оценённых карточек</p>
                   </div>
                 ) : null}
                 {myCards != null && myCards.items.length > 0 ? (
@@ -543,9 +543,9 @@ export function ProfilePage() {
                 ) : null}
                 {!watchlistLoading && myWatchlist != null && myWatchlist.items.length === 0 ? (
                   <div className="filmony-text-panel flex flex-col items-center gap-4 py-8 text-center">
-                    <p className="text-sm text-(--tgui--hint_color)">В списке пока нет фильмов</p>
+                    <p className="text-sm text-(--tgui--hint_color)">В «К просмотру» пока пусто</p>
                     <Link to="/cards/new" className="w-full max-w-xs no-underline">
-                      <Button stretched>Добавить фильм</Button>
+                      <Button stretched>Добавить в список</Button>
                     </Link>
                   </div>
                 ) : null}

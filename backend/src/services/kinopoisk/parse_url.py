@@ -8,7 +8,7 @@ class KinopoiskUrlParseError(Exception):
     pass
 
 
-_FILM_ID_PATTERN = re.compile(r'/film/(\d+)(?:/|$)')
+_KP_TITLE_ID_PATTERN = re.compile(r'/(?:film|series)/(\d+)(?:/|$)')
 
 
 def parse_kinopoisk_film_id(url: str) -> int:
@@ -21,7 +21,7 @@ def parse_kinopoisk_film_id(url: str) -> int:
     if not host.endswith('kinopoisk.ru'):
         raise KinopoiskUrlParseError('url must be from kinopoisk.ru')
 
-    match = _FILM_ID_PATTERN.search(parsed.path)
+    match = _KP_TITLE_ID_PATTERN.search(parsed.path)
     if match is None:
-        raise KinopoiskUrlParseError('film id was not found in url')
+        raise KinopoiskUrlParseError('kinopoisk id was not found in url')
     return int(match.group(1))

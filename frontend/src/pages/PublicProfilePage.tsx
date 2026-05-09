@@ -430,7 +430,7 @@ export function PublicProfilePage() {
             }`}
             onClick={() => setMainTab('movies')}
           >
-            Фильмы
+            Карточки
           </button>
           <button
             type="button"
@@ -446,7 +446,7 @@ export function PublicProfilePage() {
         </div>
 
         {mainTab === 'movies' ? (
-          <Section header="Фильмы">
+          <Section header="Карточки">
             <div className="mx-4 mb-3 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
               <button
                 type="button"
@@ -511,7 +511,7 @@ export function PublicProfilePage() {
                 ) : null}
                 {watchlist != null && watchlist.items.length === 0 ? (
                   <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                    Нет фильмов в списке.
+                    В «К просмотру» пока пусто.
                   </p>
                 ) : null}
                 {watchlist != null && watchlist.items.length > 0 ? (

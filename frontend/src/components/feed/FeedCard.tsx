@@ -204,11 +204,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           </span>
         ) : null}
       </div>
-      {/* Главная зона: постер отступает от краёв карточки, клик ведёт в карточку фильма */}
+      {/* Главная зона: постер отступает от краёв карточки, клик ведёт на страницу карточки */}
       <Link
         to={cardHref}
         className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) no-underline ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]"
-        aria-label={`Открыть «${card.film_title}»`}
+        aria-label={`Открыть карточку «${card.film_title}»`}
       >
         <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full sm:max-h-64">
           {card.film_poster_url ? (

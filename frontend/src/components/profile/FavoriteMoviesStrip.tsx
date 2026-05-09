@@ -19,7 +19,7 @@ export function FavoriteMoviesStrip({ items }: FavoriteMoviesStripProps) {
             key={card.id}
             to={`/cards/${card.id}`}
             className="w-[5.25rem] shrink-0 overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) no-underline ring-1 ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_20%,transparent)]"
-            aria-label={`Открыть «${card.film_title}»`}
+            aria-label={`Открыть карточку «${card.film_title}»`}
           >
             <div className="relative aspect-2/3 w-full">
               {card.film_poster_url ? (

@@ -1,5 +1,5 @@
-import { Button, Input, Section, Title } from '@telegram-apps/telegram-ui'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button, Title } from '@telegram-apps/telegram-ui'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -44,11 +44,25 @@ const CHIP_COLORS = [
 type WizardStep = 1 | 2 | 3 | 4 | 5
 const TOTAL_STEPS = 5
 const STEP_TITLES: Record<WizardStep, string> = {
-  1: 'Ссылка на фильм',
+  1: 'Ссылка на Кинопоиск',
   2: 'Подтверждение',
   3: 'Оценка и контекст',
   4: 'Ваши теги',
   5: 'Поделиться',
+}
+
+const WIZARD_TEXT_FIELD_CLASS =
+  'w-full min-h-11 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none transition-[border-color,box-shadow] placeholder:text-(--tgui--hint_color) focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]'
+
+function WizardStepPanel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="border-b border-(--tgui--divider_color) px-4 py-3">
+        <h2 className="text-[15px] font-semibold tracking-tight text-(--tgui--text_color)">{title}</h2>
+      </div>
+      <div className="p-4">{children}</div>
+    </section>
+  )
 }
 
 function normalizeRating(value: number): number {
@@ -63,13 +77,16 @@ function formatRating(value: number): string {
 function mapResolveError(detail: string): string {
   const normalized = detail.toLowerCase()
   if (normalized.includes('empty url')) {
-    return 'Вставьте ссылку на фильм Кинопоиска.'
+    return 'Вставьте ссылку со страницы тайтла на Кинопоиске.'
   }
   if (normalized.includes('url must be from kinopoisk.ru')) {
-    return 'Ссылка должна быть с сайта kinopoisk.ru.'
+    return 'Нужна ссылка с домена kinopoisk.ru.'
   }
-  if (normalized.includes('film id was not found in url')) {
-    return 'Не удалось распознать id фильма в ссылке. Пример: https://www.kinopoisk.ru/film/6764/'
+  if (
+    normalized.includes('kinopoisk id was not found in url') ||
+    normalized.includes('film id was not found in url')
+  ) {
+    return 'Не получилось прочитать номер из ссылки. Скопируйте полный адрес со страницы фильма или сериала на Кинопоиске (из строки браузера).'
   }
   return detail
 }
@@ -126,7 +143,7 @@ export function CreateCardPage() {
         if (e instanceof ApiError) {
           setError(formatApiDetail(e.detail))
         } else {
-          setError('Не удалось загрузить фильм')
+          setError('Не удалось загрузить данные из каталога')
         }
       } finally {
         setLoadingFilm(false)
@@ -240,7 +257,7 @@ export function CreateCardPage() {
       if (e instanceof ApiError) {
         setError(mapResolveError(formatApiDetail(e.detail)))
       } else {
-        setError('Не удалось получить информацию о фильме. Проверьте ссылку и попробуйте снова.')
+        setError('Не удалось получить данные по ссылке. Проверьте её и попробуйте снова.')
       }
     } finally {
       setLoadingFilm(false)
@@ -261,12 +278,12 @@ export function CreateCardPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 409) {
-          setError('Этот фильм уже в списке «к просмотру».')
+          setError('Эта запись уже в списке «к просмотру».')
           return
         }
         const msg = formatApiDetail(e.detail).toLowerCase()
         if (msg.includes('movie card already exists')) {
-          setError('У вас уже есть оценённая карточка для этого фильма.')
+          setError('У вас уже есть оценённая карточка для этого тайтла.')
           return
         }
         setError(formatApiDetail(e.detail))
@@ -341,7 +358,7 @@ export function CreateCardPage() {
 
   async function handleSubmit() {
     if (film == null) {
-      setError('Сначала выберите фильм')
+      setError('Сначала выберите тайтл по ссылке')
       return
     }
     setSubmitLoading(true)
@@ -410,36 +427,53 @@ export function CreateCardPage() {
         </div>
       </header>
 
-      <main className="px-4 py-6">
+      <main className="space-y-4 px-4 py-6">
         {!fromCardPrefillDone ? (
           <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
-            Загружаем фильм из карточки…
+            Загружаем данные из карточки…
           </p>
         ) : null}
 
         {fromCardPrefillDone && step === 1 ? (
-          <Section header="1. Ссылка на Кинопоиск">
-            <div className="flex flex-col gap-4 px-3 py-3">
-              <p className="text-sm text-(--tgui--hint_color)">
-                Вставьте ссылку вида <span className="text-(--tgui--text_color)">kinopoisk.ru/film/6764/</span>
-              </p>
-              <Input
-                header="URL"
-                placeholder="https://www.kinopoisk.ru/film/6764/"
-                value={kinopoiskUrl}
-                onChange={(e) => setKinopoiskUrl(e.currentTarget.value)}
-              />
+          <WizardStepPanel title="1. Ссылка на Кинопоиск">
+            <div className="filmony-text-panel flex flex-col gap-4">
+              <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Откуда взять ссылку</p>
+                <ol className="mt-2 list-decimal space-y-2 pl-4 text-sm leading-snug text-(--tgui--hint_color)">
+                  <li>Откройте на Кинопоиске страницу того, что смотрели (фильм или сериал).</li>
+                  <li>
+                    Скопируйте <span className="font-medium text-(--tgui--text_color)">весь адрес</span> из строки
+                    браузера и вставьте ниже.
+                  </li>
+                </ol>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-card-kinopoisk-url" className="text-xs font-medium text-(--tgui--hint_color)">
+                  Адрес страницы
+                </label>
+                <input
+                  id="create-card-kinopoisk-url"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="url"
+                  enterKeyHint="go"
+                  placeholder="https://www.kinopoisk.ru/…"
+                  value={kinopoiskUrl}
+                  onChange={(e) => setKinopoiskUrl(e.currentTarget.value)}
+                  className={WIZARD_TEXT_FIELD_CLASS}
+                />
+              </div>
               <Button stretched disabled={loadingFilm} onClick={() => void handleResolveFilm()}>
                 {loadingFilm ? 'Загружаем...' : 'Далее'}
               </Button>
             </div>
-          </Section>
+          </WizardStepPanel>
         ) : null}
 
         {fromCardPrefillDone && step === 2 ? (
-          <Section header="2. Подтверждение фильма">
+          <WizardStepPanel title="2. Подтверждение">
             {film != null ? (
-              <div className="px-3 py-3">
+              <div className="filmony-text-panel">
                 {remixFromCard ? (
                   <p className="filmony-text-panel mb-3 text-xs text-(--tgui--hint_color)">
                     Своя оценка и теги — отдельная карточка у вас в профиле.
@@ -480,14 +514,14 @@ export function CreateCardPage() {
                       setStep(1)
                     }}
                   >
-                    Другой фильм
+                    Другая ссылка
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="px-3 py-3">
-                <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
-                  Фильм не найден. Вернитесь к шагу 1 и введите ссылку снова.
+              <div className="filmony-text-panel">
+                <p className="text-sm text-(--tgui--hint_color)">
+                  Запись не найдена. Вернитесь к шагу 1 и введите ссылку снова.
                 </p>
                 <div className="mt-3">
                   <Button stretched onClick={() => setStep(1)}>
@@ -496,12 +530,12 @@ export function CreateCardPage() {
                 </div>
               </div>
             )}
-          </Section>
+          </WizardStepPanel>
         ) : null}
 
         {fromCardPrefillDone && step === 3 ? (
-          <Section header="3. Оценка и теги">
-            <div className="px-3 py-3">
+          <WizardStepPanel title="3. Оценка и теги">
+            <div className="filmony-text-panel">
               <div className="filmony-text-panel text-center">
                 <p className="text-sm text-(--tgui--hint_color)">Оценка</p>
                 <p className="mt-1 text-4xl font-bold text-(--tgui--text_color)">{formatRating(rating)}</p>
@@ -536,19 +570,21 @@ export function CreateCardPage() {
                 </Button>
               </div>
             </div>
-          </Section>
+          </WizardStepPanel>
         ) : null}
 
         {fromCardPrefillDone && step === 4 ? (
-          <Section header="4. Ваши теги (до 5)">
-            <div className="px-3 py-3">
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
+          <WizardStepPanel title="4. Ваши теги (до 5)">
+            <div className="filmony-text-panel">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  type="text"
                   placeholder="Добавить тег"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.currentTarget.value)}
+                  className={`min-w-0 flex-1 ${WIZARD_TEXT_FIELD_CLASS}`}
                 />
-                <Button mode="gray" onClick={addTag}>
+                <Button mode="gray" className="shrink-0 sm:self-stretch" onClick={addTag}>
                   Добавить
                 </Button>
               </div>
@@ -575,12 +611,12 @@ export function CreateCardPage() {
                 </Button>
               </div>
             </div>
-          </Section>
+          </WizardStepPanel>
         ) : null}
 
         {fromCardPrefillDone && step === 5 ? (
-          <Section header="5. Поделиться карточкой">
-            <div className="px-3 py-3">
+          <WizardStepPanel title="5. Поделиться карточкой">
+            <div className="filmony-text-panel">
               {film != null ? (
                 <ShareFollowersPicker
                   preview={{
@@ -600,11 +636,11 @@ export function CreateCardPage() {
                 </Button>
               </div>
             </div>
-          </Section>
+          </WizardStepPanel>
         ) : null}
 
         {error != null ? (
-          <div className="mt-4 rounded-xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_10%,transparent)] px-3 py-2">
+          <div className="mt-4 rounded-2xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_10%,transparent)] px-3 py-2">
             <p className="text-sm text-(--tgui--destructive_text_color)">{error}</p>
           </div>
         ) : null}

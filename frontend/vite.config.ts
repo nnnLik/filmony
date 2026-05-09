@@ -7,21 +7,24 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 const envDir = path.resolve(import.meta.dirname, '../vars')
 
-function resolveApiOrigin(raw: string | undefined, fallback: string): string {
-  const v = (raw ?? '')
+/** Куда Vite проксирует `/api`, если `VITE_API_ORIGIN` пустой (относительные URL в браузере). */
+const DEFAULT_DEV_API_PROXY_TARGET = 'http://filmony-api.localhost:5080'
+
+function normalizeApiOrigin(raw: string | undefined): string {
+  return (raw ?? '')
     .replace(/^\uFEFF/, '')
     .trim()
     .replace(/\/$/, '')
-  return v || fallback
 }
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir, '')
-  const apiOrigin = resolveApiOrigin(env.VITE_API_ORIGIN, 'http://127.0.0.1:8888')
+  const clientOrigin = normalizeApiOrigin(env.VITE_API_ORIGIN)
+  const proxyTarget = clientOrigin || DEFAULT_DEV_API_PROXY_TARGET
 
   const proxy = {
     '/api': {
-      target: apiOrigin,
+      target: proxyTarget,
       changeOrigin: true,
       secure: false,
     },

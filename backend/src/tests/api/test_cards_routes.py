@@ -828,6 +828,34 @@ async def test_resolve_film_and_get_by_id(
 
 
 @pytest.mark.asyncio
+async def test_resolve_film_series_url(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=620)
+
+    async def fake_get_film(self: object, kinopoisk_id: int):
+        from services.kinopoisk.client import KinopoiskFilmPayload
+
+        return KinopoiskFilmPayload(
+            kinopoisk_id=kinopoisk_id,
+            title='Сериал-тест',
+            year=2024,
+            poster_url=None,
+            genres=['драма'],
+        )
+
+    monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
+
+    resolved = await async_client.post(
+        '/api/films/resolve',
+        json={'url': 'https://www.kinopoisk.ru/series/404900/'},
+    )
+    assert resolved.status_code == 200
+    assert resolved.json()['kinopoisk_id'] == 404900
+    assert resolved.json()['title'] == 'Сериал-тест'
+
+
+@pytest.mark.asyncio
 async def test_resolve_film_invalid_url(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=617)
     r = await async_client.post('/api/films/resolve', json={'url': 'https://example.com/not-kino'})

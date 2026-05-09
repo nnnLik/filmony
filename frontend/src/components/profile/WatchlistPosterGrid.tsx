@@ -14,7 +14,7 @@ export function WatchlistPosterGrid({ items }: WatchlistPosterGridProps) {
           key={item.film_id}
           to={`/films/${encodeURIComponent(String(item.film_id))}`}
           className="block overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) no-underline"
-          aria-label={`Открыть фильм «${item.film_title}»`}
+          aria-label={`Открыть в каталоге «${item.film_title}»`}
         >
           <div className="aspect-2/3 w-full">
             {item.film_poster_url ? (

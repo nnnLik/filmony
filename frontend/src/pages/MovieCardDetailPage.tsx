@@ -216,7 +216,7 @@ export function MovieCardDetailPage() {
         if (e instanceof ApiError) {
           setError(formatApiDetail(e.detail))
         } else {
-          setError('Не удалось загрузить карточку фильма')
+          setError('Не удалось загрузить карточку')
         }
       } finally {
         if (alive) setLoading(false)
@@ -364,7 +364,7 @@ export function MovieCardDetailPage() {
 
   async function handleDeleteCard() {
     if (parsedCardId == null || deleteBusy) return
-    const confirmed = window.confirm('Удалить карточку фильма? Это действие нельзя отменить.')
+    const confirmed = window.confirm('Удалить карточку? Это действие нельзя отменить.')
     if (!confirmed) return
 
     setDeleteBusy(true)
@@ -378,7 +378,7 @@ export function MovieCardDetailPage() {
       if (e instanceof ApiError) {
         setError(formatApiDetail(e.detail))
       } else {
-        setError('Не удалось удалить карточку фильма')
+        setError('Не удалось удалить карточку')
       }
     } finally {
       setDeleteBusy(false)
@@ -400,7 +400,7 @@ export function MovieCardDetailPage() {
             ←
           </button>
           <span className="truncate text-sm font-medium text-(--tgui--hint_color)">
-            {card?.film_title ?? 'Карточка фильма'}
+            {card?.film_title ?? 'Карточка'}
           </span>
           <span className="ml-auto" />
           {isOwner ? (
@@ -530,7 +530,7 @@ export function MovieCardDetailPage() {
                         type="button"
                         size="s"
                         mode="gray"
-                        aria-label="Взять за основу — создать свою карточку по этому фильму"
+                        aria-label="Взять за основу — создать свою карточку с этим тайтлом"
                         onClick={() => void navigate(`/cards/new?fromCard=${card.id}`)}
                       >
                         <CopyPlus className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
@@ -602,13 +602,13 @@ export function MovieCardDetailPage() {
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
               <p className="text-sm font-medium text-(--tgui--text_color)">Друзья оценили</p>
               <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
-                Подписки с оценкой этого фильма, по убыванию (до 5).
+                Подписки с оценкой этого тайтла, по убыванию (до 5).
               </p>
               {followingRatings == null ? (
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
               ) : followingRatings.length === 0 ? (
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">
-                  Пока никто из ваших подписок не оценил этот фильм.
+                  Пока никто из подписок не оценил этот тайтл.
                 </p>
               ) : (
                 <ul className="mt-3 list-none space-y-3 p-0">

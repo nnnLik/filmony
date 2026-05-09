@@ -50,7 +50,7 @@ function PosterCell({
     <Link
       to={`/cards/${card.id}`}
       className="relative block overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) no-underline"
-      aria-label={`Открыть карточку фильма ${card.film_title}`}
+      aria-label={`Открыть карточку «${card.film_title}»`}
     >
       <div className="aspect-2/3 w-full">
         {card.film_poster_url ? (

@@ -65,22 +65,25 @@ function MovieList({ items }: { items: ProfileStatsMovieItem[] }) {
     return <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
   }
   return (
-    <div className="space-y-2">
-      {items.map((movie) => (
-        <Link
-          key={movie.card_id}
-          to={`/cards/${movie.card_id}`}
-          className="flex items-center justify-between rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-sm no-underline"
-        >
-          <div className="min-w-0">
-            <p className="truncate text-(--tgui--text_color)">{movie.film_title}</p>
-            <p className="text-xs text-(--tgui--hint_color)">{movie.film_year ?? 'Год неизвестен'}</p>
-          </div>
-          <span className="text-lg font-semibold tabular-nums text-(--tgui--link_color)">
-            {formatRating(movie.rating)}
-          </span>
-        </Link>
-      ))}
+    <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <ul className="divide-y divide-(--tgui--divider_color)">
+        {items.map((movie) => (
+          <li key={movie.card_id}>
+            <Link
+              to={`/cards/${movie.card_id}`}
+              className="flex items-center justify-between gap-3 px-3 py-3 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color)"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-(--tgui--text_color)">{movie.film_title}</p>
+                <p className="text-xs text-(--tgui--hint_color)">{movie.film_year ?? 'Год неизвестен'}</p>
+              </div>
+              <span className="shrink-0 text-lg font-semibold tabular-nums text-(--tgui--link_color)">
+                {formatRating(movie.rating)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -155,7 +158,7 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-          <p className="text-xs text-(--tgui--hint_color)">Всего фильмов</p>
+          <p className="text-xs text-(--tgui--hint_color)">Всего карточек</p>
           <p className="mt-1 text-4xl font-bold tabular-nums">{stats.total_movies}</p>
         </div>
         <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
@@ -292,12 +295,12 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
       </section>
 
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="mb-3 text-sm font-medium">Топ фильмов</p>
+        <p className="mb-3 text-sm font-medium">Топ по оценке</p>
         <MovieList items={stats.top_movies} />
       </section>
 
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="mb-3 text-sm font-medium">Худшие фильмы</p>
+        <p className="mb-3 text-sm font-medium">Самые низкие оценки</p>
         <MovieList items={stats.worst_movies} />
       </section>
     </div>

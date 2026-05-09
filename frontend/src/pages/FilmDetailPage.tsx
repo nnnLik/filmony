@@ -32,7 +32,7 @@ export function FilmDetailPage() {
       if (!alive) return
       setWatchlistActionErr(null)
       if (filmId < 1) {
-        setError('Неверный id фильма')
+        setError('Некорректный id в каталоге')
         setLoading(false)
         setFilm(null)
         return
@@ -46,11 +46,11 @@ export function FilmDetailPage() {
       } catch (e) {
         if (!alive) return
         if (e instanceof ApiError && e.status === 404) {
-          setError('Фильм не найден.')
+          setError('Запись в каталоге не найдена.')
         } else if (e instanceof ApiError) {
           setError(formatApiDetail(e.detail))
         } else {
-          setError('Не удалось загрузить фильм')
+          setError('Не удалось загрузить запись каталога')
         }
         setFilm(null)
       } finally {
@@ -97,13 +97,13 @@ export function FilmDetailPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 409) {
-          setWatchlistActionErr('Этот фильм уже в списке «к просмотру».')
+          setWatchlistActionErr('Уже в списке «к просмотру».')
           setInWatchlist(true)
           return
         }
         const msg = formatApiDetail(e.detail).toLowerCase()
         if (msg.includes('movie card already exists')) {
-          setWatchlistActionErr('У вас уже есть оценённая карточка для этого фильма.')
+          setWatchlistActionErr('У вас уже есть оценённая карточка для этого тайтла.')
           return
         }
         setWatchlistActionErr(formatApiDetail(e.detail))
@@ -166,7 +166,7 @@ export function FilmDetailPage() {
         >
           ←
         </button>
-        <span className="truncate text-sm font-medium text-(--tgui--hint_color)">Фильм</span>
+        <span className="truncate text-sm font-medium text-(--tgui--hint_color)">Каталог</span>
       </header>
 
       <main className="mx-auto max-w-md px-4 pt-4">

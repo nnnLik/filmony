@@ -152,7 +152,7 @@ export type FeedCardSource =
   | 'personal_affinity'
   | 'discovery'
 
-/** Карточка ленты: поля фильма и автора из GET /api/cards/feed */
+/** Карточка ленты: данные тайтла и автора из GET /api/cards/feed */
 export type FeedMovieCard = MovieCard & {
   user_id: string
   feed_source: FeedCardSource

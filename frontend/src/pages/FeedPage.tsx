@@ -1,6 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
+import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getMovieCardFeedPage } from '../api/cardApi'
@@ -9,6 +10,7 @@ import { useAuthStatus } from '../auth/useAuthStatus'
 import type {
   FeedListMode,
   FeedMovieCard,
+  FeedMovieCardPage,
   MovieCardComment,
 } from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
@@ -20,27 +22,16 @@ import {
   MY_PROFILE_BUNDLE_CHANGED_EVENT,
   readMyProfileBundleCache,
 } from '../lib/myProfileBundleCache'
+import { movieCardFeedQueryKey } from '../feed/feedQueryKeys'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
 
 export function FeedPage() {
   const auth = useAuthStatus()
-  const aliveRef = useRef(true)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    aliveRef.current = true
-    return () => {
-      aliveRef.current = false
-    }
-  }, [])
-
-  const [items, setItems] = useState<FeedMovieCard[]>([])
-  const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [feedMode, setFeedMode] = useState<FeedListMode>('default')
   const [modeSheetOpen, setModeSheetOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
   const viewerUserId = myProfileBundle?.profile.id ?? null
   const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
@@ -59,32 +50,38 @@ export function FeedPage() {
     setMyProfileBundle(readMyProfileBundleCache())
   }, [])
 
-  const loadInitial = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const page = await getMovieCardFeedPage({ limit: 20, mode: feedMode })
-      if (!aliveRef.current) return
-      setItems(page.items)
-      setNextCursor(page.next_cursor ?? null)
-    } catch (e) {
-      if (!aliveRef.current) return
-      setError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось загрузить ленту')
-    } finally {
-      if (aliveRef.current) {
-        setLoading(false)
-      }
-    }
-  }, [feedMode])
+  const feedQuery = useInfiniteQuery({
+    queryKey: movieCardFeedQueryKey(feedMode),
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) =>
+      getMovieCardFeedPage({
+        limit: 20,
+        mode: feedMode,
+        ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
+      }),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+    enabled: auth.kind === 'ready',
+    staleTime: 2 * 60_000,
+    gcTime: 60 * 60_000,
+  })
 
-  useEffect(() => {
-    if (auth.kind !== 'ready') {
-      return
-    }
-    queueMicrotask(() => {
-      void loadInitial()
-    })
-  }, [auth.kind, loadInitial])
+  const items = useMemo(
+    () => feedQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [feedQuery.data],
+  )
+
+  const hasNextPage = Boolean(feedQuery.hasNextPage)
+  const showSkeleton =
+    auth.kind === 'loading' || (feedQuery.isPending && feedQuery.fetchStatus === 'fetching')
+
+  const errorMessage =
+    feedQuery.isError && feedQuery.error instanceof ApiError
+      ? formatApiDetail(feedQuery.error.detail)
+      : feedQuery.isError
+        ? feedQuery.error instanceof Error
+          ? feedQuery.error.message
+          : 'Не удалось загрузить ленту'
+        : null
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -109,31 +106,21 @@ export function FeedPage() {
     }
   }, [refreshRecentStrip, refreshProfileBundle])
 
-  const loadMore = useCallback(async () => {
-    if (nextCursor == null || loadingMore) return
-    setLoadingMore(true)
-    try {
-      const page = await getMovieCardFeedPage({ cursor: nextCursor, limit: 20, mode: feedMode })
-      if (!aliveRef.current) return
-      setItems((prev) => [...prev, ...page.items])
-      setNextCursor(page.next_cursor ?? null)
-    } catch (e) {
-      if (!aliveRef.current) return
-      setError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось загрузить ещё карточки')
-    } finally {
-      if (aliveRef.current) {
-        setLoadingMore(false)
-      }
-    }
-  }, [nextCursor, loadingMore, feedMode])
-
   const onCommentsState = useCallback(
     (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
-      setItems((prev) =>
-        prev.map((c) => (c.id === cardId ? { ...c, ...next } : c))
-      )
+      const key = movieCardFeedQueryKey(feedMode)
+      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
+        if (old == null) return old
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.map((c) => (c.id === cardId ? { ...c, ...next } : c)),
+          })),
+        }
+      })
     },
-    []
+    [queryClient, feedMode],
   )
 
   if (auth.kind === 'error') {
@@ -178,7 +165,7 @@ export function FeedPage() {
               <span className="min-w-0 truncate">{feedModeTitle(feedMode)}</span>
               <ChevronDown className="block size-4 shrink-0 opacity-75" aria-hidden />
             </Button>
-            <Link to="/cards/new" aria-label="Добавить фильм" className="shrink-0 no-underline">
+            <Link to="/cards/new" aria-label="Добавить карточку" className="shrink-0 no-underline">
               <Button mode="gray">+</Button>
             </Link>
           </div>
@@ -196,7 +183,7 @@ export function FeedPage() {
 
       <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
         <div className="flex flex-col gap-5">
-          {(authPending || loading) && (
+          {(authPending || showSkeleton) && items.length === 0 && (
             <div className="flex flex-col gap-4">
               <FeedCardSkeleton />
               <FeedCardSkeleton />
@@ -204,31 +191,31 @@ export function FeedPage() {
             </div>
           )}
 
-          {!authPending && !loading && error != null && (
+          {!authPending && errorMessage != null && items.length === 0 && (
             <div className="rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-4">
-              <p className="text-[14px] text-(--tgui--hint_color)">{error}</p>
-              <Button stretched className="mt-4" onClick={() => void loadInitial()}>
+              <p className="text-[14px] text-(--tgui--hint_color)">{errorMessage}</p>
+              <Button stretched className="mt-4" onClick={() => void feedQuery.refetch()}>
                 Повторить
               </Button>
             </div>
           )}
 
-          {!authPending && !loading && error == null && items.length === 0 && (
+          {!authPending && errorMessage == null && items.length === 0 && !showSkeleton && (
             <div className="flex flex-col items-center gap-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-10">
               <p className="text-center text-[14px] leading-relaxed text-(--tgui--hint_color)">
                 {emptyFeedGreeting != null
-                  ? `${emptyFeedGreeting}, добавь первый фильм`
-                  : 'Добавь первый фильм — здесь появятся карточки друзей и рекомендации.'}
+                  ? `${emptyFeedGreeting}, добавь первую карточку`
+                  : 'Добавь первую карточку — здесь появятся оценки друзей и рекомендации.'}
               </p>
               <Link to="/cards/new" className="w-full no-underline">
-                <Button stretched>Добавить фильм</Button>
+                <Button stretched>Добавить карточку</Button>
               </Link>
             </div>
           )}
 
-          {!authPending && !loading && error == null && items.length > 0 && (
+          {items.length > 0 && (
             <>
-              {items.map((card) => (
+              {items.map((card: FeedMovieCard) => (
                 <FeedCard
                   key={card.id}
                   card={card}
@@ -236,15 +223,15 @@ export function FeedPage() {
                   onCommentsState={onCommentsState}
                 />
               ))}
-              {nextCursor != null ? (
+              {hasNextPage ? (
                 <div className="flex justify-center pt-1 pb-4">
                   <Button
                     mode="gray"
                     stretched
-                    disabled={loadingMore}
-                    onClick={() => void loadMore()}
+                    disabled={feedQuery.isFetchingNextPage}
+                    onClick={() => void feedQuery.fetchNextPage()}
                   >
-                    {loadingMore ? 'Загрузка…' : 'Загрузить ещё'}
+                    {feedQuery.isFetchingNextPage ? 'Загрузка…' : 'Загрузить ещё'}
                   </Button>
                 </div>
               ) : null}

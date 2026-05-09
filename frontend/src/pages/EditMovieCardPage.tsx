@@ -109,7 +109,7 @@ export function EditMovieCardPage() {
         if (e instanceof ApiError) {
           setError(formatApiDetail(e.detail))
         } else {
-          setError('Не удалось загрузить карточку фильма')
+          setError('Не удалось загрузить карточку')
         }
       } finally {
         if (alive) setLoading(false)
