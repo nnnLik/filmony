@@ -77,7 +77,7 @@ sync-reactions-rustfs:
 	  export RUSTFS_ACCESS_KEY="$${RUSTFS_ACCESS_KEY:-rustfsadmin}"; \
 	  export RUSTFS_SECRET_KEY="$${RUSTFS_SECRET_KEY:-rustfsadmin}"; \
 	  export RUSTFS_BUCKET="$${RUSTFS_BUCKET:-filmony-reactions}"; \
-	  uv run --project backend python scripts/sync_reactions_to_rustfs.py $$DB_FLAG $(ARGS)'
+	  uv run --project backend python scripts/upload_reactions_to_rustfs.py $$DB_FLAG $(ARGS)'
 
 
 prod-migrate:
