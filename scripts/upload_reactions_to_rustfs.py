@@ -29,6 +29,22 @@
 
 Прод (homelab): с машины, где доступен RustFS, выставьте
 `RUSTFS_ENDPOINT=http(s)://<хост>:9000` и те же ключи, что в `vars/.env` homelab.
+
+На проде **без uv на хосте** — один раз скопируйте скрипт рядом с ``emoji/`` и запустите
+**внутри образа backend** (там уже есть Python, boto3, asyncpg и ``PYTHONPATH``)::
+
+  scp scripts/upload_reactions_to_rustfs.py garbata:/opt/filmony/
+
+  cd /opt/filmony   # каталог, где лежит compose.yml и vars/.env.production
+
+  docker compose -f compose.yml run --rm \\
+    -v /opt/filmony/upload_reactions_to_rustfs.py:/tmp/upload_reactions_to_rustfs.py:ro \\
+    -v /opt/filmony/emoji:/emoji:ro \\
+    backend \\
+    python /tmp/upload_reactions_to_rustfs.py --emoji-root /emoji --sync-db
+
+Переменные ``RUSTFS_*`` и ``DATABASE_URL`` подтянутся из ``env_file`` сервиса ``backend``.
+Если в ``.env`` только ``RUSTFS_INTERNAL_BASE_URL``, скрипт использует его как endpoint для S3.
 """
 
 from __future__ import annotations
@@ -41,6 +57,41 @@ import sys
 import urllib.parse
 from pathlib import Path
 from typing import Any
+
+
+def _default_rustfs_endpoint() -> str:
+    for key in ("RUSTFS_ENDPOINT", "RUSTFS_INTERNAL_BASE_URL"):
+        raw = (os.environ.get(key) or "").strip().rstrip("/")
+        if raw:
+            return raw
+    return "http://127.0.0.1:7900"
+
+
+def _load_reaction_tab_order() -> tuple[Any, ...]:
+    """Импорт каталога вкладок: в контейнере backend достаточно PYTHONPATH=/opt/app/src."""
+    try:
+        from const.reaction_packs import REACTION_TAB_ORDER
+    except ImportError:
+        pass
+    else:
+        return REACTION_TAB_ORDER
+    roots: list[Path] = []
+    env_root = (os.environ.get("FILMONY_REPO_ROOT") or "").strip()
+    if env_root:
+        roots.append(Path(env_root) / "backend" / "src")
+    roots.append(Path(__file__).resolve().parents[1] / "backend" / "src")
+    for src in roots:
+        if src.is_dir():
+            sys.path.insert(0, str(src))
+            from const.reaction_packs import REACTION_TAB_ORDER
+
+            return REACTION_TAB_ORDER
+    print(
+        "Не удалось импортировать const.reaction_packs: запустите из образа backend "
+        "или задайте FILMONY_REPO_ROOT на корень клона filmony.",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
 
 
 def postgres_dsn_for_native_asyncpg(raw: str) -> str:
@@ -134,8 +185,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--endpoint",
-        default=os.environ.get("RUSTFS_ENDPOINT", "http://127.0.0.1:7900").rstrip("/"),
-        help="RustFS S3 API base URL (or env RUSTFS_ENDPOINT).",
+        default=_default_rustfs_endpoint(),
+        help="RustFS S3 API base URL (env RUSTFS_ENDPOINT or RUSTFS_INTERNAL_BASE_URL).",
     )
     parser.add_argument(
         "--bucket",
@@ -235,9 +286,7 @@ def main() -> int:
         print("--sync-db requires --database-url or DATABASE_URL.", file=sys.stderr)
         return 1
 
-    repo_root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(repo_root / "backend" / "src"))
-    from const.reaction_packs import REACTION_TAB_ORDER
+    reaction_tabs = _load_reaction_tab_order()
 
     access = os.environ.get("RUSTFS_ACCESS_KEY")
     secret = os.environ.get("RUSTFS_SECRET_KEY")
@@ -263,9 +312,17 @@ def main() -> int:
         ensure_bucket(client, bucket)
         print(f"bucket ready: {bucket} @ {ns.endpoint}")
 
-    emoji_root = ns.emoji_root if ns.emoji_root is not None else repo_root / "emoji"
+    if ns.emoji_root is not None:
+        emoji_root = ns.emoji_root
+    else:
+        env_repo = (os.environ.get("FILMONY_REPO_ROOT") or "").strip()
+        if env_repo:
+            emoji_root = Path(env_repo) / "emoji"
+        else:
+            emoji_root = Path(__file__).resolve().parents[1] / "emoji"
+
     uploaded, uploaded_count, skipped_existing = _run_upload_loop(
-        tabs=REACTION_TAB_ORDER,
+        tabs=reaction_tabs,
         emoji_root=emoji_root,
         bucket=bucket,
         client=client,
