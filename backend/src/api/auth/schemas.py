@@ -22,3 +22,7 @@ class UserResponse(BaseModel):
     language_code: str | None
 
     model_config = {'from_attributes': True}
+
+
+class TelegramAuthResponse(UserResponse):
+    access_token: str

@@ -4,7 +4,12 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { authTelegram } from '../api/profileApi'
 import { AuthStateContext, type AuthStatus } from './auth-context'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
-import { readAuthSessionFlag, writeAuthSessionFlag } from '../lib/filmonySession'
+import {
+  readAccessToken,
+  readAuthSessionFlag,
+  writeAccessToken,
+  writeAuthSessionFlag,
+} from '../lib/filmonySession'
 
 function sdkInitDataRaw(): string {
   try {
@@ -26,8 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isTMA()) {
       return { kind: 'skipped' }
     }
-    if (readAuthSessionFlag()) {
+    if (readAuthSessionFlag() && readAccessToken()) {
       return { kind: 'ready' }
+    }
+    if (readAuthSessionFlag() && !readAccessToken()) {
+      writeAuthSessionFlag(false)
     }
     return { kind: 'loading' }
   })
@@ -49,10 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const raw = resolveInitDataRaw()
-      if (!raw) {
-        if (alive) {
-          writeAuthSessionFlag(false)
-          clearMyProfileBundleCache()
+        if (!raw) {
+          if (alive) {
+            writeAuthSessionFlag(false)
+            writeAccessToken(null)
+            clearMyProfileBundleCache()
           setState({
             kind: 'error',
             message: 'Пустой initData — откройте приложение из Telegram.',
@@ -69,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!res.ok) {
           const t = await res.text()
           writeAuthSessionFlag(false)
+          writeAccessToken(null)
           clearMyProfileBundleCache()
           setState({
             kind: 'error',
@@ -76,6 +86,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
           return
         }
+        let accessToken: string | null = null
+        try {
+          const data = (await res.json()) as { access_token?: string }
+          accessToken =
+            typeof data.access_token === 'string' && data.access_token.trim()
+              ? data.access_token.trim()
+              : null
+        } catch {
+          accessToken = null
+        }
+        if (!accessToken) {
+          writeAuthSessionFlag(false)
+          writeAccessToken(null)
+          clearMyProfileBundleCache()
+          setState({
+            kind: 'error',
+            message: 'Ответ входа без access_token',
+          })
+          return
+        }
+        writeAccessToken(accessToken)
         writeAuthSessionFlag(true)
         setState({ kind: 'ready' })
       } catch (e) {
@@ -83,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
         writeAuthSessionFlag(false)
+        writeAccessToken(null)
         clearMyProfileBundleCache()
         setState({
           kind: 'error',

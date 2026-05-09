@@ -1,3 +1,5 @@
+import { readAccessToken } from '../lib/filmonySession'
+
 function resolveApiUrl(path: string): string {
   const base = import.meta.env.VITE_API_ORIGIN?.trim().replace(/\/$/, '') ?? ''
   if (!base) {
@@ -35,12 +37,17 @@ async function readErrorDetail(res: Response): Promise<unknown> {
 }
 
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const token: string | null = readAccessToken()
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> | undefined),
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
   return fetch(resolveApiUrl(path), {
     ...init,
     credentials: 'include',
-    headers: {
-      ...(init?.headers as Record<string, string> | undefined),
-    },
+    headers,
   })
 }
 

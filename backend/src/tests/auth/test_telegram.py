@@ -38,11 +38,27 @@ async def test_auth_telegram_ok_sets_cookie_and_me(async_client: AsyncClient) ->
     data = r.json()
     assert data['telegram_user_id'] == 99
     assert data['username'] == 'u99'
+    assert data.get('access_token')
     assert settings.auth_jwt.session_cookie_name in r.cookies
 
     me = await async_client.get('/api/me')
     assert me.status_code == 200
     assert me.json()['id'] == data['id']
+
+
+@pytest.mark.asyncio
+async def test_me_with_bearer_without_cookie(async_client: AsyncClient) -> None:
+    init = build_init_data(bot_token=settings.telegram.bot_token, user_id=88)
+    r = await async_client.post('/api/auth/telegram', json={'initData': init})
+    assert r.status_code == 200
+    token = r.json()['access_token']
+    async_client.cookies.clear()
+    me = await async_client.get(
+        '/api/me',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+    assert me.status_code == 200
+    assert me.json()['telegram_user_id'] == 88
 
 
 @pytest.mark.asyncio
