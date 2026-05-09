@@ -5,8 +5,9 @@ DLOG = docker logs -f -n 50
 RUFF_FMT = ruff format --config pyproject.toml src/
 RUFF_LINT = ruff check --config pyproject.toml src/
 RUFF_FIX = ruff check --fix --config pyproject.toml src/
+DC_PROD = docker exec -it -w /opt/app/src filmony-backend
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs prod-up prod-migrate
 
 start: build up
 
@@ -77,3 +78,12 @@ sync-reactions-rustfs:
 	  export RUSTFS_SECRET_KEY="$${RUSTFS_SECRET_KEY:-rustfsadmin}"; \
 	  export RUSTFS_BUCKET="$${RUSTFS_BUCKET:-filmony-reactions}"; \
 	  uv run --project backend python scripts/sync_reactions_to_rustfs.py $$DB_FLAG $(ARGS)'
+
+
+prod-migrate:
+	$(DC_PROD) alembic upgrade head
+
+prod-up:
+	$(DC_PROD) pull
+	$(DC_PROD) up -d
+	$(MAKE) prod-migrate

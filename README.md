@@ -59,18 +59,18 @@
 
 | Файл | Назначение |
 |------|------------|
-| [`docker-compose.prod.yml`](docker-compose.prod.yml) | `backend` + `celery-worker`, сеть **homelab-infra-network**, Redis только **homelab-redis** (через `CELERY_*` в env) |
-| [`Makefile`](Makefile) | `make prod-up`, `make prod-migrate`, `make prod-logs` |
+| [`compose.yml`](compose.yml) / [`docker-compose.prod.yml`](docker-compose.prod.yml) | `backend` + `celery-worker`, сеть **homelab-infra-network**; на сервере деплой идёт из **`compose.yml`** |
+| [`Makefile`](Makefile) | `make prod-up` (pull + up + миграции), `make prod-migrate` |
 | `vars/.env.production` | Секреты и URL; обязательно **`GITHUB_REPO`** = `org/repo` в **нижнем регистре** (как в GHCR) для подстановки в имя образа |
 
-Первый запуск на сервере после `up`:
+Ручной прод на сервере (из каталога с `compose.yml`, обычно `/opt/filmony`):
 
 ```bash
-cd /opt/filmony
-make prod-migrate
+export GITHUB_REPO=org/repo   # нижний регистр, как в GHCR
+make prod-up
 ```
 
-Деплой из репозитория: **Actions → Deploy → Run workflow** (те же секреты `SERVER_*`, что и у других сервисов; для фронта в CI: **`VITE_API_ORIGIN`**, **`VITE_TELEGRAM_BOT_USERNAME`**). На сервере должен быть запущен **homelab-infra** (Caddy, Postgres, Redis). В **`vars/.env`** homelab задай **`FILMONY_WEB_HOST`** под HTTPS-статику Mini App (совпадает с origin в **`CORS_ALLOW_ORIGINS`**).
+Деплой из репозитория: **Actions → Deploy → Run workflow** (те же секреты `SERVER_*`; для фронта в CI: **`VITE_API_ORIGIN`**, **`VITE_TELEGRAM_BOT_USERNAME`**). После `docker compose up` workflow выполняет **`alembic upgrade head`** в контейнере **`backend`**. На сервере должен быть запущен **homelab-infra** (Caddy, Postgres, Redis). В **`vars/.env`** homelab задай **`FILMONY_WEB_HOST`** под HTTPS-статику Mini App (совпадает с origin в **`CORS_ALLOW_ORIGINS`**).
 
 Чеклист: [`.cursor/features/production-readiness/feature.md`](.cursor/features/production-readiness/feature.md).
 
@@ -80,8 +80,8 @@ make prod-migrate
 |------|------------|
 | `make start` | build + up (dev compose) |
 | `make migrate` | Alembic upgrade head (dev) |
-| `make prod-up` | pull образов GHCR + up (prod compose) |
-| `make prod-migrate` | Alembic upgrade head (prod) |
+| `make prod-up` | `compose.yml`: pull GHCR + up + **`alembic upgrade head`** |
+| `make prod-migrate` | только **`alembic upgrade head`** в контейнере `backend` |
 | `make backend-test` | pytest в контейнере `backend` |
 | `make sync-reactions-rustfs WITH_DB=1` | RustFS + БД; хост Postgres homelab — порт **15432** |
 
