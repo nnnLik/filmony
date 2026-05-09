@@ -1,3 +1,14 @@
+function resolveApiUrl(path: string): string {
+  const base = import.meta.env.VITE_API_ORIGIN?.trim().replace(/\/$/, '') ?? ''
+  if (!base) {
+    return path
+  }
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export class ApiError extends Error {
   readonly status: number
   readonly detail: unknown
@@ -24,7 +35,7 @@ async function readErrorDetail(res: Response): Promise<unknown> {
 }
 
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(path, {
+  return fetch(resolveApiUrl(path), {
     ...init,
     credentials: 'include',
     headers: {
