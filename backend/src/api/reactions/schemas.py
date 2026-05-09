@@ -11,7 +11,7 @@ class ReactionCountItemResponse(BaseModel):
     reaction_type_id: int
     count: int
     image_url: str
-    label: str | None = None
+    asset_key: str
 
 
 class ReactionSummaryResponse(BaseModel):
@@ -21,10 +21,9 @@ class ReactionSummaryResponse(BaseModel):
 
 class ReactionCatalogItemResponse(BaseModel):
     id: int
-    label: str | None
     image_url: str
-    category_slug: str | None = None
-    asset_key: str | None = None
+    category_slug: str
+    asset_key: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -75,7 +74,7 @@ def reaction_target_summary_to_response(summary: ReactionTargetSummary) -> React
                 reaction_type_id=e.reaction_type_id,
                 count=e.count,
                 image_url=e.image_url,
-                label=e.label,
+                asset_key=e.asset_key,
             )
             for e in summary.counts
         ],

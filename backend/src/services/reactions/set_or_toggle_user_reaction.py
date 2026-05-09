@@ -53,12 +53,10 @@ class SetOrToggleUserReactionService:
     async def execute(self, user_id: UUID, payload: SetUserReactionInput) -> SetUserReactionOutcome:
         reaction_type_row = (
             await self._session.execute(
-                select(ReactionType.id, ReactionType.is_active).where(
-                    ReactionType.id == payload.reaction_type_id
-                )
+                select(ReactionType.id).where(ReactionType.id == payload.reaction_type_id)
             )
-        ).one_or_none()
-        if reaction_type_row is None or not reaction_type_row[1]:
+        ).scalar_one_or_none()
+        if reaction_type_row is None:
             raise ReactionTypeInvalidError()
 
         if payload.target_kind == ReactionTargetKind.MOVIE_CARD:

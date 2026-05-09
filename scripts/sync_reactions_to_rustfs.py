@@ -21,14 +21,6 @@ import mimetypes
 import os
 import sys
 import urllib.parse
-from pathlib import Path
-
-
-def label_from_filename(filename: str) -> str:
-    stem = Path(filename).stem.replace('_', ' ').replace('-', ' ')
-    return stem[:118] if stem else Path(filename).name[:118]
-
-
 def postgres_dsn_for_native_asyncpg(raw: str) -> str:
     """Привести URL к тому, как ``asyncpg.connect`` вытаскивает имя БД из path.
 
@@ -55,9 +47,9 @@ def postgres_dsn_for_native_asyncpg(raw: str) -> str:
 
 async def upsert_reaction_rows(
     dsn: str,
-    uploaded: list[tuple[str, str, str, int]],
+    uploaded: list[tuple[str, str, str]],
 ) -> None:
-    """Строки: category_slug, file name, asset_key, sort_order."""
+    """Строки: category_slug, file name, asset_key (image_url = asset_key как fallback)."""
     try:
         import asyncpg  # noqa: PLC0415
     except ImportError:
@@ -68,19 +60,15 @@ async def upsert_reaction_rows(
     try:
         sql = """
             INSERT INTO reaction_type (
-                label, image_url, sort_order, is_active, category_slug, asset_key
+                image_url, category_slug, asset_key
             )
-            VALUES ($1, $2, $3, true, $4, $5)
+            VALUES ($1, $2, $3)
             ON CONFLICT (asset_key) DO UPDATE SET
-                label = EXCLUDED.label,
                 image_url = EXCLUDED.image_url,
-                sort_order = EXCLUDED.sort_order,
-                category_slug = EXCLUDED.category_slug,
-                is_active = EXCLUDED.is_active
+                category_slug = EXCLUDED.category_slug
         """
-        for category_slug, fname, asset_key, sort_order in uploaded:
-            lbl = label_from_filename(fname)
-            await conn.execute(sql, lbl, asset_key, sort_order, category_slug, asset_key)
+        for category_slug, _fname, asset_key in uploaded:
+            await conn.execute(sql, asset_key, category_slug, asset_key)
     finally:
         await conn.close()
 
@@ -145,16 +133,14 @@ def main() -> int:
     except ClientError:
         client.create_bucket(Bucket=bucket)
 
-    uploaded: list[tuple[str, str, str, int]] = []
+    uploaded: list[tuple[str, str, str]] = []
     uploaded_count = 0
     emoji_root = repo_root / 'emoji'
-    for tab_index, tab in enumerate(REACTION_TAB_ORDER):
+    for tab in REACTION_TAB_ORDER:
         folder = emoji_root / tab.directory
-        base_order = tab_index * 10_000
         if not folder.is_dir():
             print(f'skip missing dir: {folder}')
             continue
-        sub_index = 0
         for path in sorted(folder.iterdir()):
             if not path.is_file():
                 continue
@@ -167,9 +153,7 @@ def main() -> int:
                 extra['ContentType'] = ctype
             client.upload_file(str(path), bucket, key, ExtraArgs=extra or {})
             uploaded_count += 1
-            sort_order = base_order + sub_index
-            sub_index += 1
-            uploaded.append((tab.slug, path.name, key, sort_order))
+            uploaded.append((tab.slug, path.name, key))
             print(f'OK {key}')
 
     print(f'done: {uploaded_count} object(s) in RustFS')

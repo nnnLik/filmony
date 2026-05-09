@@ -13,7 +13,7 @@ export type CountPillProps = {
   disabled: boolean
   mine: boolean
   imageUrl: string
-  label: string | null | undefined
+  assetKey: string
   count: number
   onPick: () => void
   compact: boolean
@@ -28,7 +28,7 @@ export function CountPill({
   disabled,
   mine,
   imageUrl,
-  label,
+  assetKey,
   count,
   onPick,
   compact,
@@ -67,6 +67,10 @@ export function CountPill({
   }, [hover, reactionTypeId, targetId, targetKind])
 
   const showBubble = hover && (actors !== null || actorsErr !== null)
+  const titleTip =
+    assetKey.includes('/') || assetKey.includes('\\')
+      ? assetKey.replace(/\\/g, '/').split('/').filter(Boolean).pop() ?? assetKey
+      : assetKey
 
   return (
     <div
@@ -101,7 +105,7 @@ export function CountPill({
                     : 'bg-[color-mix(in_srgb,var(--tgui--hint_color)_06%,var(--tgui--secondary_bg_color))] ring-[color-mix(in_srgb,var(--tgui--divider_color)_42%,transparent)]'
                 }`
         }
-        title={label ?? undefined}
+        title={titleTip}
       >
         <span
           className={

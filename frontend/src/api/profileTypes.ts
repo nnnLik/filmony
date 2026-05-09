@@ -83,7 +83,7 @@ export type ReactionCountItem = {
   reaction_type_id: number
   count: number
   image_url: string
-  label: string | null
+  asset_key: string
 }
 
 export type ReactionSummary = {
@@ -93,10 +93,9 @@ export type ReactionSummary = {
 
 export type ReactionCatalogItem = {
   id: number
-  label: string | null
   image_url: string
-  category_slug?: string | null
-  asset_key?: string | null
+  category_slug: string
+  asset_key: string
 }
 
 export type ReactionCatalogTab = {

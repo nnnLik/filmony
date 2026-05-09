@@ -8,8 +8,7 @@ class ReactionCountEntry:
     reaction_type_id: int
     count: int
     image_url: str
-    label: str | None
-    sort_order: int
+    asset_key: str
 
 
 @dataclass(frozen=True, slots=True)

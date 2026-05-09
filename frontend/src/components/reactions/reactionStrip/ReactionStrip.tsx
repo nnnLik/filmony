@@ -181,7 +181,7 @@ export function ReactionStrip({
               disabled={busy}
               mine={mine}
               imageUrl={c.image_url}
-              label={c.label}
+              assetKey={c.asset_key}
               count={c.count}
               compact={compact}
               pillTight={pillTight}

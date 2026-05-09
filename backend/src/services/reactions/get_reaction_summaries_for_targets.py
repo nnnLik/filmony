@@ -63,8 +63,6 @@ class GetReactionSummariesForTargetsService:
                 func.count(UserReaction.id).label('cnt'),
                 ReactionType.asset_key,
                 ReactionType.image_url,
-                ReactionType.label,
-                ReactionType.sort_order,
             )
             .join(ReactionType, ReactionType.id == UserReaction.reaction_type_id)
             .where(scope)
@@ -74,15 +72,13 @@ class GetReactionSummariesForTargetsService:
                 UserReaction.reaction_type_id,
                 ReactionType.asset_key,
                 ReactionType.image_url,
-                ReactionType.label,
-                ReactionType.sort_order,
             )
         )
         count_rows = (await self._session.execute(count_stmt)).all()
 
         buckets: dict[tuple[str, int], list[ReactionCountEntry]] = defaultdict(list)
         for row in count_rows:
-            kind, tid, rtid, cnt, asset_key, url, lab, so = row
+            kind, tid, rtid, cnt, asset_key, url = row
             resolved_url = resolve_reaction_media_url(
                 asset_key=asset_key,
                 image_url_fallback=str(url),
@@ -93,14 +89,13 @@ class GetReactionSummariesForTargetsService:
                     reaction_type_id=int(rtid),
                     count=int(cnt),
                     image_url=resolved_url,
-                    label=lab,
-                    sort_order=int(so),
+                    asset_key=str(asset_key),
                 )
             )
 
         for key, entries in buckets.items():
             kind, tid = key
-            ordered = tuple(sorted(entries, key=lambda e: (e.sort_order, e.reaction_type_id)))
+            ordered = tuple(sorted(entries, key=lambda e: (e.asset_key, e.reaction_type_id)))
             if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
                 prev = card_out[tid]
                 card_out[tid] = ReactionTargetSummary(

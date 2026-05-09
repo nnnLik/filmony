@@ -18,39 +18,25 @@ async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, 
     return r.json()
 
 
-async def _seed_reaction_catalog() -> tuple[int, int, int, int]:
-    """(active_low, active_mid, active_high, inactive_id)."""
+async def _seed_reaction_catalog() -> tuple[int, int, int]:
     session_factory = get_session_factory()
     async with session_factory() as session:
         session.add_all(
             [
                 ReactionType(
-                    label='A',
                     image_url='https://example.com/a.png',
-                    sort_order=1,
                     category_slug='pepe',
-                    is_active=True,
+                    asset_key='reactions/pepe/a.png',
                 ),
                 ReactionType(
-                    label='B',
                     image_url='https://example.com/b.png',
-                    sort_order=2,
                     category_slug='meme_pt1',
-                    is_active=True,
+                    asset_key='reactions/meme_pt1/b.png',
                 ),
                 ReactionType(
-                    label='C',
                     image_url='https://example.com/c.png',
-                    sort_order=3,
                     category_slug='cats',
-                    is_active=True,
-                ),
-                ReactionType(
-                    label='Zombie',
-                    image_url='https://example.com/z.png',
-                    sort_order=100,
-                    category_slug='frieren',
-                    is_active=False,
+                    asset_key='reactions/cats/c.png',
                 ),
             ]
         )
@@ -58,23 +44,12 @@ async def _seed_reaction_catalog() -> tuple[int, int, int, int]:
 
     async with session_factory() as session:
         active_ids = (
-            (
-                await session.execute(
-                    select(ReactionType.id)
-                    .where(ReactionType.is_active.is_(True))
-                    .order_by(ReactionType.sort_order.asc())
-                )
-            )
+            (await session.execute(select(ReactionType.id).order_by(ReactionType.id.asc())))
             .scalars()
             .all()
         )
-        inactive_id = (
-            await session.execute(
-                select(ReactionType.id).where(ReactionType.is_active.is_(False)).limit(1)
-            )
-        ).scalar_one()
         assert len(active_ids) >= 3
-        return (int(active_ids[0]), int(active_ids[1]), int(active_ids[2]), int(inactive_id))
+        return (int(active_ids[0]), int(active_ids[1]), int(active_ids[2]))
 
 
 async def _create_card_any(async_client: AsyncClient, tg: int, kid: int) -> int:
@@ -127,7 +102,7 @@ async def test_reactions_set_requires_auth(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reactions_catalog_active_only_ordered(async_client: AsyncClient) -> None:
+async def test_reactions_catalog_ordered_tabs(async_client: AsyncClient) -> None:
     await _seed_reaction_catalog()
     await _login(async_client, telegram_user_id=940)
     resp = await async_client.get('/api/reactions/catalog')
@@ -136,20 +111,17 @@ async def test_reactions_catalog_active_only_ordered(async_client: AsyncClient) 
     assert len(body['tabs']) == 5
     assert sum(len(t['items']) for t in body['tabs']) == 3
     assert body['recent'] == []
-    assert all((x.get('label') or '') != 'Zombie' for tab in body['tabs'] for x in tab['items'])
 
 
 @pytest.mark.asyncio
-async def test_reactions_catalog_misc_tab_includes_orphans(async_client: AsyncClient) -> None:
+async def test_reactions_catalog_misc_tab_includes_unknown_slug(async_client: AsyncClient) -> None:
     session_factory = get_session_factory()
     async with session_factory() as session:
         session.add(
             ReactionType(
-                label='Solo',
                 image_url='https://example.com/s.png',
-                sort_order=5,
-                category_slug=None,
-                is_active=True,
+                category_slug='misc',
+                asset_key='reactions/misc/solo.png',
             )
         )
         await session.commit()
@@ -160,12 +132,12 @@ async def test_reactions_catalog_misc_tab_includes_orphans(async_client: AsyncCl
     misc = next((t for t in tabs if t['category_slug'] == 'misc'), None)
     assert misc is not None
     assert len(misc['items']) == 1
-    assert misc['items'][0]['label'] == 'Solo'
+    assert misc['items'][0]['asset_key'] == 'reactions/misc/solo.png'
 
 
 @pytest.mark.asyncio
 async def test_set_reaction_multiple_per_target_toggle(async_client: AsyncClient) -> None:
-    a, b, c, off = await _seed_reaction_catalog()
+    a, b, c = await _seed_reaction_catalog()
     cid = await _create_card_any(async_client, 941, 941_941)
     await _login(async_client, telegram_user_id=941)
 
@@ -198,12 +170,6 @@ async def test_set_reaction_multiple_per_target_toggle(async_client: AsyncClient
     )
     assert rb.status_code == 200
     assert set(rb.json()['reactions']['my_reaction_type_ids']) == {a, b}
-
-    inactive = await async_client.post(
-        '/api/reactions',
-        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': off},
-    )
-    assert inactive.status_code == 422
 
     missing_type = await async_client.post(
         '/api/reactions',

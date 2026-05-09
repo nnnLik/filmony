@@ -106,7 +106,6 @@ def _parse_target_kind(raw: str) -> ReactionTargetKind:
 def _catalog_item_response(row: ReactionCatalogItem) -> ReactionCatalogItemResponse:
     return ReactionCatalogItemResponse(
         id=row.id,
-        label=row.label,
         image_url=row.image_url,
         category_slug=row.category_slug,
         asset_key=row.asset_key,

@@ -184,7 +184,11 @@ export function ReactionStripPopover({
                               type="button"
                               disabled={busy}
                               onClick={() => void apply(item.id)}
-                              title={item.label ?? ''}
+                              title={
+                                item.asset_key.includes('/')
+                                  ? item.asset_key.split('/').filter(Boolean).pop() ?? item.asset_key
+                                  : item.asset_key
+                              }
                               className={`aspect-square shrink-0 touch-manipulation rounded-lg transition-transform active:scale-90 disabled:opacity-40 ${
                                 dense ? 'p-px' : 'p-[2px]'
                               } ${
