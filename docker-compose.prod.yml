@@ -21,6 +21,11 @@ services:
     <<: *backend
     container_name: filmony-backend
     command: python src/main.py
+    networks:
+      filmony: {}
+      homelab-infra:
+        aliases:
+          - filmony-backend
 
   celery-worker:
     <<: *backend
