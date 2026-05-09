@@ -8,6 +8,7 @@ from api.notifications.routes import router as notifications_router
 from api.profile.me_routes import router as profile_me_router
 from api.profile.users_routes import router as profile_users_router
 from api.reactions.routes import router as reactions_router
+from api.search.routes import router as search_router
 from deps.auth import CurrentUser
 from models.user import User
 
@@ -17,6 +18,7 @@ router.include_router(auth_router)
 router.include_router(cards_router)
 router.include_router(films_router)
 router.include_router(reactions_router)
+router.include_router(search_router)
 router.include_router(notifications_router)
 router.include_router(profile_me_router)
 router.include_router(profile_users_router)

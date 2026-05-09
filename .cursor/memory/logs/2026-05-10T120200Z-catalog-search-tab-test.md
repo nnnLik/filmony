@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-10T12:02:00Z
+- **Feature slug:** catalog-search-tab
+- **Action type:** test
+- **Summary:** Добавлены pytest для `/api/search` и `/api/search/suggestions` (auth, валидация, mutual/popular/random, дедуп, окно 7 дней).
+- **Files:** `backend/src/tests/api/test_search_routes.py`
+- **Verification:** `make backend-test-one target=src/tests/api/test_search_routes.py` — 8 passed

@@ -1,4 +1,4 @@
 # Progress: catalog-search-tab
 
-- Созданы артефакты спеки и active/plan.
-- Реализация: в процессе.
+- Спека, бэкенд (поиск + suggestions), фронт, документация и тесты готовы.
+- Полный прогон: `make backend-test` — 141 passed.

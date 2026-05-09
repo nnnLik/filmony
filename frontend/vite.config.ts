@@ -7,7 +7,6 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 const envDir = path.resolve(import.meta.dirname, '../vars')
 
-/** Куда Vite проксирует `/api`, если `VITE_API_ORIGIN` пустой (относительные URL в браузере). */
 const DEFAULT_DEV_API_PROXY_TARGET = 'http://filmony-api.localhost:5080'
 
 function normalizeApiOrigin(raw: string | undefined): string {

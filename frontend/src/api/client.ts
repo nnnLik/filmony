@@ -1,6 +1,6 @@
 import { readAccessToken } from '../lib/filmonySession'
 
-function resolveApiUrl(path: string): string {
+export function resolveApiUrl(path: string): string {
   const base = import.meta.env.VITE_API_ORIGIN?.trim().replace(/\/$/, '') ?? ''
   if (!base) {
     return path

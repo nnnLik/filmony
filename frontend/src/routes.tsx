@@ -10,6 +10,7 @@ import { ShareMovieCardPage } from './pages/ShareMovieCardPage'
 import { ProfileEditPage } from './pages/ProfileEditPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
+import { SearchPage } from './pages/SearchPage'
 import { SubscriptionsPage } from './pages/SubscriptionsPage'
 
 export function AppRoutes() {
@@ -17,6 +18,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<AppShell />}>
         <Route index element={<FeedPage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="cards/new" element={<CreateCardPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<ProfileEditPage />} />

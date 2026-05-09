@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-10T12:03:00Z
+- **Feature slug:** catalog-search-tab
+- **Action type:** docs
+- **Summary:** Публичная документация фичи и итог в `result.md`.
+- **Files:** `docs/features/catalog-search-tab.md`, `.cursor/active/catalog-search-tab/result.md`
+- **Verification:** n/a

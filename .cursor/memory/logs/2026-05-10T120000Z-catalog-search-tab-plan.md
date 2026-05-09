@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-10T12:00:00Z
+- **Feature slug:** catalog-search-tab
+- **Action type:** plan
+- **Summary:** Спека фичи и план в `.cursor/active/catalog-search-tab/plan.md` (SLICE_MATRIX, AGENT_QUEUE, лимиты API, тексты пустых состояний).
+- **Files:** `.cursor/features/catalog-search-tab/feature.md`, `.cursor/active/catalog-search-tab/plan.md`, `.cursor/active/catalog-search-tab/progress.md`
+- **Verification:** n/a (документы)

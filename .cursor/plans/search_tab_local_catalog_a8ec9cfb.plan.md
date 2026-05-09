@@ -7,16 +7,16 @@ todos:
     status: completed
   - id: backend-s1-search
     content: "S1: `GET /api/search`, сервисы поиска film/user, валидация q, лимиты; опционально миграция pg_trgm; pytest; зарегистрировать роутер в `api/router.py`"
-    status: in_progress
+    status: completed
   - id: backend-s2-suggestions
     content: "S2: `GET /api/search/suggestions` — три источника (mutual / popular week / random), caps, дедуп, исключения; pytest на графе подписок и карточках"
-    status: pending
+    status: completed
   - id: frontend-s3
     content: "S3: `SearchPage`, маршрут `/search`, третий пункт `BottomNav`, `searchApi`, debounce, секции UI и CTA"
-    status: pending
+    status: completed
   - id: docs-closeout
     content: "S4: `docs/features/catalog-search-tab.md`, `result.md`, action-log; финальный `make backend-test` и `npm run lint && npm run build`"
-    status: pending
+    status: completed
 isProject: false
 ---
 

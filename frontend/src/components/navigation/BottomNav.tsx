@@ -1,3 +1,4 @@
+import { Search } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 function IconFeed({ active }: { active: boolean }) {
@@ -13,6 +14,17 @@ function IconFeed({ active }: { active: boolean }) {
     >
       <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function IconSearch({ active }: { active: boolean }) {
+  return (
+    <Search
+      aria-hidden
+      className="size-[22px] transition-[stroke,transform] duration-200 ease-out"
+      strokeWidth={active ? 2.35 : 1.65}
+      style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
+    />
   )
 }
 
@@ -67,6 +79,29 @@ export function BottomNav() {
                 <span className="relative z-[1] flex flex-col items-center gap-0.5">
                   <IconFeed active={isActive} />
                   Лента
+                </span>
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            to="/search"
+            className={({ isActive }) =>
+              `${itemBase} ${isActive ? 'text-[var(--filmony-mint,#5eead4)]' : 'text-[var(--filmony-muted,#7f95ab)]'}`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive ? (
+                  <span
+                    className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_22%,transparent)]"
+                    aria-hidden
+                  />
+                ) : null}
+                <span className="relative z-[1] flex flex-col items-center gap-0.5">
+                  <span className="block [&>svg]:block">
+                    <IconSearch active={isActive} />
+                  </span>
+                  Поиск
                 </span>
               </>
             )}

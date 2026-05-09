@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-10T12:01:00Z
+- **Feature slug:** catalog-search-tab
+- **Action type:** code
+- **Summary:** Реализованы API поиска и подсказок, сервисы в `services/search`, фронт `SearchPage` + `searchApi` + `BottomNav` + маршрут `/search`.
+- **Files:** `backend/src/api/search/routes.py`, `backend/src/api/search/schemas.py`, `backend/src/api/router.py`, `backend/src/services/search/*.py`, `frontend/src/api/searchApi.ts`, `frontend/src/pages/SearchPage.tsx`, `frontend/src/routes.tsx`, `frontend/src/components/navigation/BottomNav.tsx`
+- **Verification:** `cd frontend && npm run lint && npm run build` — success

@@ -17,6 +17,11 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-10T180000Z-reaction-asset-url-frontend-code.md`
+- `2026-05-10T120300Z-catalog-search-tab-docs.md`
+- `2026-05-10T120200Z-catalog-search-tab-test.md`
+- `2026-05-10T120100Z-catalog-search-tab-code.md`
+- `2026-05-10T120000Z-catalog-search-tab-plan.md`
 - `2026-05-09T120000Z-movie-card-favorites-docs.md`
 - `2026-05-08T235000Z-scroll-to-top-fab-code.md`
 - `2026-05-08T230000Z-recent-views-copy-card-link-docs.md`

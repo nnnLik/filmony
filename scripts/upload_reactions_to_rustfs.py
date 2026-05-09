@@ -38,10 +38,15 @@
   cd /opt/filmony   # каталог, где лежит compose.yml и vars/.env.production
 
   docker compose -f compose.yml run --rm \\
+    --entrypoint "" \\
     -v /opt/filmony/upload_reactions_to_rustfs.py:/tmp/upload_reactions_to_rustfs.py:ro \\
     -v /opt/filmony/emoji:/emoji:ro \\
     backend \\
-    python /tmp/upload_reactions_to_rustfs.py --emoji-root /emoji --sync-db
+    /opt/pysetup/.venv/bin/python /tmp/upload_reactions_to_rustfs.py --emoji-root /emoji --sync-db
+
+Если без ``--entrypoint ""`` появляется
+``can't find '__main__' module in '/tmp/upload_reactions_to_rustfs.py'`` —
+у образа ненулевой ENTRYPOINT; ``--entrypoint ""`` его сбрасывает.
 
 Переменные ``RUSTFS_*`` и ``DATABASE_URL`` подтянутся из ``env_file`` сервиса ``backend``.
 Если в ``.env`` только ``RUSTFS_INTERNAL_BASE_URL``, скрипт использует его как endpoint для S3.

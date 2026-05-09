@@ -1,3 +1,5 @@
+import { resolveApiUrl } from '../api/client'
+
 export function resolveApiMediaUrl(url: string): string {
-  return url.trim()
+  return resolveApiUrl(url.trim())
 }
