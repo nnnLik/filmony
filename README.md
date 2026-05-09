@@ -30,7 +30,7 @@
 
 1. В **homelab-infra**: `make dev-up`. В `vars/.env.dev` задай `ROUTE*_HOST` / `ROUTE*_UPSTREAM` так, чтобы хост совпадал с `VITE_API_ORIGIN` (без порта), upstream — `host.docker.internal:8888`. При необходимости добавь хост в `/etc/hosts`.
 
-2. В этом репозитории: [`vars/.env.development`](vars/.env.development) — URL на `homelab-postgres`, `homelab-redis`, `VITE_API_ORIGIN=http://filmony-api.localhost:5080`, `RUSTFS_INTERNAL_BASE_URL=http://rustfs:9000`.
+2. В этом репозитории: [`vars/.env.development`](vars/.env.development) — Postgres на `homelab-postgres`, отдельная БД **`filmony`** (роль/пароль как `FILMONY_DB_*` в **homelab-infra** `vars/.env.dev`), `homelab-redis`, `VITE_API_ORIGIN=http://filmony-api.localhost:5080`, `RUSTFS_INTERNAL_BASE_URL=http://rustfs:9000`.
 
 3. Поднять приложение:
 
@@ -38,7 +38,7 @@
    make start
    ```
 
-   API: **http://127.0.0.1:8888** (и через Caddy **http://filmony-api.localhost:5080**). Postgres с хоста (homelab): **127.0.0.1:15432**.
+   API: **http://127.0.0.1:8888**. Через Caddy в dev шлюз слушает **только порт 5080** (`127.0.0.1:5080`), не 80 — открывай **http://filmony-api.localhost:5080/** (и совпадение `ROUTE1_HOST` в homelab с этим хостом). После смены `vars/.env.dev` перезапусти Caddy: `docker compose … restart caddy`. Postgres с хоста: **127.0.0.1:15432**.
 
 4. Миграции: `make migrate`
 
