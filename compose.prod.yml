@@ -28,7 +28,7 @@ services:
     container_name: filmony-backend-prod
     command: python src/main.py
     ports:
-      - '127.0.0.1:8100:8000'
+      - '8100:8000'
     depends_on:
       - filmony-redis
 
