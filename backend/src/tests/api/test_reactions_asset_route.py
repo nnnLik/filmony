@@ -37,9 +37,7 @@ async def test_reaction_asset_returns_bytes_when_signed_get_succeeds(
     async_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        settings.reaction_media, 'rustfs_internal_base_url', 'http://rustfs:9000'
-    )
+    monkeypatch.setattr(settings.reaction_media, 'rustfs_internal_base_url', 'http://rustfs:9000')
     monkeypatch.setattr(settings.reaction_media, 'rustfs_bucket', 'filmony-reactions')
     monkeypatch.setattr(settings.reaction_media, 'rustfs_access_key', 'rustfsadmin')
     monkeypatch.setattr(settings.reaction_media, 'rustfs_secret_key', 'rustfsadmin')
@@ -60,9 +58,7 @@ async def test_reaction_asset_returns_404_when_object_missing(
     async_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        settings.reaction_media, 'rustfs_internal_base_url', 'http://rustfs:9000'
-    )
+    monkeypatch.setattr(settings.reaction_media, 'rustfs_internal_base_url', 'http://rustfs:9000')
     monkeypatch.setattr(settings.reaction_media, 'rustfs_bucket', 'filmony-reactions')
     monkeypatch.setattr(settings.reaction_media, 'rustfs_access_key', 'rustfsadmin')
     monkeypatch.setattr(settings.reaction_media, 'rustfs_secret_key', 'rustfsadmin')
