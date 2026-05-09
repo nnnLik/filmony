@@ -1,6 +1,7 @@
 import { isTMA, retrieveRawInitData } from '@telegram-apps/sdk'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
+import { apiFetch } from '../api/client'
 import { authTelegram } from '../api/profileApi'
 import { AuthStateContext, type AuthStatus } from './auth-context'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
@@ -26,6 +27,27 @@ function resolveInitDataRaw(): string {
   return fromSdk || fromWebApp
 }
 
+const authBootstrapGeneration = { current: 0 }
+
+async function waitForInitDataRaw(
+  maxFrames: number,
+  isCurrent: () => boolean
+): Promise<string> {
+  for (let i = 0; i < maxFrames; i++) {
+    if (!isCurrent()) {
+      return ''
+    }
+    const raw = resolveInitDataRaw()
+    if (raw) {
+      return raw
+    }
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
+  }
+  return resolveInitDataRaw()
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthStatus>(() => {
     if (!isTMA()) {
@@ -45,34 +67,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    let alive = true
+    // Уже есть JWT в storage — не дублируем POST /auth/telegram при каждом mount.
+    if (readAccessToken()) {
+      writeAuthSessionFlag(true)
+      return
+    }
+
+    const runId = ++authBootstrapGeneration.current
 
     void (async () => {
-      // Дождаться кадра: после init() и в StrictMode initData в WebApp может появиться не синхронно.
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve())
       })
-      if (!alive) {
+      if (runId !== authBootstrapGeneration.current) {
         return
       }
 
-      const raw = resolveInitDataRaw()
-        if (!raw) {
-          if (alive) {
-            writeAuthSessionFlag(false)
-            writeAccessToken(null)
-            clearMyProfileBundleCache()
-          setState({
-            kind: 'error',
-            message: 'Пустой initData — откройте приложение из Telegram.',
+      const tryResumeFromCookie = async (): Promise<boolean> => {
+        try {
+          const probe = await apiFetch('/api/me/profile', {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
           })
+          if (runId !== authBootstrapGeneration.current) {
+            return false
+          }
+          if (!probe.ok) {
+            return false
+          }
+          writeAuthSessionFlag(true)
+          setState({ kind: 'ready' })
+          return true
+        } catch {
+          return false
         }
+      }
+
+      // Сессия по HttpOnly cookie: бэкенд уже знает пользователя, Bearer в storage не нужен.
+      if (await tryResumeFromCookie()) {
+        return
+      }
+
+      const raw = await waitForInitDataRaw(16, () => runId === authBootstrapGeneration.current)
+      if (runId !== authBootstrapGeneration.current) {
+        return
+      }
+
+      if (!raw) {
+        if (await tryResumeFromCookie()) {
+          return
+        }
+        writeAuthSessionFlag(false)
+        writeAccessToken(null)
+        clearMyProfileBundleCache()
+        setState({
+          kind: 'error',
+          message: 'Пустой initData — откройте приложение из Telegram.',
+        })
         return
       }
 
       try {
         const res = await authTelegram(raw)
-        if (!alive) {
+        if (runId !== authBootstrapGeneration.current) {
           return
         }
         if (!res.ok) {
@@ -110,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         writeAuthSessionFlag(true)
         setState({ kind: 'ready' })
       } catch (e) {
-        if (!alive) {
+        if (runId !== authBootstrapGeneration.current) {
           return
         }
         writeAuthSessionFlag(false)
@@ -122,10 +179,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
     })()
-
-    return () => {
-      alive = false
-    }
   }, [])
 
   const value = useMemo(() => state, [state])
