@@ -28,7 +28,7 @@
 
 ## Быстрый старт (Docker)
 
-1. В **homelab-infra**: `make dev-up` (создаётся сеть **`homelab-infra-network`**). Caddy в **`caddy/dev/Caddyfile`** проксирует **`filmony-api.localhost`** на **`filmony-backend:8000`**. При необходимости добавь `filmony-api.localhost` в `/etc/hosts`.
+1. В **homelab-infra**: `make dev-up` (сеть **`homelab-infra-network`**). Caddy: **`filmony-api.localhost`** → API, **`filmony.localhost`** → статика из **`static/filmony/`** (собери `frontend` и скопируй `dist` туда при необходимости). Добавь оба хоста в **`/etc/hosts`** → `127.0.0.1`.
 
 2. В этом репозитории: [`vars/.env.development`](vars/.env.development) — Postgres на `homelab-postgres`, `homelab-redis` (БД и роли создаёшь сам в Postgres), `VITE_API_ORIGIN=http://filmony-api.localhost:5080`, `RUSTFS_INTERNAL_BASE_URL=http://rustfs:9000`.
 
@@ -53,14 +53,24 @@
 
    Для `WITH_DB=1` с хоста `homelab-postgres:5432` в URL подменяется на `127.0.0.1:15432` (см. `COMPOSE_PG_PORT` в `Makefile`).
 
-## Продакшен (Compose)
+## Продакшен (Compose + GHCR)
 
-[`docker-compose.prod.yml`](docker-compose.prod.yml): образ **prod**, встроенный Redis, backend **8100**. Переменные — в `vars/.env.production`.
+Образ бэкенда собирается в **GitHub Actions** и пушится в **`ghcr.io/<org>/<repo>/backend:latest`**. На сервере **не нужен** каталог `backend/` для сборки: только файлы ниже в **`/opt/filmony/`** (или другом каталоге — поправь workflow).
+
+| Файл | Назначение |
+|------|------------|
+| [`docker-compose.prod.yml`](docker-compose.prod.yml) | `backend` + `celery-worker`, сеть **homelab-infra-network**, Redis только **homelab-redis** (через `CELERY_*` в env) |
+| [`Makefile`](Makefile) | `make prod-up`, `make prod-migrate`, `make prod-logs` |
+| `vars/.env.production` | Секреты и URL; обязательно **`GITHUB_REPO`** = `org/repo` в **нижнем регистре** (как в GHCR) для подстановки в имя образа |
+
+Первый запуск на сервере после `up`:
 
 ```bash
-docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml up -d
-docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
+cd /opt/filmony
+make prod-migrate
 ```
+
+Деплой из репозитория: **Actions → Deploy → Run workflow** (те же секреты `SERVER_*`, что и у других сервисов; для фронта в CI: **`VITE_API_ORIGIN`**, **`VITE_TELEGRAM_BOT_USERNAME`**). На сервере должен быть запущен **homelab-infra** (Caddy, Postgres, Redis). В **`vars/.env`** homelab задай **`FILMONY_WEB_HOST`** под HTTPS-статику Mini App (совпадает с origin в **`CORS_ALLOW_ORIGINS`**).
 
 Чеклист: [`.cursor/features/production-readiness/feature.md`](.cursor/features/production-readiness/feature.md).
 
@@ -68,8 +78,10 @@ docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
 
 | Цель | Назначение |
 |------|------------|
-| `make start` | build + up |
-| `make migrate` | Alembic upgrade head |
+| `make start` | build + up (dev compose) |
+| `make migrate` | Alembic upgrade head (dev) |
+| `make prod-up` | pull образов GHCR + up (prod compose) |
+| `make prod-migrate` | Alembic upgrade head (prod) |
 | `make backend-test` | pytest в контейнере `backend` |
 | `make sync-reactions-rustfs WITH_DB=1` | RustFS + БД; хост Postgres homelab — порт **15432** |
 

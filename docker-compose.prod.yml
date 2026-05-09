@@ -8,38 +8,23 @@ networks:
 
 x-backend: &backend
   restart: unless-stopped
-  networks:
-    - filmony
-  build:
-    context: backend
-    dockerfile: Dockerfile
-    target: prod
+  image: ghcr.io/${GITHUB_REPO}/backend:latest
   env_file:
     - vars/.env.production
   working_dir: /opt/app
+  networks:
+    - filmony
+    - homelab-infra
 
 services:
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    networks:
-      - filmony
-    command: ['redis-server', '--appendonly', 'yes']
-
   backend:
     <<: *backend
     container_name: filmony-backend
-    networks:
-      - filmony
-      - homelab-infra
     command: python src/main.py
-    ports:
-      - '8100:8000'
-    depends_on:
-      - redis
 
   celery-worker:
     <<: *backend
+    container_name: filmony-celery-worker
     command: celery -A celery_app worker --loglevel=INFO
     depends_on:
-      - redis
+      - backend
