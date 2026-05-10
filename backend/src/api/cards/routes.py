@@ -58,6 +58,7 @@ from services.cards.delete_movie_card import (
 )
 from services.cards.get_movie_card_details import GetMovieCardDetailsService, MovieCardNotFoundError
 from services.cards.list_following_ratings_for_movie_card import (
+    FollowingRatingRow,
     ListFollowingRatingsForMovieCardService,
     MovieCardAnchorNotFoundError,
 )
@@ -271,23 +272,25 @@ async def list_following_ratings_for_movie_card(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> FollowingRatingsListResponse:
     try:
-        rows = await ListFollowingRatingsForMovieCardService(db).execute(viewer.id, card_id)
+        result = await ListFollowingRatingsForMovieCardService(db).execute(viewer.id, card_id)
     except MovieCardAnchorNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
+
+    def _entry(r: FollowingRatingRow) -> FollowingRatingEntryResponse:
+        return FollowingRatingEntryResponse(
+            user_id=r.user_id,
+            profile_slug=r.profile_slug,
+            username=r.username,
+            first_name=r.first_name,
+            last_name=r.last_name,
+            photo_url=r.photo_url,
+            display_name=r.display_name,
+            rating=r.rating,
+        )
+
     return FollowingRatingsListResponse(
-        items=[
-            FollowingRatingEntryResponse(
-                user_id=r.user_id,
-                profile_slug=r.profile_slug,
-                username=r.username,
-                first_name=r.first_name,
-                last_name=r.last_name,
-                photo_url=r.photo_url,
-                display_name=r.display_name,
-                rating=r.rating,
-            )
-            for r in rows
-        ],
+        viewer_rating=_entry(result.viewer_row) if result.viewer_row is not None else None,
+        items=[_entry(r) for r in result.items],
     )
 
 

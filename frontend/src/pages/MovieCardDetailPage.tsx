@@ -25,6 +25,7 @@ import {
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
+import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
@@ -104,6 +105,21 @@ type FollowingRatingRow = {
   photo_url: string | null
   display_name: string | null
   rating: number
+  is_viewer?: boolean
+}
+
+function buildFollowingRatingDisplayRows(
+  viewerRating: FollowingRatingRow | null | undefined,
+  items: FollowingRatingRow[],
+): FollowingRatingRow[] {
+  const rows: FollowingRatingRow[] = []
+  if (viewerRating != null) {
+    rows.push({ ...viewerRating, is_viewer: true })
+  }
+  for (const row of items) {
+    rows.push({ ...row, is_viewer: false })
+  }
+  return rows
 }
 
 type FollowingNamePick = {
@@ -123,10 +139,12 @@ function followingRowToProfileFields(row: FollowingRatingRow): FollowingNamePick
 }
 
 function followingRowDisplayName(row: FollowingRatingRow): string {
+  if (row.is_viewer) return 'Вы'
   return displayNameFromProfile(followingRowToProfileFields(row))
 }
 
 function followingRowInitials(row: FollowingRatingRow): string {
+  if (row.is_viewer) return 'В'
   const p = followingRowToProfileFields(row)
   return profileInitials({
     display_name: p.display_name,
@@ -271,7 +289,9 @@ export function MovieCardDetailPage() {
       try {
         const data = await getFollowingRatingsForCard(parsedCardId)
         if (!alive) return
-        setFollowingRatings(data.items)
+        setFollowingRatings(
+          buildFollowingRatingDisplayRows(data.viewer_rating ?? null, data.items),
+        )
       } catch {
         if (!alive) return
         setFollowingRatings([])
@@ -641,15 +661,11 @@ export function MovieCardDetailPage() {
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
               <p className="text-sm font-medium text-(--tgui--text_color)">Друзья оценили</p>
-              <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
-                Подписки с оценкой этого тайтла, по убыванию (до 5).
-              </p>
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">Сравнить с подписками.</p>
               {followingRatings == null ? (
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
               ) : followingRatings.length === 0 ? (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">
-                  Пока никто из подписок не оценил этот тайтл.
-                </p>
+                <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока некого показать.</p>
               ) : (
                 <ul className="mt-3 list-none space-y-3 p-0">
                   {followingRatings.map((row: FollowingRatingRow) => {
@@ -696,14 +712,14 @@ export function MovieCardDetailPage() {
 
               <div className="mt-3">
                 <div className="flex gap-2">
-                  <textarea
+                  <CommentDraftMultiline
                     ref={commentTextAreaRef}
                     value={commentText}
-                    onChange={(e) => setCommentText(e.currentTarget.value)}
+                    onChange={setCommentText}
+                    disabled={submitBusy}
                     rows={4}
                     maxLength={COMMENT_BODY_MAX_LEN}
                     placeholder="Напишите комментарий..."
-                    className="min-h-24 min-w-0 flex-1 resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-sm outline-none"
                   />
                   <div className="flex shrink-0 flex-col justify-start pt-1">
                     <CommentReactionTokenPicker

@@ -149,4 +149,5 @@ class FollowingRatingEntryResponse(BaseModel):
 
 
 class FollowingRatingsListResponse(BaseModel):
+    viewer_rating: FollowingRatingEntryResponse | None = None
     items: list[FollowingRatingEntryResponse] = Field(default_factory=list)

@@ -4,6 +4,7 @@ import type { ReactionGroupedCatalog } from '../../api/profileTypes'
 import { ApiError, formatApiDetail } from '../../api/client'
 import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { splitCommentTextIntoSegments } from '../../lib/commentReactionTokens'
+import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 
 type CommentBodyWithReactionTokensProps = {
   text: string
@@ -78,9 +79,9 @@ export function CommentBodyWithReactionTokens({ text, className }: CommentBodyWi
         return (
           <img
             key={`r-${i}`}
-            src={src}
+            src={resolveApiMediaUrl(src)}
             alt=""
-            className="mx-0.5 inline-block size-[1.15em] align-[-0.2em] object-contain"
+            className="mx-0.5 inline-block size-[1.4em] align-[-0.24em] object-contain"
             loading="lazy"
           />
         )

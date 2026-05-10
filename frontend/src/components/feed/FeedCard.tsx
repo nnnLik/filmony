@@ -6,6 +6,7 @@ import { createMovieCardComment, listAllMovieCardComments } from '../../api/card
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
+import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
 import {
   COMMENT_BODY_MAX_LEN,
@@ -453,22 +454,20 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
 
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNavKeepFocus}>
-                  <input
+                  <CommentDraftSingleLineInput
                     ref={draftInputRef}
-                    type="text"
                     value={draft}
+                    onChange={setDraft}
                     disabled={submitBusy}
                     maxLength={COMMENT_BODY_MAX_LEN}
                     placeholder="Комментарий…"
-                    className="min-h-8 min-w-0 flex-1 rounded-lg border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-1.5 text-[13px] text-(--tgui--text_color) outline-none ring-(--tgui--link_color) placeholder:text-(--tgui--hint_color) focus-visible:border-transparent focus-visible:ring-2"
-                    onChange={(e) => setDraft(e.currentTarget.value)}
+                    ariaLabel="Текст комментария"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
                         void send()
                       }
                     }}
-                    aria-label="Текст комментария"
                   />
                   <CommentReactionTokenPicker
                     onPickReactionTypeId={insertReactionToken}

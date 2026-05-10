@@ -31,17 +31,30 @@ class MovieCardAnchorNotFoundError(Exception):
     pass
 
 
-class ListFollowingRatingsForMovieCardService:
-    """Возвращает до N карточек того же фильма от людей, на которых зритель подписан.
+@dataclass(frozen=True, slots=True)
+class ListFollowingRatingsResult:
+    """Строка зрителя (если есть своя карточка на тот же фильм) и подписки с оценками."""
 
-    Автора открытой карточки и самого зрителя из списка убираем: у них оценка уже на экране или
-    не показываем «себе среди друзей».
+    viewer_row: FollowingRatingRow | None
+    items: list[FollowingRatingRow]
+
+
+class ListFollowingRatingsForMovieCardService:
+    """Возвращает оценки того же фильма: опционально карточку зрителя и до N подписок.
+
+    Подписки — пользователи, на которых зритель подписан, с карточкой на тот же фильм; из этого
+    списка исключаются автор открытой карточки и сам зритель (чтобы не дублировать строки).
+
+    Если зритель открыл чужую карточку и у него в библиотеке есть оценка этого тайтла, она
+    возвращается отдельно в ``viewer_row`` (на экране автор уже показан крупно, зритель — нет).
     """
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, viewer_user_id: UUID, anchor_card_id: int) -> list[FollowingRatingRow]:
+    async def execute(
+        self, viewer_user_id: UUID, anchor_card_id: int
+    ) -> ListFollowingRatingsResult:
         anchor = (
             await self._session.execute(select(MovieCard).where(MovieCard.id == anchor_card_id))
         ).scalar_one_or_none()
@@ -50,6 +63,30 @@ class ListFollowingRatingsForMovieCardService:
 
         film_id = anchor.film_id
         owner_id = anchor.user_id
+
+        viewer_row: FollowingRatingRow | None = None
+        if viewer_user_id != owner_id:
+            viewer_stmt = (
+                select(User, MovieCard.rating)
+                .join(MovieCard, MovieCard.user_id == User.id)
+                .where(MovieCard.film_id == film_id)
+                .where(MovieCard.user_id == viewer_user_id)
+                .order_by(MovieCard.id.desc())
+                .limit(1)
+            )
+            vr = (await self._session.execute(viewer_stmt)).one_or_none()
+            if vr is not None:
+                u, rating = vr
+                viewer_row = FollowingRatingRow(
+                    user_id=u.id,
+                    profile_slug=u.profile_slug,
+                    username=u.username,
+                    first_name=u.first_name,
+                    last_name=u.last_name,
+                    photo_url=u.photo_url,
+                    display_name=u.display_name,
+                    rating=float(rating),
+                )
 
         stmt = (
             select(User, MovieCard.rating)
@@ -66,7 +103,7 @@ class ListFollowingRatingsForMovieCardService:
             .limit(FOLLOWING_RATINGS_TOP_LIMIT)
         )
         rows = (await self._session.execute(stmt)).all()
-        return [
+        items = [
             FollowingRatingRow(
                 user_id=u.id,
                 profile_slug=u.profile_slug,
@@ -79,3 +116,4 @@ class ListFollowingRatingsForMovieCardService:
             )
             for u, rating in rows
         ]
+        return ListFollowingRatingsResult(viewer_row=viewer_row, items=items)

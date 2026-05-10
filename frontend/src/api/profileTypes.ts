@@ -197,6 +197,8 @@ export type FollowingRatingEntry = {
 }
 
 export type FollowingRatingsResponse = {
+  /** Ваша оценка этого тайтла, если открыта чужая карточка и карточка есть у вас. */
+  viewer_rating: FollowingRatingEntry | null
   items: FollowingRatingEntry[]
 }
 
