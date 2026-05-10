@@ -38,6 +38,7 @@ class CreateMovieCardInput:
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: Sequence[str]
+    watch_note: str = ''
 
 
 def _normalize_rating(value: float) -> float:
@@ -70,6 +71,13 @@ def _normalize_tags(tags: Sequence[str]) -> list[str]:
     return normalized
 
 
+def _normalize_watch_note(raw: str) -> str:
+    s = (raw or '').strip()
+    if len(s) > 500:
+        raise MovieCardValidationError('watch note max length is 500')
+    return s
+
+
 def _normalize_genres(genres: Sequence[str]) -> list[str]:
     normalized: list[str] = []
     seen: set[str] = set()
@@ -96,6 +104,7 @@ class CreateMovieCardService:
     async def execute(self, user_id: UUID, payload: CreateMovieCardInput) -> MovieCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
+        watch_note = _normalize_watch_note(payload.watch_note)
         genres = _normalize_genres(payload.genres)
 
         film_result = await self._session.execute(select(Film).where(Film.id == payload.film_id))
@@ -114,6 +123,7 @@ class CreateMovieCardService:
             company=payload.company.value,
             mood_before=payload.mood_before.value,
             mood_after=payload.mood_after.value,
+            watch_note=watch_note,
         )
         self._session.add(entity)
 

@@ -89,6 +89,7 @@ class MovieCardListItem:
     company: str
     mood_before: str
     mood_after: str
+    watch_note: str
     custom_tags: list[str]
     updated_at: dt.datetime
     is_favorite: bool
@@ -117,6 +118,7 @@ def _rows_to_items(
             company=card.company,
             mood_before=card.mood_before,
             mood_after=card.mood_after,
+            watch_note=card.watch_note or '',
             custom_tags=tags_by_card.get(card.id, []),
             updated_at=card.updated_at,
             is_favorite=bool(card.is_favorite),

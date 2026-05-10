@@ -21,6 +21,7 @@ export type CreateMovieCardPayload = {
   mood_before: CardMoodBefore
   mood_after: CardMoodAfter
   custom_tags: string[]
+  watch_note?: string
 }
 
 export type UpdateMovieCardPayload = {
@@ -29,6 +30,7 @@ export type UpdateMovieCardPayload = {
   mood_before?: CardMoodBefore
   mood_after?: CardMoodAfter
   custom_tags?: string[]
+  watch_note?: string
   is_favorite?: boolean
 }
 
@@ -84,14 +86,11 @@ export async function getMovieCardFeedPage(params?: {
   limit?: number
   /** Совпадает с query `mode` на бэкенде; передавайте при пагинации тот же режим */
   mode?: FeedListMode
-  /** Query `hide_own` — не показывать свои карточки в ленте */
-  hideOwn?: boolean
 }): Promise<FeedMovieCardPage> {
   const search = new URLSearchParams()
   if (params?.cursor) search.set('cursor', params.cursor)
   if (params?.limit != null) search.set('limit', String(params.limit))
   if (params?.mode != null && params.mode !== 'default') search.set('mode', params.mode)
-  if (params?.hideOwn === true) search.set('hide_own', 'true')
   const suffix = search.toString()
   return apiJson<FeedMovieCardPage>(`/api/cards/feed${suffix ? `?${suffix}` : ''}`)
 }
@@ -173,11 +172,15 @@ export type ShareMovieCardResponse = {
 
 export async function shareMovieCardWithFollowers(
   cardId: number,
-  recipientUserIds: string[]
+  recipientUserIds: string[],
+  options?: { shareComment?: string }
 ): Promise<ShareMovieCardResponse> {
   return apiJson<ShareMovieCardResponse>(`/api/cards/${cardId}/share`, {
     method: 'POST',
-    body: JSON.stringify({ recipient_user_ids: recipientUserIds }),
+    body: JSON.stringify({
+      recipient_user_ids: recipientUserIds,
+      share_comment: options?.shareComment?.trim() ?? '',
+    }),
     headers: { 'Content-Type': 'application/json' },
   })
 }

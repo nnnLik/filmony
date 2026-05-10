@@ -33,7 +33,6 @@ export function FeedPage() {
   const queryClient = useQueryClient()
 
   const [feedMode, setFeedMode] = useState<FeedListMode>('default')
-  const [hideOwnCards, setHideOwnCards] = useState(false)
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
   const viewerUserId = myProfileBundle?.profile.id ?? null
   const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
@@ -53,13 +52,12 @@ export function FeedPage() {
   }, [])
 
   const feedQuery = useInfiniteQuery({
-    queryKey: movieCardFeedQueryKey(feedMode, hideOwnCards),
+    queryKey: movieCardFeedQueryKey(feedMode),
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) =>
       getMovieCardFeedPage({
         limit: 20,
         mode: feedMode,
-        hideOwn: hideOwnCards,
         ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
       }),
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
@@ -135,7 +133,7 @@ export function FeedPage() {
 
   const onCommentsState = useCallback(
     (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
-      const key = movieCardFeedQueryKey(feedMode, hideOwnCards)
+      const key = movieCardFeedQueryKey(feedMode)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
         return {
@@ -147,7 +145,7 @@ export function FeedPage() {
         }
       })
     },
-    [queryClient, feedMode, hideOwnCards],
+    [queryClient, feedMode],
   )
 
   if (auth.kind === 'error') {
@@ -180,18 +178,6 @@ export function FeedPage() {
               Лента
             </h1>
             <div className="flex shrink-0 items-center gap-1.5">
-              <Button
-                mode={hideOwnCards ? 'filled' : 'gray'}
-                size="s"
-                type="button"
-                className="max-w-[5.5rem] shrink truncate px-2"
-                onClick={() => setHideOwnCards((v) => !v)}
-                aria-pressed={hideOwnCards}
-                aria-label={hideOwnCards ? 'Показывать мои карточки в ленте' : 'Скрыть мои карточки из ленты'}
-                title="Свои карточки в этой ленте"
-              >
-                Без моих
-              </Button>
               <Link to="/cards/new" aria-label="Добавить карточку" className="shrink-0 no-underline">
                 <Button mode="gray">+</Button>
               </Link>

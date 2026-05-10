@@ -91,6 +91,7 @@ class MovieCardItemResponse(BaseModel):
     mood_before: str
     mood_after: str
     custom_tags: list[str] = Field(default_factory=list)
+    watch_note: str = ''
     is_favorite: bool = False
 
 
@@ -234,6 +235,7 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
             mood_before=item.mood_before,
             mood_after=item.mood_after,
             custom_tags=item.custom_tags,
+            watch_note=item.watch_note,
             is_favorite=item.is_favorite,
         )
         for item in page.items

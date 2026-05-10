@@ -30,6 +30,7 @@ class MovieCardDetails:
     company: str
     mood_before: str
     mood_after: str
+    watch_note: str
     custom_tags: list[str]
     reactions: ReactionTargetSummary
     is_favorite: bool
@@ -94,6 +95,7 @@ class GetMovieCardDetailsService:
             company=card.company,
             mood_before=card.mood_before,
             mood_after=card.mood_after,
+            watch_note=card.watch_note or '',
             custom_tags=list(tags),
             reactions=summaries[card.id],
             is_favorite=bool(card.is_favorite),

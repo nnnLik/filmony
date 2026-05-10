@@ -41,6 +41,7 @@ def _movie_cards_to_csv_bytes(items: list[MovieCardListItem]) -> bytes:
             'mood_before',
             'mood_after',
             'custom_tags',
+            'watch_note',
             'poster_url',
             'updated_at',
         ]
@@ -59,6 +60,7 @@ def _movie_cards_to_csv_bytes(items: list[MovieCardListItem]) -> bytes:
                 item.mood_before,
                 item.mood_after,
                 ';'.join(item.custom_tags),
+                item.watch_note.replace('\r\n', '\n').replace('\n', ' '),
                 item.film_poster_url or '',
                 item.updated_at.isoformat(),
             ]

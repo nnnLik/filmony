@@ -32,7 +32,7 @@ export const MOOD_AFTER_SHORT: Record<CardMoodAfter, string> = {
 export function feedCardSourceBadge(card: FeedMovieCard, viewerUserId: string | null): string {
   const isOwn =
     viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
-  if (isOwn || card.feed_source === 'own') {
+  if (isOwn) {
     return 'Твоё'
   }
   switch (card.feed_source) {

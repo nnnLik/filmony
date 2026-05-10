@@ -1,6 +1,6 @@
 import { Button, Title } from '@telegram-apps/telegram-ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -21,6 +21,7 @@ import type {
   SubscriptionListItem,
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { myMovieCardTagStatsQueryKey, userMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
@@ -29,6 +30,7 @@ import {
   readCachedMyMovieCardTagStats,
   writeCachedMyMovieCardTagStats,
 } from '../lib/movieCardTagStatsStorage'
+import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -76,6 +78,7 @@ const WIZARD_TEXT_FIELD_CLASS =
 
 /** Совпадает с бэкендом `create_movie_card._normalize_tags`. */
 const MAX_CUSTOM_TAG_LEN = 40
+const MAX_WATCH_NOTE_LEN = 500
 
 function filmHasMyCard(f: Film): boolean {
   return f.my_card_id != null && f.my_card_id > 0
@@ -140,10 +143,36 @@ export function CreateCardPage() {
   const [moodAfter, setMoodAfter] = useState<CardMoodAfter>('enjoyed')
   const [customTags, setCustomTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [watchNote, setWatchNote] = useState('')
+  const [shareComment, setShareComment] = useState('')
   const [shareFollowers, setShareFollowers] = useState<SubscriptionListItem[]>([])
   const [shareFollowersLoading, setShareFollowersLoading] = useState(false)
   const [shareSelected, setShareSelected] = useState<Set<string>>(() => new Set())
   const fromCardBootstrapSeq = useRef(0)
+  const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+
+  const insertReactionIntoWatchNote = useCallback(
+    (id: number) => {
+      const token = reactionTokenFromId(id)
+      const el = watchNoteRef.current
+      const inserted = insertSnippetAtCaret(
+        watchNote,
+        el?.selectionStart ?? null,
+        el?.selectionEnd ?? null,
+        token,
+        MAX_WATCH_NOTE_LEN,
+      )
+      if (!inserted) return
+      setWatchNote(inserted.nextValue)
+      window.requestAnimationFrame(() => {
+        const target = watchNoteRef.current
+        if (!target) return
+        target.focus()
+        target.setSelectionRange(inserted.caret, inserted.caret)
+      })
+    },
+    [watchNote],
+  )
 
   const tagStatsQuery = useQuery({
     queryKey: myMovieCardTagStatsQueryKey(),
@@ -306,7 +335,8 @@ export function CreateCardPage() {
   }, [tagInput, myTagStats, customTagsLower])
 
   const tagInputTooLong = tagInput.trim().length > MAX_CUSTOM_TAG_LEN
-  const canProceedFromTags = !tagInputTooLong
+  const watchNoteTooLong = watchNote.length > MAX_WATCH_NOTE_LEN
+  const canProceedFromTags = !tagInputTooLong && !watchNoteTooLong
 
   function toggleShareRecipient(userId: string) {
     setShareSelected((prev) => {
@@ -466,6 +496,7 @@ export function CreateCardPage() {
         mood_before: moodBefore,
         mood_after: moodAfter,
         custom_tags: customTags,
+        watch_note: watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
       })
       const bundleUid = readMyProfileBundleCache()?.profile.id
       if (bundleUid != null && bundleUid !== '') {
@@ -476,7 +507,9 @@ export function CreateCardPage() {
       safeHapticSuccess()
       if (shareSelected.size > 0) {
         try {
-          await shareMovieCardWithFollowers(newCard.id, [...shareSelected])
+          await shareMovieCardWithFollowers(newCard.id, [...shareSelected], {
+            shareComment: shareComment.trim().slice(0, MAX_WATCH_NOTE_LEN),
+          })
         } catch {
           void navigate(`/cards/${newCard.id}/share`)
           return
@@ -733,7 +766,7 @@ export function CreateCardPage() {
                   </div>
                 </div>
               ) : null}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <div className="flex flex-wrap items-stretch gap-2">
                 <input
                   type="text"
                   placeholder="Добавить тег"
@@ -799,6 +832,41 @@ export function CreateCardPage() {
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Добавьте пару слов о впечатлении.</p>
               )}
               <div className="mt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Заметка о просмотре</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  По желанию: пару предложений о фильме. До {MAX_WATCH_NOTE_LEN} символов.
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <textarea
+                    ref={watchNoteRef}
+                    value={watchNote}
+                    maxLength={MAX_WATCH_NOTE_LEN}
+                    onChange={(e) => {
+                      setWatchNote(e.currentTarget.value)
+                      setError(null)
+                    }}
+                    placeholder="Например: неожиданно тихий финал…"
+                    rows={4}
+                    className={`min-h-24 min-w-0 flex-1 resize-y ${WIZARD_TEXT_FIELD_CLASS}`}
+                  />
+                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                    <CommentReactionTokenPicker
+                      allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
+                      onPickReactionTypeId={insertReactionIntoWatchNote}
+                    />
+                  </div>
+                </div>
+                {watchNoteTooLong ? (
+                  <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">
+                    Не больше {MAX_WATCH_NOTE_LEN} символов
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                    {watchNote.length}/{MAX_WATCH_NOTE_LEN}
+                  </p>
+                )}
+              </div>
+              <div className="mt-5">
                 <Button stretched disabled={!canProceedFromTags} onClick={() => setStep(5)}>
                   Далее
                 </Button>
@@ -823,6 +891,23 @@ export function CreateCardPage() {
                   onToggle={toggleShareRecipient}
                 />
               ) : null}
+              <div className="mt-4">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Комментарий к отправке</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  Попадёт в уведомление Telegram у выбранных подписчиков. До {MAX_WATCH_NOTE_LEN} символов.
+                </p>
+                <textarea
+                  value={shareComment}
+                  maxLength={MAX_WATCH_NOTE_LEN}
+                  onChange={(e) => setShareComment(e.currentTarget.value)}
+                  placeholder="Например: загляните в мини-апп — там детали"
+                  rows={3}
+                  className={`mt-2 ${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
+                />
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  {shareComment.length}/{MAX_WATCH_NOTE_LEN}
+                </p>
+              </div>
               <div className="mt-5">
                 <Button stretched disabled={film == null || submitLoading} onClick={() => void handleSubmit()}>
                   {submitLoading ? 'Создаем...' : 'Готово'}

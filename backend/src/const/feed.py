@@ -5,7 +5,6 @@ from typing import Final, Literal
 FeedMode = Literal['default', 'subscriptions_only', 'subscribers_only']
 
 StreamName = Literal[
-    'own',
     'subscriptions',
     'subscribers',
     'personal_affinity',
@@ -32,9 +31,9 @@ ANTI_SPAM_WINDOW: Final[int] = 2
 GENRE_OVERLAP_WEIGHT: Final[int] = 2
 TAG_OVERLAP_WEIGHT: Final[int] = 3
 
-# Цикл слотов: own + social + affinity + discovery (детерминированное чередование).
+# Цикл слотов: соцграф + affinity + discovery (детерминированное чередование, без потока «свои»).
 SLOT_PATTERN: Final[tuple[StreamName, ...]] = (
-    'own',
+    'subscriptions',
     'subscriptions',
     'subscribers',
     'subscriptions',
@@ -49,11 +48,9 @@ FALLBACK_ORDER: Final[tuple[StreamName, ...]] = (
     'subscribers',
     'personal_affinity',
     'discovery',
-    'own',
 )
 
 STREAM_KEYS: Final[tuple[StreamName, ...]] = (
-    'own',
     'subscriptions',
     'subscribers',
     'personal_affinity',
@@ -66,8 +63,8 @@ VALID_FEED_MODES: Final[frozenset[str]] = frozenset(
 
 ALLOWED_STREAMS_BY_MODE: Final[dict[FeedMode, frozenset[StreamName]]] = {
     'default': frozenset(STREAM_KEYS),
-    'subscriptions_only': frozenset(('own', 'subscriptions')),
-    'subscribers_only': frozenset(('own', 'subscribers')),
+    'subscriptions_only': frozenset(('subscriptions',)),
+    'subscribers_only': frozenset(('subscribers',)),
 }
 
 assert len(SLOT_PATTERN) == DISCOVERY_EVERY_N_SLOTS

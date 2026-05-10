@@ -156,6 +156,8 @@ export type MovieCard = {
   mood_before: CardMoodBefore
   mood_after: CardMoodAfter
   custom_tags: string[]
+  /** Заметка о просмотре (до 500 символов); в ленте и профиле приходит с бэкенда. */
+  watch_note?: string
   reactions?: ReactionSummary
   is_favorite?: boolean
 }
@@ -165,7 +167,6 @@ export type FeedListMode = 'default' | 'subscriptions_only' | 'subscribers_only'
 
 /** Источник карточки в персональной ленте (ответ GET /api/cards/feed) */
 export type FeedCardSource =
-  | 'own'
   | 'subscriptions'
   | 'subscribers'
   | 'personal_affinity'

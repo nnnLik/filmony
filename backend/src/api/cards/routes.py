@@ -174,6 +174,7 @@ async def create_card(
                 mood_before=body.mood_before,
                 mood_after=body.mood_after,
                 custom_tags=body.custom_tags,
+                watch_note=body.watch_note,
             ),
         )
     except FilmNotFoundError:
@@ -214,16 +215,10 @@ async def list_movie_card_feed(
     limit: int = Query(default=20, ge=1, le=50),
     mode: FeedMode = Query(
         default='default',
-        description='Смешанная лента, только подписки (и свои карточки), или только подписчики (и свои)',
-    ),
-    hide_own: bool = Query(
-        default=False,
-        description='Исключить свои карточки из персональных потоков (поток own обнуляется)',
+        description='Смешанная лента, только подписки, или только подписчики (свои карточки в ленту не попадают)',
     ),
 ) -> MovieCardFeedPageResponse:
-    page = await ListMovieCardFeedService(db).execute(
-        viewer.id, cursor, limit, feed_mode=mode, hide_own_cards=hide_own
-    )
+    page = await ListMovieCardFeedService(db).execute(viewer.id, cursor, limit, feed_mode=mode)
     return MovieCardFeedPageResponse(
         items=[
             MovieCardFeedItemResponse(
@@ -249,6 +244,7 @@ async def list_movie_card_feed(
                 mood_before=item.mood_before,
                 mood_after=item.mood_after,
                 custom_tags=item.custom_tags,
+                watch_note=item.watch_note,
                 feed_source=item.feed_source,
                 reactions=reaction_target_summary_to_response(item.reactions),
                 comments_count=item.comments_count,
@@ -329,6 +325,7 @@ async def get_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=card.custom_tags,
+        watch_note=card.watch_note,
         reactions=reaction_target_summary_to_response(card.reactions),
         is_favorite=card.is_favorite,
     )
@@ -355,6 +352,7 @@ async def patch_card(
                 mood_before=body.mood_before,
                 mood_after=body.mood_after,
                 custom_tags=body.custom_tags,
+                watch_note=body.watch_note,
                 is_favorite=body.is_favorite,
             ),
         )
@@ -439,11 +437,13 @@ async def share_movie_card(
             detail='recipients must be your subscribers only',
         ) from None
 
+    share_comment = (body.share_comment or '').strip()
     for rid in outcome.recipient_ids:
         celery_application.tasks['tasks.telegram_engagement.deliver_shared_movie_card'].delay(
             actor_user_id=str(user.id),
             card_id=card_id,
             recipient_user_id=str(rid),
+            share_comment=share_comment,
         )
 
     return ShareCardResponse(queued=len(outcome.recipient_ids))

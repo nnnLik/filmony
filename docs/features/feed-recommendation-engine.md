@@ -16,7 +16,6 @@
 
 | Поток | Описание |
 |--------|-----------|
-| **own** | Карточки зрителя (`user_id == viewer`), чтобы сохранить UX «вижу свои записи». |
 | **subscriptions** | Авторы из подписок: `following_user_id` при `follower_user_id == viewer`. |
 | **subscribers** | Авторы-подписчики: `follower_user_id` при `following_user_id == viewer`. |
 | **personal_affinity** | Карточки других пользователей без ML: скоринг по пересечению жанров фильма и тегов карточки с профилем зрителя (жанры + теги по его карточкам). |
@@ -37,7 +36,7 @@ score = GENRE_OVERLAP_WEIGHT * |norm_genres(film) ∩ G_viewer|
 ### Смешивание и discovery
 
 - Цикл слотов: кортеж `SLOT_PATTERN` в `const/feed.py` (длина 7, один слот — **discovery** на каждые 7 позиций; настраивается через `DISCOVERY_EVERY_N_SLOTS`, сейчас совпадает с длиной паттерна).
-- Пустой слот: fallback в порядке `FALLBACK_ORDER`: subscriptions → subscribers → personal_affinity → discovery → own.
+- Пустой слот: fallback в порядке `FALLBACK_ORDER`: subscriptions → subscribers → personal_affinity → discovery.
 
 ### Дедуп и anti-spam
 
@@ -53,16 +52,16 @@ score = GENRE_OVERLAP_WEIGHT * |norm_genres(film) ∩ G_viewer|
 
 ### Производительность
 
-- Запросы: множества подписок; профиль зрителя; до пяти выборок списков `(id, user_id, film_id)` по потокам; батч тегов для affinity; затем одна загрузка `(MovieCard, Film, User)` по `id IN (...)` и существующая гидратация тегов / счётчиков комментариев / превью / реакций (без N+1 на карточку страницы). **Клиент** при раскрытии блока комментариев под карточкой дополнительно вызывает `GET /api/cards/{id}/comments` (до исчерпания `next_cursor`); это не входит в один ответ feed и нужно учитывать при нагрузочном тестировании ленты с активным чтением комментариев.
+- Запросы: множества подписок; профиль зрителя; до четырёх выборок списков `(id, user_id, film_id)` по потокам (subscriptions, subscribers, discovery, плюс отдельный скан для affinity); батч тегов для affinity; затем одна загрузка `(MovieCard, Film, User)` по `id IN (...)` и существующая гидратация тегов / счётчиков комментариев / превью / реакций (без N+1 на карточку страницы). **Клиент** при раскрытии блока комментариев под карточкой дополнительно вызывает `GET /api/cards/{id}/comments` (до исчерпания `next_cursor`); это не входит в один ответ feed и нужно учитывать при нагрузочном тестировании ленты с активным чтением комментариев.
 - Лимит глубины: каждый поток обрезается `STREAM_POOL_LIMIT`; при долгой прокрутке выдача может закончиться раньше (`next_cursor = null`).
 
 ### API
 
 - Query **`mode`**: `default` | `subscriptions_only` | `subscribers_only`.
   - **`default`**: все потоки.
-  - **`subscriptions_only`**: тот же алгоритм merge, но в выдаче участвуют только потоки **`own`** и **`subscriptions`** (остальные списки считаются пустыми).
-  - **`subscribers_only`**: только **`own`** и **`subscribers`**.
-- В каждом элементе **`feed_source`**: какой поток дал карточку в этой позиции слота (`own` | `subscriptions` | `subscribers` | `personal_affinity` | `discovery`).
+  - **`subscriptions_only`**: только поток **`subscriptions`**.
+  - **`subscribers_only`**: только поток **`subscribers`**.
+- В каждом элементе **`feed_source`**: какой поток дал карточку в этой позиции слота (`subscriptions` | `subscribers` | `personal_affinity` | `discovery`). Карточки зрителя в ленту не попадают.
 
 ## Тесты
 

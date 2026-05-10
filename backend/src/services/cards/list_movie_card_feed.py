@@ -62,6 +62,7 @@ class MovieCardFeedItem:
     company: str
     mood_before: str
     mood_after: str
+    watch_note: str
     custom_tags: list[str]
     comments_count: int
     comments_preview: list[MovieCardCommentItem]
@@ -84,12 +85,9 @@ class _MergeState:
     tail_author_ids: list[str]
     tail_film_ids: list[int]
     feed_mode: FeedMode
-    hide_own_cards: bool
 
     @classmethod
-    def initial(
-        cls, feed_mode: FeedMode = 'default', *, hide_own_cards: bool = False
-    ) -> _MergeState:
+    def initial(cls, feed_mode: FeedMode = 'default') -> _MergeState:
         return cls(
             offsets=dict.fromkeys(const.feed.STREAM_KEYS, 0),
             slot_index=0,
@@ -97,7 +95,6 @@ class _MergeState:
             tail_author_ids=[],
             tail_film_ids=[],
             feed_mode=feed_mode,
-            hide_own_cards=hide_own_cards,
         )
 
     @classmethod
@@ -118,8 +115,6 @@ class _MergeState:
         raw_mode = data.get('mode', 'default')
         if raw_mode not in const.feed.VALID_FEED_MODES:
             return None
-        hide_raw = data.get('hide_own', False)
-        hide_own_cards = bool(hide_raw) if isinstance(hide_raw, bool) else False
         return cls(
             offsets=offsets,
             slot_index=int(data.get('slot_index', 0)),
@@ -127,7 +122,6 @@ class _MergeState:
             tail_author_ids=[str(x) for x in ta],
             tail_film_ids=[int(x) for x in tf],
             feed_mode=raw_mode,
-            hide_own_cards=hide_own_cards,
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -143,7 +137,6 @@ class _MergeState:
             'tail_authors': list(self.tail_author_ids),
             'tail_films': list(self.tail_film_ids),
             'mode': self.feed_mode,
-            'hide_own': self.hide_own_cards,
         }
 
     def clone(self) -> _MergeState:
@@ -154,7 +147,6 @@ class _MergeState:
             tail_author_ids=list(self.tail_author_ids),
             tail_film_ids=list(self.tail_film_ids),
             feed_mode=self.feed_mode,
-            hide_own_cards=self.hide_own_cards,
         )
 
 
@@ -196,17 +188,14 @@ class ListMovieCardFeedService:
         limit: int,
         *,
         feed_mode: FeedMode = 'default',
-        hide_own_cards: bool = False,
     ) -> MovieCardFeedPage:
         decoded = _decode_cursor(cursor)
-        if decoded is not None and (
-            decoded.feed_mode != feed_mode or decoded.hide_own_cards != hide_own_cards
-        ):
-            merge_state = _MergeState.initial(feed_mode, hide_own_cards=hide_own_cards)
+        if decoded is not None and decoded.feed_mode != feed_mode:
+            merge_state = _MergeState.initial(feed_mode)
         elif decoded is not None:
             merge_state = decoded
         else:
-            merge_state = _MergeState.initial(feed_mode, hide_own_cards=hide_own_cards)
+            merge_state = _MergeState.initial(feed_mode)
 
         following_ids, follower_ids = await self._load_subscription_sets(viewer_user_id)
         graph_user_ids = {viewer_user_id, *following_ids, *follower_ids}
@@ -221,8 +210,6 @@ class ListMovieCardFeedService:
             tag_profile=tag_profile,
         )
         streams = self._streams_for_mode(streams, feed_mode)
-        if hide_own_cards:
-            streams = {**streams, 'own': []}
 
         ordered_pairs, next_state, has_more = self._merge_feed(
             merge_state, streams, limit, viewer_user_id
@@ -233,6 +220,7 @@ class ListMovieCardFeedService:
 
         visible_rows = await self._load_card_rows_ordered(ordered_ids)
         items = await self._hydrate_feed_items(viewer_user_id, visible_rows, source_by_id)
+        items = [it for it in items if it.user_id != viewer_user_id]
 
         next_cursor: str | None = _encode_cursor(next_state) if has_more else None
         return MovieCardFeedPage(items=items, next_cursor=next_cursor)
@@ -317,8 +305,6 @@ class ListMovieCardFeedService:
             rows = (await self._session.execute(q)).all()
             return [(int(r[0]), r[1], int(r[2])) for r in rows]
 
-        own = await _ordered_cards(MovieCard.user_id == viewer_user_id)
-
         if following_ids:
             sub_cards = await _ordered_cards(MovieCard.user_id.in_(following_ids))
         else:
@@ -334,7 +320,6 @@ class ListMovieCardFeedService:
         affinity = await self._build_affinity_stream(viewer_user_id, genre_profile, tag_profile)
 
         return {
-            'own': own,
             'subscriptions': sub_cards,
             'subscribers': subr_cards,
             'personal_affinity': affinity,
@@ -650,6 +635,7 @@ class ListMovieCardFeedService:
                     company=card.company,
                     mood_before=card.mood_before,
                     mood_after=card.mood_after,
+                    watch_note=card.watch_note or '',
                     custom_tags=tags_by_card.get(card.id, []),
                     comments_count=counts_by_card.get(card.id, 0),
                     comments_preview=preview_with_rx,

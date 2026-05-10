@@ -19,6 +19,7 @@ class CardCreateRequest(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str] = Field(default_factory=list, max_length=5)
+    watch_note: str = Field(default='', max_length=500)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -59,6 +60,7 @@ class CardDetailResponse(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str]
+    watch_note: str = ''
     is_favorite: bool = False
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
 
@@ -69,6 +71,7 @@ class CardUpdateRequest(BaseModel):
     mood_before: CardMoodBefore | None = None
     mood_after: CardMoodAfter | None = None
     custom_tags: list[str] | None = Field(default=None, max_length=5)
+    watch_note: str | None = Field(default=None, max_length=500)
     is_favorite: bool | None = None
 
     model_config = ConfigDict(extra='forbid')
@@ -104,7 +107,7 @@ class FilmResolveRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
-FeedCardSource = Literal['own', 'subscriptions', 'subscribers', 'personal_affinity', 'discovery']
+FeedCardSource = Literal['subscriptions', 'subscribers', 'personal_affinity', 'discovery']
 
 
 class MovieCardFeedItemResponse(CardDetailResponse):
@@ -129,6 +132,7 @@ class FilmResolveResponse(BaseModel):
 
 class ShareCardRequest(BaseModel):
     recipient_user_ids: list[UUID] = Field(..., min_length=1, max_length=100)
+    share_comment: str = Field(default='', max_length=500)
 
     model_config = ConfigDict(extra='forbid')
 

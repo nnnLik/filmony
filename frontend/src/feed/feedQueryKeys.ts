@@ -1,7 +1,7 @@
 import type { FeedListMode } from '../api/profileTypes'
 
-export const movieCardFeedQueryKey = (mode: FeedListMode, hideOwnCards: boolean) =>
-  ['movieCardFeed', mode, hideOwnCards] as const
+export const movieCardFeedQueryKey = (mode: FeedListMode) =>
+  ['movieCardFeed', mode] as const
 
 /** Теги с моих карточек (автодополнение при создании карточки). */
 export const myMovieCardTagStatsQueryKey = () => ['myMovieCardTagStats'] as const

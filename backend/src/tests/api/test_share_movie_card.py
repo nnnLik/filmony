@@ -49,6 +49,46 @@ async def test_share_movie_card_queues_tasks_for_followers(
         actor_user_id=str(owner['id']),
         card_id=card_id,
         recipient_user_id=str(follower['id']),
+        share_comment='',
+    )
+
+
+@pytest.mark.asyncio
+async def test_share_movie_card_passes_comment_to_telegram_task(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mock_delay = MagicMock()
+    share_task = celery_app_instance.tasks['tasks.telegram_engagement.deliver_shared_movie_card']
+    monkeypatch.setattr(share_task, 'delay', mock_delay)
+
+    owner = await _login(async_client, telegram_user_id=90111)
+    follower = await _login(async_client, telegram_user_id=90112)
+
+    await async_client.post(f'/api/users/{owner["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=90111)
+
+    card_id = await _seed_movie_card(
+        user_id=UUID(str(owner['id'])),
+        kinopoisk_id=901110,
+        title='Comment Share Film',
+        year=2021,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+    )
+
+    res = await async_client.post(
+        f'/api/cards/{card_id}/share',
+        json={'recipient_user_ids': [follower['id']], 'share_comment': '  Смотрите, это шедевр!  '},
+    )
+    assert res.status_code == 200
+    mock_delay.assert_called_once_with(
+        actor_user_id=str(owner['id']),
+        card_id=card_id,
+        recipient_user_id=str(follower['id']),
+        share_comment='Смотрите, это шедевр!',
     )
 
 

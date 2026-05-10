@@ -101,7 +101,6 @@ async def test_feed_empty_social_graph_fills_from_discovery(async_client: AsyncC
     body = feed.json()
     for it in body['items']:
         assert it['feed_source'] in (
-            'own',
             'subscriptions',
             'subscribers',
             'personal_affinity',
@@ -114,58 +113,43 @@ async def test_feed_empty_social_graph_fills_from_discovery(async_client: AsyncC
 
 @pytest.mark.asyncio
 async def test_feed_cursor_same_response_on_repeat(async_client: AsyncClient) -> None:
+    viewer = await _login(async_client, telegram_user_id=9605)
+    author = await _login(async_client, telegram_user_id=96055)
+    author_b = await _login(async_client, telegram_user_id=96056)
+    v_id = UUID(str(viewer['id']))
+    a_id = UUID(str(author['id']))
+    b_id = UUID(str(author_b['id']))
+    await _subscribe(v_id, a_id)
+    await _subscribe(v_id, b_id)
+
+    for i, kid in enumerate(range(1960501, 1960512)):
+        uid = a_id if i % 2 == 0 else b_id
+        await _seed_movie_card_for_user(user_id=uid, kinopoisk_id=kid, genres=[])
+
     await _login(async_client, telegram_user_id=9605)
-    from tests.api.test_cards_routes import _create_film
-
-    for kid in (1960501, 1960502, 1960503):
-        film = await _create_film(kinopoisk_id=kid, genres=[])
-        r = await async_client.post(
-            '/api/cards',
-            json={
-                'film_id': film.id,
-                'kinopoisk_id': film.kinopoisk_id,
-                'genres': [],
-                'rating': 7.0,
-                'company': 'alone',
-                'mood_before': 'relax',
-                'mood_after': 'enjoyed',
-                'custom_tags': [],
-            },
-        )
-        assert r.status_code == 200
-
-    first = await async_client.get('/api/cards/feed?limit=2')
+    first = await async_client.get('/api/cards/feed?limit=1&mode=subscriptions_only')
     assert first.status_code == 200
     c = first.json().get('next_cursor')
     assert c is not None
 
-    a = await async_client.get(f'/api/cards/feed?limit=2&cursor={c}')
-    b = await async_client.get(f'/api/cards/feed?limit=2&cursor={c}')
+    a = await async_client.get(f'/api/cards/feed?limit=2&mode=subscriptions_only&cursor={c}')
+    b = await async_client.get(f'/api/cards/feed?limit=2&mode=subscriptions_only&cursor={c}')
     assert a.status_code == 200 and b.status_code == 200
     assert [x['id'] for x in a.json()['items']] == [x['id'] for x in b.json()['items']]
 
 
 @pytest.mark.asyncio
 async def test_feed_dedup_unique_ids(async_client: AsyncClient) -> None:
-    await _login(async_client, telegram_user_id=9606)
-    from tests.api.test_cards_routes import _create_film
+    viewer = await _login(async_client, telegram_user_id=9606)
+    author = await _login(async_client, telegram_user_id=96066)
+    v_id = UUID(str(viewer['id']))
+    a_id = UUID(str(author['id']))
+    await _subscribe(v_id, a_id)
 
     for kid in range(1960600, 1960610):
-        film = await _create_film(kinopoisk_id=kid, genres=[])
-        r = await async_client.post(
-            '/api/cards',
-            json={
-                'film_id': film.id,
-                'kinopoisk_id': film.kinopoisk_id,
-                'genres': [],
-                'rating': 7.0,
-                'company': 'alone',
-                'mood_before': 'relax',
-                'mood_after': 'enjoyed',
-                'custom_tags': [],
-            },
-        )
-        assert r.status_code == 200
+        await _seed_movie_card_for_user(user_id=a_id, kinopoisk_id=kid, genres=[])
+
+    await _login(async_client, telegram_user_id=9606)
     feed = await async_client.get('/api/cards/feed?limit=50')
     ids = [it['id'] for it in feed.json()['items']]
     assert len(ids) == len(set(ids))
@@ -226,11 +210,11 @@ async def test_feed_subscriptions_only_excludes_non_subscription_streams(
     assert sub_only.status_code == 200
     sub_items = sub_only.json()['items']
     assert str(s_id) not in [it['user_id'] for it in sub_items]
-    assert all(it['feed_source'] in ('own', 'subscriptions') for it in sub_items)
+    assert all(it['feed_source'] == 'subscriptions' for it in sub_items)
 
 
 @pytest.mark.asyncio
-async def test_feed_hide_own_excludes_viewer_cards(async_client: AsyncClient) -> None:
+async def test_feed_never_includes_viewer_cards(async_client: AsyncClient) -> None:
     viewer = await _login(async_client, telegram_user_id=9630)
     author = await _login(async_client, telegram_user_id=9631)
     v_id = UUID(str(viewer['id']))
@@ -243,10 +227,5 @@ async def test_feed_hide_own_excludes_viewer_cards(async_client: AsyncClient) ->
     await _login(async_client, telegram_user_id=9630)
     mix = await async_client.get('/api/cards/feed?limit=50')
     assert mix.status_code == 200
-    mix_ids = {it['user_id'] for it in mix.json()['items']}
-    assert str(v_id) in mix_ids
-
-    hidden = await async_client.get('/api/cards/feed?limit=50&hide_own=true')
-    assert hidden.status_code == 200
-    for it in hidden.json()['items']:
+    for it in mix.json()['items']:
         assert it['user_id'] != str(v_id)

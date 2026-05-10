@@ -72,6 +72,7 @@ def _build_caption_html(
     mood_after: str,
     custom_tags: list[str],
     card_id: int,
+    share_comment: str = '',
 ) -> str:
     actor_safe = html.escape(_format_actor_display(actor))
     title_safe = html.escape((film_title or '').strip() or 'Фильм')
@@ -86,6 +87,10 @@ def _build_caption_html(
     if custom_tags:
         escaped_tags = ', '.join(html.escape(t) for t in custom_tags)
         tags_line = f'\n<b>Свои теги:</b> {escaped_tags}'
+    share_line = ''
+    sc = (share_comment or '').strip()
+    if sc:
+        share_line = f'\n\n💬 <b>Комментарий:</b>\n{html.escape(sc)}'
     deep = html_card_deep_link_block(card_id)
 
     return (
@@ -93,7 +98,8 @@ def _build_caption_html(
         f'<b>{title_safe}</b>{html.escape(year_part)}\n'
         f'⭐️ Оценка: <b>{rating_safe}</b>\n'
         f'{mood_line}'
-        f'{tags_line}\n\n'
+        f'{tags_line}'
+        f'{share_line}\n\n'
         f'{deep}'
     )
 
@@ -114,6 +120,7 @@ class DeliverSharedMovieCardTelegramService:
         actor_user_id: UUID,
         card_id: int,
         recipient_user_id: UUID,
+        share_comment: str = '',
     ) -> None:
         async with disposable_async_session() as session:
             recipient = await session.get(User, recipient_user_id)
@@ -158,6 +165,7 @@ class DeliverSharedMovieCardTelegramService:
                     mood_after=card.mood_after,
                     custom_tags=list(tags),
                     card_id=card.id,
+                    share_comment=share_comment,
                 )
             )
 
@@ -202,12 +210,14 @@ async def run_deliver_shared_movie_card_safe(
     actor_user_id: UUID,
     card_id: int,
     recipient_user_id: UUID,
+    share_comment: str = '',
 ) -> None:
     try:
         await DeliverSharedMovieCardTelegramService.build().execute(
             actor_user_id=actor_user_id,
             card_id=card_id,
             recipient_user_id=recipient_user_id,
+            share_comment=share_comment,
         )
     except Exception:
         logger.exception(

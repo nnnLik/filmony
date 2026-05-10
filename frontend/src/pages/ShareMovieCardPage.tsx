@@ -3,13 +3,15 @@ import { Share2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
-import { ApiError, apiJson, formatApiDetail } from '../api/client'
-import { getMovieCardById, type ShareMovieCardResponse } from '../api/cardApi'
+import { ApiError, formatApiDetail } from '../api/client'
+import { getMovieCardById, shareMovieCardWithFollowers } from '../api/cardApi'
 import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
 import type { MovieCard, SubscriptionListItem } from '../api/profileTypes'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import { useAuthStatus } from '../auth/useAuthStatus'
+
+const MAX_SHARE_COMMENT_LEN = 500
 
 type ShareMovieCardLocationState = {
   shareOpenedFromCardDetail?: boolean
@@ -32,6 +34,7 @@ export function ShareMovieCardPage() {
   const [loading, setLoading] = useState(true)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shareComment, setShareComment] = useState('')
 
   useEffect(() => {
     if (auth.kind !== 'ready' || parsedId == null) return
@@ -79,10 +82,8 @@ export function ShareMovieCardPage() {
     setSubmitBusy(true)
     setError(null)
     try {
-      await apiJson<ShareMovieCardResponse>(`/api/cards/${parsedId}/share`, {
-        method: 'POST',
-        body: JSON.stringify({ recipient_user_ids: Array.from(selected) }),
-        headers: { 'Content-Type': 'application/json' },
+      await shareMovieCardWithFollowers(parsedId, Array.from(selected), {
+        shareComment: shareComment.slice(0, MAX_SHARE_COMMENT_LEN),
       })
       setSelected(new Set())
       const openedFromCardDetail =
@@ -163,6 +164,24 @@ export function ShareMovieCardPage() {
               onToggle={toggle}
               deepLinkToCopy={buildMiniAppCardDeepLink(parsedId)}
             />
+
+            <div className="mt-4">
+              <p className="text-sm font-medium text-(--tgui--text_color)">Комментарий к уведомлению</p>
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                Текст уйдёт в Telegram вместе с карточкой. До {MAX_SHARE_COMMENT_LEN} символов.
+              </p>
+              <textarea
+                value={shareComment}
+                maxLength={MAX_SHARE_COMMENT_LEN}
+                onChange={(e) => setShareComment(e.currentTarget.value)}
+                placeholder="Например: обязательно откройте в приложении…"
+                rows={3}
+                className="mt-2 min-h-20 w-full resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none placeholder:text-(--tgui--hint_color) focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
+              />
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                {shareComment.length}/{MAX_SHARE_COMMENT_LEN}
+              </p>
+            </div>
 
             {error != null ? (
               <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">{error}</p>

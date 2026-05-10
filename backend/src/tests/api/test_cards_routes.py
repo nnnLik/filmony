@@ -283,9 +283,36 @@ async def test_get_card_success_surfaces_movie_and_author(async_client: AsyncCli
     assert body['film_title'] == 'Интерстеллар'
     assert body['card_author']['id'] == data['id']
     assert body['card_author']['profile_slug']
+    assert body['watch_note'] == ''
     assert 'reactions' in body
-    assert body['reactions']['counts'] == []
-    assert body['reactions']['my_reaction_type_ids'] == []
+
+
+@pytest.mark.asyncio
+async def test_create_card_watch_note_roundtrip(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=629)
+    film = await _create_film(kinopoisk_id=100629)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': '  Сильный финал 🔥  ',
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    fetched = await async_client.get(f'/api/cards/{card_id}')
+    assert fetched.status_code == 200
+    detail = fetched.json()
+    assert detail['watch_note'] == 'Сильный финал 🔥'
+    assert detail['reactions']['counts'] == []
+    assert detail['reactions']['my_reaction_type_ids'] == []
 
 
 @pytest.mark.asyncio
@@ -361,6 +388,32 @@ async def test_patch_card_success(async_client: AsyncClient) -> None:
     patched = await async_client.patch(f'/api/cards/{card_id}', json={'rating': 7.5})
     assert patched.status_code == 200
     assert patched.json()['rating'] == 7.5
+
+
+@pytest.mark.asyncio
+async def test_patch_card_watch_note(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=628)
+    film = await _create_film(kinopoisk_id=100628)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': 'старое',
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    patched = await async_client.patch(f'/api/cards/{card_id}', json={'watch_note': ''})
+    assert patched.status_code == 200
+    got = await async_client.get(f'/api/cards/{card_id}')
+    assert got.json()['watch_note'] == ''
 
 
 @pytest.mark.asyncio
@@ -1008,7 +1061,12 @@ async def test_movie_card_feed_requires_auth(async_client: AsyncClient) -> None:
 async def test_movie_card_feed_includes_comments_count_and_preview(
     async_client: AsyncClient,
 ) -> None:
-    me = await _login(async_client, telegram_user_id=916)
+    viewer = await _login(async_client, telegram_user_id=916)
+    author = await _login(async_client, telegram_user_id=9160)
+    await _login(async_client, telegram_user_id=916)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+    await _login(async_client, telegram_user_id=9160)
+
     film = await _create_film(kinopoisk_id=100916)
     created = await async_client.post(
         '/api/cards',
@@ -1030,38 +1088,45 @@ async def test_movie_card_feed_includes_comments_count_and_preview(
         c = await async_client.post(f'/api/cards/{card_id}/comments', json={'text': label})
         assert c.status_code == 200
 
+    await _login(async_client, telegram_user_id=916)
     feed = await async_client.get('/api/cards/feed?limit=50')
     assert feed.status_code == 200
     body = feed.json()
     ours = next((item for item in body['items'] if item['id'] == card_id), None)
     assert ours is not None
-    assert ours['user_id'] == me['id']
+    assert ours['user_id'] == author['id']
     assert ours['comments_count'] == 3
-    assert ours['feed_source'] == 'own'
-    assert ours['card_author']['id'] == me['id']
+    assert ours['feed_source'] in ('subscriptions', 'personal_affinity')
+    assert ours['card_author']['id'] == author['id']
     assert 'reactions' in ours
     previews = ours['comments_preview']
     assert len(previews) == 3
     assert [p['text'] for p in previews] == ['c1', 'c2', 'c3']
     for p in previews:
         assert 'reactions' in p
+    assert viewer['id'] != author['id']
 
 
 @pytest.mark.asyncio
 async def test_movie_card_feed_cursor_pagination(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=917)
-    films = []
-    for idx, kid in enumerate((1009171, 1009172)):
-        films.append(await _create_film(kinopoisk_id=kid, title=f'Film {idx}'))
-    card_ids = []
-    for film in films:
+    author_a = await _login(async_client, telegram_user_id=9170)
+    author_b = await _login(async_client, telegram_user_id=9171)
+    await _login(async_client, telegram_user_id=917)
+    await async_client.post(f'/api/users/{author_a["id"]}/subscriptions')
+    await async_client.post(f'/api/users/{author_b["id"]}/subscriptions')
+
+    card_ids: list[int] = []
+    for telegram_uid, kid in ((9170, 1009171), (9171, 1009172)):
+        await _login(async_client, telegram_user_id=telegram_uid)
+        film = await _create_film(kinopoisk_id=kid, title=f'Film {kid}')
         r = await async_client.post(
             '/api/cards',
             json={
                 'film_id': film.id,
                 'kinopoisk_id': film.kinopoisk_id,
                 'genres': [],
-                'rating': 7.0 + film.id % 10,
+                'rating': 8.0,
                 'company': 'alone',
                 'mood_before': 'relax',
                 'mood_after': 'enjoyed',
@@ -1071,7 +1136,8 @@ async def test_movie_card_feed_cursor_pagination(async_client: AsyncClient) -> N
         assert r.status_code == 200
         card_ids.append(r.json()['id'])
 
-    first_page = await async_client.get('/api/cards/feed?limit=1')
+    await _login(async_client, telegram_user_id=917)
+    first_page = await async_client.get('/api/cards/feed?limit=1&mode=subscriptions_only')
     assert first_page.status_code == 200
     first_body = first_page.json()
     assert len(first_body['items']) == 1
@@ -1080,7 +1146,7 @@ async def test_movie_card_feed_cursor_pagination(async_client: AsyncClient) -> N
     assert first_body.get('next_cursor') is not None
 
     second_page = await async_client.get(
-        f'/api/cards/feed?limit=1&cursor={first_body["next_cursor"]}'
+        f'/api/cards/feed?limit=1&mode=subscriptions_only&cursor={first_body["next_cursor"]}'
     )
     assert second_page.status_code == 200
     second_body = second_page.json()

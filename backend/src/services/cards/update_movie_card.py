@@ -33,6 +33,7 @@ class UpdateMovieCardInput:
     mood_before: CardMoodBefore | None = None
     mood_after: CardMoodAfter | None = None
     custom_tags: Sequence[str] | None = None
+    watch_note: str | None = None
     is_favorite: bool | None = None
 
 
@@ -45,6 +46,13 @@ def _normalize_rating(value: float) -> float:
     if snapped < 1 or snapped > 10:
         raise MovieCardValidationError('rating must be in [1, 10]')
     return snapped
+
+
+def _normalize_watch_note(raw: str) -> str:
+    s = raw.strip()
+    if len(s) > 500:
+        raise MovieCardValidationError('watch note max length is 500')
+    return s
 
 
 def _normalize_tags(tags: Sequence[str]) -> list[str]:
@@ -86,6 +94,7 @@ class UpdateMovieCardService:
             and payload.mood_before is None
             and payload.mood_after is None
             and payload.custom_tags is None
+            and payload.watch_note is None
             and payload.is_favorite is None
         ):
             raise MovieCardValidationError('at least one field must be provided')
@@ -116,6 +125,9 @@ class UpdateMovieCardService:
                 self._session.add_all(
                     [MovieCardTag(movie_card_id=card.id, tag=tag) for tag in tags]
                 )
+
+        if payload.watch_note is not None:
+            card.watch_note = _normalize_watch_note(payload.watch_note)
 
         await self._session.commit()
         await self._session.refresh(card)

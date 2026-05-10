@@ -293,6 +293,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
 
         <FilmGenreChips genres={card.film_genres} maxVisible={3} className="mt-0.5" />
 
+        {card.watch_note != null && card.watch_note.trim() !== '' ? (
+          <p className="line-clamp-4 text-[12px] leading-snug text-(--tgui--text_color)">{card.watch_note}</p>
+        ) : null}
+
         {(shownTags.length > 0 || remainder > 0) && (
           <div className="flex max-w-full flex-wrap items-center gap-0.5">
             {shownTags.map((tag) => (

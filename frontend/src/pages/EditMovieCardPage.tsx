@@ -1,12 +1,14 @@
-import { Button, Input, Section } from '@telegram-apps/telegram-ui'
-import { useEffect, useMemo, useState } from 'react'
+import { Button, Section } from '@telegram-apps/telegram-ui'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getMovieCardById, updateMovieCard } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile } from '../api/profileApi'
 import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard } from '../api/profileTypes'
+import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -29,6 +31,9 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter; label: string }> = [
   { value: 'tense', label: 'Был напряжен' },
   { value: 'wasted_time', label: 'Зря потратил время' },
 ]
+
+const MAX_CUSTOM_TAG_LEN = 40
+const MAX_WATCH_NOTE_LEN = 500
 
 const CHIP_COLORS = [
   'bg-[#3B82F633] text-[#60A5FA]',
@@ -62,6 +67,31 @@ export function EditMovieCardPage() {
   const [moodAfter, setMoodAfter] = useState<CardMoodAfter>('enjoyed')
   const [customTags, setCustomTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [watchNote, setWatchNote] = useState('')
+  const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+
+  const insertReactionIntoWatchNote = useCallback(
+    (id: number) => {
+      const token = reactionTokenFromId(id)
+      const el = watchNoteRef.current
+      const inserted = insertSnippetAtCaret(
+        watchNote,
+        el?.selectionStart ?? null,
+        el?.selectionEnd ?? null,
+        token,
+        MAX_WATCH_NOTE_LEN,
+      )
+      if (!inserted) return
+      setWatchNote(inserted.nextValue)
+      window.requestAnimationFrame(() => {
+        const target = watchNoteRef.current
+        if (!target) return
+        target.focus()
+        target.setSelectionRange(inserted.caret, inserted.caret)
+      })
+    },
+    [watchNote],
+  )
 
   const parsedCardId = useMemo(() => {
     if (cardId == null) return null
@@ -104,6 +134,7 @@ export function EditMovieCardPage() {
         setMoodBefore(item.mood_before)
         setMoodAfter(item.mood_after)
         setCustomTags(item.custom_tags)
+        setWatchNote(item.watch_note ?? '')
       } catch (e) {
         if (!alive) return
         if (e instanceof ApiError) {
@@ -181,6 +212,7 @@ export function EditMovieCardPage() {
         mood_before: moodBefore,
         mood_after: moodAfter,
         custom_tags: customTags,
+        watch_note: watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
       })
       clearMyProfileBundleCache()
       // Pop edit off the history stack instead of pushing another detail route.
@@ -273,13 +305,16 @@ export function EditMovieCardPage() {
 
             <Section header="Свои теги (до 5)">
               <div className="px-3 py-3">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
+                <div className="flex flex-wrap items-stretch gap-2">
+                  <input
+                    type="text"
+                    className="min-w-0 flex-1 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none placeholder:text-(--tgui--hint_color) focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
                     placeholder="Добавить тег"
                     value={tagInput}
+                    maxLength={MAX_CUSTOM_TAG_LEN + 8}
                     onChange={(e) => setTagInput(e.currentTarget.value)}
                   />
-                  <Button mode="gray" onClick={addTag}>
+                  <Button mode="gray" className="shrink-0" onClick={addTag}>
                     Добавить
                   </Button>
                 </div>
@@ -300,6 +335,32 @@ export function EditMovieCardPage() {
                 ) : (
                   <p className="mt-3 text-sm text-(--tgui--hint_color)">Добавьте пару слов о впечатлении.</p>
                 )}
+              </div>
+            </Section>
+
+            <Section header="Заметка о просмотре">
+              <div className="px-3 py-3">
+                <p className="text-xs text-(--tgui--hint_color)">До {MAX_WATCH_NOTE_LEN} символов.</p>
+                <div className="mt-2 flex gap-2">
+                  <textarea
+                    ref={watchNoteRef}
+                    value={watchNote}
+                    maxLength={MAX_WATCH_NOTE_LEN}
+                    onChange={(e) => setWatchNote(e.currentTarget.value)}
+                    rows={5}
+                    className="min-h-28 min-w-0 flex-1 resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
+                  />
+                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                    <CommentReactionTokenPicker
+                      allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
+                      disabled={saving}
+                      onPickReactionTypeId={insertReactionIntoWatchNote}
+                    />
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  {watchNote.length}/{MAX_WATCH_NOTE_LEN}
+                </p>
               </div>
             </Section>
 

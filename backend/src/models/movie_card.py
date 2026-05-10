@@ -45,6 +45,12 @@ class MovieCard(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    watch_note: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        default='',
+        server_default=text("''"),
+    )
     is_favorite: Mapped[bool] = mapped_column(
         Boolean(),
         server_default=false(),

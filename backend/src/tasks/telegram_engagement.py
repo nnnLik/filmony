@@ -91,6 +91,7 @@ def register_tasks(app: Celery) -> None:
         actor_user_id: str,
         card_id: int,
         recipient_user_id: str,
+        share_comment: str = '',
     ) -> None:
         try:
             _run_async_isolated(
@@ -98,6 +99,7 @@ def register_tasks(app: Celery) -> None:
                     actor_user_id=UUID(actor_user_id),
                     card_id=card_id,
                     recipient_user_id=UUID(recipient_user_id),
+                    share_comment=share_comment or '',
                 )
             )
         except Exception:

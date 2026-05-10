@@ -527,7 +527,7 @@ export function MovieCardDetailPage() {
         {!invalidCardId && !loading && error == null && card != null ? (
           <div className="space-y-4">
             <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) contain-[paint]">
-              <div className="aspect-video w-full">
+              <div className="aspect-[4/3] w-full max-h-[min(72vw,22rem)] sm:max-h-[28rem]">
                 {card.film_poster_url ? (
                   <img src={card.film_poster_url} alt={card.film_title} className="h-full w-full object-cover" />
                 ) : (
@@ -674,6 +674,14 @@ export function MovieCardDetailPage() {
                   <span className="text-xs text-(--tgui--hint_color)">Пока нет собственных тегов</span>
                 )}
               </div>
+              {card.watch_note != null && card.watch_note.trim() !== '' ? (
+                <>
+                  <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Заметка о просмотре</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-(--tgui--text_color)">
+                    {card.watch_note}
+                  </p>
+                </>
+              ) : null}
             </section>
 
             <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
