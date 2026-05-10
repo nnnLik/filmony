@@ -126,7 +126,6 @@ export type ReactionCatalogTab = {
 }
 
 export type ReactionGroupedCatalog = {
-  recent: ReactionCatalogItem[]
   tabs: ReactionCatalogTab[]
 }
 

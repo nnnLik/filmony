@@ -6,7 +6,8 @@
 ## Data model
 - **`reaction_type`**: `id`, `created_at`, `label` (опционально), `category_slug` (вкладка пикера), `asset_key` (S3-ключ относительно публичного base, например `reactions/pepe/foo.png`), `image_url` (fallback если base или asset пустые), `sort_order`, `is_active`.
 - **`user_reaction`**: несколько строк на пару пользователь + цель с **разными** `reaction_type_id`. Уникальность: **`(user_id, target_kind, target_id, reaction_type_id)`**.
-- **`user_recent_reaction`**: последнее использование типа пользователем (`user_id`, `reaction_type_id`, `last_used_at`, unique на пару). Обновляется при каждом `POST /api/reactions` для данных `reaction_type_id` (постановка и снятие), чтобы блок «Недавние» в каталоге сортировался по активности.
+
+Блок «Недавние» в пикере реакций хранится **только на клиенте** (localStorage), без таблицы на сервере.
 
 ## Behaviour
 - На одну карточку или комментарий пользователь может поставить **несколько** разных типов реакций; каждый тип **переключается отдельно** (повторный `POST` с тем же `reaction_type_id` снимает только эту реакцию).
@@ -28,14 +29,13 @@
 
 ```json
 {
-  "recent": [{ "id", "label", "image_url", "category_slug", "asset_key" }],
   "tabs": [
     { "category_slug": "pepe", "label": "Pepe", "items": [ … ] }
   ]
 }
 ```
 
-Только строки с `is_active = true`. Вкладки фиксированного порядка (см. `REACTION_TAB_ORDER`); в каждую попадают типы с совпадающим `category_slug`. `recent` — до 48 последних по `last_used_at` для текущего пользователя.
+Только строки с `is_active = true`. Вкладки фиксированного порядка (см. `REACTION_TAB_ORDER`); в каждую попадают типы с совпадающим `category_slug`.
 
 ### `GET /api/reactions/actors`
 Query: `target_kind`, `target_id`, `reaction_type_id`, опционально `limit` (1–50, по умолчанию 50). Ответ: `{ "items": [{ "id", "profile_slug", "display_name", "username", "first_name", "last_name", "photo_url" }] }` — для тултипа «кто реагировал» (лента не раздувается).

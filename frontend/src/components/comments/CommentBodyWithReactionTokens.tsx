@@ -18,9 +18,6 @@ function buildImageUrlMap(catalog: ReactionGroupedCatalog): Map<number, string> 
       m.set(it.id, it.image_url)
     }
   }
-  for (const it of catalog.recent) {
-    m.set(it.id, it.image_url)
-  }
   return m
 }
 

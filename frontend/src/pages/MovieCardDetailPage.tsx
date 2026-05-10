@@ -188,7 +188,7 @@ function CardAuthorAvatarLink({ author }: { author: MovieCardCommentAuthor }) {
   )
 }
 
-type MovieCardLocationState = { cardEntry?: string } | null | undefined
+type MovieCardLocationState = { cardEntry?: string; fromFeed?: boolean } | null | undefined
 
 export function MovieCardDetailPage() {
   const navigate = useNavigate()
@@ -655,6 +655,12 @@ function MovieCardDetailLoadedBody({
   setComments,
 }: MovieCardDetailLoadedBodyProps) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromFeed =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'fromFeed' in location.state &&
+    Boolean((location.state as { fromFeed?: boolean }).fromFeed)
   const detailCardAuthor = movieCardAuthorOrNull(card)
   const watchNoteText = movieCardWatchNotePlainText(card)
   const showWatchNote = watchNoteText.trim().length > 0
@@ -760,7 +766,11 @@ function MovieCardDetailLoadedBody({
                         size="s"
                         mode="gray"
                         aria-label="Взять за основу — создать свою карточку с этим тайтлом"
-                        onClick={() => void navigate(`/cards/new?fromCard=${card.id}`)}
+                        onClick={() => {
+                          const qs = new URLSearchParams({ fromCard: String(card.id) })
+                          if (fromFeed) qs.set('returnTo', 'feed')
+                          void navigate(`/cards/new?${qs.toString()}`)
+                        }}
                       >
                         <CopyPlus className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
                       </IconButton>

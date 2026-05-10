@@ -81,6 +81,11 @@ const WIZARD_TEXT_FIELD_CLASS =
 const MAX_CUSTOM_TAG_LEN = 40
 const MAX_WATCH_NOTE_LEN = 500
 
+/** После мастера создания сохраняем returnTo=feed в URL при strip query-параметров. */
+function cardsNewPathPreserveReturnTo(returnTo: string | null): string {
+  return returnTo === 'feed' ? '/cards/new?returnTo=feed' : '/cards/new'
+}
+
 function filmHasMyCard(f: Film): boolean {
   return f.my_card_id != null && f.my_card_id > 0
 }
@@ -228,6 +233,9 @@ export function CreateCardPage() {
   }, [initialFilmId, skipFilmIdBootstrap])
 
   useEffect(() => {
+    const returnToParam = searchParams.get('returnTo')
+    const cleanCreatePath = cardsNewPathPreserveReturnTo(returnToParam)
+
     const raw = searchParams.get('fromCard')
     if (raw == null || raw === '') {
       queueMicrotask(() => {
@@ -240,7 +248,7 @@ export function CreateCardPage() {
       queueMicrotask(() => {
         setError('Некорректная ссылка на карточку-шаблон')
         setFromCardPrefillDone(true)
-        void navigate('/cards/new', { replace: true })
+        void navigate(cleanCreatePath, { replace: true })
       })
       return
     }
@@ -255,7 +263,7 @@ export function CreateCardPage() {
         if (!alive || seq !== fromCardBootstrapSeq.current) return
         if (card.user_id != null && card.user_id === me.id) {
           setError('Свою карточку нельзя взять за основу — отредактируйте её или создайте новую по ссылке на Кинопоиск.')
-          void navigate('/cards/new', { replace: true })
+          void navigate(cleanCreatePath, { replace: true })
           return
         }
         const item = await getFilmById(card.film_id)
@@ -263,7 +271,7 @@ export function CreateCardPage() {
         setFilm(item)
         setRemixFromCard(true)
         setStep(2)
-        void navigate('/cards/new', { replace: true })
+        void navigate(cleanCreatePath, { replace: true })
       } catch (e) {
         if (!alive || seq !== fromCardBootstrapSeq.current) return
         if (e instanceof ApiError) {
@@ -271,7 +279,7 @@ export function CreateCardPage() {
         } else {
           setError('Не удалось загрузить карточку-шаблон')
         }
-        void navigate('/cards/new', { replace: true })
+        void navigate(cleanCreatePath, { replace: true })
       } finally {
         setLoadingFilm(false)
         if (alive && seq === fromCardBootstrapSeq.current) {
@@ -506,6 +514,10 @@ export function CreateCardPage() {
       void queryClient.invalidateQueries({ queryKey: myMovieCardTagStatsQueryKey() })
       clearMyProfileBundleCache()
       safeHapticSuccess()
+      void queryClient.invalidateQueries({
+        predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'movieCardFeed',
+      })
+      const returnToFeed = searchParams.get('returnTo') === 'feed'
       if (shareSelected.size > 0) {
         try {
           await shareMovieCardWithFollowers(newCard.id, [...shareSelected], {
@@ -516,7 +528,11 @@ export function CreateCardPage() {
           return
         }
       }
-      void navigate('/profile')
+      if (returnToFeed) {
+        void navigate('/', { replace: true, state: { restoreFeedScroll: true } })
+      } else {
+        void navigate('/profile')
+      }
     } catch (e) {
       if (e instanceof ApiError) {
         setError(formatApiDetail(e.detail))

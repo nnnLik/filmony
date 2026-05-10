@@ -1,9 +1,9 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { getMovieCardFeedPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
@@ -27,10 +27,15 @@ import { movieCardFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feed
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
+import { readFeedScrollSnapshot, saveFeedScrollSnapshot } from '../lib/feedScrollRestore'
 
 export function FeedPage() {
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const pendingScrollYRef = useRef<number | null>(null)
+  const feedModeRef = useRef<FeedListMode>('default')
 
   const [feedMode, setFeedMode] = useState<FeedListMode>('default')
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
@@ -41,6 +46,47 @@ export function FeedPage() {
     const uid = readMyProfileBundleCache()?.profile.id
     return uid != null ? readRecentCardViews(uid) : []
   })
+
+  useEffect(() => {
+    feedModeRef.current = feedMode
+  }, [feedMode])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready') {
+      return
+    }
+    let timeoutId: number | undefined
+    const onScroll = () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+      timeoutId = window.setTimeout(() => {
+        saveFeedScrollSnapshot(feedModeRef.current, window.scrollY)
+      }, 200)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [auth.kind])
+
+  useEffect(() => {
+    const st = location.state as { restoreFeedScroll?: boolean } | undefined
+    if (!st?.restoreFeedScroll || auth.kind !== 'ready') {
+      return
+    }
+    const snapshot = readFeedScrollSnapshot()
+    void navigate('.', { replace: true, state: {} })
+    queueMicrotask(() => {
+      if (snapshot != null) {
+        setFeedMode(snapshot.mode)
+        pendingScrollYRef.current = snapshot.y
+      }
+    })
+  }, [location.state, navigate, auth.kind])
 
   const refreshRecentStrip = useCallback(() => {
     const uid = readMyProfileBundleCache()?.profile.id
@@ -147,6 +193,18 @@ export function FeedPage() {
     },
     [queryClient, feedMode],
   )
+
+  useEffect(() => {
+    const y = pendingScrollYRef.current
+    if (y == null) return
+    if (auth.kind !== 'ready') return
+    if (feedQuery.isPending && items.length === 0) return
+
+    pendingScrollYRef.current = null
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: 'auto' })
+    })
+  }, [auth.kind, feedQuery.isPending, items.length, feedMode])
 
   if (auth.kind === 'error') {
     return (

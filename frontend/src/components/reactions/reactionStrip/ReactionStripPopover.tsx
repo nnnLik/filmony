@@ -160,9 +160,9 @@ export function ReactionStripPopover({
                         })}
                       </div>
                     </div>
-                  ) : catalog.recent.length === 0 ? (
+                  ) : (
                     <p className={`shrink-0 text-zinc-500 ${dense ? 'text-[10px]' : 'text-[11px]'}`}>Выберите коллекцию слева.</p>
-                  ) : null}
+                  )}
 
                   {activeTab != null ? (
                     <div className="flex min-h-[72px] min-w-0 flex-1 flex-col">

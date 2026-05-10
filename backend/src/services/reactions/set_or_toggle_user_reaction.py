@@ -15,7 +15,6 @@ from models.reaction_type import ReactionType
 from models.user_reaction import UserReaction
 
 from .get_reaction_summaries_for_targets import GetReactionSummariesForTargetsService
-from .touch_user_recent_reaction import TouchUserRecentReactionService
 from .types import ReactionTargetSummary
 
 ALLOW_SELF_REACTION = True
@@ -122,11 +121,5 @@ class SetOrToggleUserReactionService:
             comment_ids=comments,
         )
         summary = card_m[payload.target_id] if cards else comment_m[payload.target_id]
-
-        await TouchUserRecentReactionService(self._session).execute(
-            user_id=user_id,
-            reaction_type_id=payload.reaction_type_id,
-        )
-        await self._session.commit()
 
         return SetUserReactionOutcome(summary=summary, reaction_was_added=reaction_was_added)

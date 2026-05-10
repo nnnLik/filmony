@@ -232,6 +232,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       {/* Главная зона: постер отступает от краёв карточки, клик ведёт на страницу карточки */}
       <Link
         to={cardHref}
+        state={{ fromFeed: true }}
         className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) no-underline ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]"
         aria-label={`Открыть карточку «${card.film_title}»`}
       >
@@ -372,13 +373,13 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                   ) : panelError != null ? (
                     <p className="text-xs text-(--tgui--destructive_text_color,#ef4444)">
                       {panelError}{' '}
-                      <Link to={cardHref} className="text-(--tgui--link_color) no-underline active:opacity-90">
+                      <Link to={cardHref} state={{ fromFeed: true }} className="text-(--tgui--link_color) no-underline active:opacity-90">
                         Открыть карточку
                       </Link>
                     </p>
                   ) : panelComments.length === 0 ? (
                     <p className="text-xs text-(--tgui--hint_color)">
-                      <Link to={cardHref} className="text-(--tgui--link_color) no-underline active:opacity-90">
+                      <Link to={cardHref} state={{ fromFeed: true }} className="text-(--tgui--link_color) no-underline active:opacity-90">
                         Открыть карточку
                       </Link>
                       , чтобы прочитать комментарии.
@@ -412,6 +413,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                                 </div>
                                 <Link
                                   to={cardHref}
+                                  state={{ fromFeed: true }}
                                   className="shrink-0 py-0 text-xs leading-none text-(--tgui--link_color) no-underline active:opacity-90"
                                   onMouseDown={stopCardNav}
                                 >
@@ -422,6 +424,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                               {parentCommentId != null ? (
                                 <Link
                                   to={cardHref}
+                                  state={{ fromFeed: true }}
                                   className="mt-2 block w-full rounded-lg border-l-2 border-(--tgui--link_color) bg-(--tgui--secondary_bg_color) px-2 py-1 text-left no-underline active:opacity-90"
                                 >
                                   <p className="truncate text-xs font-medium text-(--tgui--link_color)">

@@ -5,7 +5,12 @@ import { createPortal } from 'react-dom'
 
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { ReactionCatalogTab, ReactionGroupedCatalog } from '../../api/profileTypes'
-import { clearReactionCatalogCache, loadReactionCatalog } from '../../lib/reactionCatalogCache'
+import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
+import {
+  readRecentReactionTypeIds,
+  recordRecentReactionTypeId,
+  resolveRecentCatalogItems,
+} from '../../lib/localRecentReactions'
 import { ReactionStripPopover } from '../reactions/reactionStrip/ReactionStripPopover'
 import { POPOVER_W_COMPACT } from '../reactions/reactionStrip/constants'
 import { usePopoverPosition } from '../reactions/reactionStrip/usePopoverPosition'
@@ -26,6 +31,8 @@ export function CommentReactionTokenPicker({
   const [catalog, setCatalog] = useState<ReactionGroupedCatalog | null>(null)
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [activeTabSlug, setActiveTabSlug] = useState<string | null>(null)
+  /** Чтобы пересчитать «Недавние» после записи в localStorage при том же объекте catalog. */
+  const [recentRevision, setRecentRevision] = useState(0)
 
   const triggerRef = useRef<HTMLButtonElement>(null)
   const { style: popoverStyle, placeAbove } = usePopoverPosition(triggerRef, pickerOpen, POPOVER_W_COMPACT)
@@ -73,12 +80,16 @@ export function CommentReactionTokenPicker({
   }, [catalog, effectiveTabSlug])
 
   const gridItems = activeTab?.items ?? []
-  const recentItems = catalog?.recent ?? []
+  const recentItems = useMemo(() => {
+    void recentRevision
+    return resolveRecentCatalogItems(catalog, readRecentReactionTypeIds())
+  }, [catalog, recentRevision])
 
   const apply = useCallback(
     (reactionTypeId: number) => {
+      recordRecentReactionTypeId(reactionTypeId)
+      setRecentRevision((n) => n + 1)
       onPickReactionTypeId(reactionTypeId)
-      clearReactionCatalogCache()
       closePicker()
     },
     [closePicker, onPickReactionTypeId],

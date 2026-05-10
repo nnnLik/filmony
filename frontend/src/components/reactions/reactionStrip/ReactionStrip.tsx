@@ -11,7 +11,12 @@ import type {
   ReactionSummary,
 } from '../../../api/profileTypes'
 import { setUserReaction } from '../../../api/reactionApi'
-import { clearReactionCatalogCache, loadReactionCatalog } from '../../../lib/reactionCatalogCache'
+import { loadReactionCatalog } from '../../../lib/reactionCatalogCache'
+import {
+  readRecentReactionTypeIds,
+  recordRecentReactionTypeId,
+  resolveRecentCatalogItems,
+} from '../../../lib/localRecentReactions'
 import { CountPill } from './CountPill'
 import {
   EMPTY,
@@ -56,6 +61,7 @@ export function ReactionStrip({
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeTabSlug, setActiveTabSlug] = useState<string | null>(null)
+  const [recentRevision, setRecentRevision] = useState(0)
 
   const triggerRef = useRef<HTMLButtonElement>(null)
   const { style: popoverStyle, placeAbove } = usePopoverPosition(triggerRef, pickerOpen, popoverW)
@@ -103,7 +109,10 @@ export function ReactionStrip({
   }, [catalog, effectiveTabSlug])
 
   const gridItems = activeTab?.items ?? []
-  const recentItems = catalog?.recent ?? []
+  const recentItems = useMemo(() => {
+    void recentRevision
+    return resolveRecentCatalogItems(catalog, readRecentReactionTypeIds())
+  }, [catalog, recentRevision])
 
   const apply = useCallback(
     async (reactionTypeId: number) => {
@@ -116,7 +125,8 @@ export function ReactionStrip({
           reaction_type_id: reactionTypeId,
         })
         onSummaryChange(res.reactions)
-        clearReactionCatalogCache()
+        recordRecentReactionTypeId(reactionTypeId)
+        setRecentRevision((n) => n + 1)
         closePicker()
       } catch (e) {
         setActionError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось применить')

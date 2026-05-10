@@ -8,7 +8,6 @@ from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .user import User
 from .user_reaction import UserReaction
-from .user_recent_reaction import UserRecentReaction
 from .user_subscription import UserSubscription
 from .user_watchlist_film import UserWatchlistFilm
 
@@ -25,7 +24,6 @@ __all__ = (
     'ReactionType',
     'User',
     'UserReaction',
-    'UserRecentReaction',
     'UserSubscription',
     'UserWatchlistFilm',
 )

@@ -50,7 +50,6 @@ class ReactionCatalogTabResponse(BaseModel):
 
 
 class ReactionCatalogGroupedResponse(BaseModel):
-    recent: list[ReactionCatalogItemResponse] = Field(default_factory=list)
     tabs: list[ReactionCatalogTabResponse] = Field(default_factory=list)
 
 

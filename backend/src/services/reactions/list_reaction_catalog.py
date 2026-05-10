@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from conf.settings import settings
 from const.reaction_packs import REACTION_TAB_ORDER
 from models.reaction_type import ReactionType
-from models.user_recent_reaction import UserRecentReaction
 from utils.reaction_urls import resolve_reaction_media_url
 
 
@@ -30,7 +28,6 @@ class ReactionCatalogTab:
 
 @dataclass(frozen=True, slots=True)
 class ReactionCatalogGrouped:
-    recent: tuple[ReactionCatalogItem, ...]
     tabs: tuple[ReactionCatalogTab, ...]
 
 
@@ -52,7 +49,7 @@ class ListReactionCatalogGroupedService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, *, viewer_user_id: UUID | None) -> ReactionCatalogGrouped:
+    async def execute(self) -> ReactionCatalogGrouped:
         all_rows = (
             (await self._session.execute(select(ReactionType).order_by(ReactionType.id.asc())))
             .scalars()
@@ -90,27 +87,7 @@ class ListReactionCatalogGroupedService:
                 )
             )
 
-        recent: tuple[ReactionCatalogItem, ...] = ()
-        if viewer_user_id is not None:
-            rrows = (
-                (
-                    await self._session.execute(
-                        select(ReactionType)
-                        .join(
-                            UserRecentReaction,
-                            UserRecentReaction.reaction_type_id == ReactionType.id,
-                        )
-                        .where(UserRecentReaction.user_id == viewer_user_id)
-                        .order_by(UserRecentReaction.last_used_at.desc())
-                        .limit(48)
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            recent = tuple(_row(r) for r in rrows)
-
-        return ReactionCatalogGrouped(recent=recent, tabs=tuple(tabs))
+        return ReactionCatalogGrouped(tabs=tuple(tabs))
 
 
 # Deprecated: prefer `ListReactionCatalogGroupedService` in new code.

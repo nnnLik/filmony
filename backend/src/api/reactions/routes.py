@@ -117,9 +117,8 @@ async def list_reaction_catalog(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ReactionCatalogGroupedResponse:
-    grouped = await ListReactionCatalogGroupedService(db).execute(viewer_user_id=user.id)
+    grouped = await ListReactionCatalogGroupedService(db).execute()
     return ReactionCatalogGroupedResponse(
-        recent=[_catalog_item_response(r) for r in grouped.recent],
         tabs=[
             ReactionCatalogTabResponse(
                 category_slug=tab.category_slug,

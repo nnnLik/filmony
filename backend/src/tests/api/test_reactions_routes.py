@@ -110,7 +110,6 @@ async def test_reactions_catalog_ordered_tabs(async_client: AsyncClient) -> None
     body = resp.json()
     assert len(body['tabs']) == 5
     assert sum(len(t['items']) for t in body['tabs']) == 3
-    assert body['recent'] == []
 
 
 @pytest.mark.asyncio
@@ -193,50 +192,6 @@ async def test_set_reaction_multiple_per_target_toggle(async_client: AsyncClient
         json={'target_kind': 'nope', 'target_id': cid, 'reaction_type_id': c},
     )
     assert bad_kind.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_reactions_catalog_recent_after_post(async_client: AsyncClient) -> None:
-    a, *_rest = await _seed_reaction_catalog()
-    cid = await _create_card_any(async_client, 943, 943_943)
-    cat0 = await async_client.get('/api/reactions/catalog')
-    assert cat0.status_code == 200
-    assert cat0.json()['recent'] == []
-
-    rr = await async_client.post(
-        '/api/reactions',
-        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': a},
-    )
-    assert rr.status_code == 200
-
-    cat1 = await async_client.get('/api/reactions/catalog')
-    assert cat1.status_code == 200
-    recent = cat1.json()['recent']
-    assert len(recent) == 1
-    assert recent[0]['id'] == a
-
-
-@pytest.mark.asyncio
-async def test_reactions_catalog_recent_orders_by_last_touch(async_client: AsyncClient) -> None:
-    a, b, *_ = await _seed_reaction_catalog()
-    cid = await _create_card_any(async_client, 946, 946_946)
-    await _login(async_client, telegram_user_id=946)
-
-    await async_client.post(
-        '/api/reactions',
-        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': a},
-    )
-    await async_client.post(
-        '/api/reactions',
-        json={'target_kind': 'movie_card', 'target_id': cid, 'reaction_type_id': b},
-    )
-
-    cat = await async_client.get('/api/reactions/catalog')
-    assert cat.status_code == 200
-    recent = cat.json()['recent']
-    assert len(recent) == 2
-    assert recent[0]['id'] == b
-    assert recent[1]['id'] == a
 
 
 @pytest.mark.asyncio
