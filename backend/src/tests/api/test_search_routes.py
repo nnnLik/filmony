@@ -200,7 +200,9 @@ async def test_suggestions_excludes_already_followed_from_mutual(async_client: A
 
 
 @pytest.mark.asyncio
-async def test_suggestions_excludes_followees_from_popular_and_random(async_client: AsyncClient) -> None:
+async def test_suggestions_excludes_followees_from_popular_and_random(
+    async_client: AsyncClient,
+) -> None:
     """Users the viewer already follows must not appear in popular or random strips."""
     viewer = await _login(async_client, telegram_user_id=7601)
     peer = await _login(async_client, telegram_user_id=7602)
@@ -216,7 +218,9 @@ async def test_suggestions_excludes_followees_from_popular_and_random(async_clie
                 following_user_id=peer_id,
             )
         )
-        film = Film(kinopoisk_id=960_001, title='FollowedPeer', year=None, poster_url=None, genres=[])
+        film = Film(
+            kinopoisk_id=960_001, title='FollowedPeer', year=None, poster_url=None, genres=[]
+        )
         session.add(film)
         await session.flush()
         session.add(
