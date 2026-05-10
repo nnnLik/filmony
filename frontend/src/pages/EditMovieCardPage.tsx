@@ -6,6 +6,7 @@ import { getMovieCardById, updateMovieCard } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile } from '../api/profileApi'
 import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard } from '../api/profileTypes'
+import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
@@ -342,13 +343,16 @@ export function EditMovieCardPage() {
               <div className="px-3 py-3">
                 <p className="text-xs text-(--tgui--hint_color)">До {MAX_WATCH_NOTE_LEN} символов.</p>
                 <div className="mt-2 flex gap-2">
-                  <textarea
+                  <CommentDraftMultiline
                     ref={watchNoteRef}
                     value={watchNote}
+                    onChange={setWatchNote}
+                    placeholder="Коротко о впечатлении…"
+                    ariaLabel="Заметка о просмотре"
+                    disabled={saving}
                     maxLength={MAX_WATCH_NOTE_LEN}
-                    onChange={(e) => setWatchNote(e.currentTarget.value)}
                     rows={5}
-                    className="min-h-28 min-w-0 flex-1 resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
+                    wrapperClassName="min-h-28 flex-1 focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
                   />
                   <div className="flex shrink-0 flex-col justify-start pt-1">
                     <CommentReactionTokenPicker

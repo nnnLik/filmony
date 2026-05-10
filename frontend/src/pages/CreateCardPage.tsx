@@ -21,6 +21,7 @@ import type {
   SubscriptionListItem,
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
@@ -837,17 +838,18 @@ export function CreateCardPage() {
                   По желанию: пару предложений о фильме. До {MAX_WATCH_NOTE_LEN} символов.
                 </p>
                 <div className="mt-2 flex gap-2">
-                  <textarea
+                  <CommentDraftMultiline
                     ref={watchNoteRef}
                     value={watchNote}
-                    maxLength={MAX_WATCH_NOTE_LEN}
-                    onChange={(e) => {
-                      setWatchNote(e.currentTarget.value)
+                    onChange={(v) => {
+                      setWatchNote(v)
                       setError(null)
                     }}
                     placeholder="Например: неожиданно тихий финал…"
+                    ariaLabel="Заметка о просмотре"
+                    maxLength={MAX_WATCH_NOTE_LEN}
                     rows={4}
-                    className={`min-h-24 min-w-0 flex-1 resize-y ${WIZARD_TEXT_FIELD_CLASS}`}
+                    wrapperClassName="min-h-24 flex-1 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) outline-none transition-[border-color,box-shadow] focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
                   />
                   <div className="flex shrink-0 flex-col justify-start pt-1">
                     <CommentReactionTokenPicker

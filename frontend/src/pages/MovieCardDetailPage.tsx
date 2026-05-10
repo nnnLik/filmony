@@ -1,6 +1,17 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { CopyPlus, Link2, Share2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type MutableRefObject,
+  type RefObject,
+  type SetStateAction,
+} from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments } from '../api/cardApi'
@@ -152,6 +163,17 @@ function followingRowInitials(row: FollowingRatingRow): string {
     first_name: p.first_name,
     username: p.username,
   })
+}
+
+function movieCardAuthorOrNull(value: MovieCard): MovieCardCommentAuthor | null {
+  const v = value as unknown as { card_author?: MovieCardCommentAuthor }
+  return v.card_author ?? null
+}
+
+function movieCardWatchNotePlainText(value: MovieCard): string {
+  const v = value as unknown as { watch_note?: unknown }
+  const raw = v.watch_note
+  return typeof raw === 'string' ? raw : ''
 }
 
 function CardAuthorAvatarLink({ author }: { author: MovieCardCommentAuthor }) {
@@ -538,6 +560,106 @@ export function MovieCardDetailPage() {
         ) : null}
 
         {!invalidCardId && !loading && error == null && card != null ? (
+          <MovieCardDetailLoadedBody
+            card={card}
+            palette={palette}
+            cardDeepLinkUrl={cardDeepLinkUrl}
+            isOwner={isOwner}
+            viewerId={viewerId}
+            followingRatings={followingRatings}
+            comments={comments}
+            commentsById={commentsById}
+            commentsLoading={commentsLoading}
+            commentsError={commentsError}
+            commentsNextCursor={commentsNextCursor}
+            commentText={commentText}
+            replyTo={replyTo}
+            submitBusy={submitBusy}
+            jumpBusy={jumpBusy}
+            charsLeft={charsLeft}
+            highlightCommentId={highlightCommentId}
+            commentRefs={commentRefs}
+            commentTextAreaRef={commentTextAreaRef}
+            insertReactionIntoComment={insertReactionIntoComment}
+            loadComments={loadComments}
+            handleCreateComment={handleCreateComment}
+            handleJumpToParent={handleJumpToParent}
+            setCommentText={setCommentText}
+            setReplyTo={setReplyTo}
+            setCard={setCard}
+            setComments={setComments}
+          />
+        ) : null}
+      </main>
+    </div>
+  )
+}
+
+type MovieCardDetailLoadedBodyProps = {
+  card: MovieCard
+  palette: { ring: string; glow: string; text: string }
+  cardDeepLinkUrl: string | null
+  isOwner: boolean
+  viewerId: string | null
+  followingRatings: FollowingRatingRow[] | null
+  comments: MovieCardComment[]
+  commentsById: Map<number, MovieCardComment>
+  commentsLoading: boolean
+  commentsError: string | null
+  commentsNextCursor: string | null
+  commentText: string
+  replyTo: { id: number; label: string } | null
+  submitBusy: boolean
+  jumpBusy: boolean
+  charsLeft: number
+  highlightCommentId: number | null
+  commentRefs: MutableRefObject<Record<number, HTMLDivElement | null>>
+  commentTextAreaRef: RefObject<HTMLTextAreaElement | null>
+  insertReactionIntoComment: (reactionTypeId: number) => void
+  loadComments: (append: boolean) => Promise<void>
+  handleCreateComment: () => Promise<void>
+  handleJumpToParent: (parentCommentId: number) => Promise<void>
+  setCommentText: Dispatch<SetStateAction<string>>
+  setReplyTo: Dispatch<SetStateAction<{ id: number; label: string } | null>>
+  setCard: Dispatch<SetStateAction<MovieCard | null>>
+  setComments: Dispatch<SetStateAction<MovieCardComment[]>>
+}
+
+function MovieCardDetailLoadedBody({
+  card,
+  palette,
+  cardDeepLinkUrl,
+  isOwner,
+  viewerId,
+  followingRatings,
+  comments,
+  commentsById,
+  commentsLoading,
+  commentsError,
+  commentsNextCursor,
+  commentText,
+  replyTo,
+  submitBusy,
+  jumpBusy,
+  charsLeft,
+  highlightCommentId,
+  commentRefs,
+  commentTextAreaRef,
+  insertReactionIntoComment,
+  loadComments,
+  handleCreateComment,
+  handleJumpToParent,
+  setCommentText,
+  setReplyTo,
+  setCard,
+  setComments,
+}: MovieCardDetailLoadedBodyProps) {
+  const navigate = useNavigate()
+  const detailCardAuthor = movieCardAuthorOrNull(card)
+  const watchNoteText = movieCardWatchNotePlainText(card)
+  const showWatchNote = watchNoteText.trim().length > 0
+
+  return (
           <div className="space-y-3">
             <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
               <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
@@ -583,7 +705,7 @@ export function MovieCardDetailPage() {
                       {card.film_title}
                     </Title>
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                      {card.card_author != null ? <CardAuthorAvatarLink author={card.card_author} /> : null}
+                      {detailCardAuthor != null ? <CardAuthorAvatarLink author={detailCardAuthor} /> : null}
                       <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
                         {card.film_year ?? 'Год неизвестен'}
                       </p>
@@ -690,11 +812,11 @@ export function MovieCardDetailPage() {
                   <span className="text-xs text-(--tgui--hint_color)">Пока нет собственных тегов</span>
                 )}
               </div>
-              {typeof card.watch_note === 'string' && card.watch_note.trim() !== '' ? (
+              {showWatchNote ? (
                 <>
                   <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка о просмотре</p>
                   <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--tgui--text_color)">
-                    {card.watch_note}
+                    <CommentBodyWithReactionTokens text={watchNoteText} />
                   </p>
                 </>
               ) : null}
@@ -896,8 +1018,5 @@ export function MovieCardDetailPage() {
               ) : null}
             </section>
           </div>
-        ) : null}
-      </main>
-    </div>
   )
 }
