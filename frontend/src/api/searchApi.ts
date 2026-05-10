@@ -15,6 +15,8 @@ export type SearchUserItem = {
   username: string | null
   display_name: string | null
   photo_url: string | null
+  movie_cards_count?: number
+  average_rating?: number | null
 }
 
 export type SearchCatalogResponse = {

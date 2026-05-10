@@ -24,6 +24,8 @@ class SuggestedUserProfile:
     username: str | None
     display_name: str | None
     photo_url: str | None
+    movie_cards_count: int = 0
+    average_rating: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,17 +44,20 @@ class SearchUserSuggestionsService:
 
     _session: AsyncSession
 
-    MUTUAL_LIMIT: int = 5
-    POPULAR_LIMIT: int = 5
-    RANDOM_LIMIT: int = 5
+    MUTUAL_LIMIT: int = 3
+    POPULAR_LIMIT: int = 3
+    RANDOM_LIMIT: int = 3
 
     @classmethod
     def build(cls, session: AsyncSession) -> Self:
         return cls(_session=session)
 
     async def execute(self, viewer_user_id: UUID) -> SearchUserSuggestionsResult:
+        followee_ids = await self._followee_user_ids(viewer_user_id)
+        exclude_base: set[UUID] = {viewer_user_id, *followee_ids}
+
         mutual = await self._mutual_circle(viewer_user_id, self.MUTUAL_LIMIT)
-        used: set[UUID] = {viewer_user_id, *(u.id for u in mutual)}
+        used: set[UUID] = exclude_base | {u.id for u in mutual}
 
         popular = await self._popular_authors(
             viewer_user_id,
@@ -72,6 +77,13 @@ class SearchUserSuggestionsService:
             popular_authors=popular,
             random_with_cards=random_users,
         )
+
+    async def _followee_user_ids(self, viewer_user_id: UUID) -> set[UUID]:
+        stmt = select(UserSubscription.following_user_id).where(
+            UserSubscription.follower_user_id == viewer_user_id
+        )
+        res = await self._session.execute(stmt)
+        return {row[0] for row in res.all()}
 
     async def _mutual_circle(self, viewer_user_id: UUID, limit: int) -> list[SuggestedUserProfile]:
         cand_sub = aliased(UserSubscription)
@@ -105,8 +117,8 @@ class SearchUserSuggestionsService:
             return []
 
         user_ids = [row[0] for row in pairs]
-        users = await self._users_by_ids_ordered(user_ids)
-        return users
+        stats = await self._movie_card_stats_for_users(user_ids)
+        return await self._users_by_ids_ordered(user_ids, stats)
 
     async def _popular_authors(
         self,
@@ -138,7 +150,8 @@ class SearchUserSuggestionsService:
             return []
 
         user_ids = [row[0] for row in rows]
-        return await self._users_by_ids_ordered(user_ids)
+        stats = await self._movie_card_stats_for_users(user_ids)
+        return await self._users_by_ids_ordered(user_ids, stats)
 
     async def _random_with_cards(
         self,
@@ -160,9 +173,34 @@ class SearchUserSuggestionsService:
         if not ids:
             return []
 
-        return await self._users_by_ids_ordered(ids)
+        stats = await self._movie_card_stats_for_users(ids)
+        return await self._users_by_ids_ordered(ids, stats)
 
-    async def _users_by_ids_ordered(self, user_ids: list[UUID]) -> list[SuggestedUserProfile]:
+    async def _movie_card_stats_for_users(
+        self, user_ids: list[UUID]
+    ) -> dict[UUID, tuple[int, float | None]]:
+        if not user_ids:
+            return {}
+        stmt = (
+            select(MovieCard.user_id, sa_func.count().label('cnt'), sa_func.avg(MovieCard.rating))
+            .where(MovieCard.user_id.in_(user_ids))
+            .group_by(MovieCard.user_id)
+        )
+        res = await self._session.execute(stmt)
+        out: dict[UUID, tuple[int, float | None]] = {}
+        for uid, cnt, avg in res.all():
+            n = int(cnt)
+            if n <= 0:
+                out[uid] = (0, None)
+            else:
+                out[uid] = (n, round(float(avg), 2) if avg is not None else None)
+        return out
+
+    async def _users_by_ids_ordered(
+        self,
+        user_ids: list[UUID],
+        stats: dict[UUID, tuple[int, float | None]],
+    ) -> list[SuggestedUserProfile]:
         if not user_ids:
             return []
 
@@ -174,6 +212,7 @@ class SearchUserSuggestionsService:
             u = by_id.get(uid)
             if u is None:
                 continue
+            cnt, avg = stats.get(uid, (0, None))
             out.append(
                 SuggestedUserProfile(
                     id=u.id,
@@ -181,6 +220,8 @@ class SearchUserSuggestionsService:
                     username=u.username,
                     display_name=u.display_name,
                     photo_url=u.photo_url,
+                    movie_cards_count=cnt,
+                    average_rating=avg,
                 )
             )
         return out

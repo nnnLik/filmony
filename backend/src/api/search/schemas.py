@@ -22,6 +22,8 @@ class SearchUserItemResponse(BaseModel):
     username: str | None
     display_name: str | None
     photo_url: str | None
+    movie_cards_count: int = 0
+    average_rating: float | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

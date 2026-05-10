@@ -8,17 +8,15 @@ import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
+import { FeedRatingRing } from './FeedRatingRing'
 import {
   authorLabel,
   commentAuthorDisplay,
   COMPANY_SHORT,
   feedCardSourceBadge,
   formatCommentTime,
-  formatRating,
   MOOD_AFTER_SHORT,
   MOOD_BEFORE_SHORT,
-  ratingDashOffset,
-  ratingPalette,
   snippetPreview,
 } from './feedCardUtils'
 
@@ -60,7 +58,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     setPreviewReactions({})
   }
 
-  const palette = useMemo(() => ratingPalette(card.rating), [card.rating])
   const isOwnCard =
     viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
   /** Карточка с `is_favorite`: второй бейдж «Особая карточка» в шапке (свои и чужие в ленте). */
@@ -72,7 +69,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const profileHref = `/u/${encodeURIComponent(card.user_id)}`
   const cardHref = `/cards/${card.id}`
   const name = authorLabel(card)
-  const dashOffset = ratingDashOffset(card.rating)
   useEffect(() => {
     let cancelled = false
     if (!commentsPreviewOpen || card.comments_count === 0) {
@@ -234,33 +230,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               ) : null}
             </Title>
           </div>
-          <div
-            className="pointer-events-none absolute right-2.5 top-2.5 z-[3] flex size-12 shrink-0 select-none items-center justify-center rounded-full backdrop-blur-md"
-            style={{
-              backgroundColor: palette.track,
-              boxShadow: `0 6px 20px rgba(0,0,0,0.35), inset 0 0 20px ${palette.glow}`,
-            }}
-            aria-hidden
-          >
-            <svg viewBox="0 0 80 80" className="absolute size-12 -rotate-90">
-              <circle cx="40" cy="40" fill="none" r="34" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-              <circle
-                cx="40"
-                cy="40"
-                fill="none"
-                r="34"
-                stroke={palette.ring}
-                strokeDasharray={219.99}
-                strokeDashoffset={dashOffset}
-                strokeLinecap="round"
-                strokeWidth="6"
-                style={{ filter: `drop-shadow(0 0 6px ${palette.glow})` }}
-              />
-            </svg>
-            <span className="relative text-[15px] font-extrabold tabular-nums text-white drop-shadow-sm">
-              {formatRating(card.rating)}
-            </span>
-          </div>
+          <FeedRatingRing rating={card.rating} positionClassName="absolute right-2.5 top-2.5 z-[3]" />
         </div>
       </Link>
 

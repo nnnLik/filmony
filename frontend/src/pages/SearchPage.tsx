@@ -11,6 +11,7 @@ import {
   type SearchUserItem,
 } from '../api/searchApi'
 import { ApiError, formatApiDetail } from '../api/client'
+import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { profileInitials } from '../lib/profileDisplay'
 
@@ -45,50 +46,17 @@ function UserSuggestionRow({ user }: { user: SearchUserItem }) {
   )
 }
 
-function SearchSuggestionsBody({ data }: { data: SearchSuggestionsResponse }) {
+function SearchSuggestionsChips({ data }: { data: SearchSuggestionsResponse }) {
   const hasAny =
     data.mutual_circle.length + data.popular_authors.length + data.random_with_cards.length > 0
   if (!hasAny) {
-    return <p className="pb-4 text-sm text-(--tgui--hint_color)">Пока мало данных для подсказок.</p>
+    return <p className="py-3 text-sm text-(--tgui--hint_color)">Пока мало данных для подсказок.</p>
   }
   return (
-    <div className="flex flex-col gap-6 pb-4">
-      {data.mutual_circle.length > 0 ? (
-        <section>
-          <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-(--tgui--hint_color)">
-            Рядом с вашим кругом
-          </h3>
-          <div className="flex flex-col gap-1">
-            {data.mutual_circle.map((u) => (
-              <UserSuggestionRow key={u.id} user={u} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {data.popular_authors.length > 0 ? (
-        <section>
-          <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-(--tgui--hint_color)">
-            Активные в ленте
-          </h3>
-          <div className="flex flex-col gap-1">
-            {data.popular_authors.map((u) => (
-              <UserSuggestionRow key={u.id} user={u} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {data.random_with_cards.length > 0 ? (
-        <section>
-          <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-(--tgui--hint_color)">
-            Случайные с карточками
-          </h3>
-          <div className="flex flex-col gap-1">
-            {data.random_with_cards.map((u) => (
-              <UserSuggestionRow key={u.id} user={u} />
-            ))}
-          </div>
-        </section>
-      ) : null}
+    <div className="flex flex-col">
+      <UserSuggestionChipsStrip title="Рядом с вашим кругом" users={data.mutual_circle} />
+      <UserSuggestionChipsStrip title="Активные в ленте" users={data.popular_authors} />
+      <UserSuggestionChipsStrip title="Случайные с карточками" users={data.random_with_cards} />
     </div>
   )
 }
@@ -185,16 +153,6 @@ export function SearchPage() {
       </Title>
       <p className="mb-4 text-sm text-(--tgui--hint_color)">Тайтлы и люди в каталоге Filmony</p>
 
-      {suggestionsQuery.isPending ? (
-        <p className="pb-4 text-sm text-(--tgui--hint_color)">Загрузка подсказок…</p>
-      ) : null}
-      {suggestionsError ? (
-        <p className="pb-4 text-sm text-(--tgui--destructive_text_color)">{suggestionsError}</p>
-      ) : null}
-      {suggestionsQuery.isSuccess && suggestionsQuery.data ? (
-        <SearchSuggestionsBody data={suggestionsQuery.data} />
-      ) : null}
-
       <Section header="Запрос">
         <Input
           header="Строка поиска"
@@ -254,6 +212,18 @@ export function SearchPage() {
           </section>
         </div>
       ) : null}
+
+      <div className="mt-4 -mx-4">
+        {suggestionsQuery.isPending ? (
+          <p className="px-4 pb-2 text-sm text-(--tgui--hint_color)">Загрузка подсказок…</p>
+        ) : null}
+        {suggestionsError ? (
+          <p className="px-4 pb-2 text-sm text-(--tgui--destructive_text_color)">{suggestionsError}</p>
+        ) : null}
+        {suggestionsQuery.isSuccess && suggestionsQuery.data ? (
+          <SearchSuggestionsChips data={suggestionsQuery.data} />
+        ) : null}
+      </div>
     </main>
   )
 }

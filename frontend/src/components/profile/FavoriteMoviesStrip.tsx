@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import type { MovieCard } from '../../api/profileTypes'
+import { FeedRatingRing } from '../feed/FeedRatingRing'
 
 export type FavoriteMoviesStripProps = {
   items: MovieCard[]
@@ -29,6 +30,11 @@ export function FavoriteMoviesStrip({ items }: FavoriteMoviesStripProps) {
                   Нет постера
                 </div>
               )}
+              <FeedRatingRing
+                rating={card.rating}
+                compact
+                positionClassName="absolute right-0.5 top-0.5 z-[2] sm:right-1 sm:top-1"
+              />
             </div>
           </Link>
         ))}

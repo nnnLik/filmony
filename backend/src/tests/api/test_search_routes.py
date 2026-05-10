@@ -127,6 +127,10 @@ async def test_suggestions_mutual_dedup_and_popular(async_client: AsyncClient) -
     assert str(c) not in popular_ids
     assert str(d) not in popular_ids
 
+    e_payload = next(u for u in body['popular_authors'] if u['id'] == str(e))
+    assert e_payload['movie_cards_count'] == 1
+    assert e_payload['average_rating'] == 5.0
+
     all_ids = (
         mutual_ids
         + [u['id'] for u in body['popular_authors']]
@@ -196,6 +200,48 @@ async def test_suggestions_excludes_already_followed_from_mutual(async_client: A
 
 
 @pytest.mark.asyncio
+async def test_suggestions_excludes_followees_from_popular_and_random(async_client: AsyncClient) -> None:
+    """Users the viewer already follows must not appear in popular or random strips."""
+    viewer = await _login(async_client, telegram_user_id=7601)
+    peer = await _login(async_client, telegram_user_id=7602)
+    viewer_id = UUID(str(viewer['id']))
+    peer_id = UUID(str(peer['id']))
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            UserSubscription(
+                id=uuid4(),
+                follower_user_id=viewer_id,
+                following_user_id=peer_id,
+            )
+        )
+        film = Film(kinopoisk_id=960_001, title='FollowedPeer', year=None, poster_url=None, genres=[])
+        session.add(film)
+        await session.flush()
+        session.add(
+            MovieCard(
+                user_id=peer_id,
+                film_id=film.id,
+                rating=4.5,
+                company='solo',
+                mood_before='relax',
+                mood_after='ok',
+            )
+        )
+        await session.commit()
+
+    await _login(async_client, telegram_user_id=7601)
+    r = await async_client.get('/api/search/suggestions')
+    assert r.status_code == 200
+    body = r.json()
+    popular_ids = [u['id'] for u in body['popular_authors']]
+    random_ids = [u['id'] for u in body['random_with_cards']]
+    assert str(peer_id) not in popular_ids
+    assert str(peer_id) not in random_ids
+
+
+@pytest.mark.asyncio
 async def test_popular_uses_cards_within_seven_days(async_client: AsyncClient) -> None:
     ids: dict[int, UUID] = {}
     for tid in (7501, 7502):
@@ -219,9 +265,7 @@ async def test_popular_uses_cards_within_seven_days(async_client: AsyncClient) -
         )
         session.add(old)
         await session.flush()
-        old_created = (dt.datetime.now(dt.UTC) - dt.timedelta(days=30)).replace(
-            tzinfo=None
-        )
+        old_created = (dt.datetime.now(dt.UTC) - dt.timedelta(days=30)).replace(tzinfo=None)
         await session.execute(
             update(MovieCard).where(MovieCard.id == old.id).values(created_at=old_created)
         )

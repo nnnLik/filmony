@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { MovieCard } from '../../api/profileTypes'
+import { FeedRatingRing } from '../feed/FeedRatingRing'
 import { FavoriteCardHeartButton } from '../cards/FavoriteCardHeartButton'
 
 type MoviePosterGridProps = {
@@ -52,7 +53,7 @@ function PosterCell({
       className="relative block overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) no-underline"
       aria-label={`Открыть карточку «${card.film_title}»`}
     >
-      <div className="aspect-2/3 w-full">
+      <div className="relative aspect-2/3 w-full">
         {card.film_poster_url ? (
           <img src={card.film_poster_url} alt={card.film_title} className="h-full w-full object-cover" />
         ) : (
@@ -60,6 +61,14 @@ function PosterCell({
             Нет постера
           </div>
         )}
+        <FeedRatingRing
+          rating={card.rating}
+          positionClassName={
+            showFavoriteToggle
+              ? 'absolute right-1 bottom-1 z-[2] sm:right-1.5 sm:bottom-1.5'
+              : 'absolute right-1 top-1 z-[2] sm:right-1.5 sm:top-1.5'
+          }
+        />
       </div>
       {showFavoriteToggle ? (
         <div
