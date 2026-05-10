@@ -14,6 +14,7 @@ from api.search.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
+from services.cards.get_my_movie_card_id_for_film import GetMyMovieCardIdForFilmService
 from services.search.search_catalog_films import SearchCatalogFilmsService
 from services.search.search_catalog_users import SearchCatalogUsersService
 from services.search.search_user_suggestions import SearchUserSuggestionsService
@@ -58,8 +59,20 @@ async def search_catalog(
     films = await SearchCatalogFilmsService.build(db).execute(query, lf)
     users = await SearchCatalogUsersService.build(db).execute(query, lu)
 
+    card_by_film: dict[int, int] = {}
+    if films:
+        card_by_film = await GetMyMovieCardIdForFilmService.build(db).execute_many(
+            user.id, [f.id for f in films]
+        )
+
     return SearchCatalogResponse(
-        films=[SearchFilmItemResponse(**asdict(f)) for f in films],
+        films=[
+            SearchFilmItemResponse(
+                **asdict(f),
+                my_card_id=card_by_film.get(f.id),
+            )
+            for f in films
+        ],
         users=[SearchUserItemResponse(**asdict(u)) for u in users],
     )
 

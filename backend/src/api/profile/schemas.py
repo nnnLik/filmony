@@ -46,6 +46,19 @@ class MovieCardsExportCsvResponse(BaseModel):
     status: str = Field(examples=['sent'])
 
 
+class MyMovieCardTagStatItem(BaseModel):
+    tag: str
+    use_count: int = Field(..., ge=1)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MyMovieCardTagStatsResponse(BaseModel):
+    items: list[MyMovieCardTagStatItem] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class PublicProfileResponse(BaseModel):
     id: UUID
     profile_slug: str

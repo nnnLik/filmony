@@ -1,11 +1,19 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
-import { useCallback, useEffect, useMemo, useState, type MouseEventHandler } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler } from 'react'
 import { Link } from 'react-router-dom'
 
 import { createMovieCardComment, listAllMovieCardComments } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
+import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
+import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
+import {
+  COMMENT_BODY_MAX_LEN,
+  insertSnippetAtCaret,
+  reactionTokenFromId,
+} from '../../lib/commentReactionTokens'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
+import { FilmGenreChips } from '../films/FilmGenreChips'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
 import { FeedRatingRing } from './FeedRatingRing'
@@ -31,6 +39,7 @@ export type FeedCardProps = {
 }
 
 export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCardProps) {
+  const draftInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -148,7 +157,26 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
 
   const remainder = card.custom_tags.length > 2 ? card.custom_tags.length - 2 : 0
   const shownTags = card.custom_tags.slice(0, 2)
-  const charsLeft = 100 - draft.length
+  const charsLeft = COMMENT_BODY_MAX_LEN - draft.length
+
+  const insertReactionToken = useCallback((reactionTypeId: number) => {
+    const token = reactionTokenFromId(reactionTypeId)
+    const el = draftInputRef.current
+    const inserted = insertSnippetAtCaret(
+      draft,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      token,
+      COMMENT_BODY_MAX_LEN,
+    )
+    if (inserted == null) return
+    setDraft(inserted.nextValue)
+    const caret = inserted.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [draft])
 
   const stopCardNav: MouseEventHandler = (e) => {
     e.preventDefault()
@@ -261,6 +289,8 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             </span>
           </div>
         </div>
+
+        <FilmGenreChips genres={card.film_genres} maxVisible={3} className="mt-0.5" />
 
         {(shownTags.length > 0 || remainder > 0) && (
           <div className="flex max-w-full flex-wrap items-center gap-0.5">
@@ -396,7 +426,9 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                                 </Link>
                               ) : null}
 
-                              <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug text-(--tgui--text_color)">{comment.text}</p>
+                              <p className="mt-1 text-[13px] leading-snug text-(--tgui--text_color)">
+                                <CommentBodyWithReactionTokens text={comment.text} className="whitespace-pre-wrap" />
+                              </p>
                               <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden" onMouseDown={stopCardNav}>
                                 <ReactionStrip
                                   compact
@@ -422,13 +454,14 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNavKeepFocus}>
                   <input
+                    ref={draftInputRef}
                     type="text"
                     value={draft}
                     disabled={submitBusy}
-                    maxLength={100}
+                    maxLength={COMMENT_BODY_MAX_LEN}
                     placeholder="Комментарий…"
                     className="min-h-8 min-w-0 flex-1 rounded-lg border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-1.5 text-[13px] text-(--tgui--text_color) outline-none ring-(--tgui--link_color) placeholder:text-(--tgui--hint_color) focus-visible:border-transparent focus-visible:ring-2"
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => setDraft(e.currentTarget.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
@@ -436,6 +469,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                       }
                     }}
                     aria-label="Текст комментария"
+                  />
+                  <CommentReactionTokenPicker
+                    onPickReactionTypeId={insertReactionToken}
+                    disabled={submitBusy}
+                    allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
                   />
                   <Button
                     mode="filled"

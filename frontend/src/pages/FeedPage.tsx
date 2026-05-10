@@ -1,11 +1,11 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
-import { ChevronDown } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getMovieCardFeedPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
+import { getMyMovieCardTagStats } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import type {
   FeedListMode,
@@ -15,14 +15,14 @@ import type {
 } from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
-import { FeedModePickerSheet } from '../components/feed/FeedModePickerSheet'
-import { feedModeTitle } from '../components/feed/feedModePickerConstants'
+import { FEED_MODE_ENTRIES, feedModeHint } from '../components/feed/feedModePickerConstants'
 import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
 import {
   MY_PROFILE_BUNDLE_CHANGED_EVENT,
   readMyProfileBundleCache,
 } from '../lib/myProfileBundleCache'
-import { movieCardFeedQueryKey } from '../feed/feedQueryKeys'
+import { movieCardFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
+import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
 
@@ -31,7 +31,7 @@ export function FeedPage() {
   const queryClient = useQueryClient()
 
   const [feedMode, setFeedMode] = useState<FeedListMode>('default')
-  const [modeSheetOpen, setModeSheetOpen] = useState(false)
+  const [hideOwnCards, setHideOwnCards] = useState(false)
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
   const viewerUserId = myProfileBundle?.profile.id ?? null
   const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
@@ -51,12 +51,13 @@ export function FeedPage() {
   }, [])
 
   const feedQuery = useInfiniteQuery({
-    queryKey: movieCardFeedQueryKey(feedMode),
+    queryKey: movieCardFeedQueryKey(feedMode, hideOwnCards),
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) =>
       getMovieCardFeedPage({
         limit: 20,
         mode: feedMode,
+        hideOwn: hideOwnCards,
         ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
       }),
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
@@ -64,6 +65,21 @@ export function FeedPage() {
     staleTime: 2 * 60_000,
     gcTime: 60 * 60_000,
   })
+
+  useEffect(() => {
+    if (auth.kind !== 'ready') {
+      return
+    }
+    void queryClient.prefetchQuery({
+      queryKey: myMovieCardTagStatsQueryKey(),
+      queryFn: async () => {
+        const res = await getMyMovieCardTagStats()
+        writeCachedMyMovieCardTagStats(res)
+        return res
+      },
+      staleTime: 2 * 60_000,
+    })
+  }, [auth.kind, queryClient])
 
   const items = useMemo(
     () => feedQuery.data?.pages.flatMap((p) => p.items) ?? [],
@@ -108,7 +124,7 @@ export function FeedPage() {
 
   const onCommentsState = useCallback(
     (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
-      const key = movieCardFeedQueryKey(feedMode)
+      const key = movieCardFeedQueryKey(feedMode, hideOwnCards)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
         return {
@@ -120,7 +136,7 @@ export function FeedPage() {
         }
       })
     },
-    [queryClient, feedMode],
+    [queryClient, feedMode, hideOwnCards],
   )
 
   if (auth.kind === 'error') {
@@ -147,39 +163,59 @@ export function FeedPage() {
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
-        <div className="flex items-center gap-2 px-4 py-3">
-          <h1 className="min-w-0 flex-1 truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-            Лента
-          </h1>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              mode="gray"
-              size="s"
-              type="button"
-              className="inline-flex max-w-42 min-w-0 shrink items-center gap-1"
-              onClick={() => setModeSheetOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={modeSheetOpen}
-              aria-label={`Источник ленты: ${feedModeTitle(feedMode)}. Открыть выбор`}
-            >
-              <span className="min-w-0 truncate">{feedModeTitle(feedMode)}</span>
-              <ChevronDown className="block size-4 shrink-0 opacity-75" aria-hidden />
-            </Button>
-            <Link to="/cards/new" aria-label="Добавить карточку" className="shrink-0 no-underline">
-              <Button mode="gray">+</Button>
-            </Link>
+        <div className="px-4 pb-3 pt-3">
+          <div className="mb-3 flex items-center gap-2">
+            <h1 className="min-w-0 flex-1 truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+              Лента
+            </h1>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                mode={hideOwnCards ? 'filled' : 'gray'}
+                size="s"
+                type="button"
+                className="max-w-[5.5rem] shrink truncate px-2"
+                onClick={() => setHideOwnCards((v) => !v)}
+                aria-pressed={hideOwnCards}
+                aria-label={hideOwnCards ? 'Показывать мои карточки в ленте' : 'Скрыть мои карточки из ленты'}
+                title="Свои карточки в этой ленте"
+              >
+                Без моих
+              </Button>
+              <Link to="/cards/new" aria-label="Добавить карточку" className="shrink-0 no-underline">
+                <Button mode="gray">+</Button>
+              </Link>
+            </div>
           </div>
+          <div
+            className="flex w-full rounded-xl bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] p-0.5"
+            role="tablist"
+            aria-label="Источник ленты"
+          >
+            {FEED_MODE_ENTRIES.map((entry) => {
+              const selected = feedMode === entry.value
+              return (
+                <button
+                  key={entry.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className={`min-w-0 flex-1 truncate rounded-lg px-1.5 py-2 text-[13px] font-medium transition active:scale-[0.99] ${
+                    selected
+                      ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-[0_1px_2px_rgba(0,0,0,0.12)]'
+                      : 'text-(--tgui--hint_color)'
+                  }`}
+                  onClick={() => setFeedMode(entry.value)}
+                >
+                  {entry.segmentLabel}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-2 text-[12px] leading-snug text-(--tgui--hint_color)">{feedModeHint(feedMode)}</p>
         </div>
       </header>
 
       <RecentCardsStrip items={recentStrip} />
-
-      <FeedModePickerSheet
-        open={modeSheetOpen}
-        onClose={() => setModeSheetOpen(false)}
-        value={feedMode}
-        onSelect={setFeedMode}
-      />
 
       <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
         <div className="flex flex-col gap-5">

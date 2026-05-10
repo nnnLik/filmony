@@ -13,9 +13,17 @@ import {
   unsubscribeFromUser,
 } from '../api/profileApi'
 import type { MovieCard, MovieCardPage, PublicProfile, WatchlistFilmPage } from '../api/profileTypes'
+import {
+  DEFAULT_RATED_CARDS_QUERY,
+  type RatedCardsListQuery,
+  isDefaultRatedCardsQuery,
+  ratedCardsQueryKey,
+  ratedCardsToListParams,
+} from '../lib/ratedCardsListQuery'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
+import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
@@ -26,10 +34,7 @@ function shownCount(value: number | undefined): string {
 
 const loadMyProfile: () => Promise<{ id: string }> = getMyProfile
 const loadPublicProfileById: (userId: string) => Promise<PublicProfile> = getPublicProfileById
-const loadUserCards: (
-  userId: string,
-  params: { cursor?: string | null; limit?: number; favoritesOnly?: boolean },
-) => Promise<MovieCardPage> = getUserCards
+const loadUserCards = getUserCards
 const loadUserWatchlist: (
   userId: string,
   params: { cursor?: string | null; limit?: number },
@@ -61,6 +66,9 @@ export function PublicProfilePage() {
   const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>('rated')
   const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
   const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
+  const [ratedQuery, setRatedQuery] = useState<RatedCardsListQuery>(() => ({ ...DEFAULT_RATED_CARDS_QUERY }))
+  const [ratedCardsLoading, setRatedCardsLoading] = useState(false)
+  const ratedQueryKey = useMemo(() => ratedCardsQueryKey(ratedQuery), [ratedQuery])
   const favoriteStripItems = useMemo(() => {
     if (profile == null) return []
     const n = profile.favorites_count ?? 0
@@ -69,6 +77,12 @@ export function PublicProfilePage() {
     return favoriteStripFetched
   }, [profile, favoriteStripFetched, favoriteStripForUserId])
   const prevRouteId = useRef<string | null>(null)
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setRatedQuery({ ...DEFAULT_RATED_CARDS_QUERY })
+    })
+  }, [resolvedUserId])
 
   useEffect(() => {
     if (auth.kind !== 'ready' || resolvedUserId === '') {
@@ -112,11 +126,6 @@ export function PublicProfilePage() {
           }
           setIsFollowing(following.items.some((item) => item.id === p.id))
         }
-        const page = await loadUserCards(p.id, { limit: 20 })
-        if (!alive) {
-          return
-        }
-        setCards(page)
 
         try {
           const wl = await loadUserWatchlist(p.id, { limit: 20 })
@@ -149,6 +158,49 @@ export function PublicProfilePage() {
       alive = false
     }
   }, [auth.kind, resolvedUserId])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready' || profile == null || mainTab !== 'movies' || moviesSegment !== 'rated') {
+      return
+    }
+    let alive = true
+    void (async () => {
+      await Promise.resolve()
+      if (!alive) {
+        return
+      }
+      setRatedCardsLoading(true)
+      setCardsError(null)
+      try {
+        const page = await loadUserCards(profile.id, {
+          limit: 20,
+          ...ratedCardsToListParams(ratedQuery),
+        })
+        if (!alive) {
+          return
+        }
+        setCards(page)
+      } catch (e) {
+        if (!alive) {
+          return
+        }
+        if (e instanceof ApiError) {
+          setCardsError(formatApiDetail(e.detail))
+        } else {
+          setCardsError(e instanceof Error ? e.message : 'Ошибка списка')
+        }
+        setCards(null)
+      } finally {
+        if (alive) {
+          setRatedCardsLoading(false)
+        }
+      }
+    })()
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- profile.id, ratedQuery via key
+  }, [auth.kind, profile?.id, mainTab, moviesSegment, ratedQueryKey])
 
   useEffect(() => {
     if (profile == null) {
@@ -186,7 +238,11 @@ export function PublicProfilePage() {
     setLoadingMore(true)
     setCardsError(null)
     try {
-      const page = await loadUserCards(profile.id, { cursor: cards.next_cursor, limit: 20 })
+      const page = await loadUserCards(profile.id, {
+        cursor: cards.next_cursor,
+        limit: 20,
+        ...ratedCardsToListParams(ratedQuery),
+      })
       setCards((prev) => {
         if (prev == null) {
           return page
@@ -205,7 +261,7 @@ export function PublicProfilePage() {
     } finally {
       setLoadingMore(false)
     }
-  }, [profile, cards])
+  }, [profile, cards, ratedQuery])
 
   const loadMoreWatchlist = useCallback(async () => {
     if (profile == null || watchlist?.next_cursor == null || watchlist.next_cursor === '') {
@@ -475,14 +531,26 @@ export function PublicProfilePage() {
             {moviesSegment === 'rated' ? (
               <>
                 <FavoriteMoviesStrip items={favoriteStripItems} />
+                <div className="mx-4">
+                  <ProfileRatedCardsFilters
+                    profileUserId={profile.id}
+                    value={ratedQuery}
+                    onChange={setRatedQuery}
+                  />
+                </div>
+                {ratedCardsLoading ? (
+                  <p className="filmony-text-panel mx-4 my-2 text-center text-xs text-(--tgui--hint_color)">
+                    Обновляем список…
+                  </p>
+                ) : null}
                 {cardsError != null ? (
                   <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">
                     {cardsError}
                   </p>
                 ) : null}
-                {cards != null && cards.items.length === 0 && !loadingMore ? (
+                {cards != null && cards.items.length === 0 && !loadingMore && !ratedCardsLoading ? (
                   <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                    Пока нет карточек.
+                    {isDefaultRatedCardsQuery(ratedQuery) ? 'Пока нет карточек.' : 'Нет карточек с такими фильтрами.'}
                   </p>
                 ) : null}
                 {cards != null && cards.items.length > 0 ? (

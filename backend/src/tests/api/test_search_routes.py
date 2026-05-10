@@ -49,25 +49,38 @@ async def test_search_returns_films_and_users(async_client: AsyncClient) -> None
 
     session_factory = get_session_factory()
     async with session_factory() as session:
-        session.add(
-            Film(
-                kinopoisk_id=910_001,
-                title='УникальныйТайтлПоиска',
-                year=2020,
-                poster_url=None,
-                genres=[],
-            )
+        film = Film(
+            kinopoisk_id=910_001,
+            title='УникальныйТайтлПоиска',
+            year=2020,
+            poster_url=None,
+            genres=[],
         )
+        session.add(film)
+        await session.flush()
+        my_card = MovieCard(
+            user_id=uid,
+            film_id=film.id,
+            rating=7.5,
+            company='alone',
+            mood_before='relax',
+            mood_after='enjoyed',
+        )
+        session.add(my_card)
         res = await session.execute(select(User).where(User.id == uid))
         me = res.scalar_one()
         me.display_name = 'УникальноеИмяПоиска'
         session.add(me)
+        await session.flush()
+        my_card_id = my_card.id
         await session.commit()
 
     r = await async_client.get('/api/search', params={'q': 'Уникальн'})
     assert r.status_code == 200
     body = r.json()
-    assert any('Уникальный' in f['title'] for f in body['films'])
+    film_hits = [f for f in body['films'] if 'Уникальный' in f['title']]
+    assert len(film_hits) >= 1
+    assert film_hits[0]['my_card_id'] == my_card_id
     assert any(body['users'][i]['id'] == str(uid) for i in range(len(body['users'])))
 
 

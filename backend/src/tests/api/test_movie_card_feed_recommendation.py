@@ -227,3 +227,26 @@ async def test_feed_subscriptions_only_excludes_non_subscription_streams(
     sub_items = sub_only.json()['items']
     assert str(s_id) not in [it['user_id'] for it in sub_items]
     assert all(it['feed_source'] in ('own', 'subscriptions') for it in sub_items)
+
+
+@pytest.mark.asyncio
+async def test_feed_hide_own_excludes_viewer_cards(async_client: AsyncClient) -> None:
+    viewer = await _login(async_client, telegram_user_id=9630)
+    author = await _login(async_client, telegram_user_id=9631)
+    v_id = UUID(str(viewer['id']))
+    a_id = UUID(str(author['id']))
+    await _subscribe(v_id, a_id)
+
+    await _seed_movie_card_for_user(user_id=v_id, kinopoisk_id=1963001, genres=['драма'])
+    await _seed_movie_card_for_user(user_id=a_id, kinopoisk_id=1963002, genres=['комедия'])
+
+    await _login(async_client, telegram_user_id=9630)
+    mix = await async_client.get('/api/cards/feed?limit=50')
+    assert mix.status_code == 200
+    mix_ids = {it['user_id'] for it in mix.json()['items']}
+    assert str(v_id) in mix_ids
+
+    hidden = await async_client.get('/api/cards/feed?limit=50&hide_own=true')
+    assert hidden.status_code == 200
+    for it in hidden.json()['items']:
+        assert it['user_id'] != str(v_id)

@@ -331,18 +331,26 @@ export function SubscriptionsPage() {
               {items.map((item) => {
                 const following = myFollowingIds.has(item.id)
                 const selfRow = item.id === myProfile.id
+                const profileHref = selfRow ? '/profile' : `/u/${encodeURIComponent(item.id)}`
+                const profileLabel = `Профиль: ${displayNameFromProfile(item)}`
                 return (
                   <div
                     key={`${item.relation_type}-${item.id}`}
                     className="flex items-center gap-3 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-2"
                   >
-                    <Avatar src={item.photo_url ?? undefined} acronym={profileInitials(item)} size={40} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-(--tgui--text_color)">
-                        {displayNameFromProfile(item)}
-                      </p>
-                      <p className="truncate text-xs text-(--tgui--hint_color)">@{item.profile_slug}</p>
-                    </div>
+                    <Link
+                      to={profileHref}
+                      className="flex min-w-0 flex-1 items-center gap-3 no-underline outline-none ring-(--tgui--link_color) focus-visible:ring-2"
+                      aria-label={profileLabel}
+                    >
+                      <Avatar src={item.photo_url ?? undefined} acronym={profileInitials(item)} size={40} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-(--tgui--text_color)">
+                          {displayNameFromProfile(item)}
+                        </p>
+                        <p className="truncate text-xs text-(--tgui--hint_color)">@{item.profile_slug}</p>
+                      </div>
+                    </Link>
                     {selfRow ? null : (
                       <Button
                         mode={following ? 'gray' : 'filled'}

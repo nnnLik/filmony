@@ -16,3 +16,7 @@ class FilmResponse(BaseModel):
     title: str
     year: int | None
     poster_url: str | None
+    my_card_id: int | None = Field(
+        default=None,
+        description='Id карточки текущего пользователя для этого фильма, если уже оценивал',
+    )

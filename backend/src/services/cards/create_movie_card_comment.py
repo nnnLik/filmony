@@ -8,6 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
+from services.cards.comment_reaction_tokens import (
+    CommentReactionTokenError,
+    validate_comment_text_with_reaction_tokens,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,13 +36,11 @@ class MovieCardCommentValidationError(Exception):
     pass
 
 
-def _normalize_text(value: str) -> str:
-    text = value.strip()
-    if text == '':
-        raise MovieCardCommentValidationError('comment text must not be empty')
-    if len(text) > 100:
-        raise MovieCardCommentValidationError('comment text max length is 100')
-    return text
+async def _normalize_text(value: str, session: AsyncSession) -> str:
+    try:
+        return await validate_comment_text_with_reaction_tokens(value, session)
+    except CommentReactionTokenError as e:
+        raise MovieCardCommentValidationError(str(e)) from e
 
 
 class CreateMovieCardCommentService:
@@ -51,7 +53,7 @@ class CreateMovieCardCommentService:
         user_id: UUID,
         payload: CreateMovieCardCommentInput,
     ) -> MovieCardComment:
-        text = _normalize_text(payload.text)
+        text = await _normalize_text(payload.text, self._session)
         card = (
             await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
         ).scalar_one_or_none()

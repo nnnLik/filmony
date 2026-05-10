@@ -90,6 +90,7 @@ function SearchSuggestionsBlocks({ data }: { data: SearchSuggestionsResponse }) 
 
 function FilmResultRow({ film }: { film: SearchFilmItem }) {
   const src = posterSrc(film.poster_url)
+  const hasMyCard = film.my_card_id != null && film.my_card_id > 0
   return (
     <Link
       to={`/films/${encodeURIComponent(String(film.id))}`}
@@ -101,7 +102,14 @@ function FilmResultRow({ film }: { film: SearchFilmItem }) {
         ) : null}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{film.title}</div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate font-medium">{film.title}</span>
+          {hasMyCard ? (
+            <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--tgui--link_color)_18%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--tgui--link_color)">
+              Уже у вас
+            </span>
+          ) : null}
+        </div>
         <div className="truncate text-sm text-(--tgui--hint_color)">
           {film.year != null ? `${film.year}` : 'Год не указан'}
         </div>

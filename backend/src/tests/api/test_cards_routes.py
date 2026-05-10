@@ -7,6 +7,7 @@ from conf import settings
 from core.database import get_session_factory
 from models.film import Film
 from models.movie_card import MovieCard
+from models.reaction_type import ReactionType
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -15,6 +16,20 @@ async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, 
     r = await async_client.post('/api/auth/telegram', json={'initData': init})
     assert r.status_code == 200
     return r.json()
+
+
+async def _insert_reaction_type(*, asset_key: str) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        rt = ReactionType(
+            category_slug='smiles',
+            asset_key=asset_key,
+            image_url='https://example.com/reaction.png',
+        )
+        session.add(rt)
+        await session.commit()
+        await session.refresh(rt)
+        return int(rt.id)
 
 
 async def _create_film(
@@ -698,6 +713,49 @@ async def test_comments_validation_and_parent_checks(async_client: AsyncClient) 
 
 
 @pytest.mark.asyncio
+async def test_comment_reaction_embedded_tokens(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=707)
+    film = await _create_film(kinopoisk_id=100707, title='Токены', year=2020)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    rx1 = await _insert_reaction_type(asset_key='comment-embed-707-a')
+    ok = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': f'вау ⟦r{rx1}⟧ класс'},
+    )
+    assert ok.status_code == 200
+    assert ok.json()['text'] == f'вау ⟦r{rx1}⟧ класс'
+
+    bad = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': '⟦r999999999⟧ нет'},
+    )
+    assert bad.status_code == 422
+
+    rx2 = await _insert_reaction_type(asset_key='comment-embed-707-b')
+    rx3 = await _insert_reaction_type(asset_key='comment-embed-707-c')
+    rx4 = await _insert_reaction_type(asset_key='comment-embed-707-d')
+    many_tokens = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': f'⟦r{rx1}⟧⟦r{rx2}⟧⟦r{rx3}⟧⟦r{rx4}⟧ много'},
+    )
+    assert many_tokens.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_comment_create_requires_auth_and_read_requires_auth(
     async_client: AsyncClient,
 ) -> None:
@@ -825,6 +883,32 @@ async def test_resolve_film_and_get_by_id(
     )
     assert resolved_again.status_code == 200
     assert resolved_again.json()['id'] == body['id']
+    assert resolved_again.json().get('my_card_id') in (None, 0)
+
+
+@pytest.mark.asyncio
+async def test_get_film_includes_my_card_id(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=623)
+    film = await _create_film(kinopoisk_id=100623)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': film.genres,
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    fetched = await async_client.get(f'/api/films/{film.id}')
+    assert fetched.status_code == 200
+    assert fetched.json()['my_card_id'] == card_id
 
 
 @pytest.mark.asyncio

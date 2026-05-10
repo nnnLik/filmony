@@ -1,14 +1,34 @@
 import { Button, Title } from '@telegram-apps/telegram-ui'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { createMovieCard, getFilmById, getMovieCardById, resolveFilmByKinopoiskUrl, shareMovieCardWithFollowers } from '../api/cardApi'
-import { getMyProfile, getUserSubscriptions, postMyWatchlistFilm } from '../api/profileApi'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, Film, MovieCard, SubscriptionListItem } from '../api/profileTypes'
+import {
+  getMyMovieCardTagStats,
+  getMyProfile,
+  getUserSubscriptions,
+  postMyWatchlistFilm,
+} from '../api/profileApi'
+import type {
+  CardCompany,
+  CardMoodAfter,
+  CardMoodBefore,
+  Film,
+  MovieCard,
+  MyMovieCardTagStatItem,
+  SubscriptionListItem,
+} from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
-import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { myMovieCardTagStatsQueryKey, userMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
+import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import {
+  readCachedMyMovieCardTagStats,
+  writeCachedMyMovieCardTagStats,
+} from '../lib/movieCardTagStatsStorage'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -54,6 +74,13 @@ const STEP_TITLES: Record<WizardStep, string> = {
 const WIZARD_TEXT_FIELD_CLASS =
   'w-full min-h-11 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none transition-[border-color,box-shadow] placeholder:text-(--tgui--hint_color) focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]'
 
+/** Совпадает с бэкендом `create_movie_card._normalize_tags`. */
+const MAX_CUSTOM_TAG_LEN = 40
+
+function filmHasMyCard(f: Film): boolean {
+  return f.my_card_id != null && f.my_card_id > 0
+}
+
 function WizardStepPanel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
@@ -93,6 +120,7 @@ function mapResolveError(detail: string): string {
 
 export function CreateCardPage() {
   const auth = useAuthStatus()
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialFilmId = searchParams.get('filmId')
@@ -116,6 +144,24 @@ export function CreateCardPage() {
   const [shareFollowersLoading, setShareFollowersLoading] = useState(false)
   const [shareSelected, setShareSelected] = useState<Set<string>>(() => new Set())
   const fromCardBootstrapSeq = useRef(0)
+
+  const tagStatsQuery = useQuery({
+    queryKey: myMovieCardTagStatsQueryKey(),
+    queryFn: async () => {
+      const res = await getMyMovieCardTagStats()
+      writeCachedMyMovieCardTagStats(res)
+      return res
+    },
+    enabled: auth.kind === 'ready',
+    staleTime: 2 * 60_000,
+    gcTime: 60 * 60_000,
+    placeholderData: () => readCachedMyMovieCardTagStats() ?? undefined,
+  })
+
+  const myTagStats: MyMovieCardTagStatItem[] = useMemo(
+    () => tagStatsQuery.data?.items ?? [],
+    [tagStatsQuery.data],
+  )
 
   const skipFilmIdBootstrap = useMemo(() => {
     const raw = fromCardQuery
@@ -233,6 +279,35 @@ export function CreateCardPage() {
     }
   }, [step, auth.kind])
 
+  const customTagsLower = useMemo(() => new Set(customTags.map((t) => t.toLowerCase())), [customTags])
+
+  const popularTagSuggestions = useMemo(() => {
+    const out: MyMovieCardTagStatItem[] = []
+    for (const row of myTagStats) {
+      if (customTagsLower.has(row.tag.toLowerCase())) continue
+      out.push(row)
+      if (out.length >= 14) break
+    }
+    return out
+  }, [myTagStats, customTagsLower])
+
+  const inputPrefixSuggestions = useMemo(() => {
+    const raw = tagInput.trim()
+    if (raw === '') return []
+    const p = raw.toLowerCase()
+    const out: MyMovieCardTagStatItem[] = []
+    for (const row of myTagStats) {
+      if (customTagsLower.has(row.tag.toLowerCase())) continue
+      if (!row.tag.toLowerCase().startsWith(p)) continue
+      out.push(row)
+      if (out.length >= 24) break
+    }
+    return out
+  }, [tagInput, myTagStats, customTagsLower])
+
+  const tagInputTooLong = tagInput.trim().length > MAX_CUSTOM_TAG_LEN
+  const canProceedFromTags = !tagInputTooLong
+
   function toggleShareRecipient(userId: string) {
     setShareSelected((prev) => {
       const next = new Set(prev)
@@ -300,11 +375,29 @@ export function CreateCardPage() {
     if (trimmed === '') {
       return
     }
+    if (trimmed.length > MAX_CUSTOM_TAG_LEN) {
+      setError(`Тег не длиннее ${MAX_CUSTOM_TAG_LEN} символов`)
+      return
+    }
     const lowered = trimmed.toLowerCase()
     if (customTags.some((tag) => tag.toLowerCase() === lowered)) {
       setTagInput('')
       return
     }
+    if (customTags.length >= 5) {
+      setError('Можно добавить не больше 5 тегов')
+      return
+    }
+    setCustomTags((prev) => [...prev, trimmed])
+    setTagInput('')
+    setError(null)
+  }
+
+  function addTagFromSuggestion(label: string) {
+    const trimmed = label.trim()
+    if (trimmed === '' || trimmed.length > MAX_CUSTOM_TAG_LEN) return
+    const lowered = trimmed.toLowerCase()
+    if (customTags.some((tag) => tag.toLowerCase() === lowered)) return
     if (customTags.length >= 5) {
       setError('Можно добавить не больше 5 тегов')
       return
@@ -374,6 +467,11 @@ export function CreateCardPage() {
         mood_after: moodAfter,
         custom_tags: customTags,
       })
+      const bundleUid = readMyProfileBundleCache()?.profile.id
+      if (bundleUid != null && bundleUid !== '') {
+        void queryClient.invalidateQueries({ queryKey: userMovieCardTagStatsQueryKey(bundleUid) })
+      }
+      void queryClient.invalidateQueries({ queryKey: myMovieCardTagStatsQueryKey() })
       clearMyProfileBundleCache()
       safeHapticSuccess()
       if (shareSelected.size > 0) {
@@ -474,7 +572,11 @@ export function CreateCardPage() {
           <WizardStepPanel title="2. Подтверждение">
             {film != null ? (
               <div className="filmony-text-panel">
-                {remixFromCard ? (
+                {filmHasMyCard(film) ? (
+                  <p className="filmony-text-panel mb-3 text-sm text-(--tgui--text_color)">
+                    У вас уже есть карточка на этот тайтл в профиле.
+                  </p>
+                ) : remixFromCard ? (
                   <p className="filmony-text-panel mb-3 text-xs text-(--tgui--hint_color)">
                     Своя оценка и теги — отдельная карточка у вас в профиле.
                   </p>
@@ -490,32 +592,69 @@ export function CreateCardPage() {
                       {film.title}
                     </Title>
                     <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
+                    <FilmGenreChips genres={film.genres ?? []} size="md" maxVisible={6} className="mt-2" />
                   </div>
                 </div>
                 <div className="mt-5 flex flex-col gap-2">
-                  <Button stretched onClick={() => setStep(3)}>
-                    Оценить просмотр
-                  </Button>
-                  <Button
-                    mode="gray"
-                    stretched
-                    disabled={watchlistBusy}
-                    onClick={() => void handleAddToWatchlist()}
-                  >
-                    {watchlistBusy ? 'Добавляем…' : 'К просмотру'}
-                  </Button>
-                  <Button
-                    mode="gray"
-                    stretched
-                    onClick={() => {
-                      setFilm(null)
-                      setRemixFromCard(false)
-                      setError(null)
-                      setStep(1)
-                    }}
-                  >
-                    Другая ссылка
-                  </Button>
+                  {filmHasMyCard(film) ? (
+                    <>
+                      <Button
+                        stretched
+                        onClick={() => {
+                          void navigate(`/cards/${Number(film.my_card_id)}`)
+                        }}
+                      >
+                        Открыть карточку
+                      </Button>
+                      <Button
+                        mode="gray"
+                        stretched
+                        onClick={() => {
+                          void navigate(`/cards/${Number(film.my_card_id)}/edit`)
+                        }}
+                      >
+                        Редактировать
+                      </Button>
+                      <Button
+                        mode="gray"
+                        stretched
+                        onClick={() => {
+                          setFilm(null)
+                          setRemixFromCard(false)
+                          setError(null)
+                          setStep(1)
+                        }}
+                      >
+                        Ввести другую ссылку
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button stretched onClick={() => setStep(3)}>
+                        Оценить просмотр
+                      </Button>
+                      <Button
+                        mode="gray"
+                        stretched
+                        disabled={watchlistBusy}
+                        onClick={() => void handleAddToWatchlist()}
+                      >
+                        {watchlistBusy ? 'Добавляем…' : 'К просмотру'}
+                      </Button>
+                      <Button
+                        mode="gray"
+                        stretched
+                        onClick={() => {
+                          setFilm(null)
+                          setRemixFromCard(false)
+                          setError(null)
+                          setStep(1)
+                        }}
+                      >
+                        Другая ссылка
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
@@ -576,18 +715,72 @@ export function CreateCardPage() {
         {fromCardPrefillDone && step === 4 ? (
           <WizardStepPanel title="4. Ваши теги (до 5)">
             <div className="filmony-text-panel">
+              {popularTagSuggestions.length > 0 ? (
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-(--tgui--hint_color)">Частые теги</p>
+                  <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                    {popularTagSuggestions.map((row) => (
+                      <button
+                        key={row.tag}
+                        type="button"
+                        onClick={() => addTagFromSuggestion(row.tag)}
+                        className="shrink-0 rounded-full border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-1.5 text-xs text-(--tgui--text_color) active:opacity-90"
+                      >
+                        {row.tag}
+                        <span className="ml-1 tabular-nums text-(--tgui--hint_color)">{row.use_count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                 <input
                   type="text"
                   placeholder="Добавить тег"
                   value={tagInput}
-                  onChange={(e) => setTagInput(e.currentTarget.value)}
+                  maxLength={MAX_CUSTOM_TAG_LEN + 8}
+                  onChange={(e) => {
+                    setTagInput(e.currentTarget.value)
+                    setError(null)
+                  }}
                   className={`min-w-0 flex-1 ${WIZARD_TEXT_FIELD_CLASS}`}
                 />
-                <Button mode="gray" className="shrink-0 sm:self-stretch" onClick={addTag}>
+                <Button
+                  mode="gray"
+                  className="shrink-0 sm:self-stretch"
+                  disabled={tagInputTooLong}
+                  onClick={addTag}
+                >
                   Добавить
                 </Button>
               </div>
+              {tagInputTooLong ? (
+                <p className="mt-1.5 text-xs text-(--tgui--destructive_text_color)">
+                  Не больше {MAX_CUSTOM_TAG_LEN} символов в одном теге ({tagInput.trim().length}/{MAX_CUSTOM_TAG_LEN})
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-(--tgui--hint_color)">До {MAX_CUSTOM_TAG_LEN} символов в теге.</p>
+              )}
+              {inputPrefixSuggestions.length > 0 ? (
+                <div
+                  className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) py-1"
+                  role="listbox"
+                  aria-label="Подходящие теги"
+                >
+                  {inputPrefixSuggestions.map((row) => (
+                    <button
+                      key={row.tag}
+                      type="button"
+                      role="option"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-(--tgui--text_color) hover:bg-(--tgui--secondary_bg_color)"
+                      onClick={() => addTagFromSuggestion(row.tag)}
+                    >
+                      <span className="min-w-0 truncate">{row.tag}</span>
+                      <span className="shrink-0 tabular-nums text-xs text-(--tgui--hint_color)">{row.use_count}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {customTags.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {customTags.map((tag) => (
@@ -606,7 +799,7 @@ export function CreateCardPage() {
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Добавьте пару слов о впечатлении.</p>
               )}
               <div className="mt-5">
-                <Button stretched onClick={() => setStep(5)}>
+                <Button stretched disabled={!canProceedFromTags} onClick={() => setStep(5)}>
                   Далее
                 </Button>
               </div>

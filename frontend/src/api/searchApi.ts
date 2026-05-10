@@ -7,6 +7,7 @@ export type SearchFilmItem = {
   title: string
   year: number | null
   poster_url: string | null
+  my_card_id?: number | null
 }
 
 export type SearchUserItem = {

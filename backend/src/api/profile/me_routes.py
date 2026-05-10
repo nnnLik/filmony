@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.profile.schemas import (
     MovieCardsExportCsvResponse,
+    MyMovieCardTagStatItem,
+    MyMovieCardTagStatsResponse,
     MyProfileResponse,
     ProfileUpdateRequest,
     WatchlistFilmAddRequest,
@@ -20,6 +22,7 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from services.profile.export_my_movie_cards_csv_telegram import ExportMyMovieCardsCsvTelegramService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
+from services.profile.list_my_movie_card_tag_stats import ListMyMovieCardTagStatsService
 from services.profile.update_my_profile import UpdateMyProfileService
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 from services.watchlist.add_user_watchlist_film import AddUserWatchlistFilmService
@@ -27,6 +30,22 @@ from services.watchlist.get_my_watchlist_film_presence import GetMyWatchlistFilm
 from services.watchlist.remove_user_watchlist_film import RemoveUserWatchlistFilmService
 
 router = APIRouter(prefix='/me', tags=['profile'])
+
+
+@router.get(
+    '/movie-card-tags',
+    response_model=MyMovieCardTagStatsResponse,
+    summary='Теги с карточек текущего пользователя (частота) для автодополнения',
+)
+async def get_my_movie_card_tags(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(default=400, ge=1, le=500),
+) -> MyMovieCardTagStatsResponse:
+    rows = await ListMyMovieCardTagStatsService(db).execute(user.id, limit=limit)
+    return MyMovieCardTagStatsResponse(
+        items=[MyMovieCardTagStatItem(tag=r.tag, use_count=r.use_count) for r in rows]
+    )
 
 
 @router.get(

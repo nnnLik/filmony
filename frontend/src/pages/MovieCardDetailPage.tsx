@@ -1,7 +1,7 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { CopyPlus, Link2, Share2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
@@ -17,10 +17,18 @@ import type {
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
+import {
+  COMMENT_BODY_MAX_LEN,
+  insertSnippetAtCaret,
+  reactionTokenFromId,
+} from '../lib/commentReactionTokens'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import { recordRecentCardView } from '../lib/recentCardViews'
+import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
+import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
+import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
@@ -127,8 +135,11 @@ function followingRowInitials(row: FollowingRatingRow): string {
   })
 }
 
+type MovieCardLocationState = { cardEntry?: string } | null | undefined
+
 export function MovieCardDetailPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const removeMovieCardRequest = useRemoveMovieCard()
   const { cardId } = useParams<{ cardId?: string }>()
   const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
@@ -148,6 +159,7 @@ export function MovieCardDetailPage() {
   const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null)
   const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
   const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const commentTextAreaRef = useRef<HTMLTextAreaElement>(null)
 
   const parsedCardId = useMemo(() => {
     if (cardId == null) return null
@@ -169,8 +181,30 @@ export function MovieCardDetailPage() {
     () => (card != null ? buildMiniAppCardDeepLink(card.id) : null),
     [card],
   )
-  const charsLeft = 100 - commentText.length
+  const charsLeft = COMMENT_BODY_MAX_LEN - commentText.length
   const invalidCardId = parsedCardId == null
+
+  const insertReactionIntoComment = useCallback(
+    (reactionTypeId: number) => {
+      const token = reactionTokenFromId(reactionTypeId)
+      const el = commentTextAreaRef.current
+      const inserted = insertSnippetAtCaret(
+        commentText,
+        el?.selectionStart ?? null,
+        el?.selectionEnd ?? null,
+        token,
+        COMMENT_BODY_MAX_LEN,
+      )
+      if (inserted == null) return
+      setCommentText(inserted.nextValue)
+      const caret = inserted.caret
+      queueMicrotask(() => {
+        el?.focus()
+        el?.setSelectionRange(caret, caret)
+      })
+    },
+    [commentText],
+  )
 
   useEffect(() => {
     if (viewerId != null) return
@@ -392,6 +426,11 @@ export function MovieCardDetailPage() {
           <button
             type="button"
             onClick={() => {
+              const st = location.state as MovieCardLocationState
+              if (st?.cardEntry === 'telegram_start_param') {
+                void navigate('/')
+                return
+              }
               void navigate(-1)
             }}
             className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color)"
@@ -482,6 +521,7 @@ export function MovieCardDetailPage() {
                       {card.film_title}
                     </Title>
                     <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                    <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     {cardDeepLinkUrl != null ? (
@@ -655,15 +695,25 @@ export function MovieCardDetailPage() {
               ) : null}
 
               <div className="mt-3">
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.currentTarget.value)}
-                  rows={4}
-                  maxLength={100}
-                  placeholder="Напишите комментарий..."
-                  className="w-full resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-sm outline-none"
-                />
-                <div className="mt-1 flex items-center justify-between">
+                <div className="flex gap-2">
+                  <textarea
+                    ref={commentTextAreaRef}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.currentTarget.value)}
+                    rows={4}
+                    maxLength={COMMENT_BODY_MAX_LEN}
+                    placeholder="Напишите комментарий..."
+                    className="min-h-24 min-w-0 flex-1 resize-y rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 text-sm outline-none"
+                  />
+                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                    <CommentReactionTokenPicker
+                      onPickReactionTypeId={insertReactionIntoComment}
+                      disabled={submitBusy}
+                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
+                    />
+                  </div>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-2">
                   <span className={`text-xs ${charsLeft < 20 ? 'text-(--tgui--destructive_text_color)' : 'text-(--tgui--hint_color)'}`}>
                     Осталось: {charsLeft}
                   </span>
@@ -746,7 +796,9 @@ export function MovieCardDetailPage() {
                               </button>
                             ) : null}
 
-                            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{comment.text}</p>
+                            <p className="mt-1 text-sm leading-relaxed">
+                              <CommentBodyWithReactionTokens text={comment.text} className="whitespace-pre-wrap" />
+                            </p>
                             <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
                               <ReactionStrip
                                 compact

@@ -7,6 +7,7 @@ import { ApiError, formatApiDetail } from '../api/client'
 import { deleteMyWatchlistFilm, getMyWatchlistFilmPresence, postMyWatchlistFilm } from '../api/profileApi'
 import type { Film } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
@@ -84,6 +85,8 @@ export function FilmDetailPage() {
       alive = false
     }
   }, [auth.kind, filmId])
+
+  const hasMyRatedCard = film != null && film.my_card_id != null && film.my_card_id > 0
 
   const onAddToWatchlist = useCallback(async () => {
     if (filmId < 1 || film == null) return
@@ -195,37 +198,59 @@ export function FilmDetailPage() {
                     {film.title}
                   </Title>
                   <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
-                  {film.genres.length > 0 ? (
-                    <p className="mt-2 text-xs text-(--tgui--hint_color)">{film.genres.join(' · ')}</p>
-                  ) : null}
+                  <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
                 </div>
               </div>
 
               {auth.kind === 'ready' ? (
                 <div className="mt-6 flex flex-col gap-2">
-                  <Link to={`/cards/new?filmId=${encodeURIComponent(String(film.id))}`} className="no-underline">
-                    <Button stretched>Оценить просмотр</Button>
-                  </Link>
-                  {inWatchlist === false ? (
-                    <Button
-                      mode="gray"
-                      stretched
-                      disabled={addWatchlistBusy}
-                      onClick={() => void onAddToWatchlist()}
-                    >
-                      {addWatchlistBusy ? 'Добавляем…' : 'К просмотру'}
-                    </Button>
-                  ) : null}
-                  {inWatchlist === true ? (
-                    <Button
-                      mode="gray"
-                      stretched
-                      disabled={removeBusy}
-                      onClick={() => void onRemoveFromWatchlist()}
-                    >
-                      {removeBusy ? 'Убираем…' : 'Убрать из списка «к просмотру»'}
-                    </Button>
-                  ) : null}
+                  {hasMyRatedCard ? (
+                    <>
+                      <p className="text-sm text-(--tgui--hint_color)">
+                        Этот тайтл уже в ваших оценённых карточках.
+                      </p>
+                      <Link
+                        to={`/cards/${encodeURIComponent(String(film.my_card_id))}`}
+                        className="no-underline"
+                      >
+                        <Button stretched>Открыть мою карточку</Button>
+                      </Link>
+                      <Link
+                        to={`/cards/${encodeURIComponent(String(film.my_card_id))}/edit`}
+                        className="no-underline"
+                      >
+                        <Button mode="gray" stretched>
+                          Редактировать оценку
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to={`/cards/new?filmId=${encodeURIComponent(String(film.id))}`} className="no-underline">
+                        <Button stretched>Оценить просмотр</Button>
+                      </Link>
+                      {inWatchlist === false ? (
+                        <Button
+                          mode="gray"
+                          stretched
+                          disabled={addWatchlistBusy}
+                          onClick={() => void onAddToWatchlist()}
+                        >
+                          {addWatchlistBusy ? 'Добавляем…' : 'К просмотру'}
+                        </Button>
+                      ) : null}
+                      {inWatchlist === true ? (
+                        <Button
+                          mode="gray"
+                          stretched
+                          disabled={removeBusy}
+                          onClick={() => void onRemoveFromWatchlist()}
+                        >
+                          {removeBusy ? 'Убираем…' : 'Убрать из списка «к просмотру»'}
+                        </Button>
+                      ) : null}
+                    </>
+                  )}
                   {watchlistActionErr != null ? (
                     <p className="text-sm text-(--tgui--destructive_text_color)">{watchlistActionErr}</p>
                   ) : null}

@@ -19,9 +19,8 @@ export default defineConfig([
     ],
     languageOptions: {
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ['*.js'],
-        },
+        // Явный project: иначе в IDE типы из `src` иногда помечаются как `error` (no-unsafe-*).
+        project: ['./tsconfig.app.json'],
         tsconfigRootDir: rootDir,
       },
       globals: globals.browser,

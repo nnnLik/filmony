@@ -15,8 +15,8 @@ export type RecentCardsStripProps = {
 export function RecentCardsStrip({ items }: RecentCardsStripProps) {
   if (items.length === 0) return null
   return (
-    <section className="border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_55%,transparent)] px-4 py-2.5">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">Недавно открывали</p>
+    <section className="border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_55%,transparent)] px-4 py-2">
+      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">Недавно открывали</p>
       <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((row) => (
           <Link

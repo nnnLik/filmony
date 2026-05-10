@@ -1,3 +1,12 @@
+export type MyMovieCardTagStatItem = {
+  tag: string
+  use_count: number
+}
+
+export type MyMovieCardTagStatsResponse = {
+  items: MyMovieCardTagStatItem[]
+}
+
 export type MyProfile = {
   id: string
   telegram_user_id: number
@@ -215,6 +224,8 @@ export type Film = {
   title: string
   year: number | null
   poster_url: string | null
+  /** Present when the API knows the viewer already has a card for this film. */
+  my_card_id?: number | null
 }
 
 export type RatingDistributionItem = {

@@ -12,6 +12,10 @@ class SearchFilmItemResponse(BaseModel):
     title: str
     year: int | None
     poster_url: str | None
+    my_card_id: int | None = Field(
+        default=None,
+        description='Id карточки текущего пользователя, если тайтл уже оценён',
+    )
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -36,7 +36,10 @@ export function TelegramMiniAppStartParamRedirect() {
     }
     ran.current = true
     sessionStorage.setItem(key, '1')
-    void navigate(`/cards/${cardId}`, { replace: true })
+    void navigate(`/cards/${cardId}`, {
+      replace: true,
+      state: { cardEntry: 'telegram_start_param' as const },
+    })
   }, [navigate])
 
   return null

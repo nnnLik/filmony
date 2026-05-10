@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.profile.schemas import (
     MovieCardPageResponse,
+    MyMovieCardTagStatItem,
+    MyMovieCardTagStatsResponse,
     PublicProfileResponse,
     SubscriptionListResponse,
     UserMovieCardStatsResponse,
@@ -22,10 +24,12 @@ from api.profile.schemas import (
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
+from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_movie_card_stats import GetUserMovieCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
+from services.profile.list_my_movie_card_tag_stats import ListMyMovieCardTagStatsService
 from services.profile.list_user_movie_cards import ListUserMovieCardsService
 from services.subscriptions.create_user_subscription import (
     CreateUserSubscriptionService,
@@ -52,6 +56,28 @@ from services.subscriptions.list_user_subscriptions import (
 from services.watchlist.list_user_watchlist_films import ListUserWatchlistFilmsService
 
 router = APIRouter(prefix='/users', tags=['users'])
+
+ProfileCardsSort = Literal['recent', 'rating_desc', 'rating_asc']
+
+
+def _normalize_filter_tags(raw: list[str] | None) -> list[str]:
+    if not raw:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        s = item.strip()
+        if s == '' or len(s) > 80:
+            continue
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+        if len(out) >= 8:
+            break
+    return out
+
 
 _PRIVACY_DOC = (
     'Публичный профиль доступен любому пользователю с валидной сессией. '
@@ -89,6 +115,27 @@ async def get_user_by_id(
 
 
 @router.get(
+    '/{user_id}/movie-card-tags',
+    response_model=MyMovieCardTagStatsResponse,
+    summary='Кастомные теги с карточек пользователя (частота) — для фильтра в профиле',
+)
+async def list_user_movie_card_tags(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(default=200, ge=1, le=500),
+) -> MyMovieCardTagStatsResponse:
+    exists = await GetPublicUserByIdService(db).execute(user_id)
+    if exists is None:
+        raise _not_found()
+    cap = min(limit, 500)
+    rows = await ListMyMovieCardTagStatsService(db).execute(user_id, limit=cap)
+    return MyMovieCardTagStatsResponse(
+        items=[MyMovieCardTagStatItem(tag=r.tag, use_count=r.use_count) for r in rows]
+    )
+
+
+@router.get(
     '/{user_id}/cards',
     response_model=MovieCardPageResponse,
     summary='Карточки фильмов пользователя (пагинация)',
@@ -100,19 +147,49 @@ async def list_user_cards(
     cursor: str | None = None,
     limit: int = Query(default=20, ge=1),
     favorites_only: bool = Query(
-        default=False, description='Только избранные карточки (порядок по времени отметки)'
+        default=False,
+        description='Только избранные: при sort=recent — по времени отметки; при rating_* — по оценке',
     ),
+    sort: ProfileCardsSort = Query(
+        default='recent',
+        description='recent — новые первыми; rating_desc — выше оценка; rating_asc — ниже оценка',
+    ),
+    tag: list[str] | None = Query(
+        default=None,
+        description='Кастомный тег карточки; повтор параметра — пересечение (AND)',
+    ),
+    year_min: int | None = Query(default=None, ge=1874, le=2100),
+    year_max: int | None = Query(default=None, ge=1874, le=2100),
+    company: CardCompany | None = Query(default=None, description='С кем смотрел'),
+    mood_before: CardMoodBefore | None = Query(default=None, description='Настроение до'),
+    mood_after: CardMoodAfter | None = Query(default=None, description='Итог просмотра'),
 ) -> MovieCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
+    if year_min is not None and year_max is not None and year_min > year_max:
+        raise HTTPException(status_code=422, detail='year_min must be <= year_max')
     cap = min(limit, 50)
-    page = await ListUserMovieCardsService(db).execute(
-        user_id,
-        cursor,
-        cap,
-        favorites_only=favorites_only,
-    )
+    tags_norm = _normalize_filter_tags(tag)
+    company_val = company.value if company is not None else None
+    mood_before_val = mood_before.value if mood_before is not None else None
+    mood_after_val = mood_after.value if mood_after is not None else None
+    try:
+        page = await ListUserMovieCardsService(db).execute(
+            user_id,
+            cursor,
+            cap,
+            favorites_only=favorites_only,
+            sort=sort,
+            tags_all=tags_norm,
+            year_min=year_min,
+            year_max=year_max,
+            company=company_val,
+            mood_before=mood_before_val,
+            mood_after=mood_after_val,
+        )
+    except ListUserMovieCardsService.InvalidCursor:
+        raise HTTPException(status_code=422, detail='invalid cursor') from None
     return build_movie_card_page_response(page)
 
 

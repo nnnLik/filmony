@@ -215,8 +215,14 @@ async def list_movie_card_feed(
         default='default',
         description='Смешанная лента, только подписки (и свои карточки), или только подписчики (и свои)',
     ),
+    hide_own: bool = Query(
+        default=False,
+        description='Исключить свои карточки из персональных потоков (поток own обнуляется)',
+    ),
 ) -> MovieCardFeedPageResponse:
-    page = await ListMovieCardFeedService(db).execute(viewer.id, cursor, limit, feed_mode=mode)
+    page = await ListMovieCardFeedService(db).execute(
+        viewer.id, cursor, limit, feed_mode=mode, hide_own_cards=hide_own
+    )
     return MovieCardFeedPageResponse(
         items=[
             MovieCardFeedItemResponse(

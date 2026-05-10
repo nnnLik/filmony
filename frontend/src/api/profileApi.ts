@@ -1,6 +1,10 @@
 import { ApiError, apiFetch, apiJson } from './client'
 import type {
+  CardCompany,
+  CardMoodAfter,
+  CardMoodBefore,
   MovieCardPage,
+  MyMovieCardTagStatsResponse,
   MyProfile,
   PublicProfile,
   SubscriptionListResponse,
@@ -10,6 +14,22 @@ import type {
   WatchlistFilmPage,
   WatchlistMembership,
 } from './profileTypes'
+
+export type ProfileCardsSort = 'recent' | 'rating_desc' | 'rating_asc'
+
+export type GetUserCardsParams = {
+  cursor?: string | null
+  limit?: number
+  favoritesOnly?: boolean
+  sort?: ProfileCardsSort
+  /** Повторяется как `tag=` — пересечение на бэкенде */
+  tags?: string[]
+  yearMin?: number | null
+  yearMax?: number | null
+  company?: CardCompany | null
+  moodBefore?: CardMoodBefore | null
+  moodAfter?: CardMoodAfter | null
+}
 
 async function readActionErrorDetail(res: Response): Promise<unknown> {
   const ct = res.headers.get('content-type') ?? ''
@@ -34,6 +54,10 @@ export async function getMyProfile(): Promise<MyProfile> {
   return apiJson<MyProfile>('/api/me/profile')
 }
 
+export async function getMyMovieCardTagStats(): Promise<MyMovieCardTagStatsResponse> {
+  return apiJson<MyMovieCardTagStatsResponse>('/api/me/movie-card-tags')
+}
+
 export async function patchMyProfile(body: {
   display_name?: string | null
   bio?: string | null
@@ -49,10 +73,7 @@ export async function getPublicProfileById(userId: string): Promise<PublicProfil
   return apiJson<PublicProfile>(`/api/users/${encodeURIComponent(userId)}`)
 }
 
-export async function getUserCards(
-  userId: string,
-  params: { cursor?: string | null; limit?: number; favoritesOnly?: boolean },
-): Promise<MovieCardPage> {
+export async function getUserCards(userId: string, params: GetUserCardsParams): Promise<MovieCardPage> {
   const q = new URLSearchParams()
   if (params.cursor) {
     q.set('cursor', params.cursor)
@@ -63,8 +84,37 @@ export async function getUserCards(
   if (params.favoritesOnly === true) {
     q.set('favorites_only', 'true')
   }
+  const sort = params.sort ?? 'recent'
+  q.set('sort', sort)
+  for (const t of params.tags ?? []) {
+    const s = t.trim()
+    if (s !== '') {
+      q.append('tag', s)
+    }
+  }
+  if (params.yearMin != null) {
+    q.set('year_min', String(params.yearMin))
+  }
+  if (params.yearMax != null) {
+    q.set('year_max', String(params.yearMax))
+  }
+  if (params.company != null) {
+    q.set('company', params.company)
+  }
+  if (params.moodBefore != null) {
+    q.set('mood_before', params.moodBefore)
+  }
+  if (params.moodAfter != null) {
+    q.set('mood_after', params.moodAfter)
+  }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)
+}
+
+export async function getUserMovieCardTags(userId: string): Promise<MyMovieCardTagStatsResponse> {
+  return apiJson<MyMovieCardTagStatsResponse>(
+    `/api/users/${encodeURIComponent(userId)}/movie-card-tags`,
+  )
 }
 
 export async function getUserWatchlist(

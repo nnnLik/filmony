@@ -27,6 +27,7 @@ async def _seed_movie_card(
     year: int | None,
     rating: float,
     company: str,
+    mood_before: str = 'relax',
     mood_after: str,
     tags: list[str],
 ) -> int:
@@ -46,7 +47,7 @@ async def _seed_movie_card(
             film_id=film.id,
             rating=rating,
             company=company,
-            mood_before='relax',
+            mood_before=mood_before,
             mood_after=mood_after,
         )
         session.add(card)
@@ -478,3 +479,200 @@ async def test_favorites_count_and_favorites_only_list(async_client: AsyncClient
     fav_ids = {it['id']: it['is_favorite'] for it in all_cards.json()['items']}
     assert fav_ids[card_early] is True
     assert fav_ids[card_late] is True
+
+
+@pytest.mark.asyncio
+async def test_my_movie_card_tags_stats(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5199)
+    uid = UUID(str(me['id']))
+
+    await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5199001,
+        title='A',
+        year=2020,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=['alpha', 'beta'],
+    )
+    await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5199002,
+        title='B',
+        year=2021,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=['alpha', 'gamma'],
+    )
+    await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5199003,
+        title='C',
+        year=2022,
+        rating=6.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=['alpha'],
+    )
+
+    r = await async_client.get('/api/me/movie-card-tags')
+    assert r.status_code == 200
+    items = r.json()['items']
+    assert [x['tag'] for x in items] == ['alpha', 'beta', 'gamma']
+    assert next(x for x in items if x['tag'] == 'alpha')['use_count'] == 3
+    assert next(x for x in items if x['tag'] == 'beta')['use_count'] == 1
+
+
+@pytest.mark.asyncio
+async def test_list_user_movie_card_tags_public(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=5201)
+    target = await _login(async_client, telegram_user_id=5202)
+    uid = UUID(str(target['id']))
+
+    await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5202001,
+        title='T1',
+        year=2020,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=['zeta', 'omega'],
+    )
+
+    r = await async_client.get(f'/api/users/{uid}/movie-card-tags')
+    assert r.status_code == 200
+    items = r.json()['items']
+    assert {x['tag'] for x in items} == {'zeta', 'omega'}
+
+
+@pytest.mark.asyncio
+async def test_list_user_movie_card_tags_unknown_user(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=5203)
+    r = await async_client.get(f'/api/users/{uuid4()}/movie-card-tags')
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_sort_and_filters(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=5204)
+    target = await _login(async_client, telegram_user_id=5205)
+    uid = UUID(str(target['id']))
+
+    c_high = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5205001,
+        title='High',
+        year=2024,
+        rating=9.0,
+        company='friends',
+        mood_before='laugh',
+        mood_after='laughed',
+        tags=['shared', 'cinema'],
+    )
+    c_mid = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5205002,
+        title='Mid',
+        year=2023,
+        rating=5.0,
+        company='alone',
+        mood_before='relax',
+        mood_after='enjoyed',
+        tags=['shared'],
+    )
+    _c_low = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5205003,
+        title='Low',
+        year=1999,
+        rating=2.0,
+        company='partner',
+        mood_before='thrill',
+        mood_after='tense',
+        tags=['other'],
+    )
+
+    r_desc = await async_client.get(
+        f'/api/users/{uid}/cards', params={'sort': 'rating_desc', 'limit': 10}
+    )
+    assert r_desc.status_code == 200
+    ids_desc = [x['id'] for x in r_desc.json()['items']]
+    assert ids_desc[0] == c_high
+    assert c_mid in ids_desc
+
+    r_tag = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params=[('tag', 'shared'), ('tag', 'cinema')],
+    )
+    assert r_tag.status_code == 200
+    assert [x['id'] for x in r_tag.json()['items']] == [c_high]
+
+    r_year = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params={'year_min': 2020, 'year_max': 2024, 'sort': 'rating_asc'},
+    )
+    assert r_year.status_code == 200
+    titles = [x['film_title'] for x in r_year.json()['items']]
+    assert 'Mid' in titles
+    assert 'High' in titles
+    assert 'Low' not in titles
+
+    r_mood = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params={'mood_before': 'laugh', 'mood_after': 'laughed'},
+    )
+    assert r_mood.status_code == 200
+    assert [x['id'] for x in r_mood.json()['items']] == [c_high]
+
+    r_co = await async_client.get(f'/api/users/{uid}/cards', params={'company': 'alone'})
+    assert r_co.status_code == 200
+    assert {x['id'] for x in r_co.json()['items']} == {c_mid}
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_invalid_year_range(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5206)
+    r = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'year_min': 2020, 'year_max': 2010},
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_rating_pagination_cursor(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=5207)
+    target = await _login(async_client, telegram_user_id=5208)
+    uid = UUID(str(target['id']))
+
+    for i, rating in enumerate([10.0, 9.0, 8.0, 7.0]):
+        await _seed_movie_card(
+            user_id=uid,
+            kinopoisk_id=5208000 + i,
+            title=f'R{i}',
+            year=2020,
+            rating=rating,
+            company='alone',
+            mood_after='enjoyed',
+            tags=[],
+        )
+
+    first = await async_client.get(
+        f'/api/users/{uid}/cards', params={'sort': 'rating_desc', 'limit': 2}
+    )
+    assert first.status_code == 200
+    body1 = first.json()
+    assert len(body1['items']) == 2
+    assert body1['next_cursor'] is not None
+
+    second = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params={'sort': 'rating_desc', 'limit': 2, 'cursor': body1['next_cursor']},
+    )
+    assert second.status_code == 200
+    ids_page1 = {x['id'] for x in body1['items']}
+    ids_page2 = {x['id'] for x in second.json()['items']}
+    assert ids_page1.isdisjoint(ids_page2)
