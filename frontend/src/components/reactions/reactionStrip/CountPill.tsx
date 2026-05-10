@@ -7,6 +7,12 @@ import type { ReactionActor } from '../../../api/profileTypes'
 import { displayActorName } from './displayActorName'
 import { ReactionThumb } from './ReactionThumb'
 
+/** TGUI variables are on `AppRoot` inside `#root`; portaling to `document.body` leaves them unset → transparent tooltip. */
+function reactionActorsTooltipContainer(): HTMLElement {
+  const insideThemedTree = document.getElementById('root')?.firstElementChild
+  return insideThemedTree instanceof HTMLElement ? insideThemedTree : document.body
+}
+
 export type CountPillProps = {
   disabled: boolean
   mine: boolean
@@ -50,6 +56,9 @@ export function CountPill({
       top: r.top - 6,
       transform: 'translate(-50%, -100%)',
       zIndex: 12_000,
+      // Непрозрачный слой: переменные темы + запас на случай сбоя наследования
+      backgroundColor: 'var(--tgui--secondary_bg_color, #232323)',
+      color: 'var(--tgui--text_color, #eaeaea)',
     })
   }, [])
 
@@ -95,7 +104,7 @@ export function CountPill({
       <div
         role="tooltip"
         style={tipStyle}
-        className="pointer-events-auto min-w-[168px] max-w-[240px] rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.28)]"
+        className="pointer-events-auto min-w-[168px] max-w-[240px] rounded-2xl border border-(--tgui--divider_color) p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
         onMouseEnter={cancelScheduledClose}
         onMouseLeave={scheduleClose}
         onMouseDown={(e) => e.stopPropagation()}
@@ -140,7 +149,7 @@ export function CountPill({
           </p>
         ) : null}
       </div>,
-      document.body,
+      reactionActorsTooltipContainer(),
     )
 
   return (
