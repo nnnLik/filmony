@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_tag import MovieCardTag
+from models.user import User
+from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
@@ -17,6 +19,7 @@ from services.reactions.types import ReactionTargetSummary
 class MovieCardDetails:
     id: int
     user_id: UUID
+    card_author: MovieCardCommentAuthor
     film_id: int
     film_kinopoisk_id: int
     film_genres: list[str]
@@ -43,14 +46,15 @@ class GetMovieCardDetailsService:
     async def execute(self, card_id: int, viewer_user_id: UUID) -> MovieCardDetails:
         row = (
             await self._session.execute(
-                select(MovieCard, Film)
+                select(MovieCard, Film, User)
                 .join(Film, Film.id == MovieCard.film_id)
+                .join(User, User.id == MovieCard.user_id)
                 .where(MovieCard.id == card_id)
             )
         ).one_or_none()
         if row is None:
             raise MovieCardNotFoundError()
-        card, film = row
+        card, film, author = row
 
         tags = (
             (
@@ -71,6 +75,15 @@ class GetMovieCardDetailsService:
         return MovieCardDetails(
             id=card.id,
             user_id=card.user_id,
+            card_author=MovieCardCommentAuthor(
+                id=author.id,
+                profile_slug=author.profile_slug,
+                username=author.username,
+                first_name=author.first_name,
+                last_name=author.last_name,
+                photo_url=author.photo_url,
+                display_name=author.display_name,
+            ),
             film_id=film.id,
             film_kinopoisk_id=film.kinopoisk_id,
             film_genres=list(film.genres or []),

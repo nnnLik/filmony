@@ -540,7 +540,24 @@ export function MovieCardDetailPage() {
                     <Title level="2" weight="2">
                       {card.film_title}
                     </Title>
-                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{card.film_year ?? 'Год неизвестен'}</p>
+                    <div className="mt-1 flex min-w-0 items-center gap-2">
+                      {card.card_author != null ? (
+                        <Link
+                          to={`/u/${encodeURIComponent(card.card_author.id)}`}
+                          className="shrink-0 no-underline"
+                          aria-label={displayNameFromProfile(card.card_author)}
+                        >
+                          <Avatar
+                            src={card.card_author.photo_url ?? undefined}
+                            acronym={profileInitials(card.card_author)}
+                            size={28}
+                          />
+                        </Link>
+                      ) : null}
+                      <p className="min-w-0 text-sm text-(--tgui--hint_color)">
+                        {card.film_year ?? 'Год неизвестен'}
+                      </p>
+                    </div>
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
                   </div>
                   <div className="flex shrink-0 items-center gap-1">

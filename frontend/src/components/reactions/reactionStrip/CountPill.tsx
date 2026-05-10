@@ -7,7 +7,6 @@ import type { ReactionActor } from '../../../api/profileTypes'
 import { displayActorName } from './displayActorName'
 import { ReactionThumb } from './ReactionThumb'
 
-/** TGUI variables are on `AppRoot` inside `#root`; portaling to `document.body` leaves them unset → transparent tooltip. */
 function reactionActorsTooltipContainer(): HTMLElement {
   const insideThemedTree = document.getElementById('root')?.firstElementChild
   return insideThemedTree instanceof HTMLElement ? insideThemedTree : document.body

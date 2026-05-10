@@ -229,6 +229,15 @@ async def list_movie_card_feed(
             MovieCardFeedItemResponse(
                 id=item.id,
                 user_id=item.user_id,
+                card_author=MovieCardCommentAuthorResponse(
+                    id=item.card_author.id,
+                    profile_slug=item.card_author.profile_slug,
+                    username=item.card_author.username,
+                    first_name=item.card_author.first_name,
+                    last_name=item.card_author.last_name,
+                    photo_url=item.card_author.photo_url,
+                    display_name=item.card_author.display_name,
+                ),
                 film_id=item.film_id,
                 film_kinopoisk_id=item.film_kinopoisk_id,
                 film_genres=item.film_genres,
@@ -243,15 +252,6 @@ async def list_movie_card_feed(
                 feed_source=item.feed_source,
                 reactions=reaction_target_summary_to_response(item.reactions),
                 comments_count=item.comments_count,
-                card_author=MovieCardCommentAuthorResponse(
-                    id=item.card_author.id,
-                    profile_slug=item.card_author.profile_slug,
-                    username=item.card_author.username,
-                    first_name=item.card_author.first_name,
-                    last_name=item.card_author.last_name,
-                    photo_url=item.card_author.photo_url,
-                    display_name=item.card_author.display_name,
-                ),
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
                 is_favorite=item.is_favorite,
             )
@@ -309,6 +309,15 @@ async def get_card(
     return CardDetailResponse(
         id=card.id,
         user_id=card.user_id,
+        card_author=MovieCardCommentAuthorResponse(
+            id=card.card_author.id,
+            profile_slug=card.card_author.profile_slug,
+            username=card.card_author.username,
+            first_name=card.card_author.first_name,
+            last_name=card.card_author.last_name,
+            photo_url=card.card_author.photo_url,
+            display_name=card.card_author.display_name,
+        ),
         film_id=card.film_id,
         film_kinopoisk_id=card.film_kinopoisk_id,
         film_genres=card.film_genres,

@@ -34,9 +34,20 @@ class CardResponse(BaseModel):
     is_favorite: bool = False
 
 
+class MovieCardCommentAuthorResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    photo_url: str | None
+    display_name: str | None
+
+
 class CardDetailResponse(BaseModel):
     id: int
     user_id: UUID
+    card_author: MovieCardCommentAuthorResponse
     film_id: int
     film_kinopoisk_id: int
     film_genres: list[str] = Field(default_factory=list)
@@ -61,16 +72,6 @@ class CardUpdateRequest(BaseModel):
     is_favorite: bool | None = None
 
     model_config = ConfigDict(extra='forbid')
-
-
-class MovieCardCommentAuthorResponse(BaseModel):
-    id: UUID
-    profile_slug: str
-    username: str | None
-    first_name: str | None
-    last_name: str | None
-    photo_url: str | None
-    display_name: str | None
 
 
 class MovieCardCommentResponse(BaseModel):
@@ -108,7 +109,6 @@ FeedCardSource = Literal['own', 'subscriptions', 'subscribers', 'personal_affini
 
 class MovieCardFeedItemResponse(CardDetailResponse):
     feed_source: FeedCardSource
-    card_author: MovieCardCommentAuthorResponse
     comments_count: int
     comments_preview: list[MovieCardCommentResponse] = Field(default_factory=list)
 

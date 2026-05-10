@@ -130,9 +130,21 @@ export type ReactionGroupedCatalog = {
   tabs: ReactionCatalogTab[]
 }
 
+export type MovieCardCommentAuthor = {
+  id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+}
+
 export type MovieCard = {
   id: number
   user_id?: string
+  /** Приходит в GET /api/cards/:id и в элементах ленты; может отсутствовать в укороченных ответах. */
+  card_author?: MovieCardCommentAuthor
   film_id: number
   film_kinopoisk_id: number
   film_genres: string[]
@@ -171,16 +183,6 @@ export type FeedMovieCard = MovieCard & {
 export type FeedMovieCardPage = {
   items: FeedMovieCard[]
   next_cursor: string | null
-}
-
-export type MovieCardCommentAuthor = {
-  id: string
-  profile_slug: string
-  username: string | null
-  first_name: string | null
-  last_name: string | null
-  photo_url: string | null
-  display_name: string | null
 }
 
 export type FollowingRatingEntry = {

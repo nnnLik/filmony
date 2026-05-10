@@ -281,6 +281,8 @@ async def test_get_card_success_surfaces_movie_and_author(async_client: AsyncCli
     assert body['is_favorite'] is False
     assert body['film_kinopoisk_id'] == film.kinopoisk_id
     assert body['film_title'] == 'Интерстеллар'
+    assert body['card_author']['id'] == data['id']
+    assert body['card_author']['profile_slug']
     assert 'reactions' in body
     assert body['reactions']['counts'] == []
     assert body['reactions']['my_reaction_type_ids'] == []
