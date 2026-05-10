@@ -1,97 +1,63 @@
 # Filmony
 
-Сервис для оценки фильмов с двойной системой оценок (шкала 1–10 и теги контекста) и рекомендациями на основе «двойников» по вкусу. Клиент — **Telegram Mini App**: пользователь открывает приложение внутри Telegram, бэкенд проверяет сессию и хранит данные в **PostgreSQL**.
+[![CI Backend](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml?query=branch%3Amaster)
+[![CI Frontend](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml?query=branch%3Amaster)
+[![Deploy](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml/badge.svg)](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white)
 
-Подробнее о продукте и дорожной карте см. [`.cursor/tech.md`](.cursor/tech.md) и [`.cursor/user-story.md`](.cursor/user-story.md) (если есть в репозитории). Структура репозитория и стиль кода: [`docs/engineering/project-structure-and-style.md`](docs/engineering/project-structure-and-style.md).
+**Telegram Mini App** для оценки фильмов: шкала 1–10, контекстные теги, рекомендации по «двойникам». Бэкенд — **FastAPI** + **PostgreSQL**; авторизация через Telegram.
 
-## Стек
+Детали стека, сценарии и правила разработки: [`.cursor/tech.md`](.cursor/tech.md), структура репозитория — [`docs/engineering/project-structure-and-style.md`](docs/engineering/project-structure-and-style.md).
+
+## Стек (кратко)
 
 | Слой | Технологии |
 |------|------------|
-| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4, [@telegram-apps/sdk](https://docs.telegram-mini-apps.com/) |
-| Backend | Python 3.12+, FastAPI, Uvicorn, SQLAlchemy 2 (async), Alembic, asyncpg |
-| Данные | PostgreSQL и Redis из **homelab-infra** (дев), см. `vars/.env.development` |
-| Сборка / зависимости бэкенда | [uv](https://docs.astral.sh/uv/) (`pyproject.toml`, `uv.lock`) |
-| Инфра | `docker-compose.yml` (RustFS, backend, Celery), **homelab-infra** для БД/Redis/Caddy |
+| Frontend | React 19, TypeScript, Vite, Tailwind 4, [@telegram-apps/sdk](https://docs.telegram-mini-apps.com/) |
+| Backend | FastAPI, SQLAlchemy 2 async, Alembic, asyncpg, [uv](https://docs.astral.sh/uv/) |
+| Данные | PostgreSQL, Redis (в деве — **homelab-infra**, см. `vars/.env.development`) |
+| Локальная инфра | `docker-compose.yml` (RustFS, backend, Celery) |
 
-## Структура репозитория
+## Структура
 
 ```
-├── backend/
-├── frontend/
-├── docs/
-├── vars/                  # .env.development, .env.example; прод — .env.production (локально)
-├── docker-compose.yml     # dev: rustfs, backend :8888, celery-worker; сети filmony-network + homelab-infra-network
-├── docker-compose.prod.yml
-└── Makefile
+backend/   frontend/   docs/   vars/
+docker-compose.yml   docker-compose.prod.yml   Makefile
 ```
 
-## Быстрый старт (Docker)
+## Локальная разработка (Docker)
 
-1. В **homelab-infra**: `make dev-up` (сеть **`homelab-infra-network`**). Caddy: **`filmony-api.localhost`** → API, **`filmony.localhost`** → статика из **`static/filmony/`** (собери `frontend` и скопируй `dist` туда при необходимости). Добавь оба хоста в **`/etc/hosts`** → `127.0.0.1`.
+1. Поднять **homelab-infra** (`make dev-up`), сеть **`homelab-infra-network`**. В **`/etc/hosts`**: `filmony-api.localhost`, `filmony.localhost` → `127.0.0.1`.
+2. Скопировать/настроить [`vars/.env.development`](vars/.env.development) (Postgres/Redis хосты homelab, `VITE_API_ORIGIN=http://filmony-api.localhost:5080`, `RUSTFS_INTERNAL_BASE_URL=http://rustfs:9000`).
+3. `make start` → API **http://127.0.0.1:8888**; через Caddy dev — **http://filmony-api.localhost:5080/** (порт **5080**, не 80). Postgres с хоста: **127.0.0.1:15432**.
+4. `make migrate`
+5. Фронт отдельно: `cd frontend && npm run dev` (Vite **5176**).
 
-2. В этом репозитории: [`vars/.env.development`](vars/.env.development) — Postgres на `homelab-postgres`, `homelab-redis` (БД и роли создаёшь сам в Postgres), `VITE_API_ORIGIN=http://filmony-api.localhost:5080`, `RUSTFS_INTERNAL_BASE_URL=http://rustfs:9000`.
+Стикеры в RustFS: `make sync-reactions-rustfs` / `make sync-reactions-rustfs WITH_DB=1` (для БД с хоста порт Postgres подменяется на **15432**, см. `Makefile`).
 
-3. Поднять приложение:
+## Продакшен
 
-   ```bash
-   make start
-   ```
-
-   API: **http://127.0.0.1:8888**. Через Caddy в dev шлюз слушает **только порт 5080** (`127.0.0.1:5080`), не 80 — открывай **http://filmony-api.localhost:5080/**. После смены **`caddy/dev/Caddyfile`** перезапусти Caddy в homelab-infra. Postgres с хоста: **127.0.0.1:15432**.
-
-4. Миграции: `make migrate`
-
-5. Фронт: в `frontend/` — `npm run dev` (Vite **5176**); `VITE_API_ORIGIN` берётся из `vars/.env.development`.
-
-6. Стикеры в RustFS:
-
-   ```bash
-   make sync-reactions-rustfs
-   make sync-reactions-rustfs WITH_DB=1
-   ```
-
-   Для `WITH_DB=1` с хоста `homelab-postgres:5432` в URL подменяется на `127.0.0.1:15432` (см. `COMPOSE_PG_PORT` в `Makefile`).
-
-## Продакшен (Compose + GHCR)
-
-Образ бэкенда собирается в **GitHub Actions** и пушится в **`ghcr.io/<org>/<repo>/backend:latest`**. На сервере **не нужен** каталог `backend/` для сборки: только файлы ниже в **`/opt/filmony/`** (или другом каталоге — поправь workflow).
-
-| Файл | Назначение |
-|------|------------|
-| [`compose.yml`](compose.yml) / [`docker-compose.prod.yml`](docker-compose.prod.yml) | `backend` + `celery-worker`, сеть **homelab-infra-network**; на сервере деплой идёт из **`compose.yml`** |
-| [`Makefile`](Makefile) | `make prod-up` (pull + up + миграции), `make prod-migrate` |
-| `vars/.env.production` | Секреты и URL; обязательно **`GITHUB_REPO`** = `org/repo` в **нижнем регистре** (как в GHCR) для подстановки в имя образа |
-
-Ручной прод на сервере (из каталога с `compose.yml`, обычно `/opt/filmony`):
+Образ backend: **GitHub Actions** → **`ghcr.io/<org>/<repo>/backend:latest`**. На сервере достаточно **`compose.yml`** + `vars/.env.production` (**`GITHUB_REPO`** = `org/repo` в нижнем регистре).
 
 ```bash
-export GITHUB_REPO=org/repo   # нижний регистр, как в GHCR
-make prod-up
+export GITHUB_REPO=org/repo
+make prod-up   # pull + up + alembic upgrade head
 ```
 
-Деплой из репозитория: **Actions → Deploy → Run workflow** (те же секреты `SERVER_*`; для фронта в CI: **`VITE_API_ORIGIN`**, **`VITE_TELEGRAM_BOT_USERNAME`**). После `docker compose up` workflow выполняет **`alembic upgrade head`** в контейнере **`backend`**. На сервере должен быть запущен **homelab-infra** (Caddy, Postgres, Redis). В **`vars/.env`** homelab задай **`FILMONY_WEB_HOST`** под HTTPS-статику Mini App (совпадает с origin в **`CORS_ALLOW_ORIGINS`**).
+Деплой из UI: **Actions → Deploy → Run workflow** (секреты `SERVER_*`, для сборки фронта в CI — `VITE_API_ORIGIN`, `VITE_TELEGRAM_BOT_USERNAME`). После деплоя создаётся **GitHub Release** с авто-тегом `deploy-<run>-<attempt>`. Нужны права workflow **Read and write** для `contents` (Settings → Actions → General).
 
 Чеклист: [`.cursor/features/production-readiness/feature.md`](.cursor/features/production-readiness/feature.md).
 
-## Makefile
+## Makefile (частое)
 
 | Цель | Назначение |
 |------|------------|
-| `make start` | build + up (dev compose) |
-| `make migrate` | Alembic upgrade head (dev) |
-| `make prod-up` | `compose.yml`: pull GHCR + up + **`alembic upgrade head`** |
-| `make prod-migrate` | только **`alembic upgrade head`** в контейнере `backend` |
-| `make backend-test` | pytest в контейнере `backend` |
-| `make sync-reactions-rustfs WITH_DB=1` | RustFS + БД; хост Postgres homelab — порт **15432** |
+| `make start` | dev: build + up |
+| `make migrate` / `make prod-migrate` | Alembic upgrade head |
+| `make prod-up` | prod: pull GHCR + up + миграции |
+| `make backend-test` | pytest в контейнере backend |
 
-## Telegram
-
-- **`/start` в чате** не бьёт в бэкенд без webhook/polling.
-- Строка в **`user`** — после **`POST /api/auth/telegram`** из Mini App.
-- Подробнее: [`docs/features/telegram-user-base.md`](docs/features/telegram-user-base.md).
-
-## Ссылки
-
-- [Telegram Mini Apps — валидация initData](https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app)
-- `.cursor/rules/`, `.cursor/tech.md`
