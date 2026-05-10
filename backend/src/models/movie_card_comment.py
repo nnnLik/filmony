@@ -25,7 +25,7 @@ class MovieCardComment(Base):
         nullable=True,
         index=True,
     )
-    text: Mapped[str] = mapped_column(String(100), nullable=False)
+    text: Mapped[str] = mapped_column(String(250), nullable=False)
 
     __table_args__ = (
         Index(

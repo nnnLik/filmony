@@ -78,3 +78,88 @@ body {
   margin: 0;
   background: radial-gradient(120% 80% at 50% -10%, #152a35 0%, transparent 55%), var(--filmony-ink, #06090d);
 }
+
+@keyframes filmony-detail-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes filmony-detail-poster-in {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes filmony-detail-rating-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 5px var(--filmony-rating-glow, transparent),
+      inset 0 0 18px var(--filmony-rating-glow, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 11px var(--filmony-rating-glow, transparent),
+      inset 0 0 26px var(--filmony-rating-glow, transparent);
+  }
+}
+
+@keyframes filmony-detail-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.filmony-card-detail-panel-enter {
+  animation: filmony-detail-enter-up 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.filmony-card-detail-panel-enter--delay-1 {
+  animation-delay: 0.08s;
+}
+
+.filmony-card-detail-panel-enter--delay-2 {
+  animation-delay: 0.15s;
+}
+
+.filmony-card-detail-panel-enter--delay-3 {
+  animation-delay: 0.22s;
+}
+
+.filmony-detail-poster-img {
+  animation: filmony-detail-poster-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.filmony-detail-rating-ring {
+  animation: filmony-detail-rating-glow 2.8s ease-in-out infinite;
+}
+
+.filmony-detail-menu-pop {
+  animation: filmony-detail-fade-in 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filmony-card-detail-panel-enter,
+  .filmony-card-detail-panel-enter--delay-1,
+  .filmony-card-detail-panel-enter--delay-2,
+  .filmony-card-detail-panel-enter--delay-3,
+  .filmony-detail-poster-img,
+  .filmony-detail-rating-ring,
+  .filmony-detail-menu-pop {
+    animation: none !important;
+  }
+}

@@ -1,6 +1,6 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { CopyPlus, Link2, Share2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments } from '../api/cardApi'
@@ -12,6 +12,7 @@ import type {
   CardMoodBefore,
   MovieCard,
   MovieCardComment,
+  MovieCardCommentAuthor,
   ReactionSummary,
 } from '../api/profileTypes'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
@@ -151,6 +152,18 @@ function followingRowInitials(row: FollowingRatingRow): string {
     first_name: p.first_name,
     username: p.username,
   })
+}
+
+function CardAuthorAvatarLink({ author }: { author: MovieCardCommentAuthor }) {
+  return (
+    <Link
+      to={`/u/${encodeURIComponent(author.id)}`}
+      className="shrink-0 no-underline transition-opacity motion-safe:hover:opacity-90"
+      aria-label={displayNameFromProfile(author)}
+    >
+      <Avatar src={author.photo_url ?? undefined} acronym={profileInitials(author)} size={28} />
+    </Link>
+  )
 }
 
 type MovieCardLocationState = { cardEntry?: string } | null | undefined
@@ -441,7 +454,7 @@ export function MovieCardDetailPage() {
 
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) text-(--tgui--text_color)">
-      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] shadow-[0_1px_0_rgba(0,0,0,0.12)] backdrop-blur-md">
         <div className="flex items-center gap-2 px-3 py-2">
           <button
             type="button"
@@ -453,12 +466,12 @@ export function MovieCardDetailPage() {
               }
               void navigate(-1)
             }}
-            className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color)"
+            className="flex min-h-10 min-w-10 items-center justify-center rounded-xl text-lg text-(--tgui--link_color) transition-transform duration-200 active:scale-90 motion-safe:hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_08%,transparent)]"
             aria-label="Назад"
           >
             ←
           </button>
-          <span className="truncate text-sm font-medium text-(--tgui--hint_color)">
+          <span className="truncate text-sm font-medium tracking-tight text-(--tgui--hint_color)">
             {card?.film_title ?? 'Карточка'}
           </span>
           <span className="ml-auto" />
@@ -473,7 +486,7 @@ export function MovieCardDetailPage() {
                 ⋯
               </button>
               {actionMenuOpen ? (
-                <div className="absolute right-0 top-12 z-30 w-48 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-2 shadow-xl">
+                <div className="filmony-detail-menu-pop absolute right-0 top-12 z-30 w-48 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-2 shadow-xl ring-1 ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_12%,transparent)]">
                   <button
                     type="button"
                     onClick={() => {
@@ -503,7 +516,7 @@ export function MovieCardDetailPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 py-4">
+      <main className="mx-auto max-w-md px-3 pb-8 pt-3 sm:px-4">
         {loading ? <p className="filmony-text-panel py-10 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p> : null}
 
         {invalidCardId ? (
@@ -525,42 +538,59 @@ export function MovieCardDetailPage() {
         ) : null}
 
         {!invalidCardId && !loading && error == null && card != null ? (
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) contain-[paint]">
-              <div className="aspect-[4/3] w-full max-h-[min(72vw,22rem)] sm:max-h-[28rem]">
+          <div className="space-y-3">
+            <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
+              <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
                 {card.film_poster_url ? (
-                  <img src={card.film_poster_url} alt={card.film_title} className="h-full w-full object-cover" />
+                  <img
+                    src={card.film_poster_url}
+                    alt={card.film_title}
+                    className="filmony-detail-poster-img block h-auto w-full max-w-full motion-safe:transition-transform motion-safe:duration-1100 motion-safe:ease-out motion-safe:group-hover/poster:scale-[1.02]"
+                  />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-(--tgui--hint_color)">Нет постера</div>
+                  <div className="flex min-h-40 items-center justify-center px-4 py-12 text-sm text-(--tgui--hint_color)">
+                    Нет постера
+                  </div>
                 )}
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] via-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_35%,transparent)] to-transparent"
+                  aria-hidden
+                />
+                <div
+                  className="absolute bottom-3 right-3 z-10 sm:bottom-4 sm:right-4"
+                  style={{ '--filmony-rating-glow': palette.glow } as CSSProperties}
+                >
+                  <div
+                    className="filmony-detail-rating-ring flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-0.5 rounded-full border-[3px] bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:h-21 sm:w-21"
+                    style={{
+                      borderColor: palette.ring,
+                      color: palette.text,
+                    }}
+                  >
+                    <span className="text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-(--tgui--hint_color)">
+                      Оценка
+                    </span>
+                    <span className="text-[1.5rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.65rem]">
+                      {formatRating(card.rating)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="px-4 pb-3 pt-3">
+              <div className="px-3.5 pb-3 pt-4 sm:px-4">
                 <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Title level="2" weight="2">
+                  <div className="min-w-0 flex-1 pr-1">
+                    <Title level="2" weight="2" className="text-[1.15rem]! leading-snug! sm:text-[1.2rem]!">
                       {card.film_title}
                     </Title>
-                    <div className="mt-1 flex min-w-0 items-center gap-2">
-                      {card.card_author != null ? (
-                        <Link
-                          to={`/u/${encodeURIComponent(card.card_author.id)}`}
-                          className="shrink-0 no-underline"
-                          aria-label={displayNameFromProfile(card.card_author)}
-                        >
-                          <Avatar
-                            src={card.card_author.photo_url ?? undefined}
-                            acronym={profileInitials(card.card_author)}
-                            size={28}
-                          />
-                        </Link>
-                      ) : null}
-                      <p className="min-w-0 text-sm text-(--tgui--hint_color)">
+                    <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      {card.card_author != null ? <CardAuthorAvatarLink author={card.card_author} /> : null}
+                      <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
                         {card.film_year ?? 'Год неизвестен'}
                       </p>
                     </div>
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
                     {cardDeepLinkUrl != null ? (
                       <IconButton
                         type="button"
@@ -616,7 +646,7 @@ export function MovieCardDetailPage() {
                   </div>
                 </div>
                 {card.user_id != null ? (
-                  <div className="mt-2.5 min-w-0">
+                  <div className="mt-3 min-w-0 border-t border-[color-mix(in_srgb,var(--tgui--divider_color)_55%,transparent)] pt-2.5">
                     <ReactionStrip
                       compact
                       compactTight
@@ -632,40 +662,26 @@ export function MovieCardDetailPage() {
               </div>
             </div>
 
-            <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <p className="text-sm font-medium text-(--tgui--text_color)">Твоя оценка</p>
-              <div className="mt-3 flex items-center justify-center">
-                <div
-                  className="relative flex h-28 w-28 items-center justify-center rounded-full border-4 text-4xl font-extrabold"
-                  style={{
-                    borderColor: palette.ring,
-                    color: palette.text,
-                    boxShadow: `0 0 0 6px ${palette.glow}, inset 0 0 24px ${palette.glow}`,
-                  }}
-                >
-                  {formatRating(card.rating)}
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <p className="text-sm font-medium text-(--tgui--text_color)">Теги</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[#1e3a5f] px-3 py-1.5 text-xs text-white">{COMPANY_LABELS[card.company]}</span>
-                <span className="rounded-full bg-[#0f172a] px-3 py-1.5 text-xs text-white">
+            <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-1 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Теги</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,var(--filmony-surface,#111b27))] px-3 py-1.5 text-xs font-medium text-(--tgui--text_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition duration-200 motion-safe:active:scale-[0.97]">
+                  {COMPANY_LABELS[card.company]}
+                </span>
+                <span className="rounded-full border border-[color-mix(in_srgb,var(--tgui--divider_color)_80%,transparent)] bg-transparent px-3 py-1.5 text-xs font-medium text-(--tgui--text_color) transition duration-200 motion-safe:active:scale-[0.97]">
                   {MOOD_BEFORE_LABELS[card.mood_before]}
                 </span>
-                <span className="rounded-full bg-[#1d4ed8] px-3 py-1.5 text-xs text-white">
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_32%,var(--filmony-elevated,#182433))] px-3 py-1.5 text-xs font-semibold text-(--filmony-ink,#06090d) shadow-[0_1px_0_rgba(255,255,255,0.12)] transition duration-200 motion-safe:active:scale-[0.97]">
                   {MOOD_AFTER_LABELS[card.mood_after]}
                 </span>
               </div>
-              <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Свои теги</p>
+              <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Свои теги</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {card.custom_tags.length > 0 ? (
                   card.custom_tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-lg border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2 py-1 text-xs"
+                      className="rounded-lg border border-[color-mix(in_srgb,var(--tgui--divider_color)_90%,transparent)] bg-(--tgui--bg_color) px-2.5 py-1 text-xs transition duration-200 motion-safe:hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)] motion-safe:hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] motion-safe:active:scale-[0.98]"
                     >
                       {tag}
                     </span>
@@ -674,32 +690,32 @@ export function MovieCardDetailPage() {
                   <span className="text-xs text-(--tgui--hint_color)">Пока нет собственных тегов</span>
                 )}
               </div>
-              {card.watch_note != null && card.watch_note.trim() !== '' ? (
+              {typeof card.watch_note === 'string' && card.watch_note.trim() !== '' ? (
                 <>
-                  <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Заметка о просмотре</p>
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-(--tgui--text_color)">
+                  <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка о просмотре</p>
+                  <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--tgui--text_color)">
                     {card.watch_note}
                   </p>
                 </>
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <p className="text-sm font-medium text-(--tgui--text_color)">Друзья оценили</p>
-              <p className="mt-1 text-xs text-(--tgui--hint_color)">Сравнить с подписками.</p>
+            <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Друзья оценили</p>
+              <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">Сравнить с подписками.</p>
               {followingRatings == null ? (
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
               ) : followingRatings.length === 0 ? (
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока некого показать.</p>
               ) : (
-                <ul className="mt-3 list-none space-y-3 p-0">
+                <ul className="mt-3 list-none space-y-1.5 p-0">
                   {followingRatings.map((row: FollowingRatingRow) => {
                     const rp = ratingPalette(row.rating)
                     return (
                       <li key={row.user_id}>
                         <Link
                           to={`/u/${encodeURIComponent(row.user_id)}`}
-                          className="flex items-center gap-3 rounded-xl no-underline outline-none ring-(--tgui--link_color) focus-visible:ring-2"
+                          className="flex items-center gap-3 rounded-xl px-1 py-1.5 no-underline outline-none transition-colors duration-200 motion-safe:hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_06%,transparent)] ring-(--tgui--link_color) focus-visible:ring-2"
                         >
                           <Avatar
                             src={row.photo_url ?? undefined}
@@ -723,11 +739,11 @@ export function MovieCardDetailPage() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-              <p className="text-sm font-medium">Комментарии</p>
+            <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-3 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Комментарии</p>
 
               {replyTo != null ? (
-                <div className="mt-2 flex items-center justify-between rounded-lg bg-(--tgui--bg_color) px-3 py-2 text-xs">
+                <div className="mt-2 flex items-center justify-between rounded-xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,var(--tgui--divider_color))] bg-(--tgui--bg_color) px-3 py-2 text-xs motion-safe:animate-[filmony-detail-fade-in_0.25s_ease-out_both]">
                   <span className="text-(--tgui--hint_color)">Ответ для: {replyTo.label}</span>
                   <button type="button" onClick={() => setReplyTo(null)} className="text-(--tgui--link_color)">
                     отменить
@@ -758,7 +774,12 @@ export function MovieCardDetailPage() {
                   <span className={`text-xs ${charsLeft < 20 ? 'text-(--tgui--destructive_text_color)' : 'text-(--tgui--hint_color)'}`}>
                     Осталось: {charsLeft}
                   </span>
-                  <Button size="s" disabled={submitBusy || commentText.trim() === ''} onClick={() => void handleCreateComment()}>
+                  <Button
+                    size="s"
+                    disabled={submitBusy || commentText.trim() === ''}
+                    onClick={() => void handleCreateComment()}
+                    className="motion-safe:transition motion-safe:duration-200 motion-safe:active:scale-[0.97]"
+                  >
                     {submitBusy ? 'Отправка...' : 'Отправить'}
                   </Button>
                 </div>
@@ -787,10 +808,10 @@ export function MovieCardDetailPage() {
                         ref={(element) => {
                           commentRefs.current[comment.id] = element
                         }}
-                        className={`rounded-xl border bg-(--tgui--bg_color) p-3 transition ${
+                        className={`rounded-xl border bg-(--tgui--bg_color) p-3 motion-safe:transition-[border-color,box-shadow,transform] motion-safe:duration-300 ${
                           highlightCommentId === comment.id
-                            ? 'border-(--tgui--link_color) shadow-[0_0_0_1px_var(--tgui--link_color)]'
-                            : 'border-(--tgui--divider_color)'
+                            ? 'border-(--tgui--link_color) shadow-[0_0_0_2px_color-mix(in_srgb,var(--tgui--link_color)_35%,transparent)] motion-safe:scale-[1.01]'
+                            : 'border-(--tgui--divider_color) motion-safe:hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_22%,var(--tgui--divider_color))]'
                         }`}
                       >
                         <div className="flex items-start gap-2">
