@@ -115,3 +115,31 @@ jobs:
             GITHUB_REPO="$GITHUB_REPO" docker compose -f compose.yml up -d
             GITHUB_REPO="$GITHUB_REPO" docker compose -f compose.yml exec -T -w /opt/app backend alembic upgrade head
             docker image prune -f
+
+  create-deploy-release:
+    name: Tag deploy release
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create GitHub release (auto tag)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="deploy-${{ github.run_id }}-${{ github.run_attempt }}"
+          NOTES_FILE="$(mktemp)"
+          {
+            echo "Automated marker for a successful deploy (no semver)."
+            echo ""
+            echo "- **Commit:** [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+            echo "- **Workflow run:** [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) (attempt ${{ github.run_attempt }})"
+            echo "- **Triggered by:** @${{ github.actor }}"
+          } > "$NOTES_FILE"
+          gh release create "$TAG" \
+            --target "${{ github.sha }}" \
+            --title "Deploy ${{ github.run_id }} (attempt ${{ github.run_attempt }})" \
+            --notes-file "$NOTES_FILE"
