@@ -643,6 +643,47 @@ async def test_list_user_cards_invalid_year_range(async_client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
+async def test_list_user_cards_film_title_substring(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5210)
+    uid = UUID(str(me['id']))
+    c_matrix = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5210001,
+        title='The Matrix Reloaded',
+        year=2003,
+        rating=8.0,
+        company='alone',
+        mood_before='relax',
+        mood_after='enjoyed',
+        tags=[],
+    )
+    await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5210002,
+        title='Something Else',
+        year=2001,
+        rating=7.0,
+        company='alone',
+        mood_before='relax',
+        mood_after='enjoyed',
+        tags=[],
+    )
+    r = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'film_title': 'MATRIX'},
+    )
+    assert r.status_code == 200
+    assert [x['id'] for x in r.json()['items']] == [c_matrix]
+
+    r_empty = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'film_title': 'zz_no_such_title'},
+    )
+    assert r_empty.status_code == 200
+    assert r_empty.json()['items'] == []
+
+
+@pytest.mark.asyncio
 async def test_list_user_cards_rating_pagination_cursor(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=5207)
     target = await _login(async_client, telegram_user_id=5208)

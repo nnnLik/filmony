@@ -9,10 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from conf.settings import settings
 from models.reaction_target_kind import ReactionTargetKind
 from models.reaction_type import ReactionType
+from models.user import User
 from models.user_reaction import UserReaction
 from utils.reaction_urls import resolve_reaction_media_url
 
-from .types import ReactionCountEntry, ReactionTargetSummary
+from .types import ReactionActorEntry, ReactionCountEntry, ReactionTargetSummary
+
+REACTION_REACTORS_EMBED_CAP = 25
 
 
 class GetReactionSummariesForTargetsService:
@@ -53,6 +56,45 @@ class GetReactionSummariesForTargetsService:
 
         scope = or_(*scope_conds)
 
+        actors_stmt = (
+            select(
+                UserReaction.target_kind,
+                UserReaction.target_id,
+                UserReaction.reaction_type_id,
+                User.id,
+                User.profile_slug,
+                User.display_name,
+                User.username,
+                User.first_name,
+                User.last_name,
+                User.photo_url,
+            )
+            .join(User, User.id == UserReaction.user_id)
+            .where(scope)
+            .order_by(UserReaction.id.desc())
+        )
+        actor_rows = (await self._session.execute(actors_stmt)).all()
+        actors_lists: dict[tuple[str, int, int], list[ReactionActorEntry]] = defaultdict(list)
+        for row in actor_rows:
+            kind, tid, rtid, uid, slug, dname, uname, fn, ln, photo = row
+            key = (str(kind), int(tid), int(rtid))
+            if len(actors_lists[key]) >= REACTION_REACTORS_EMBED_CAP:
+                continue
+            actors_lists[key].append(
+                ReactionActorEntry(
+                    id=uid,
+                    profile_slug=str(slug),
+                    display_name=dname,
+                    username=uname,
+                    first_name=fn,
+                    last_name=ln,
+                    photo_url=photo,
+                )
+            )
+        actors_tuple_map: dict[tuple[str, int, int], tuple[ReactionActorEntry, ...]] = {
+            k: tuple(v) for k, v in actors_lists.items()
+        }
+
         media_base = settings.reaction_media.public_base_url
 
         count_stmt = (
@@ -84,12 +126,14 @@ class GetReactionSummariesForTargetsService:
                 image_url_fallback=str(url),
                 public_base=media_base,
             )
+            rkey = (str(kind), int(tid), int(rtid))
             buckets[(kind, tid)].append(
                 ReactionCountEntry(
                     reaction_type_id=int(rtid),
                     count=int(cnt),
                     image_url=resolved_url,
                     asset_key=str(asset_key),
+                    reactors=actors_tuple_map.get(rkey, ()),
                 )
             )
 

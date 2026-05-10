@@ -163,6 +163,11 @@ async def list_user_cards(
     company: CardCompany | None = Query(default=None, description='С кем смотрел'),
     mood_before: CardMoodBefore | None = Query(default=None, description='Настроение до'),
     mood_after: CardMoodAfter | None = Query(default=None, description='Итог просмотра'),
+    film_title: str | None = Query(
+        default=None,
+        max_length=120,
+        description='Подстрока в названии фильма (только карточки этого пользователя, без внешних API)',
+    ),
 ) -> MovieCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
@@ -187,6 +192,7 @@ async def list_user_cards(
             company=company_val,
             mood_before=mood_before_val,
             mood_after=mood_after_val,
+            film_title_search=film_title,
         )
     except ListUserMovieCardsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None

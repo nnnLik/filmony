@@ -17,6 +17,25 @@ _FAV_CURSOR_PREFIX = 'fav1'
 _RATING_DESC_PREFIX = 'rtd'
 _RATING_ASC_PREFIX = 'rta'
 
+_FILM_TITLE_SEARCH_MAX_LEN = 120
+
+
+def _normalize_film_title_search(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    s = raw.strip()
+    if len(s) > _FILM_TITLE_SEARCH_MAX_LEN:
+        s = s[:_FILM_TITLE_SEARCH_MAX_LEN]
+    if s == '':
+        return None
+    return s
+
+
+def _film_title_ilike_pattern(needle: str) -> str:
+    """Escape ``%``, ``_``, ``\\`` for ILIKE with SQLAlchemy ``escape='\\\\'`` (one backslash in SQL)."""
+    esc = needle.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return f'%{esc}%'
+
 
 def _encode_favorites_cursor(marked_at: dt.datetime, card_id: int) -> str:
     us = int(marked_at.timestamp() * 1_000_000)
@@ -129,8 +148,10 @@ class ListUserMovieCardsService:
         company: str | None = None,
         mood_before: str | None = None,
         mood_after: str | None = None,
+        film_title_search: str | None = None,
     ) -> MovieCardPage:
         tags = list(tags_all or [])
+        title_q = _normalize_film_title_search(film_title_search)
         if favorites_only:
             return await self._execute_favorites(
                 user_id,
@@ -143,6 +164,7 @@ class ListUserMovieCardsService:
                 company=company,
                 mood_before=mood_before,
                 mood_after=mood_after,
+                film_title_search=title_q,
             )
         return await self._execute_default(
             user_id,
@@ -155,6 +177,7 @@ class ListUserMovieCardsService:
             company=company,
             mood_before=mood_before,
             mood_after=mood_after,
+            film_title_search=title_q,
         )
 
     def _apply_filters(
@@ -167,6 +190,7 @@ class ListUserMovieCardsService:
         company: str | None,
         mood_before: str | None,
         mood_after: str | None,
+        film_title_search: str | None,
     ) -> SASelect[tuple[MovieCard, Film]]:
         for tag in tags_all:
             query = query.where(
@@ -189,6 +213,10 @@ class ListUserMovieCardsService:
             query = query.where(MovieCard.mood_before == mood_before)
         if mood_after is not None:
             query = query.where(MovieCard.mood_after == mood_after)
+        if film_title_search is not None:
+            query = query.where(
+                Film.title.ilike(_film_title_ilike_pattern(film_title_search), escape='\\'),
+            )
         return query
 
     async def _execute_default(
@@ -204,6 +232,7 @@ class ListUserMovieCardsService:
         company: str | None,
         mood_before: str | None,
         mood_after: str | None,
+        film_title_search: str | None,
     ) -> MovieCardPage:
         query: Select[tuple[MovieCard, Film]] = (
             select(MovieCard, Film)
@@ -218,6 +247,7 @@ class ListUserMovieCardsService:
             company=company,
             mood_before=mood_before,
             mood_after=mood_after,
+            film_title_search=film_title_search,
         )
 
         if sort == 'recent':
@@ -289,6 +319,7 @@ class ListUserMovieCardsService:
         company: str | None,
         mood_before: str | None,
         mood_after: str | None,
+        film_title_search: str | None,
     ) -> MovieCardPage:
         query: Select[tuple[MovieCard, Film]] = (
             select(MovieCard, Film)
@@ -307,6 +338,7 @@ class ListUserMovieCardsService:
             company=company,
             mood_before=mood_before,
             mood_after=mood_after,
+            film_title_search=film_title_search,
         )
 
         if sort == 'rating_desc':

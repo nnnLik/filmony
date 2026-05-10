@@ -3,8 +3,8 @@ import type { CardCompany, CardMoodAfter, CardMoodBefore } from '../api/profileT
 
 export type RatedCardsListQuery = {
   sort: ProfileCardsSort
-  /** Кастомные теги владельца профиля; на бэкенде пересечение (AND). */
   tags: string[]
+  filmTitle: string
   yearMin: string
   yearMax: string
   company: CardCompany | ''
@@ -15,6 +15,7 @@ export type RatedCardsListQuery = {
 export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   sort: 'recent',
   tags: [],
+  filmTitle: '',
   yearMin: '',
   yearMax: '',
   company: '',
@@ -26,6 +27,7 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
   return (
     q.sort === 'recent' &&
     q.tags.length === 0 &&
+    q.filmTitle.trim() === '' &&
     q.yearMin.trim() === '' &&
     q.yearMax.trim() === '' &&
     q.company === '' &&
@@ -38,6 +40,7 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
   return JSON.stringify({
     sort: q.sort,
     tags: [...q.tags].sort(),
+    ft: q.filmTitle.trim(),
     ym: q.yearMin.trim(),
     yx: q.yearMax.trim(),
     co: q.company,
@@ -46,7 +49,6 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
   })
 }
 
-/** Базовые query-параметры для GET /users/.../cards (без cursor / limit / favorites). */
 export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<
   GetUserCardsParams,
   'cursor' | 'limit' | 'favoritesOnly'
@@ -55,10 +57,12 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<
   const ymx = q.yearMax.trim()
   const yearMin = ymn === '' ? null : Number(ymn)
   const yearMax = ymx === '' ? null : Number(ymx)
+  const ft = q.filmTitle.trim()
 
   return {
     sort: q.sort,
     tags: q.tags.length > 0 ? q.tags : undefined,
+    filmTitle: ft === '' ? null : ft,
     yearMin: yearMin != null && Number.isFinite(yearMin) ? yearMin : null,
     yearMax: yearMax != null && Number.isFinite(yearMax) ? yearMax : null,
     company: q.company === '' ? null : q.company,

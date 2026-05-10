@@ -88,11 +88,23 @@ export type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
 export type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
 export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_time'
 
+export type ReactionActor = {
+  id: string
+  profile_slug: string
+  display_name: string | null
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+}
+
 export type ReactionCountItem = {
   reaction_type_id: number
   count: number
   image_url: string
   asset_key: string
+  /** Кто поставил эту реакцию (ограниченный список; при большем `count` есть ещё реакции). */
+  reactors: ReactionActor[]
 }
 
 export type ReactionSummary = {
@@ -116,20 +128,6 @@ export type ReactionCatalogTab = {
 export type ReactionGroupedCatalog = {
   recent: ReactionCatalogItem[]
   tabs: ReactionCatalogTab[]
-}
-
-export type ReactionActor = {
-  id: string
-  profile_slug: string
-  display_name: string | null
-  username: string | null
-  first_name: string | null
-  last_name: string | null
-  photo_url: string | null
-}
-
-export type ReactionActorsResponse = {
-  items: ReactionActor[]
 }
 
 export type MovieCard = {

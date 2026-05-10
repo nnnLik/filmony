@@ -147,10 +147,15 @@ async def test_set_reaction_multiple_per_target_toggle(async_client: AsyncClient
     )
     assert r1.status_code == 200
     assert set(r1.json()['reactions']['my_reaction_type_ids']) == {a}
+    rx_body = r1.json()['reactions']
+    assert len(rx_body['counts']) == 1
+    assert rx_body['counts'][0]['count'] == 1
+    assert len(rx_body['counts'][0]['reactors']) == 1
 
     card = await async_client.get(f'/api/cards/{cid}')
     assert card.status_code == 200
     assert set(card.json()['reactions']['my_reaction_type_ids']) == {a}
+    assert len(card.json()['reactions']['counts'][0]['reactors']) == 1
 
     # same type again -> remove that reaction only
     r_same = await async_client.post(
@@ -299,6 +304,7 @@ async def test_set_reaction_on_comment(async_client: AsyncClient) -> None:
     reactions = lst.json()['items'][0]['reactions']
     assert reactions['my_reaction_type_ids'] == [rx1]
     assert reactions['counts'] and reactions['counts'][0]['count'] == 1
+    assert len(reactions['counts'][0]['reactors']) == 1
 
     nf = await async_client.post(
         '/api/reactions',

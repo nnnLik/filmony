@@ -7,11 +7,26 @@ from pydantic import BaseModel, ConfigDict, Field
 from services.reactions.types import ReactionTargetSummary
 
 
+class ReactionActorResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    display_name: str | None
+    username: str | None
+    first_name: str | None
+    last_name: str | None
+    photo_url: str | None
+
+
+class ReactionActorsListResponse(BaseModel):
+    items: list[ReactionActorResponse] = Field(default_factory=list)
+
+
 class ReactionCountItemResponse(BaseModel):
     reaction_type_id: int
     count: int
     image_url: str
     asset_key: str
+    reactors: list[ReactionActorResponse] = Field(default_factory=list)
 
 
 class ReactionSummaryResponse(BaseModel):
@@ -39,20 +54,6 @@ class ReactionCatalogGroupedResponse(BaseModel):
     tabs: list[ReactionCatalogTabResponse] = Field(default_factory=list)
 
 
-class ReactionActorResponse(BaseModel):
-    id: UUID
-    profile_slug: str
-    display_name: str | None
-    username: str | None
-    first_name: str | None
-    last_name: str | None
-    photo_url: str | None
-
-
-class ReactionActorsListResponse(BaseModel):
-    items: list[ReactionActorResponse] = Field(default_factory=list)
-
-
 class UserReactionSetRequest(BaseModel):
     target_kind: str = Field(..., min_length=1, max_length=32)
     target_id: int = Field(..., ge=1)
@@ -75,6 +76,18 @@ def reaction_target_summary_to_response(summary: ReactionTargetSummary) -> React
                 count=e.count,
                 image_url=e.image_url,
                 asset_key=e.asset_key,
+                reactors=[
+                    ReactionActorResponse(
+                        id=u.id,
+                        profile_slug=u.profile_slug,
+                        display_name=u.display_name,
+                        username=u.username,
+                        first_name=u.first_name,
+                        last_name=u.last_name,
+                        photo_url=u.photo_url,
+                    )
+                    for u in e.reactors
+                ],
             )
             for e in summary.counts
         ],

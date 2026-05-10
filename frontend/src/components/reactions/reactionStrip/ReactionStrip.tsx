@@ -175,14 +175,11 @@ export function ReactionStrip({
           return (
             <CountPill
               key={c.reaction_type_id}
-              targetKind={targetKind}
-              targetId={targetId}
-              reactionTypeId={c.reaction_type_id}
               disabled={busy}
               mine={mine}
               imageUrl={c.image_url}
-              assetKey={c.asset_key}
               count={c.count}
+              reactors={c.reactors ?? []}
               compact={compact}
               pillTight={pillTight}
               onPick={() => void apply(c.reaction_type_id)}

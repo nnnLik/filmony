@@ -1,6 +1,6 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
 
 import { getUserMovieCardTags } from '../../api/profileApi'
@@ -62,13 +62,17 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter | ''; label: string }> = 
 const SELECT_CLASS =
   'w-full rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-2 text-sm text-(--tgui--text_color) outline-none ring-(--tgui--link_color) focus-visible:ring-2'
 
+function filmTitleSearchValue(q: RatedCardsListQuery): string {
+  return q.filmTitle
+}
+
 type ProfileRatedCardsFiltersProps = {
   profileUserId: string
-  value: RatedCardsListQuery
+  cardsQuery: RatedCardsListQuery
   onChange: (next: RatedCardsListQuery) => void
 }
 
-export function ProfileRatedCardsFilters({ profileUserId, value, onChange }: ProfileRatedCardsFiltersProps) {
+export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }: ProfileRatedCardsFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const tagsQuery = useQuery<MyMovieCardTagStatsResponse>({
@@ -93,15 +97,39 @@ export function ProfileRatedCardsFilters({ profileUserId, value, onChange }: Pro
     : null
 
   const toggleTag = (tag: string) => {
-    const has = value.tags.includes(tag)
-    const nextTags = has ? value.tags.filter((t) => t !== tag) : [...value.tags, tag]
-    onChange({ ...value, tags: nextTags })
+    const has = cardsQuery.tags.includes(tag)
+    const nextTags = has ? cardsQuery.tags.filter((t) => t !== tag) : [...cardsQuery.tags, tag]
+    onChange({ ...cardsQuery, tags: nextTags })
   }
 
-  const hasActive = !isDefaultRatedCardsQuery(value)
+  const hasActive = !isDefaultRatedCardsQuery(cardsQuery)
 
   return (
     <div className="mb-3 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
+      <div className="border-b border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] px-2.5 pt-2.5 pb-2">
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-(--tgui--hint_color)">Поиск по названию</span>
+          <span className="sr-only">Среди оценённых фильмов этого профиля</span>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 block size-4 -translate-y-1/2 text-(--tgui--hint_color)"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <input
+              type="search"
+              enterKeyHint="search"
+              maxLength={120}
+              placeholder="Например, матрица…"
+              value={filmTitleSearchValue(cardsQuery)}
+              onChange={(e) => onChange({ ...cardsQuery, filmTitle: e.currentTarget.value })}
+              className={`${SELECT_CLASS} pl-9`}
+              autoComplete="off"
+              aria-label="Поиск карточек по названию фильма"
+            />
+          </div>
+        </label>
+      </div>
       <div className="flex items-stretch gap-2 p-2.5">
         <button
           type="button"
@@ -119,7 +147,7 @@ export function ProfileRatedCardsFilters({ profileUserId, value, onChange }: Pro
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-(--tgui--text_color)">Фильтры и сортировка</span>
             <span className="mt-0.5 block truncate text-[11px] text-(--tgui--hint_color)">
-              {filtersOpen ? 'Настройте список ниже' : sortLabel(value.sort)}
+              {filtersOpen ? 'Настройте список ниже' : sortLabel(cardsQuery.sort)}
               {hasActive && !filtersOpen ? ' · заданы условия' : ''}
             </span>
           </span>
@@ -148,8 +176,8 @@ export function ProfileRatedCardsFilters({ profileUserId, value, onChange }: Pro
             Сортировка
             <select
               className={`${SELECT_CLASS} mt-1`}
-              value={value.sort}
-              onChange={(e) => onChange({ ...value, sort: e.currentTarget.value as ProfileCardsSort })}
+              value={cardsQuery.sort}
+              onChange={(e) => onChange({ ...cardsQuery, sort: e.currentTarget.value as ProfileCardsSort })}
               aria-label="Сортировка карточек"
             >
               {SORT_OPTIONS.map((o) => (
@@ -160,116 +188,116 @@ export function ProfileRatedCardsFilters({ profileUserId, value, onChange }: Pro
             </select>
           </label>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs font-medium text-(--tgui--hint_color)">
-          Год от
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="—"
-            className={`${SELECT_CLASS} mt-1 tabular-nums`}
-            value={value.yearMin}
-            onChange={(e) => onChange({ ...value, yearMin: e.currentTarget.value })}
-            min={1874}
-            max={2100}
-            aria-label="Минимальный год фильма"
-          />
-        </label>
-        <label className="text-xs font-medium text-(--tgui--hint_color)">
-          Год до
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="—"
-            className={`${SELECT_CLASS} mt-1 tabular-nums`}
-            value={value.yearMax}
-            onChange={(e) => onChange({ ...value, yearMax: e.currentTarget.value })}
-            min={1874}
-            max={2100}
-            aria-label="Максимальный год фильма"
-          />
-        </label>
-      </div>
-
-      <label className="block text-xs font-medium text-(--tgui--hint_color)">
-        С кем смотрел
-        <select
-          className={`${SELECT_CLASS} mt-1`}
-          value={value.company}
-          onChange={(e) => onChange({ ...value, company: e.currentTarget.value as CardCompany | '' })}
-          aria-label="Фильтр: компания"
-        >
-          {COMPANY_OPTIONS.map((o) => (
-            <option key={o.value || 'any'} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block text-xs font-medium text-(--tgui--hint_color)">
-        Хотел до просмотра
-        <select
-          className={`${SELECT_CLASS} mt-1`}
-          value={value.moodBefore}
-          onChange={(e) => onChange({ ...value, moodBefore: e.currentTarget.value as CardMoodBefore | '' })}
-          aria-label="Фильтр: настроение до"
-        >
-          {MOOD_BEFORE_OPTIONS.map((o) => (
-            <option key={o.value || 'any'} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block text-xs font-medium text-(--tgui--hint_color)">
-        Итог просмотра
-        <select
-          className={`${SELECT_CLASS} mt-1`}
-          value={value.moodAfter}
-          onChange={(e) => onChange({ ...value, moodAfter: e.currentTarget.value as CardMoodAfter | '' })}
-          aria-label="Фильтр: настроение после"
-        >
-          {MOOD_AFTER_OPTIONS.map((o) => (
-            <option key={o.value || 'any'} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div>
-        <p className="text-xs font-medium text-(--tgui--hint_color)">Теги автора (все выбранные)</p>
-        {tagsErr != null ? (
-          <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{tagsErr}</p>
-        ) : null}
-        {tagItems.length === 0 && tagsErr == null && !tagsQuery.isFetching ? (
-          <p className="mt-1 text-xs text-(--tgui--hint_color)">Нет сохранённых тегов</p>
-        ) : (
-          <div className="mt-1.5 flex max-h-28 flex-wrap gap-1 overflow-y-auto">
-            {tagItems.map((row) => {
-              const on = value.tags.includes(row.tag)
-              return (
-                <button
-                  key={row.tag}
-                  type="button"
-                  title={`${row.use_count}×`}
-                  onClick={() => toggleTag(row.tag)}
-                  className={`max-w-40 truncate rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
-                    on
-                      ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] text-(--tgui--text_color)'
-                      : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--hint_color)'
-                  }`}
-                >
-                  {row.tag}
-                  <span className="ml-1 tabular-nums opacity-70">{row.use_count}</span>
-                </button>
-              )
-            })}
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs font-medium text-(--tgui--hint_color)">
+              Год от
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="—"
+                className={`${SELECT_CLASS} mt-1 tabular-nums`}
+                value={cardsQuery.yearMin}
+                onChange={(e) => onChange({ ...cardsQuery, yearMin: e.currentTarget.value })}
+                min={1874}
+                max={2100}
+                aria-label="Минимальный год фильма"
+              />
+            </label>
+            <label className="text-xs font-medium text-(--tgui--hint_color)">
+              Год до
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="—"
+                className={`${SELECT_CLASS} mt-1 tabular-nums`}
+                value={cardsQuery.yearMax}
+                onChange={(e) => onChange({ ...cardsQuery, yearMax: e.currentTarget.value })}
+                min={1874}
+                max={2100}
+                aria-label="Максимальный год фильма"
+              />
+            </label>
           </div>
-        )}
-      </div>
+
+          <label className="block text-xs font-medium text-(--tgui--hint_color)">
+            С кем смотрел
+            <select
+              className={`${SELECT_CLASS} mt-1`}
+              value={cardsQuery.company}
+              onChange={(e) => onChange({ ...cardsQuery, company: e.currentTarget.value as CardCompany | '' })}
+              aria-label="Фильтр: компания"
+            >
+              {COMPANY_OPTIONS.map((o) => (
+                <option key={o.value || 'any'} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-xs font-medium text-(--tgui--hint_color)">
+            Хотел до просмотра
+            <select
+              className={`${SELECT_CLASS} mt-1`}
+              value={cardsQuery.moodBefore}
+              onChange={(e) => onChange({ ...cardsQuery, moodBefore: e.currentTarget.value as CardMoodBefore | '' })}
+              aria-label="Фильтр: настроение до"
+            >
+              {MOOD_BEFORE_OPTIONS.map((o) => (
+                <option key={o.value || 'any'} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-xs font-medium text-(--tgui--hint_color)">
+            Итог просмотра
+            <select
+              className={`${SELECT_CLASS} mt-1`}
+              value={cardsQuery.moodAfter}
+              onChange={(e) => onChange({ ...cardsQuery, moodAfter: e.currentTarget.value as CardMoodAfter | '' })}
+              aria-label="Фильтр: настроение после"
+            >
+              {MOOD_AFTER_OPTIONS.map((o) => (
+                <option key={o.value || 'any'} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div>
+            <p className="text-xs font-medium text-(--tgui--hint_color)">Теги автора (все выбранные)</p>
+            {tagsErr != null ? (
+              <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{tagsErr}</p>
+            ) : null}
+            {tagItems.length === 0 && tagsErr == null && !tagsQuery.isFetching ? (
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">Нет сохранённых тегов</p>
+            ) : (
+              <div className="mt-1.5 flex max-h-28 flex-wrap gap-1 overflow-y-auto">
+                {tagItems.map((row) => {
+                  const on = cardsQuery.tags.includes(row.tag)
+                  return (
+                    <button
+                      key={row.tag}
+                      type="button"
+                      title={`${row.use_count}×`}
+                      onClick={() => toggleTag(row.tag)}
+                      className={`max-w-40 truncate rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
+                        on
+                          ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] text-(--tgui--text_color)'
+                          : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--hint_color)'
+                      }`}
+                    >
+                      {row.tag}
+                      <span className="ml-1 tabular-nums opacity-70">{row.use_count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
     </div>

@@ -29,6 +29,8 @@ export type GetUserCardsParams = {
   company?: CardCompany | null
   moodBefore?: CardMoodBefore | null
   moodAfter?: CardMoodAfter | null
+  /** Подстрока в названии фильма (карточки пользователя). */
+  filmTitle?: string | null
 }
 
 async function readActionErrorDetail(res: Response): Promise<unknown> {
@@ -106,6 +108,9 @@ export async function getUserCards(userId: string, params: GetUserCardsParams): 
   }
   if (params.moodAfter != null) {
     q.set('mood_after', params.moodAfter)
+  }
+  if (params.filmTitle != null && params.filmTitle.trim() !== '') {
+    q.set('film_title', params.filmTitle.trim())
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)

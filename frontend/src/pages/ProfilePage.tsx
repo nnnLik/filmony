@@ -1,6 +1,6 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { Download } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -27,6 +27,7 @@ import {
   openTelegramDeepLink,
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
+import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 
 type ProfileMainTab = 'movies' | 'stats'
 
@@ -84,7 +85,11 @@ export function ProfilePage() {
   const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
   const [ratedQuery, setRatedQuery] = useState<RatedCardsListQuery>(() => ({ ...DEFAULT_RATED_CARDS_QUERY }))
   const [ratedCardsLoading, setRatedCardsLoading] = useState(false)
-  const ratedQueryKey = useMemo(() => ratedCardsQueryKey(ratedQuery), [ratedQuery])
+  const deferredRatedQuery = useDeferredValue(ratedQuery)
+  const ratedQueryKey = useMemo(
+    () => ratedCardsQueryKey(deferredRatedQuery),
+    [deferredRatedQuery],
+  )
   const favoriteStripItems = useMemo(() => {
     if (profile == null) return []
     const n = profile.favorites_count ?? 0
@@ -138,7 +143,7 @@ export function ProfilePage() {
       try {
         const page = await getUserCards(profile.id, {
           limit: 20,
-          ...ratedCardsToListParams(ratedQuery),
+          ...ratedCardsToListParams(deferredRatedQuery),
         })
         if (!alive) {
           return
@@ -234,7 +239,7 @@ export function ProfilePage() {
       const page = await getUserCards(profile.id, {
         cursor: myCards.next_cursor,
         limit: 20,
-        ...ratedCardsToListParams(ratedQuery),
+        ...ratedCardsToListParams(deferredRatedQuery),
       })
       setMyCards((prev) => {
         if (prev == null) {
@@ -261,7 +266,7 @@ export function ProfilePage() {
     } finally {
       setLoadingMore(false)
     }
-  }, [profile, myCards, ratedQuery])
+  }, [profile, myCards, deferredRatedQuery, ratedQuery])
 
   const loadMoreWatchlist = useCallback(async () => {
     if (profile == null || myWatchlist?.next_cursor == null || myWatchlist.next_cursor === '') {
@@ -340,6 +345,28 @@ export function ProfilePage() {
       setExportBusy(false)
     }
   }
+
+  const ratedCardsLoadMoreRef = useInfiniteScrollLoadMore({
+    enabled:
+      auth.kind === 'ready' &&
+      mainTab === 'movies' &&
+      moviesSegment === 'rated' &&
+      Boolean(myCards?.next_cursor) &&
+      (myCards?.items.length ?? 0) > 0,
+    isBusy: loadingMore,
+    onLoadMore: () => void loadMoreCards(),
+  })
+
+  const watchlistLoadMoreRef = useInfiniteScrollLoadMore({
+    enabled:
+      auth.kind === 'ready' &&
+      mainTab === 'movies' &&
+      moviesSegment === 'watchlist' &&
+      Boolean(myWatchlist?.next_cursor) &&
+      (myWatchlist?.items.length ?? 0) > 0,
+    isBusy: watchlistLoadingMore,
+    onLoadMore: () => void loadMoreWatchlist(),
+  })
 
   if (auth.kind === 'loading') {
     return (
@@ -565,7 +592,7 @@ export function ProfilePage() {
                 <FavoriteMoviesStrip items={favoriteStripItems} />
                 <ProfileRatedCardsFilters
                   profileUserId={profile.id}
-                  value={ratedQuery}
+                  cardsQuery={ratedQuery}
                   onChange={setRatedQuery}
                 />
                 {ratedCardsLoading ? (
@@ -597,11 +624,12 @@ export function ProfilePage() {
                   </div>
                 ) : null}
                 {canLoadMore ? (
-                  <div className="mt-4">
-                    <Button stretched disabled={loadingMore} onClick={() => void loadMoreCards()}>
-                      {loadingMore ? 'Загрузка…' : 'Загрузить ещё'}
-                    </Button>
-                  </div>
+                  <>
+                    <div ref={ratedCardsLoadMoreRef} className="mt-2 h-1 w-full shrink-0" aria-hidden />
+                    {loadingMore ? (
+                      <p className="mt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем карточки…</p>
+                    ) : null}
+                  </>
                 ) : null}
               </>
             ) : (
@@ -628,11 +656,12 @@ export function ProfilePage() {
                   </div>
                 ) : null}
                 {canLoadMoreWatchlist ? (
-                  <div className="mt-4">
-                    <Button stretched disabled={watchlistLoadingMore} onClick={() => void loadMoreWatchlist()}>
-                      {watchlistLoadingMore ? 'Загрузка…' : 'Загрузить ещё'}
-                    </Button>
-                  </div>
+                  <>
+                    <div ref={watchlistLoadMoreRef} className="mt-2 h-1 w-full shrink-0" aria-hidden />
+                    {watchlistLoadingMore ? (
+                      <p className="mt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем список…</p>
+                    ) : null}
+                  </>
                 ) : null}
               </>
             )}

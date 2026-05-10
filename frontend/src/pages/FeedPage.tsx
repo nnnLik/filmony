@@ -1,6 +1,8 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { Link } from 'react-router-dom'
 
 import { getMovieCardFeedPage } from '../api/cardApi'
@@ -98,6 +100,15 @@ export function FeedPage() {
           ? feedQuery.error.message
           : 'Не удалось загрузить ленту'
         : null
+
+  const feedLoadMoreSentinelRef = useInfiniteScrollLoadMore({
+    enabled:
+      auth.kind === 'ready' && hasNextPage && items.length > 0 && errorMessage == null,
+    isBusy: feedQuery.isFetchingNextPage,
+    onLoadMore: () => {
+      void feedQuery.fetchNextPage()
+    },
+  })
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -260,16 +271,16 @@ export function FeedPage() {
                 />
               ))}
               {hasNextPage ? (
-                <div className="flex justify-center pt-1 pb-4">
-                  <Button
-                    mode="gray"
-                    stretched
-                    disabled={feedQuery.isFetchingNextPage}
-                    onClick={() => void feedQuery.fetchNextPage()}
-                  >
-                    {feedQuery.isFetchingNextPage ? 'Загрузка…' : 'Загрузить ещё'}
-                  </Button>
-                </div>
+                <>
+                  <div
+                    ref={feedLoadMoreSentinelRef}
+                    className="h-1 w-full shrink-0"
+                    aria-hidden
+                  />
+                  {feedQuery.isFetchingNextPage ? (
+                    <p className="pb-4 pt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем ленту…</p>
+                  ) : null}
+                </>
               ) : null}
             </>
           )}

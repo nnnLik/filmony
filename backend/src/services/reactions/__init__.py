@@ -15,13 +15,14 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetOrToggleUserReactionService,
     SetUserReactionOutcome,
 )
-from services.reactions.types import ReactionCountEntry, ReactionTargetSummary
+from services.reactions.types import ReactionActorEntry, ReactionCountEntry, ReactionTargetSummary
 
 __all__ = (
     'GetReactionSummariesForTargetsService',
     'ListReactionActorsService',
     'ListReactionCatalogGroupedService',
     'ListReactionCatalogService',
+    'ReactionActorEntry',
     'ReactionActorRow',
     'ReactionCatalogGrouped',
     'ReactionCatalogItem',
