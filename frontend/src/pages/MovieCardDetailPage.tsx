@@ -44,6 +44,7 @@ import {
 } from '../lib/mentionProfileLookupUtils'
 import {
   applyMentionPick,
+  filterFollowingForMentionQuery,
   mentionReplacementFromSlug,
   parseActiveMentionQuery,
   type ActiveMentionQuery,
@@ -63,22 +64,6 @@ import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
-
-function filterFollowingForMentionQuery(
-  items: SubscriptionListItem[],
-  query: string,
-): SubscriptionListItem[] {
-  const n = query.trim().toLowerCase()
-  if (n === '') {
-    return items
-  }
-  return items.filter((it) => {
-    const slug = it.profile_slug.toLowerCase()
-    const dn = (it.display_name ?? '').toLowerCase()
-    const un = (it.username ?? '').toLowerCase()
-    return slug.startsWith(n) || dn.includes(n) || un.includes(n)
-  })
-}
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',

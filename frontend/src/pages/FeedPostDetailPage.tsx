@@ -1,6 +1,15 @@
 import { Avatar, Button, IconButton } from '@telegram-apps/telegram-ui'
 import { ArrowLeft } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEventHandler,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import {
@@ -8,7 +17,7 @@ import {
   getFeedPostById,
   getFeedPostComments,
 } from '../api/feedPostApi'
-import { getMyProfile } from '../api/profileApi'
+import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import type { FeedPostInFeed } from '../api/feedInFeedTypes'
 import type { FeedPostComment, ReactionSummary } from '../api/profileTypes'
@@ -19,9 +28,24 @@ import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
-import { authorLikeToMentionRow } from '../lib/mentionProfileLookupUtils'
+import {
+  applyMentionPick,
+  filterFollowingForMentionQuery,
+  mentionReplacementFromSlug,
+  parseActiveMentionQuery,
+  type ActiveMentionQuery,
+} from '../lib/feedMentionCompose'
 import { markGlobalFeedPostDetailOpened } from '../lib/globalFeedViewedIds'
+import {
+  authorLikeToMentionRow,
+  mentionProfileKeyFromSlug,
+  subscriptionToMentionRow,
+  type MentionProfileRowInput,
+} from '../lib/mentionProfileLookupUtils'
+import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { displayNameFromProfile } from '../lib/profileDisplay'
 import { safeHapticSuccess } from '../lib/safeHaptic'
+import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
 
 function authorName(comment: FeedPostComment): string {
   if (comment.author.display_name && comment.author.display_name.trim() !== '') {
@@ -64,7 +88,7 @@ export function FeedPostDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [viewerId, setViewerId] = useState<string | null>(null)
+  const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
   const [comments, setComments] = useState<FeedPostComment[]>([])
   const [commentsNextCursor, setCommentsNextCursor] = useState<string | null>(null)
   const [commentsLoading, setCommentsLoading] = useState(false)
@@ -83,14 +107,122 @@ export function FeedPostDetailPage() {
     return map
   }, [comments])
 
-  const mentionRowsForPostDetail = useMemo(() => {
-    const rows = []
-    if (post != null) rows.push(authorLikeToMentionRow(post.author))
-    for (const c of comments) rows.push(authorLikeToMentionRow(c.author))
-    return rows
-  }, [comments, post])
+  const followingForMentionsQuery = useQuery({
+    queryKey: ['userSubscriptions', viewerId, 'following'],
+    queryFn: () => getUserSubscriptions(viewerId as string, 'following'),
+    enabled: viewerId != null,
+    staleTime: 60_000,
+  })
+  const followingMentionItems = useMemo(
+    () => followingForMentionsQuery.data?.items ?? [],
+    [followingForMentionsQuery.data],
+  )
+
+  const mentionRowsForPostDetail = useMemo((): MentionProfileRowInput[] => {
+    const seen = new Set<string>()
+    const out: MentionProfileRowInput[] = []
+    const push = (r: MentionProfileRowInput) => {
+      const k = mentionProfileKeyFromSlug(r.profile_slug)
+      if (k.length === 0 || seen.has(k)) return
+      seen.add(k)
+      out.push(r)
+    }
+    if (post != null) push(authorLikeToMentionRow(post.author))
+    for (const c of comments) push(authorLikeToMentionRow(c.author))
+    for (const it of followingMentionItems) push(subscriptionToMentionRow(it))
+    return out
+  }, [comments, followingMentionItems, post])
+
+  const [commentMentionPicker, setCommentMentionPicker] = useState<ActiveMentionQuery | null>(null)
+  const [commentMentionHighlightIdx, setCommentMentionHighlightIdx] = useState(0)
+  const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
+
+  const commentMentionFiltered = useMemo(
+    () =>
+      commentMentionPicker != null
+        ? filterFollowingForMentionQuery(followingMentionItems, commentMentionPicker.query)
+        : [],
+    [commentMentionPicker, followingMentionItems],
+  )
+
+  const commentMentionHighlightSafe = useMemo(() => {
+    if (commentMentionFiltered.length === 0) return 0
+    return Math.min(commentMentionHighlightIdx, commentMentionFiltered.length - 1)
+  }, [commentMentionFiltered.length, commentMentionHighlightIdx])
+
+  const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
+
+  const syncCommentMentionFromValue = useCallback((value: string, caretOverride?: number | null) => {
+    const el = commentTextAreaRef.current
+    const caret =
+      caretOverride != null
+        ? Math.min(Math.max(0, caretOverride), value.length)
+        : Math.min(el?.selectionStart ?? value.length, value.length)
+    const active = parseActiveMentionQuery(value, caret)
+    if (active == null) {
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
+      return
+    }
+    setCommentMentionPicker(active)
+    setCommentMentionHighlightIdx(0)
+  }, [])
+
+  const handleCommentTextChange = useCallback(
+    (v: string, meta?: { caret: number }) => {
+      const next = v.slice(0, COMMENT_BODY_MAX_LEN)
+      setCommentText(next)
+      const caret = meta?.caret ?? next.length
+      queueMicrotask(() => syncCommentMentionFromValue(next, caret))
+    },
+    [syncCommentMentionFromValue],
+  )
+
+  const pickCommentMention = useCallback(
+    (slug: string) => {
+      const el = commentTextAreaRef.current
+      if (commentMentionPicker == null || el == null) return
+      const endCaret = commentMentionPicker.atIndex + 1 + commentMentionPicker.query.length
+      const caret = Math.min(endCaret, commentText.length)
+      const token = mentionReplacementFromSlug(slug)
+      const res = applyMentionPick(commentText, caret, commentMentionPicker.atIndex, token, COMMENT_BODY_MAX_LEN)
+      if (res == null) return
+      setCommentText(res.nextValue)
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
+      queueMicrotask(() => {
+        el.focus()
+        el.setSelectionRange(res.caret, res.caret)
+      })
+    },
+    [commentMentionPicker, commentText],
+  )
+
+  const handleCommentDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
+    (e) => {
+      if (commentMentionPicker == null) return
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setCommentMentionHighlightIdx((i) => {
+          const max = Math.max(0, commentMentionFiltered.length - 1)
+          return Math.min(max, i + 1)
+        })
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setCommentMentionHighlightIdx((i) => Math.max(0, i - 1))
+      } else if (e.key === 'Enter' && commentMentionFiltered.length > 0) {
+        e.preventDefault()
+        const row = commentMentionFiltered[commentMentionHighlightSafe] ?? commentMentionFiltered[0]
+        if (row != null) {
+          pickCommentMention(row.profile_slug)
+        }
+      }
+    },
+    [commentMentionFiltered, commentMentionHighlightSafe, commentMentionPicker, pickCommentMention],
+  )
 
   useEffect(() => {
+    if (viewerId != null) return
     let alive = true
     void (async () => {
       try {
@@ -104,7 +236,7 @@ export function FeedPostDetailPage() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [viewerId])
 
   useEffect(() => {
     if (parsedPostId == null) return
@@ -180,6 +312,8 @@ export function FeedPostDetailPage() {
 
   const insertReactionIntoComment = useCallback(
     (reactionTypeId: number) => {
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
       const token = reactionTokenFromId(reactionTypeId)
       const el = commentTextAreaRef.current
       const inserted = insertSnippetAtCaret(
@@ -219,6 +353,8 @@ export function FeedPostDetailPage() {
         void 0
       }
       setCommentText('')
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
       setReplyTo(null)
       safeHapticSuccess()
     } catch (e) {
@@ -317,16 +453,102 @@ export function FeedPostDetailPage() {
 
               <div className="mt-3">
                 <div className="flex gap-2">
-                  <div className="relative min-w-0 flex-1">
+                  <div ref={commentMentionAnchorRef} className="relative min-w-0 flex-1">
                     <CommentDraftMultiline
                       ref={commentTextAreaRef}
                       value={commentText}
-                      onChange={(v) => setCommentText(v.slice(0, COMMENT_BODY_MAX_LEN))}
+                      onChange={handleCommentTextChange}
+                      onKeyDown={handleCommentDraftKeyDown}
+                      onKeyUp={() => {
+                        const el = commentTextAreaRef.current
+                        if (el == null) return
+                        syncCommentMentionFromValue(
+                          el.value.slice(0, COMMENT_BODY_MAX_LEN),
+                          el.selectionStart ?? el.value.length,
+                        )
+                      }}
+                      onSelect={() => {
+                        const el = commentTextAreaRef.current
+                        if (el == null) return
+                        syncCommentMentionFromValue(
+                          el.value.slice(0, COMMENT_BODY_MAX_LEN),
+                          el.selectionStart ?? el.value.length,
+                        )
+                      }}
                       disabled={submitBusy}
                       rows={4}
                       maxLength={COMMENT_BODY_MAX_LEN}
                       placeholder="Напишите комментарий..."
                     />
+                    {commentMentionPicker != null && commentMentionPopoverLayout != null
+                      ? createPortal(
+                          <>
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              aria-hidden
+                              className="fixed inset-0 z-[200] cursor-default bg-black/0"
+                              onClick={() => {
+                                setCommentMentionPicker(null)
+                                setCommentMentionHighlightIdx(0)
+                              }}
+                            />
+                            <div
+                              className="filmony-theme fixed z-[201] overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) py-1 shadow-lg"
+                              style={{
+                                top: commentMentionPopoverLayout.top,
+                                left: commentMentionPopoverLayout.left,
+                                width: commentMentionPopoverLayout.width,
+                                maxHeight: commentMentionPopoverLayout.maxHeight,
+                              }}
+                              role="listbox"
+                              aria-label="Упомянуть подписку"
+                            >
+                              {followingForMentionsQuery.isPending ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">Загрузка…</p>
+                              ) : followingForMentionsQuery.isError ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">
+                                  Не удалось загрузить подписки
+                                </p>
+                              ) : followingMentionItems.length === 0 ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">
+                                  Подпишитесь на пользователей — здесь появятся упоминания.
+                                </p>
+                              ) : commentMentionFiltered.length === 0 ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">Нет совпадений</p>
+                              ) : (
+                                commentMentionFiltered.map((it, idx) => {
+                                  const label = displayNameFromProfile(it)
+                                  const selected = idx === commentMentionHighlightSafe
+                                  return (
+                                    <button
+                                      key={it.id}
+                                      type="button"
+                                      role="option"
+                                      aria-selected={selected}
+                                      className={`flex w-full flex-col gap-0.5 px-3 py-2 text-left transition active:opacity-90 ${
+                                        selected
+                                          ? 'bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,var(--tgui--secondary_bg_color))]'
+                                          : 'hover:bg-(--tgui--secondary_bg_color)'
+                                      }`}
+                                      onMouseDown={(ev) => {
+                                        ev.preventDefault()
+                                        pickCommentMention(it.profile_slug)
+                                      }}
+                                    >
+                                      <span className="text-[13px] font-medium text-(--tgui--text_color)">{label}</span>
+                                      <span className="font-mono text-[11px] text-(--tgui--hint_color)">
+                                        @{it.profile_slug}
+                                      </span>
+                                    </button>
+                                  )
+                                })
+                              )}
+                            </div>
+                          </>,
+                          document.body,
+                        )
+                      : null}
                   </div>
                   <div className="flex shrink-0 flex-col justify-start pt-1">
                     <CommentReactionTokenPicker

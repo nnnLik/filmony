@@ -13,8 +13,7 @@ import {
 import { createPortal } from 'react-dom'
 
 import { createFeedPost, uploadFeedPostImage } from '../../api/feedPostApi'
-import type { SubscriptionListItem } from '../../api/profileTypes'
-import { getUserSubscriptions } from '../../api/profileApi'
+import { getMyProfile, getUserSubscriptions } from '../../api/profileApi'
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import { useAuthStatus } from '../../auth/useAuthStatus'
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
@@ -22,6 +21,7 @@ import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPick
 import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
 import {
   applyMentionPick,
+  filterFollowingForMentionQuery,
   mentionReplacementFromSlug,
   parseActiveMentionQuery,
   type ActiveMentionQuery,
@@ -45,22 +45,6 @@ function feedPostImageSrc(url: string): string {
   return resolveApiUrl(u.startsWith('/') ? u : `/${u}`)
 }
 
-function filterFollowingForMentionQuery(
-  items: SubscriptionListItem[],
-  query: string,
-): SubscriptionListItem[] {
-  const n = query.trim().toLowerCase()
-  if (n === '') {
-    return items
-  }
-  return items.filter((it) => {
-    const slug = it.profile_slug.toLowerCase()
-    const dn = (it.display_name ?? '').toLowerCase()
-    const un = (it.username ?? '').toLowerCase()
-    return slug.startsWith(n) || dn.includes(n) || un.includes(n)
-  })
-}
-
 export function FeedComposeSheet({
   onClose,
   sourceCommentId,
@@ -81,12 +65,35 @@ export function FeedComposeSheet({
   const [mentionPicker, setMentionPicker] = useState<ActiveMentionQuery | null>(null)
   const [mentionHighlightIdx, setMentionHighlightIdx] = useState(0)
 
-  const myUserId = auth.kind === 'ready' ? (readMyProfileBundleCache()?.profile.id ?? null) : null
+  const [subscriptionsUserId, setSubscriptionsUserId] = useState<string | null>(
+    () => readMyProfileBundleCache()?.profile.id ?? null,
+  )
+
+  useEffect(() => {
+    if (auth.kind !== 'ready') return
+    const cached = readMyProfileBundleCache()?.profile.id ?? null
+    if (cached != null) {
+      setSubscriptionsUserId(cached)
+      return
+    }
+    let alive = true
+    void getMyProfile().then(
+      (p) => {
+        if (alive) setSubscriptionsUserId(p.id)
+      },
+      () => {
+        void 0
+      },
+    )
+    return () => {
+      alive = false
+    }
+  }, [auth.kind])
 
   const followingQuery = useQuery({
-    queryKey: ['userSubscriptions', myUserId, 'following'],
-    queryFn: () => getUserSubscriptions(myUserId as string, 'following'),
-    enabled: myUserId != null,
+    queryKey: ['userSubscriptions', subscriptionsUserId, 'following'],
+    queryFn: () => getUserSubscriptions(subscriptionsUserId as string, 'following'),
+    enabled: subscriptionsUserId != null,
     staleTime: 60_000,
   })
 
