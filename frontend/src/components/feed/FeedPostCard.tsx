@@ -59,6 +59,102 @@ function snippetPreview(text: string): string {
   return `${compact.slice(0, 69)}...`
 }
 
+type FeedPostCardBodyProps = {
+  body: string
+  linkToDetail: boolean
+  stopPostNav: MouseEventHandler
+  stopPostNavClick: MouseEventHandler
+}
+
+/** В ленте — line-clamp и «Ещё»; на странице поста — полный текст. */
+function FeedPostCardBody({ body, linkToDetail, stopPostNav, stopPostNavClick }: FeedPostCardBodyProps) {
+  const clampRef = useRef<HTMLParagraphElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    if (!linkToDetail || expanded || body.trim() === '') {
+      const id = requestAnimationFrame(() => {
+        if (alive) setHasMore(false)
+      })
+      return () => {
+        alive = false
+        cancelAnimationFrame(id)
+      }
+    }
+    const el = clampRef.current
+    if (el == null) {
+      const id = requestAnimationFrame(() => {
+        if (alive) setHasMore(false)
+      })
+      return () => {
+        alive = false
+        cancelAnimationFrame(id)
+      }
+    }
+    const measure = () => {
+      if (!alive) return
+      setHasMore(el.scrollHeight > el.clientHeight + 1)
+    }
+    const id0 = requestAnimationFrame(measure)
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(measure)
+    })
+    ro.observe(el)
+    return () => {
+      alive = false
+      cancelAnimationFrame(id0)
+      ro.disconnect()
+    }
+  }, [linkToDetail, expanded, body])
+
+  return (
+    <div className="min-w-0">
+      <p
+        ref={linkToDetail ? clampRef : undefined}
+        className={
+          linkToDetail && !expanded
+            ? 'line-clamp-6 min-w-0 wrap-break-word text-[13px] leading-relaxed text-(--tgui--text_color)'
+            : 'min-w-0 wrap-break-word text-[13px] leading-relaxed text-(--tgui--text_color)'
+        }
+      >
+        <CommentBodyWithReactionTokens text={body} className="text-[13px] leading-relaxed" />
+      </p>
+      {linkToDetail && hasMore && !expanded ? (
+        <Button
+          type="button"
+          size="s"
+          mode="plain"
+          className="!-ms-1 !mt-0.5 !min-h-8 !justify-start !px-1 !text-xs font-semibold"
+          onMouseDown={stopPostNav}
+          onClick={(e) => {
+            stopPostNavClick(e)
+            setExpanded(true)
+          }}
+        >
+          Ещё
+        </Button>
+      ) : null}
+      {linkToDetail && expanded ? (
+        <Button
+          type="button"
+          size="s"
+          mode="plain"
+          className="!-ms-1 !mt-0.5 !min-h-8 !justify-start !px-1 !text-xs font-semibold"
+          onMouseDown={stopPostNav}
+          onClick={(e) => {
+            stopPostNavClick(e)
+            setExpanded(false)
+          }}
+        >
+          Свернуть
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
 export function FeedPostCard({
   post,
   viewerUserId = null,
@@ -537,9 +633,13 @@ export function FeedPostCard({
           </div>
 
           {body.trim() !== '' ? (
-            <p className="line-clamp-6 text-[13px] leading-relaxed text-(--tgui--text_color)">
-              <CommentBodyWithReactionTokens text={body} className="text-[13px] leading-relaxed" />
-            </p>
+            <FeedPostCardBody
+              key={post.id}
+              body={body}
+              linkToDetail={linkToDetail}
+              stopPostNav={stopPostNav}
+              stopPostNavClick={stopPostNavClick}
+            />
           ) : null}
 
           {referenced_card != null ? (
