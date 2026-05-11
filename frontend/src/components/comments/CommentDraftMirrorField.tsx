@@ -22,11 +22,13 @@ type MirrorPlaceholderProps = {
   value: string
   placeholder: string
   mirrorTextClassName: string
+  /** Класс цвета плейсхолдера (по умолчанию TGUI hint). */
+  placeholderClassName: string
 }
 
-function MirrorBody({ value, placeholder, mirrorTextClassName }: MirrorPlaceholderProps) {
+function MirrorBody({ value, placeholder, mirrorTextClassName, placeholderClassName }: MirrorPlaceholderProps) {
   if (value.length === 0) {
-    return <span className={`text-(--tgui--hint_color) ${mirrorTextClassName}`}>{placeholder}</span>
+    return <span className={`${placeholderClassName} ${mirrorTextClassName}`}>{placeholder}</span>
   }
   return (
     <CommentBodyWithReactionTokens text={value} className={`whitespace-pre-wrap ${mirrorTextClassName}`} />
@@ -82,7 +84,12 @@ export const CommentDraftSingleLineInput = forwardRef<HTMLInputElement, CommentD
             className="inline-block min-h-[1.25rem] whitespace-nowrap text-[13px] leading-normal text-(--tgui--text_color)"
             style={{ transform: `translateX(-${scrollLeft}px)` }}
           >
-            <MirrorBody value={value} placeholder={placeholder} mirrorTextClassName="text-[13px] leading-normal" />
+            <MirrorBody
+              value={value}
+              placeholder={placeholder}
+              mirrorTextClassName="text-[13px] leading-normal"
+              placeholderClassName="text-(--tgui--hint_color)"
+            />
           </div>
         </div>
         <input
@@ -103,17 +110,26 @@ export const CommentDraftSingleLineInput = forwardRef<HTMLInputElement, CommentD
   },
 )
 
+/** Caret position after edit (from the native change event); needed for @-mention sync before React commits). */
+export type CommentDraftChangeMeta = {
+  caret: number
+}
+
 export type CommentDraftMultilineProps = {
   value: string
-  onChange: (value: string) => void
+  onChange: (value: string, meta?: CommentDraftChangeMeta) => void
   placeholder: string
   ariaLabel?: string
   disabled?: boolean
   maxLength?: number
   wrapperClassName?: string
   textareaClassName?: string
+  /** Цвет текста в зеркале (видимый текст и токены реакций). */
+  mirrorOverlayTextClassName?: string
+  /** Цвет плейсхолдера в зеркале, когда поле пустое. */
+  mirrorPlaceholderClassName?: string
   rows?: number
-} & Pick<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onKeyDown'>
+} & Pick<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onKeyDown' | 'onKeyUp' | 'onSelect'>
 
 export const CommentDraftMultiline = forwardRef<HTMLTextAreaElement, CommentDraftMultilineProps>(
   function CommentDraftMultiline(
@@ -126,8 +142,12 @@ export const CommentDraftMultiline = forwardRef<HTMLTextAreaElement, CommentDraf
       maxLength,
       wrapperClassName = '',
       textareaClassName = '',
+      mirrorOverlayTextClassName = 'text-(--tgui--text_color)',
+      mirrorPlaceholderClassName = 'text-(--tgui--hint_color)',
       rows = 4,
       onKeyDown,
+      onKeyUp,
+      onSelect,
     },
     ref,
   ) {
@@ -149,10 +169,15 @@ export const CommentDraftMultiline = forwardRef<HTMLTextAreaElement, CommentDraf
           className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] px-3 py-2"
         >
           <div
-            className="break-words whitespace-pre-wrap text-sm leading-normal text-(--tgui--text_color)"
+            className={`break-words whitespace-pre-wrap text-sm leading-normal ${mirrorOverlayTextClassName}`}
             style={{ transform: `translateY(-${scrollTop}px)` }}
           >
-            <MirrorBody value={value} placeholder={placeholder} mirrorTextClassName="text-sm leading-normal" />
+            <MirrorBody
+              value={value}
+              placeholder={placeholder}
+              mirrorTextClassName="text-sm leading-normal"
+              placeholderClassName={mirrorPlaceholderClassName}
+            />
           </div>
         </div>
         <textarea
@@ -163,9 +188,14 @@ export const CommentDraftMultiline = forwardRef<HTMLTextAreaElement, CommentDraf
           rows={rows}
           placeholder=""
           aria-label={ariaLabel ?? placeholder}
-          onChange={(e) => onChange(e.currentTarget.value)}
+          onChange={(e) => {
+            const t = e.currentTarget
+            onChange(t.value, { caret: t.selectionStart ?? t.value.length })
+          }}
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
+          onSelect={onSelect}
           className={`relative z-10 min-h-24 w-full resize-y bg-transparent px-3 py-2 text-sm text-transparent caret-(--tgui--text_color) outline-none selection:bg-[color-mix(in_srgb,var(--tgui--link_color)_24%,transparent)] disabled:opacity-50 ${textareaClassName}`}
         />
       </div>

@@ -1,5 +1,7 @@
 import { readAccessToken } from '../lib/filmonySession'
 
+import { readHttpErrorDetail } from './readHttpErrorDetail'
+
 export function resolveApiUrl(path: string): string {
   const base = import.meta.env.VITE_API_ORIGIN?.trim().replace(/\/$/, '') ?? ''
   if (!base) {
@@ -23,17 +25,8 @@ export class ApiError extends Error {
   }
 }
 
-async function readErrorDetail(res: Response): Promise<unknown> {
-  const ct = res.headers.get('content-type') ?? ''
-  if (ct.includes('application/json')) {
-    try {
-      const body = (await res.json()) as { detail?: unknown }
-      return body.detail ?? body
-    } catch {
-      return null
-    }
-  }
-  return await res.text()
+export async function readErrorDetail(res: Response): Promise<unknown> {
+  return readHttpErrorDetail(res)
 }
 
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {

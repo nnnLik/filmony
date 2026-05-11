@@ -1,16 +1,20 @@
 import { ApiError, apiFetch, apiJson } from './client'
+import { readHttpErrorDetail } from './readHttpErrorDetail'
 import type {
   CardCompany,
   CardMoodAfter,
   CardMoodBefore,
   FeedListMode,
+  FeedMovieCard,
   FeedMovieCardPage,
+  FeedPageItem,
   Film,
   FollowingRatingsResponse,
   MovieCard,
   MovieCardComment,
   MovieCardCommentPage,
 } from './profileTypes'
+import type { FeedPostInFeed } from './feedInFeedTypes'
 
 export type CreateMovieCardPayload = {
   film_id: number
@@ -43,16 +47,7 @@ export async function createMovieCard(body: CreateMovieCardPayload): Promise<Mov
 }
 
 async function readActionErrorDetail(res: Response): Promise<unknown> {
-  const ct = res.headers.get('content-type') ?? ''
-  if (ct.includes('application/json')) {
-    try {
-      const body = (await res.json()) as { detail?: unknown }
-      return body.detail ?? body
-    } catch {
-      return null
-    }
-  }
-  return await res.text()
+  return readHttpErrorDetail(res)
 }
 
 async function assertActionOk(res: Response): Promise<void> {
@@ -81,6 +76,13 @@ export async function getFollowingRatingsForCard(cardId: number): Promise<Follow
   return apiJson<FollowingRatingsResponse>(`/api/cards/${cardId}/following-ratings`)
 }
 
+function normalizeFeedPageItem(raw: Record<string, unknown>): FeedPageItem {
+  if (raw.kind === 'feed_post') {
+    return raw as FeedPostInFeed
+  }
+  return { ...raw, kind: 'movie_card' as const } as FeedMovieCard
+}
+
 export async function getMovieCardFeedPage(params?: {
   cursor?: string | null
   limit?: number
@@ -92,7 +94,13 @@ export async function getMovieCardFeedPage(params?: {
   if (params?.limit != null) search.set('limit', String(params.limit))
   if (params?.mode != null && params.mode !== 'default') search.set('mode', params.mode)
   const suffix = search.toString()
-  return apiJson<FeedMovieCardPage>(`/api/cards/feed${suffix ? `?${suffix}` : ''}`)
+  const body = await apiJson<{ items: Record<string, unknown>[]; next_cursor: string | null }>(
+    `/api/cards/feed${suffix ? `?${suffix}` : ''}`,
+  )
+  return {
+    next_cursor: body.next_cursor,
+    items: body.items.map(normalizeFeedPageItem),
+  }
 }
 
 export const updateMovieCard: (cardId: number, body: UpdateMovieCardPayload) => Promise<MovieCard> = async (

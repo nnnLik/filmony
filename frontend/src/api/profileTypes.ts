@@ -1,3 +1,7 @@
+import type { FeedPostInFeed, FeedPostReferencedCard, UserFeedPostsPage } from './feedInFeedTypes'
+
+export type { FeedPostInFeed, FeedPostReferencedCard, UserFeedPostsPage }
+
 export type MyMovieCardTagStatItem = {
   tag: string
   use_count: number
@@ -164,15 +168,17 @@ export type MovieCard = {
 /** Query-параметр `mode` для GET /api/cards/feed */
 export type FeedListMode = 'default' | 'subscriptions_only' | 'subscribers_only'
 
-/** Источник карточки в персональной ленте (ответ GET /api/cards/feed) */
+/** Источник элемента в персональной ленте (ответ GET /api/cards/feed) */
 export type FeedCardSource =
   | 'subscriptions'
   | 'subscribers'
   | 'personal_affinity'
   | 'discovery'
+  | 'feed_posts'
 
 /** Карточка ленты: данные тайтла и автора из GET /api/cards/feed */
 export type FeedMovieCard = MovieCard & {
+  kind: 'movie_card'
   user_id: string
   feed_source: FeedCardSource
   card_author: MovieCardCommentAuthor
@@ -180,9 +186,22 @@ export type FeedMovieCard = MovieCard & {
   comments_preview: MovieCardComment[]
 }
 
+export type FeedPageItem = FeedMovieCard | FeedPostInFeed
+
 export type FeedMovieCardPage = {
-  items: FeedMovieCard[]
+  items: FeedPageItem[]
   next_cursor: string | null
+}
+
+/** Ответ POST /api/feed-posts */
+export type FeedPostPayload = {
+  id: number
+  user_id: string
+  body: string
+  image_url: string | null
+  referenced_movie_card_id: number | null
+  source_comment_id: number | null
+  created_at: string
 }
 
 export type FollowingRatingEntry = {

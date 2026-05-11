@@ -210,7 +210,7 @@ async def test_feed_subscriptions_only_excludes_non_subscription_streams(
     assert sub_only.status_code == 200
     sub_items = sub_only.json()['items']
     assert str(s_id) not in [it['user_id'] for it in sub_items]
-    assert all(it['feed_source'] == 'subscriptions' for it in sub_items)
+    assert all(it['feed_source'] in ('subscriptions', 'feed_posts') for it in sub_items)
 
 
 @pytest.mark.asyncio

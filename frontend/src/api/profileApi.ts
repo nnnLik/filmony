@@ -9,6 +9,7 @@ import type {
   PublicProfile,
   SubscriptionListResponse,
   SubscriptionListType,
+  UserFeedPostsPage,
   UserMovieCardStats,
   WatchlistFilmItem,
   WatchlistFilmPage,
@@ -120,6 +121,21 @@ export async function getUserMovieCardTags(userId: string): Promise<MyMovieCardT
   return apiJson<MyMovieCardTagStatsResponse>(
     `/api/users/${encodeURIComponent(userId)}/movie-card-tags`,
   )
+}
+
+export async function getUserFeedPosts(
+  userId: string,
+  params: { cursor?: string | null; limit?: number },
+): Promise<UserFeedPostsPage> {
+  const q = new URLSearchParams()
+  if (params.cursor) {
+    q.set('cursor', params.cursor)
+  }
+  if (params.limit != null) {
+    q.set('limit', String(params.limit))
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : ''
+  return apiJson<UserFeedPostsPage>(`/api/users/${encodeURIComponent(userId)}/feed-posts${suffix}`)
 }
 
 export async function getUserWatchlist(

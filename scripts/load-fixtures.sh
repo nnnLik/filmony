@@ -42,6 +42,7 @@ ORDER=(
 	user_reaction.sql
 	movie_card_tag.sql
 	user_subscription.sql
+	feed_post.sql
 )
 
 for f in "${ORDER[@]}"; do

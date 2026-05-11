@@ -7,12 +7,13 @@ import {
   getMyProfile,
   getPublicProfileById,
   getUserCards,
+  getUserFeedPosts,
   getUserSubscriptions,
   getUserWatchlist,
   subscribeToUser,
   unsubscribeFromUser,
 } from '../api/profileApi'
-import type { MovieCard, MovieCardPage, PublicProfile, WatchlistFilmPage } from '../api/profileTypes'
+import type { MovieCard, MovieCardPage, PublicProfile, UserFeedPostsPage, WatchlistFilmPage } from '../api/profileTypes'
 import {
   DEFAULT_RATED_CARDS_QUERY,
   type RatedCardsListQuery,
@@ -28,6 +29,7 @@ import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCard
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
+import { FeedPostCard } from '../components/feed/FeedPostCard'
 
 function shownCount(value: number | undefined): string {
   return typeof value === 'number' ? String(value) : '0'
@@ -63,7 +65,11 @@ export function PublicProfilePage() {
   const [myUserId, setMyUserId] = useState<string | null>(null)
   const [isFollowing, setIsFollowing] = useState<boolean>(false)
   const [followBusy, setFollowBusy] = useState(false)
-  const [mainTab, setMainTab] = useState<'movies' | 'stats'>('movies')
+  const [feedPosts, setFeedPosts] = useState<UserFeedPostsPage | null>(null)
+  const [postsLoading, setPostsLoading] = useState(false)
+  const [postsErr, setPostsErr] = useState<string | null>(null)
+  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
+  const [mainTab, setMainTab] = useState<'movies' | 'posts' | 'stats'>('movies')
   const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>('rated')
   const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
   const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
@@ -108,6 +114,7 @@ export function PublicProfilePage() {
       setError(null)
       setCards(null)
       setWatchlist(null)
+      setFeedPosts(null)
       setCardsError(null)
       setWatchlistError(null)
       try {
@@ -157,6 +164,7 @@ export function PublicProfilePage() {
         setProfile(null)
         setCards(null)
         setWatchlist(null)
+        setFeedPosts(null)
       }
     })()
     return () => {
@@ -206,6 +214,32 @@ export function PublicProfilePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- profile.id, ratedQuery via key
   }, [auth.kind, profile?.id, mainTab, moviesSegment, ratedQueryKey])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready' || profile == null || mainTab !== 'posts') {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setPostsLoading(true)
+      setPostsErr(null)
+      try {
+        const page = await getUserFeedPosts(profile.id, { limit: 20 })
+        if (!alive) return
+        setFeedPosts(page)
+      } catch (e) {
+        if (!alive) return
+        setPostsErr(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось загрузить посты')
+        setFeedPosts(null)
+      } finally {
+        if (alive) setPostsLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- profile.id достаточно
+  }, [auth.kind, profile?.id, mainTab])
 
   useEffect(() => {
     if (profile == null) {
@@ -296,6 +330,32 @@ export function PublicProfilePage() {
     }
   }, [profile, watchlist])
 
+  const loadMorePosts = useCallback(async () => {
+    if (profile == null || feedPosts?.next_cursor == null || feedPosts.next_cursor === '') {
+      return
+    }
+    setPostsLoadingMore(true)
+    setPostsErr(null)
+    try {
+      const page = await getUserFeedPosts(profile.id, { cursor: feedPosts.next_cursor, limit: 20 })
+      setFeedPosts((prev) => {
+        if (prev == null) return page
+        return {
+          items: [...prev.items, ...page.items],
+          next_cursor: page.next_cursor,
+        }
+      })
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setPostsErr(formatApiDetail(e.detail))
+      } else {
+        setPostsErr(e instanceof Error ? e.message : 'Ошибка загрузки')
+      }
+    } finally {
+      setPostsLoadingMore(false)
+    }
+  }, [profile, feedPosts])
+
   const handleFavoriteToggled = useCallback((cardId: number, nextFavorite: boolean) => {
     setCards((prev) => {
       if (prev == null) {
@@ -337,6 +397,16 @@ export function PublicProfilePage() {
       (watchlist?.items.length ?? 0) > 0,
     isBusy: loadingMoreWatchlist,
     onLoadMore: () => void loadMoreWatchlist(),
+  })
+
+  const postsLoadMoreRef = useInfiniteScrollLoadMore({
+    enabled:
+      auth.kind === 'ready' &&
+      mainTab === 'posts' &&
+      Boolean(feedPosts?.next_cursor) &&
+      (feedPosts?.items.length ?? 0) > 0,
+    isBusy: postsLoadingMore,
+    onLoadMore: () => void loadMorePosts(),
   })
 
   const canLoadMore = Boolean(cards?.next_cursor)
@@ -503,10 +573,10 @@ export function PublicProfilePage() {
           <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
         ) : null}
 
-        <div className="mb-4 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
+        <div className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
           <button
             type="button"
-            className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
+            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
               mainTab === 'movies'
                 ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
                 : 'text-(--tgui--hint_color)'
@@ -517,7 +587,18 @@ export function PublicProfilePage() {
           </button>
           <button
             type="button"
-            className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
+            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
+              mainTab === 'posts'
+                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
+                : 'text-(--tgui--hint_color)'
+            }`}
+            onClick={() => setMainTab('posts')}
+          >
+            Посты
+          </button>
+          <button
+            type="button"
+            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
               mainTab === 'stats'
                 ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
                 : 'text-(--tgui--hint_color)'
@@ -625,6 +706,35 @@ export function PublicProfilePage() {
                 ) : null}
               </>
             )}
+          </Section>
+        ) : mainTab === 'posts' ? (
+          <Section header="Посты">
+            <div className="mx-4 mt-2 space-y-3 pb-3">
+              {postsErr != null ? (
+                <p className="text-center text-sm text-(--tgui--destructive_text_color)">{postsErr}</p>
+              ) : null}
+              {postsLoading ? (
+                <p className="py-8 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
+              ) : null}
+              {!postsLoading && feedPosts != null && feedPosts.items.length === 0 ? (
+                <p className="py-8 text-center text-sm text-(--tgui--hint_color)">Пока нет постов в ленте</p>
+              ) : null}
+              {!postsLoading && feedPosts != null && feedPosts.items.length > 0 ? (
+                <>
+                  {feedPosts.items.map((post) => (
+                    <FeedPostCard key={`public-profile-post-${post.id}`} post={post} viewerUserId={myUserId} />
+                  ))}
+                  {feedPosts.next_cursor != null && feedPosts.next_cursor !== '' ? (
+                    <>
+                      <div ref={postsLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
+                      {postsLoadingMore ? (
+                        <p className="text-center text-xs text-(--tgui--hint_color)">Подгружаем посты…</p>
+                      ) : null}
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
           </Section>
         ) : (
           <div className="space-y-4">

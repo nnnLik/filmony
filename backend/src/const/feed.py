@@ -9,6 +9,7 @@ StreamName = Literal[
     'subscribers',
     'personal_affinity',
     'discovery',
+    'feed_posts',
 ]
 
 # Сколько id максимум держим в каждом внутреннем потоке за один запрос (глубокая пагинация
@@ -22,7 +23,7 @@ FEED_CURSOR_SEEN_MAX: Final[int] = 2048
 AFFINITY_CANDIDATE_SCAN: Final[int] = 500
 
 # Один слот из каждых N отдаётся каналу discovery (диапазон продукта 5–10).
-DISCOVERY_EVERY_N_SLOTS: Final[int] = 7
+DISCOVERY_EVERY_N_SLOTS: Final[int] = 8
 
 # Не чаще чем раз в N слотов брать карточку с тем же автором или тем же фильмом, что уже
 # в хвосте последних выдач (окно = K последних позиций). Свои карточки зрителя не режутся.
@@ -31,7 +32,7 @@ ANTI_SPAM_WINDOW: Final[int] = 2
 GENRE_OVERLAP_WEIGHT: Final[int] = 2
 TAG_OVERLAP_WEIGHT: Final[int] = 3
 
-# Цикл слотов: соцграф + affinity + discovery (детерминированное чередование, без потока «свои»).
+# Цикл слотов: соцграф + affinity + текстовые посты + discovery (детерминированное чередование).
 SLOT_PATTERN: Final[tuple[StreamName, ...]] = (
     'subscriptions',
     'subscriptions',
@@ -39,6 +40,7 @@ SLOT_PATTERN: Final[tuple[StreamName, ...]] = (
     'subscriptions',
     'personal_affinity',
     'subscribers',
+    'feed_posts',
     'discovery',
 )
 
@@ -47,6 +49,7 @@ FALLBACK_ORDER: Final[tuple[StreamName, ...]] = (
     'subscriptions',
     'subscribers',
     'personal_affinity',
+    'feed_posts',
     'discovery',
 )
 
@@ -55,6 +58,7 @@ STREAM_KEYS: Final[tuple[StreamName, ...]] = (
     'subscribers',
     'personal_affinity',
     'discovery',
+    'feed_posts',
 )
 
 VALID_FEED_MODES: Final[frozenset[str]] = frozenset(
@@ -63,9 +67,10 @@ VALID_FEED_MODES: Final[frozenset[str]] = frozenset(
 
 ALLOWED_STREAMS_BY_MODE: Final[dict[FeedMode, frozenset[StreamName]]] = {
     'default': frozenset(STREAM_KEYS),
-    'subscriptions_only': frozenset(('subscriptions',)),
-    'subscribers_only': frozenset(('subscribers',)),
+    'subscriptions_only': frozenset(('subscriptions', 'feed_posts')),
+    'subscribers_only': frozenset(('subscribers', 'feed_posts')),
 }
 
 assert len(SLOT_PATTERN) == DISCOVERY_EVERY_N_SLOTS
 assert sum(1 for s in SLOT_PATTERN if s == 'discovery') == 1
+assert sum(1 for s in SLOT_PATTERN if s == 'feed_posts') == 1

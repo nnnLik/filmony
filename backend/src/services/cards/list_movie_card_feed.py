@@ -4,7 +4,7 @@ import base64
 import datetime as dt
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import const.feed
 from const.feed import FeedMode
+from models.feed_post import FeedPost
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
@@ -72,8 +73,34 @@ class MovieCardFeedItem:
 
 
 @dataclass(frozen=True, slots=True)
+class FeedPostReferencedCardSnippet:
+    movie_card_id: int
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
+    rating: float
+
+
+@dataclass(frozen=True, slots=True)
+class FeedPostFeedItem:
+    id: int
+    user_id: UUID
+    author: MovieCardCommentAuthor
+    body: str
+    image_url: str | None
+    referenced_movie_card_id: int | None
+    source_comment_id: int | None
+    created_at: dt.datetime
+    feed_source: const.feed.StreamName
+    referenced_card: FeedPostReferencedCardSnippet | None
+
+
+FeedPageEntry = MovieCardFeedItem | FeedPostFeedItem
+
+
+@dataclass(frozen=True, slots=True)
 class MovieCardFeedPage:
-    items: list[MovieCardFeedItem]
+    items: list[FeedPageEntry]
     next_cursor: str | None
 
 
@@ -81,7 +108,8 @@ class MovieCardFeedPage:
 class _MergeState:
     offsets: dict[str, int]
     slot_index: int
-    seen: set[int]
+    seen_cards: set[int]
+    seen_posts: set[int]
     tail_author_ids: list[str]
     tail_film_ids: list[int]
     feed_mode: FeedMode
@@ -91,7 +119,8 @@ class _MergeState:
         return cls(
             offsets=dict.fromkeys(const.feed.STREAM_KEYS, 0),
             slot_index=0,
-            seen=set(),
+            seen_cards=set(),
+            seen_posts=set(),
             tail_author_ids=[],
             tail_film_ids=[],
             feed_mode=feed_mode,
@@ -104,10 +133,20 @@ class _MergeState:
         offsets = _parse_cursor_offsets(data.get('offsets'))
         if offsets is None:
             return None
-        seen_list = data.get('seen', [])
-        if not isinstance(seen_list, list):
-            return None
-        seen = {int(x) for x in seen_list}
+        seen_cards: set[int] = set()
+        seen_posts: set[int] = set()
+        sc = data.get('seen_cards')
+        if isinstance(sc, list):
+            seen_cards = {int(x) for x in sc}
+        else:
+            legacy = data.get('seen', [])
+            if isinstance(legacy, list):
+                seen_cards = {int(x) for x in legacy}
+            else:
+                return None
+        sp = data.get('seen_posts', [])
+        if isinstance(sp, list):
+            seen_posts = {int(x) for x in sp}
         ta = data.get('tail_authors', [])
         tf = data.get('tail_films', [])
         if not isinstance(ta, list) or not isinstance(tf, list):
@@ -118,22 +157,27 @@ class _MergeState:
         return cls(
             offsets=offsets,
             slot_index=int(data.get('slot_index', 0)),
-            seen=seen,
+            seen_cards=seen_cards,
+            seen_posts=seen_posts,
             tail_author_ids=[str(x) for x in ta],
             tail_film_ids=[int(x) for x in tf],
             feed_mode=raw_mode,
         )
 
     def to_payload(self) -> dict[str, Any]:
-        seen_list = sorted(self.seen)
         cap = const.feed.FEED_CURSOR_SEEN_MAX
-        if len(seen_list) > cap:
-            seen_list = seen_list[-cap:]
+        sc_list = sorted(self.seen_cards)
+        if len(sc_list) > cap:
+            sc_list = sc_list[-cap:]
+        sp_list = sorted(self.seen_posts)
+        if len(sp_list) > cap:
+            sp_list = sp_list[-cap:]
         return {
             'v': 1,
             'offsets': {k: self.offsets[k] for k in const.feed.STREAM_KEYS},
             'slot_index': self.slot_index,
-            'seen': seen_list,
+            'seen_cards': sc_list,
+            'seen_posts': sp_list,
             'tail_authors': list(self.tail_author_ids),
             'tail_films': list(self.tail_film_ids),
             'mode': self.feed_mode,
@@ -143,7 +187,8 @@ class _MergeState:
         return _MergeState(
             offsets=dict(self.offsets),
             slot_index=self.slot_index,
-            seen=set(self.seen),
+            seen_cards=set(self.seen_cards),
+            seen_posts=set(self.seen_posts),
             tail_author_ids=list(self.tail_author_ids),
             tail_film_ids=list(self.tail_film_ids),
             feed_mode=self.feed_mode,
@@ -176,7 +221,7 @@ def _decode_cursor(cursor: str | None) -> _MergeState | None:
 
 
 class ListMovieCardFeedService:
-    """Собирает персональную ленту карточек из нескольких потоков и возвращает источник каждой позиции."""
+    """Собирает персональную ленту: карточки фильмов и текстовые посты из нескольких потоков."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -208,19 +253,48 @@ class ListMovieCardFeedService:
             graph_user_ids=graph_user_ids,
             genre_profile=genre_profile,
             tag_profile=tag_profile,
+            feed_mode=feed_mode,
         )
         streams = self._streams_for_mode(streams, feed_mode)
 
-        ordered_pairs, next_state, has_more = self._merge_feed(
+        ordered_picks, next_state, has_more = self._merge_feed(
             merge_state, streams, limit, viewer_user_id
         )
 
-        ordered_ids = [p[0] for p in ordered_pairs]
-        source_by_id = dict(ordered_pairs)
+        card_ids_order: list[int] = []
+        post_ids_order: list[int] = []
+        source_by_card: dict[int, const.feed.StreamName] = {}
+        source_by_post: dict[int, const.feed.StreamName] = {}
+        for kind, item_id, src in ordered_picks:
+            if kind == 'card':
+                card_ids_order.append(item_id)
+                source_by_card[item_id] = src
+            else:
+                post_ids_order.append(item_id)
+                source_by_post[item_id] = src
 
-        visible_rows = await self._load_card_rows_ordered(ordered_ids)
-        items = await self._hydrate_feed_items(viewer_user_id, visible_rows, source_by_id)
-        items = [it for it in items if it.user_id != viewer_user_id]
+        visible_rows = await self._load_card_rows_ordered(card_ids_order)
+        card_items = await self._hydrate_feed_items(viewer_user_id, visible_rows, source_by_card)
+        card_by_id = {it.id: it for it in card_items}
+        post_items = await self._hydrate_feed_post_items(
+            viewer_user_id, post_ids_order, source_by_post
+        )
+        post_by_id = {it.id: it for it in post_items}
+
+        items: list[FeedPageEntry] = []
+        for kind, item_id, _src in ordered_picks:
+            if kind == 'card':
+                if item_id in card_by_id:
+                    items.append(card_by_id[item_id])
+            elif item_id in post_by_id:
+                items.append(post_by_id[item_id])
+
+        # Свои карточки фильмов в ленту не показываем; свои текстовые посты — показываем.
+        items = [
+            it
+            for it in items
+            if not (isinstance(it, MovieCardFeedItem) and it.user_id == viewer_user_id)
+        ]
 
         next_cursor: str | None = _encode_cursor(next_state) if has_more else None
         return MovieCardFeedPage(items=items, next_cursor=next_cursor)
@@ -285,6 +359,32 @@ class ListMovieCardFeedService:
         tset = {_norm_tag(t) for t in tag_rows}
         return gset, tset
 
+    async def _build_post_stream(
+        self,
+        *,
+        viewer_user_id: UUID,
+        following_ids: set[UUID],
+        follower_ids: set[UUID],
+        feed_mode: FeedMode,
+    ) -> list[tuple[int, UUID, int]]:
+        if feed_mode == 'subscriptions_only':
+            author_ids = {viewer_user_id, *following_ids}
+        elif feed_mode == 'subscribers_only':
+            author_ids = {viewer_user_id, *follower_ids}
+        else:
+            author_ids = {viewer_user_id, *following_ids, *follower_ids}
+        if not author_ids:
+            return []
+        q = (
+            select(FeedPost.id, FeedPost.user_id)
+            .where(FeedPost.user_id.in_(author_ids))
+            .order_by(FeedPost.created_at.desc(), FeedPost.id.desc())
+            .limit(const.feed.STREAM_POOL_LIMIT)
+        )
+        rows = (await self._session.execute(q)).all()
+        # film_id placeholder -1: пост без привязки к фильму в антиспаме по фильму
+        return [(int(r[0]), r[1], -1) for r in rows]
+
     async def _build_streams(
         self,
         *,
@@ -294,6 +394,7 @@ class ListMovieCardFeedService:
         graph_user_ids: set[UUID],
         genre_profile: set[str],
         tag_profile: set[str],
+        feed_mode: FeedMode,
     ) -> dict[const.feed.StreamName, list[tuple[int, UUID, int]]]:
         async def _ordered_cards(where_clause: Any) -> list[tuple[int, UUID, int]]:
             q = (
@@ -319,11 +420,19 @@ class ListMovieCardFeedService:
 
         affinity = await self._build_affinity_stream(viewer_user_id, genre_profile, tag_profile)
 
+        feed_posts = await self._build_post_stream(
+            viewer_user_id=viewer_user_id,
+            following_ids=following_ids,
+            follower_ids=follower_ids,
+            feed_mode=feed_mode,
+        )
+
         return {
             'subscriptions': sub_cards,
             'subscribers': subr_cards,
             'personal_affinity': affinity,
             'discovery': disc,
+            'feed_posts': feed_posts,
         }
 
     async def _build_affinity_stream(
@@ -390,10 +499,10 @@ class ListMovieCardFeedService:
         streams: dict[const.feed.StreamName, list[tuple[int, UUID, int]]],
         limit: int,
         viewer_user_id: UUID,
-    ) -> tuple[list[tuple[int, const.feed.StreamName]], _MergeState, bool]:
+    ) -> tuple[list[tuple[Literal['card', 'post'], int, const.feed.StreamName]], _MergeState, bool]:
         """Состояние merge после ровно min(limit, доступно) выдач; has_more — есть ли ещё один кандидат."""
         working = state.clone()
-        out: list[tuple[int, const.feed.StreamName]] = []
+        out: list[tuple[Literal['card', 'post'], int, const.feed.StreamName]] = []
         max_steps = max(5000, limit * 200)
         for _ in range(max_steps):
             if len(out) >= limit:
@@ -412,7 +521,7 @@ class ListMovieCardFeedService:
         streams: dict[const.feed.StreamName, list[tuple[int, UUID, int]]],
         st: _MergeState,
         viewer_user_id: UUID,
-    ) -> tuple[int, const.feed.StreamName] | None:
+    ) -> tuple[Literal['card', 'post'], int, const.feed.StreamName] | None:
         primary = const.feed.SLOT_PATTERN[st.slot_index % len(const.feed.SLOT_PATTERN)]
         got = self._take_next_from_stream(primary, streams, st, viewer_user_id)
         if got is None:
@@ -426,7 +535,11 @@ class ListMovieCardFeedService:
             return None
 
         stream_name, cid, uid, fid, _ = got
-        st.seen.add(cid)
+        is_post = stream_name == 'feed_posts'
+        if is_post:
+            st.seen_posts.add(cid)
+        else:
+            st.seen_cards.add(cid)
         st.tail_author_ids.append(str(uid))
         st.tail_film_ids.append(fid)
         k = const.feed.ANTI_SPAM_WINDOW
@@ -434,7 +547,8 @@ class ListMovieCardFeedService:
             st.tail_author_ids = st.tail_author_ids[-k:]
             st.tail_film_ids = st.tail_film_ids[-k:]
         st.slot_index += 1
-        return cid, stream_name
+        kind: Literal['card', 'post'] = 'post' if is_post else 'card'
+        return kind, cid, stream_name
 
     def _take_next_from_stream(
         self,
@@ -444,12 +558,14 @@ class ListMovieCardFeedService:
         viewer_user_id: UUID,
     ) -> tuple[const.feed.StreamName, int, UUID, int, int] | None:
         stream = streams[stream_name]
+        is_post = stream_name == 'feed_posts'
+        seen = st.seen_posts if is_post else st.seen_cards
         i = st.offsets[stream_name]
         while i < len(stream):
             cid, uid, fid = stream[i]
             i += 1
             st.offsets[stream_name] = i
-            if cid in st.seen:
+            if cid in seen:
                 continue
             if self._violates_antispam(uid, fid, st, viewer_user_id):
                 continue
@@ -468,6 +584,8 @@ class ListMovieCardFeedService:
         ua = str(uid)
         if ua in st.tail_author_ids[-k:]:
             return True
+        if film_id <= 0:
+            return False
         tail = st.tail_film_ids[-k:]
         return film_id in tail
 
@@ -642,6 +760,82 @@ class ListMovieCardFeedService:
                     reactions=card_summaries[card.id],
                     feed_source=source_by_id[card.id],
                     is_favorite=bool(card.is_favorite),
+                )
+            )
+        return items
+
+    async def _hydrate_feed_post_items(
+        self,
+        _viewer_user_id: UUID,
+        ordered_post_ids: list[int],
+        source_by_id: dict[int, const.feed.StreamName],
+    ) -> list[FeedPostFeedItem]:
+        if not ordered_post_ids:
+            return []
+        rows = (
+            await self._session.execute(
+                select(FeedPost, User)
+                .join(User, User.id == FeedPost.user_id)
+                .where(FeedPost.id.in_(ordered_post_ids))
+            )
+        ).all()
+        by_id = {int(fp.id): (fp, u) for fp, u in rows}
+
+        ref_cids = [
+            int(fp.referenced_movie_card_id)
+            for fp, _ in by_id.values()
+            if fp.referenced_movie_card_id
+        ]
+        ref_by_cid: dict[int, tuple[MovieCard, Film]] = {}
+        if ref_cids:
+            rq = (
+                select(MovieCard, Film)
+                .join(Film, Film.id == MovieCard.film_id)
+                .where(MovieCard.id.in_(ref_cids))
+            )
+            for card, film in (await self._session.execute(rq)).all():
+                ref_by_cid[int(card.id)] = (card, film)
+
+        items: list[FeedPostFeedItem] = []
+        for pid in ordered_post_ids:
+            row = by_id.get(pid)
+            if row is None:
+                continue
+            fp, author_user = row
+            ref_snippet: FeedPostReferencedCardSnippet | None = None
+            rid = fp.referenced_movie_card_id
+            if rid is not None and int(rid) in ref_by_cid:
+                mc, fl = ref_by_cid[int(rid)]
+                ref_snippet = FeedPostReferencedCardSnippet(
+                    movie_card_id=int(mc.id),
+                    film_title=str(fl.title),
+                    film_year=fl.year,
+                    film_poster_url=fl.poster_url,
+                    rating=float(mc.rating),
+                )
+            author = MovieCardCommentAuthor(
+                id=author_user.id,
+                profile_slug=author_user.profile_slug,
+                username=author_user.username,
+                first_name=author_user.first_name,
+                last_name=author_user.last_name,
+                photo_url=author_user.photo_url,
+                display_name=author_user.display_name,
+            )
+            items.append(
+                FeedPostFeedItem(
+                    id=int(fp.id),
+                    user_id=fp.user_id,
+                    author=author,
+                    body=fp.body or '',
+                    image_url=fp.image_url,
+                    referenced_movie_card_id=int(rid) if rid is not None else None,
+                    source_comment_id=int(fp.source_comment_id)
+                    if fp.source_comment_id is not None
+                    else None,
+                    created_at=fp.created_at,
+                    feed_source=source_by_id[int(fp.id)],
+                    referenced_card=ref_snippet,
                 )
             )
         return items

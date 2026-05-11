@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-11T120000Z-feed-posts-mentions-code.md`
+- `2026-05-10T200000Z-feed-posts-code.md`
 - `2026-05-10T180000Z-reaction-asset-url-frontend-code.md`
 - `2026-05-10T120300Z-catalog-search-tab-docs.md`
 - `2026-05-10T120200Z-catalog-search-tab-test.md`

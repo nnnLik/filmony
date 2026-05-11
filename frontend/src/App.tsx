@@ -4,6 +4,8 @@ import { AppRoot } from '@telegram-apps/telegram-ui'
 
 import { TelegramMiniAppStartParamRedirect } from './navigation/TelegramMiniAppStartParamRedirect'
 import { AuthProvider } from './auth/AuthProvider'
+import { MentionProfileLookupBootstrap } from './components/MentionProfileLookupBootstrap'
+import { ComposeFeedPostProvider } from './compose/ComposeFeedPostProvider'
 import { ScrollToTopFab } from './components/navigation/ScrollToTopFab'
 import { QueryProvider } from './providers/QueryProvider'
 import { AppRoutes } from './routes'
@@ -15,7 +17,11 @@ export default function App() {
         <TelegramMiniAppStartParamRedirect />
         <QueryProvider>
           <AuthProvider>
-            <AppRoutes />
+            <MentionProfileLookupBootstrap>
+              <ComposeFeedPostProvider>
+                <AppRoutes />
+              </ComposeFeedPostProvider>
+            </MentionProfileLookupBootstrap>
           </AuthProvider>
         </QueryProvider>
         <ScrollToTopFab />

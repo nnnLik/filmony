@@ -4,7 +4,9 @@ import type {
   CardMoodBefore,
   FeedMovieCard,
   MovieCardComment,
+  MovieCardCommentAuthor,
 } from '../../api/profileTypes'
+import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
 
 export const COMPANY_SHORT: Record<CardCompany, string> = {
   alone: 'Один',
@@ -44,6 +46,8 @@ export function feedCardSourceBadge(card: FeedMovieCard, viewerUserId: string | 
       return 'По тегам'
     case 'discovery':
       return 'Новое'
+    case 'feed_posts':
+      return 'Пост'
     default:
       return 'Лента'
   }
@@ -71,16 +75,12 @@ export function formatRating(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
+export function authorLabelFromAuthor(a: MovieCardCommentAuthor): string {
+  return displayNameFromAuthorFields(a)
+}
+
 export function authorLabel(card: FeedMovieCard): string {
-  const a = card.card_author
-  if (a.display_name && a.display_name.trim() !== '') {
-    return a.display_name
-  }
-  if (a.username && a.username.trim() !== '') {
-    return `@${a.username}`
-  }
-  const full = [a.first_name, a.last_name].filter(Boolean).join(' ').trim()
-  return full === '' ? 'Автор' : full
+  return authorLabelFromAuthor(card.card_author)
 }
 
 export function formatCommentTime(value: string): string {

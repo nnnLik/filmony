@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
+from api.cards.schemas import UserFeedPostsPageResponse
 from api.profile.schemas import (
     MovieCardPageResponse,
     MyMovieCardTagStatItem,
@@ -30,6 +32,7 @@ from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_movie_card_stats import GetUserMovieCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_my_movie_card_tag_stats import ListMyMovieCardTagStatsService
+from services.profile.list_user_feed_posts import ListUserFeedPostsService
 from services.profile.list_user_movie_cards import ListUserMovieCardsService
 from services.subscriptions.create_user_subscription import (
     CreateUserSubscriptionService,
@@ -217,6 +220,32 @@ async def list_user_watchlist_films(
     cap = min(limit, 50)
     page = await ListUserWatchlistFilmsService(db).execute(user_id, cursor, cap)
     return build_watchlist_film_page_response(page)
+
+
+@router.get(
+    '/{user_id}/feed-posts',
+    response_model=UserFeedPostsPageResponse,
+    summary='Текстовые посты пользователя (вкладка «Посты» в профиле)',
+)
+async def list_user_feed_posts(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: str | None = None,
+    limit: int = Query(default=20, ge=1, le=50),
+) -> UserFeedPostsPageResponse:
+    exists = await GetPublicUserByIdService(db).execute(user_id)
+    if exists is None:
+        raise _not_found()
+    cap = min(limit, 50)
+    try:
+        page = await ListUserFeedPostsService(db).execute(user_id, cursor, cap)
+    except ListUserFeedPostsService.InvalidCursor:
+        raise HTTPException(status_code=422, detail='invalid cursor') from None
+    return UserFeedPostsPageResponse(
+        items=[feed_post_feed_item_to_response(it) for it in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 @router.get(

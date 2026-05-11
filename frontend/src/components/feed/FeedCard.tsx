@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom'
 import { createMovieCardComment, listAllMovieCardComments } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
+import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
+import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
@@ -160,6 +162,17 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const shownTags = card.custom_tags.slice(0, 2)
   const charsLeft = COMMENT_BODY_MAX_LEN - draft.length
 
+  const mentionProfileRows = useMemo(() => {
+    const rows = [authorLikeToMentionRow(card.card_author)]
+    for (const c of card.comments_preview) {
+      rows.push(authorLikeToMentionRow(c.author))
+    }
+    for (const c of panelComments) {
+      rows.push(authorLikeToMentionRow(c.author))
+    }
+    return rows
+  }, [card.card_author, card.comments_preview, panelComments])
+
   const insertReactionToken = useCallback((reactionTypeId: number) => {
     const token = reactionTokenFromId(reactionTypeId)
     const el = draftInputRef.current
@@ -189,6 +202,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   }
 
   return (
+    <MentionProfileLookupProvider value={mentionProfileRows}>
     <article
       data-testid={`feed-card-${card.id}`}
       className={`flex max-w-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.45)] ${
@@ -507,5 +521,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
         </div>
       </div>
     </article>
+    </MentionProfileLookupProvider>
   )
 }

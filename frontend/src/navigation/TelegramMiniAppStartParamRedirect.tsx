@@ -22,24 +22,42 @@ export function TelegramMiniAppStartParamRedirect() {
     if (sp == null || sp === '') {
       return
     }
-    const m = /^c(\d+)$/i.exec(sp)
-    if (m == null) {
+    const cardMatch = /^c(\d+)$/i.exec(sp)
+    if (cardMatch != null) {
+      const cardId = Number(cardMatch[1])
+      if (!Number.isInteger(cardId) || cardId < 1) {
+        return
+      }
+      const key = `filmony.handled_start_param.${sp}`
+      if (sessionStorage.getItem(key) === '1') {
+        return
+      }
+      ran.current = true
+      sessionStorage.setItem(key, '1')
+      void navigate(`/cards/${cardId}`, {
+        replace: true,
+        state: { cardEntry: 'telegram_start_param' as const },
+      })
       return
     }
-    const cardId = Number(m[1])
-    if (!Number.isInteger(cardId) || cardId < 1) {
-      return
+
+    const postMatch = /^p(\d+)$/i.exec(sp)
+    if (postMatch != null) {
+      const postId = Number(postMatch[1])
+      if (!Number.isInteger(postId) || postId < 1) {
+        return
+      }
+      const key = `filmony.handled_start_param.${sp}`
+      if (sessionStorage.getItem(key) === '1') {
+        return
+      }
+      ran.current = true
+      sessionStorage.setItem(key, '1')
+      void navigate('/', {
+        replace: true,
+        state: { feedHighlightPostId: postId },
+      })
     }
-    const key = `filmony.handled_start_param.${sp}`
-    if (sessionStorage.getItem(key) === '1') {
-      return
-    }
-    ran.current = true
-    sessionStorage.setItem(key, '1')
-    void navigate(`/cards/${cardId}`, {
-      replace: true,
-      state: { cardEntry: 'telegram_start_param' as const },
-    })
   }, [navigate])
 
   return null

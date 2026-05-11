@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import type { ReactionGroupedCatalog } from '../../api/profileTypes'
 import { ApiError, formatApiDetail } from '../../api/client'
-import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
+import { useMentionProfileLookup } from '../../hooks/useMentionProfileLookup'
 import { splitCommentTextIntoSegments } from '../../lib/commentReactionTokens'
+import { mentionHandleForDisplay } from '../../lib/mentionProfileLookupUtils'
+import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
+
+const MENTION_CHIP_CLASS =
+  'mx-0.5 inline-block rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_50%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_14%,transparent)] px-1 py-0.5 align-[-0.12em] text-[0.92em] font-semibold tabular-nums text-(--tgui--text_color) no-underline transition-opacity hover:opacity-95 active:opacity-90'
 
 type CommentBodyWithReactionTokensProps = {
   text: string
@@ -22,8 +28,12 @@ function buildImageUrlMap(catalog: ReactionGroupedCatalog): Map<number, string> 
 }
 
 export function CommentBodyWithReactionTokens({ text, className }: CommentBodyWithReactionTokensProps) {
+  const mentionProfiles = useMentionProfileLookup()
   const segments = useMemo(() => splitCommentTextIntoSegments(text), [text])
-  const needsCatalog = useMemo(() => segments.some((s) => s.type === 'reaction'), [segments])
+  const needsCatalog = useMemo(
+    () => segments.some((s) => s.type === 'reaction'),
+    [segments],
+  )
   const [urlById, setUrlById] = useState<Map<number, string>>(() => new Map())
   const [catalogError, setCatalogError] = useState<string | null>(null)
 
@@ -62,6 +72,31 @@ export function CommentBodyWithReactionTokens({ text, className }: CommentBodyWi
           return (
             <span key={`t-${i}`} className="whitespace-pre-wrap">
               {seg.value}
+            </span>
+          )
+        }
+        if (seg.type === 'mention') {
+          const row = mentionProfiles.get(seg.profileSlug)
+          const handle = mentionHandleForDisplay(row?.username, seg.profileSlug)
+          const label = `@${handle}`
+          const slugTitle = `@${seg.profileSlug}`
+          if (row != null) {
+            return (
+              <Link
+                key={`m-${i}`}
+                to={`/u/${encodeURIComponent(row.userId)}`}
+                className={MENTION_CHIP_CLASS}
+                title={row.username?.trim() ? `${label} (${slugTitle})` : slugTitle}
+                aria-label={`Профиль ${label}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {label}
+              </Link>
+            )
+          }
+          return (
+            <span key={`m-${i}`} className={MENTION_CHIP_CLASS} title={slugTitle}>
+              {label}
             </span>
           )
         }

@@ -13,7 +13,8 @@
 7. `movie_card_comment.sql` — комментарии (текст до 100 символов), в т.ч. ответы (`parent_comment_id`).  
 8. `user_reaction.sql` — реакции на карточки и комментарии (`movie_card`, `movie_card_comment`).  
 9. `movie_card_tag.sql` — теги карточек.  
-10. `user_subscription.sql` — подписки (пара `follower` → `following` уникальна).
+10. `user_subscription.sql` — подписки (пара `follower` → `following` уникальна).  
+11. `feed_post.sql` — текстовые посты ленты (`ON CONFLICT (id) DO UPDATE`; в конце — `setval` для последовательности `id`).
 
 ## Объём (≈ после расширения соц. графа)
 
@@ -28,6 +29,7 @@
 | Теги                | 120+            |
 | Подписки            | 46              |
 | Watchlist           | 15              |
+| Посты ленты (`feed_post`) | 8 (текст, в т.ч. с `referenced_movie_card_id` / `source_comment_id` / `image_url`) |
 
 Повторная загрузка в **непустую** БД даст ошибки уникальности на `INSERT` (кроме `reaction_type`). Используйте чистую схему или точечную подгрузку одного файла: `./scripts/load-fixtures.sh user.sql`.
 

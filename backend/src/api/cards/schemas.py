@@ -107,17 +107,56 @@ class FilmResolveRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
-FeedCardSource = Literal['subscriptions', 'subscribers', 'personal_affinity', 'discovery']
+FeedCardSource = Literal[
+    'subscriptions',
+    'subscribers',
+    'personal_affinity',
+    'discovery',
+    'feed_posts',
+]
 
 
 class MovieCardFeedItemResponse(CardDetailResponse):
+    kind: Literal['movie_card'] = 'movie_card'
     feed_source: FeedCardSource
     comments_count: int
     comments_preview: list[MovieCardCommentResponse] = Field(default_factory=list)
 
 
+class FeedPostReferencedCardResponse(BaseModel):
+    movie_card_id: int
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
+    rating: float
+
+
+class FeedPostFeedItemResponse(BaseModel):
+    kind: Literal['feed_post'] = 'feed_post'
+    id: int
+    user_id: UUID
+    author: MovieCardCommentAuthorResponse
+    body: str
+    image_url: str | None
+    referenced_movie_card_id: int | None
+    source_comment_id: int | None
+    created_at: datetime
+    feed_source: FeedCardSource
+    referenced_card: FeedPostReferencedCardResponse | None = None
+
+
+FeedPageItemResponse = MovieCardFeedItemResponse | FeedPostFeedItemResponse
+
+
 class MovieCardFeedPageResponse(BaseModel):
-    items: list[MovieCardFeedItemResponse] = Field(default_factory=list)
+    items: list[FeedPageItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+
+class UserFeedPostsPageResponse(BaseModel):
+    """Посты пользователя (вкладка «Посты» в профиле)."""
+
+    items: list[FeedPostFeedItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
 
 

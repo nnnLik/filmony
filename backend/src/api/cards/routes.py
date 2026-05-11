@@ -8,11 +8,13 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
 from api.cards.schemas import (
     CardCreateRequest,
     CardDetailResponse,
     CardResponse,
     CardUpdateRequest,
+    FeedPostFeedItemResponse,
     FollowingRatingEntryResponse,
     FollowingRatingsListResponse,
     MovieCardCommentAuthorResponse,
@@ -70,7 +72,11 @@ from services.cards.list_movie_card_comments import (
 from services.cards.list_movie_card_comments import (
     MovieCardNotFoundError as ListCommentsMovieCardNotFoundError,
 )
-from services.cards.list_movie_card_feed import ListMovieCardFeedService
+from services.cards.list_movie_card_feed import (
+    FeedPostFeedItem,
+    ListMovieCardFeedService,
+    MovieCardFeedItem,
+)
 from services.cards.share_movie_card import (
     MovieCardNotFoundForShareError,
     ShareMovieCardForbiddenError,
@@ -215,12 +221,16 @@ async def list_movie_card_feed(
     limit: int = Query(default=20, ge=1, le=50),
     mode: FeedMode = Query(
         default='default',
-        description='Смешанная лента, только подписки, или только подписчики (свои карточки в ленту не попадают)',
+        description='Смешанная лента, только подписки, или только подписчики (свои карточки фильмов скрыты; свои текстовые посты в ленте видны)',
     ),
 ) -> MovieCardFeedPageResponse:
     page = await ListMovieCardFeedService(db).execute(viewer.id, cursor, limit, feed_mode=mode)
-    return MovieCardFeedPageResponse(
-        items=[
+    out_items: list[MovieCardFeedItemResponse | FeedPostFeedItemResponse] = []
+    for item in page.items:
+        if isinstance(item, FeedPostFeedItem):
+            out_items.append(feed_post_feed_item_to_response(item))
+            continue
+        out_items.append(
             MovieCardFeedItemResponse(
                 id=item.id,
                 user_id=item.user_id,
@@ -251,10 +261,8 @@ async def list_movie_card_feed(
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
                 is_favorite=item.is_favorite,
             )
-            for item in page.items
-        ],
-        next_cursor=page.next_cursor,
-    )
+        )
+    return MovieCardFeedPageResponse(items=out_items, next_cursor=page.next_cursor)
 
 
 @router.get(

@@ -1,5 +1,6 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { CopyPlus, Link2, Share2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
   useEffect,
@@ -8,13 +9,17 @@ import {
   useState,
   type CSSProperties,
   type Dispatch,
+  type KeyboardEventHandler,
   type MutableRefObject,
   type RefObject,
   type SetStateAction,
 } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 
 import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments } from '../api/cardApi'
+import { getUserSubscriptions } from '../api/profileApi'
+import type { SubscriptionListItem } from '../api/profileTypes'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile } from '../api/profileApi'
 import type {
@@ -29,11 +34,21 @@ import type {
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
+import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
+import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import {
-  COMMENT_BODY_MAX_LEN,
-  insertSnippetAtCaret,
-  reactionTokenFromId,
-} from '../lib/commentReactionTokens'
+  authorLikeToMentionRow,
+  mentionProfileKeyFromSlug,
+  subscriptionToMentionRow,
+  type MentionProfileRowInput,
+} from '../lib/mentionProfileLookupUtils'
+import {
+  applyMentionPick,
+  mentionReplacementFromSlug,
+  parseActiveMentionQuery,
+  type ActiveMentionQuery,
+} from '../lib/feedMentionCompose'
+import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
@@ -44,6 +59,23 @@ import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartBu
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { useComposeFeedPost } from '../compose/useComposeFeedPost'
+
+function filterFollowingForMentionQuery(
+  items: SubscriptionListItem[],
+  query: string,
+): SubscriptionListItem[] {
+  const n = query.trim().toLowerCase()
+  if (n === '') {
+    return items
+  }
+  return items.filter((it) => {
+    const slug = it.profile_slug.toLowerCase()
+    const dn = (it.display_name ?? '').toLowerCase()
+    const un = (it.username ?? '').toLowerCase()
+    return slug.startsWith(n) || dn.includes(n) || un.includes(n)
+  })
+}
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',
@@ -211,6 +243,8 @@ export function MovieCardDetailPage() {
   const [actionMenuOpen, setActionMenuOpen] = useState(false)
   const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null)
   const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
+  const [commentMentionPicker, setCommentMentionPicker] = useState<ActiveMentionQuery | null>(null)
+  const [commentMentionHighlightIdx, setCommentMentionHighlightIdx] = useState(0)
   const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const commentTextAreaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -237,8 +271,121 @@ export function MovieCardDetailPage() {
   const charsLeft = COMMENT_BODY_MAX_LEN - commentText.length
   const invalidCardId = parsedCardId == null
 
+  const followingForMentionsQuery = useQuery({
+    queryKey: ['userSubscriptions', viewerId, 'following'],
+    queryFn: () => getUserSubscriptions(viewerId as string, 'following'),
+    enabled: viewerId != null,
+    staleTime: 60_000,
+  })
+  const followingMentionItems = useMemo(
+    () => followingForMentionsQuery.data?.items ?? [],
+    [followingForMentionsQuery.data],
+  )
+
+  const mentionRowsForCardDetail = useMemo((): MentionProfileRowInput[] => {
+    const seen = new Set<string>()
+    const out: MentionProfileRowInput[] = []
+    const push = (r: MentionProfileRowInput) => {
+      const k = mentionProfileKeyFromSlug(r.profile_slug)
+      if (k.length === 0 || seen.has(k)) return
+      seen.add(k)
+      out.push(r)
+    }
+    if (card != null) {
+      const author = movieCardAuthorOrNull(card)
+      if (author != null) push(authorLikeToMentionRow(author))
+    }
+    for (const c of comments) push(authorLikeToMentionRow(c.author))
+    for (const it of followingMentionItems) push(subscriptionToMentionRow(it))
+    return out
+  }, [card, comments, followingMentionItems])
+
+  const commentMentionFiltered = useMemo(
+    () =>
+      commentMentionPicker != null
+        ? filterFollowingForMentionQuery(followingMentionItems, commentMentionPicker.query)
+        : [],
+    [commentMentionPicker, followingMentionItems],
+  )
+
+  const commentMentionHighlightSafe = useMemo(() => {
+    if (commentMentionFiltered.length === 0) return 0
+    return Math.min(commentMentionHighlightIdx, commentMentionFiltered.length - 1)
+  }, [commentMentionFiltered.length, commentMentionHighlightIdx])
+
+  const syncCommentMentionFromValue = useCallback((value: string, caretOverride?: number | null) => {
+    const el = commentTextAreaRef.current
+    const caret =
+      caretOverride != null
+        ? Math.min(Math.max(0, caretOverride), value.length)
+        : Math.min(el?.selectionStart ?? value.length, value.length)
+    const active = parseActiveMentionQuery(value, caret)
+    if (active == null) {
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
+      return
+    }
+    setCommentMentionPicker(active)
+    setCommentMentionHighlightIdx(0)
+  }, [])
+
+  const handleCommentTextChange = useCallback(
+    (v: string, meta?: { caret: number }) => {
+      const next = v.slice(0, COMMENT_BODY_MAX_LEN)
+      setCommentText(next)
+      const caret = meta?.caret ?? next.length
+      queueMicrotask(() => syncCommentMentionFromValue(next, caret))
+    },
+    [syncCommentMentionFromValue],
+  )
+
+  const pickCommentMention = useCallback(
+    (slug: string) => {
+      const el = commentTextAreaRef.current
+      if (commentMentionPicker == null || el == null) return
+      const endCaret = commentMentionPicker.atIndex + 1 + commentMentionPicker.query.length
+      const caret = Math.min(endCaret, commentText.length)
+      const token = mentionReplacementFromSlug(slug)
+      const res = applyMentionPick(commentText, caret, commentMentionPicker.atIndex, token, COMMENT_BODY_MAX_LEN)
+      if (res == null) return
+      setCommentText(res.nextValue)
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
+      queueMicrotask(() => {
+        el.focus()
+        el.setSelectionRange(res.caret, res.caret)
+      })
+    },
+    [commentMentionPicker, commentText],
+  )
+
+  const handleCommentDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
+    (e) => {
+      if (commentMentionPicker == null) return
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setCommentMentionHighlightIdx((i) => {
+          const max = Math.max(0, commentMentionFiltered.length - 1)
+          return Math.min(max, i + 1)
+        })
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setCommentMentionHighlightIdx((i) => Math.max(0, i - 1))
+      } else if (e.key === 'Enter' && commentMentionFiltered.length > 0) {
+        e.preventDefault()
+        const row = commentMentionFiltered[commentMentionHighlightSafe] ?? commentMentionFiltered[0]
+        if (row != null) {
+          pickCommentMention(row.profile_slug)
+        }
+      }
+    },
+    [commentMentionFiltered, commentMentionHighlightSafe, commentMentionPicker, pickCommentMention],
+  )
+
   const insertReactionIntoComment = useCallback(
     (reactionTypeId: number) => {
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
       const token = reactionTokenFromId(reactionTypeId)
       const el = commentTextAreaRef.current
       const inserted = insertSnippetAtCaret(
@@ -398,6 +545,8 @@ export function MovieCardDetailPage() {
       })
       await loadComments(false)
       setCommentText('')
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
       setReplyTo(null)
       safeHapticSuccess()
     } catch (e) {
@@ -560,6 +709,7 @@ export function MovieCardDetailPage() {
         ) : null}
 
         {!invalidCardId && !loading && error == null && card != null ? (
+          <MentionProfileLookupProvider value={mentionRowsForCardDetail}>
           <MovieCardDetailLoadedBody
             card={card}
             palette={palette}
@@ -584,11 +734,40 @@ export function MovieCardDetailPage() {
             loadComments={loadComments}
             handleCreateComment={handleCreateComment}
             handleJumpToParent={handleJumpToParent}
-            setCommentText={setCommentText}
+            onCommentTextChange={handleCommentTextChange}
+            onCommentKeyDown={handleCommentDraftKeyDown}
+            onCommentKeyUp={() => {
+              const el = commentTextAreaRef.current
+              if (el == null) return
+              syncCommentMentionFromValue(
+                el.value.slice(0, COMMENT_BODY_MAX_LEN),
+                el.selectionStart ?? el.value.length,
+              )
+            }}
+            onCommentSelect={() => {
+              const el = commentTextAreaRef.current
+              if (el == null) return
+              syncCommentMentionFromValue(
+                el.value.slice(0, COMMENT_BODY_MAX_LEN),
+                el.selectionStart ?? el.value.length,
+              )
+            }}
+            commentMentionPicker={commentMentionPicker}
+            commentMentionHighlightIdx={commentMentionHighlightSafe}
+            commentMentionFiltered={commentMentionFiltered}
+            followingMentionItems={followingMentionItems}
+            followingMentionQueryPending={followingForMentionsQuery.isPending}
+            followingMentionQueryError={followingForMentionsQuery.isError}
+            onPickCommentMention={pickCommentMention}
+            onDismissCommentMention={() => {
+              setCommentMentionPicker(null)
+              setCommentMentionHighlightIdx(0)
+            }}
             setReplyTo={setReplyTo}
             setCard={setCard}
             setComments={setComments}
           />
+          </MentionProfileLookupProvider>
         ) : null}
       </main>
     </div>
@@ -619,7 +798,18 @@ type MovieCardDetailLoadedBodyProps = {
   loadComments: (append: boolean) => Promise<void>
   handleCreateComment: () => Promise<void>
   handleJumpToParent: (parentCommentId: number) => Promise<void>
-  setCommentText: Dispatch<SetStateAction<string>>
+  onCommentTextChange: (v: string) => void
+  onCommentKeyDown: KeyboardEventHandler<HTMLTextAreaElement>
+  onCommentKeyUp: () => void
+  onCommentSelect: () => void
+  commentMentionPicker: ActiveMentionQuery | null
+  commentMentionHighlightIdx: number
+  commentMentionFiltered: SubscriptionListItem[]
+  followingMentionItems: SubscriptionListItem[]
+  followingMentionQueryPending: boolean
+  followingMentionQueryError: boolean
+  onPickCommentMention: (slug: string) => void
+  onDismissCommentMention: () => void
   setReplyTo: Dispatch<SetStateAction<{ id: number; label: string } | null>>
   setCard: Dispatch<SetStateAction<MovieCard | null>>
   setComments: Dispatch<SetStateAction<MovieCardComment[]>>
@@ -649,11 +839,25 @@ function MovieCardDetailLoadedBody({
   loadComments,
   handleCreateComment,
   handleJumpToParent,
-  setCommentText,
+  onCommentTextChange,
+  onCommentKeyDown,
+  onCommentKeyUp,
+  onCommentSelect,
+  commentMentionPicker,
+  commentMentionHighlightIdx,
+  commentMentionFiltered,
+  followingMentionItems,
+  followingMentionQueryPending,
+  followingMentionQueryError,
+  onPickCommentMention,
+  onDismissCommentMention,
   setReplyTo,
   setCard,
   setComments,
 }: MovieCardDetailLoadedBodyProps) {
+  const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
+  const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
+  const { openCompose } = useComposeFeedPost()
   const navigate = useNavigate()
   const location = useLocation()
   const fromFeed =
@@ -885,15 +1089,86 @@ function MovieCardDetailLoadedBody({
 
               <div className="mt-3">
                 <div className="flex gap-2">
-                  <CommentDraftMultiline
-                    ref={commentTextAreaRef}
-                    value={commentText}
-                    onChange={setCommentText}
-                    disabled={submitBusy}
-                    rows={4}
-                    maxLength={COMMENT_BODY_MAX_LEN}
-                    placeholder="Напишите комментарий..."
-                  />
+                  <div ref={commentMentionAnchorRef} className="relative min-w-0 flex-1">
+                    <CommentDraftMultiline
+                      ref={commentTextAreaRef}
+                      value={commentText}
+                      onChange={onCommentTextChange}
+                      onKeyDown={onCommentKeyDown}
+                      onKeyUp={onCommentKeyUp}
+                      onSelect={onCommentSelect}
+                      disabled={submitBusy}
+                      rows={4}
+                      maxLength={COMMENT_BODY_MAX_LEN}
+                      placeholder="Напишите комментарий..."
+                    />
+                    {commentMentionPicker != null && commentMentionPopoverLayout != null
+                      ? createPortal(
+                          <>
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              aria-hidden
+                              className="fixed inset-0 z-[200] cursor-default bg-black/0"
+                              onClick={onDismissCommentMention}
+                            />
+                            <div
+                              className="filmony-theme fixed z-[201] overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) py-1 shadow-lg"
+                              style={{
+                                top: commentMentionPopoverLayout.top,
+                                left: commentMentionPopoverLayout.left,
+                                width: commentMentionPopoverLayout.width,
+                                maxHeight: commentMentionPopoverLayout.maxHeight,
+                              }}
+                              role="listbox"
+                              aria-label="Упомянуть подписку"
+                            >
+                              {followingMentionQueryPending ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">Загрузка…</p>
+                              ) : followingMentionQueryError ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">
+                                  Не удалось загрузить подписки
+                                </p>
+                              ) : followingMentionItems.length === 0 ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">
+                                  Подпишитесь на пользователей — здесь появятся упоминания.
+                                </p>
+                              ) : commentMentionFiltered.length === 0 ? (
+                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">Нет совпадений</p>
+                              ) : (
+                                commentMentionFiltered.map((it, idx) => {
+                                  const label = displayNameFromProfile(it)
+                                  const selected = idx === commentMentionHighlightIdx
+                                  return (
+                                    <button
+                                      key={it.id}
+                                      type="button"
+                                      role="option"
+                                      aria-selected={selected}
+                                      className={`flex w-full flex-col gap-0.5 px-3 py-2 text-left transition active:opacity-90 ${
+                                        selected
+                                          ? 'bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,var(--tgui--secondary_bg_color))]'
+                                          : 'hover:bg-(--tgui--secondary_bg_color)'
+                                      }`}
+                                      onMouseDown={(ev) => {
+                                        ev.preventDefault()
+                                        onPickCommentMention(it.profile_slug)
+                                      }}
+                                    >
+                                      <span className="text-[13px] font-medium text-(--tgui--text_color)">{label}</span>
+                                      <span className="font-mono text-[11px] text-(--tgui--hint_color)">
+                                        @{it.profile_slug}
+                                      </span>
+                                    </button>
+                                  )
+                                })
+                              )}
+                            </div>
+                          </>,
+                          document.body,
+                        )
+                      : null}
+                  </div>
                   <div className="flex shrink-0 flex-col justify-start pt-1">
                     <CommentReactionTokenPicker
                       onPickReactionTypeId={insertReactionIntoComment}
@@ -965,13 +1240,29 @@ function MovieCardDetailLoadedBody({
                                 </Link>
                                 <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
-                                className="inline-flex shrink-0 bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                              >
-                                Ответить
-                              </button>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
+                                  className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
+                                >
+                                  Ответить
+                                </button>
+                                {viewerId != null && comment.author.id === viewerId ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openCompose({
+                                        sourceCommentId: comment.id,
+                                        referencedMovieCardId: card.id,
+                                      })
+                                    }
+                                    className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
+                                  >
+                                    В ленту
+                                  </button>
+                                ) : null}
+                              </div>
                             </div>
 
                             {parentCommentId != null ? (

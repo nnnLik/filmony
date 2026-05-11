@@ -56,6 +56,7 @@
 | `movie-card-edit-delete` | `movie-card-edit-delete.md` | да |
 | `feed-ui-card-design` | `feed-ui-card-design.md` | да |
 | `feed-recommendation-engine` | `feed-recommendation-engine.md` | да |
+| `feed-posts` | `feed-posts.md` | да |
 | `movie-card-custom-reactions` | `movie-card-custom-reactions.md` | да |
 | `telegram-engagement-notifications` | `telegram-engagement-notifications.md` | да |
 

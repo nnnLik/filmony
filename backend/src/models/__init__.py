@@ -1,4 +1,5 @@
 from .base import Base
+from .feed_post import FeedPost
 from .film import Film
 from .movie_card import MovieCard
 from .movie_card_comment import MovieCardComment
@@ -16,6 +17,7 @@ __all__ = (
     'CardCompany',
     'CardMoodAfter',
     'CardMoodBefore',
+    'FeedPost',
     'Film',
     'MovieCard',
     'MovieCardComment',

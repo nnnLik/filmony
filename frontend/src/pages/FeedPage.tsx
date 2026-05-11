@@ -1,21 +1,20 @@
-import { Button } from '@telegram-apps/telegram-ui'
+import { Button, IconButton } from '@telegram-apps/telegram-ui'
+import { PenLine } from 'lucide-react'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
+import { useComposeFeedPost } from '../compose/useComposeFeedPost'
+
 import { getMovieCardFeedPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyMovieCardTagStats } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
-import type {
-  FeedListMode,
-  FeedMovieCard,
-  FeedMovieCardPage,
-  MovieCardComment,
-} from '../api/profileTypes'
+import type { FeedListMode, FeedMovieCardPage, MovieCardComment } from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
+import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
 import { FEED_MODE_ENTRIES, feedModeHint } from '../components/feed/feedModePickerConstants'
 import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
@@ -34,6 +33,7 @@ export function FeedPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
+  const { openCompose } = useComposeFeedPost()
   const pendingScrollYRef = useRef<number | null>(null)
   const feedModeRef = useRef<FeedListMode>('default')
 
@@ -87,6 +87,26 @@ export function FeedPage() {
       }
     })
   }, [location.state, navigate, auth.kind])
+
+  useEffect(() => {
+    const st = location.state as { feedHighlightPostId?: number } | undefined
+    const postId = st?.feedHighlightPostId
+    if (postId == null || !Number.isInteger(postId) || postId < 1) {
+      return
+    }
+    void navigate('.', { replace: true, state: {} })
+    const t = window.setTimeout(() => {
+      const el = document.querySelector(`[data-feed-post-id="${postId}"]`)
+      if (el instanceof HTMLElement) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('ring-2', 'ring-amber-400/70')
+        window.setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-amber-400/70')
+        }, 2200)
+      }
+    }, 400)
+    return () => window.clearTimeout(t)
+  }, [location.state, navigate])
 
   const refreshRecentStrip = useCallback(() => {
     const uid = readMyProfileBundleCache()?.profile.id
@@ -186,7 +206,15 @@ export function FeedPage() {
           ...old,
           pages: old.pages.map((page) => ({
             ...page,
-            items: page.items.map((c) => (c.id === cardId ? { ...c, ...next } : c)),
+            items: page.items.map((entry) => {
+              if (entry.kind === 'feed_post') {
+                return entry
+              }
+              if (entry.id !== cardId) {
+                return entry
+              }
+              return { ...entry, ...next }
+            }),
           })),
         }
       })
@@ -235,7 +263,19 @@ export function FeedPage() {
             <h1 className="min-w-0 flex-1 truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
               Лента
             </h1>
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1">
+              {auth.kind === 'ready' ? (
+                <IconButton
+                  type="button"
+                  mode="gray"
+                  size="s"
+                  onClick={() => openCompose()}
+                  aria-label="Новый пост в ленту"
+                  title="Пост в ленту"
+                >
+                  <PenLine className="block size-[18px]" strokeWidth={2} />
+                </IconButton>
+              ) : null}
               <Link to="/cards/new" aria-label="Добавить карточку" className="shrink-0 no-underline">
                 <Button mode="gray">+</Button>
               </Link>
@@ -306,14 +346,21 @@ export function FeedPage() {
 
           {items.length > 0 && (
             <>
-              {items.map((card: FeedMovieCard) => (
-                <FeedCard
-                  key={card.id}
-                  card={card}
-                  viewerUserId={viewerUserId}
-                  onCommentsState={onCommentsState}
-                />
-              ))}
+              {items.map((entry) => {
+                if (entry.kind === 'feed_post') {
+                  return (
+                    <FeedPostCard key={`post-${entry.id}`} post={entry} viewerUserId={viewerUserId} />
+                  )
+                }
+                return (
+                  <FeedCard
+                    key={`card-${entry.id}`}
+                    card={entry}
+                    viewerUserId={viewerUserId}
+                    onCommentsState={onCommentsState}
+                  />
+                )
+              })}
               {hasNextPage ? (
                 <>
                   <div

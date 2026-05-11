@@ -8,6 +8,8 @@ from core.database import get_session_factory
 from models.film import Film
 from models.movie_card import MovieCard
 from models.reaction_type import ReactionType
+from models.user import User
+from sqlalchemy import select
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -16,6 +18,17 @@ async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, 
     r = await async_client.post('/api/auth/telegram', json={'initData': init})
     assert r.status_code == 200
     return r.json()
+
+
+async def _profile_slug_for_telegram(telegram_user_id: int) -> str:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        slug = (
+            await session.execute(
+                select(User.profile_slug).where(User.telegram_user_id == telegram_user_id)
+            )
+        ).scalar_one()
+        return str(slug)
 
 
 async def _insert_reaction_type(*, asset_key: str) -> int:
@@ -808,6 +821,71 @@ async def test_comment_reaction_embedded_tokens(async_client: AsyncClient) -> No
         json={'text': f'⟦r{rx1}⟧⟦r{rx2}⟧⟦r{rx3}⟧⟦r{rx4}⟧ много'},
     )
     assert many_tokens.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_comment_mention_follower_token_ok(async_client: AsyncClient) -> None:
+    author = await _login(async_client, telegram_user_id=90220)
+    target = await _login(async_client, telegram_user_id=90221)
+    slug_target = await _profile_slug_for_telegram(90221)
+    await _login(async_client, telegram_user_id=90220)
+    await async_client.post(f'/api/users/{target["id"]}/subscriptions')
+
+    film = await _create_film(kinopoisk_id=100902, title='Упоминание', year=2022)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    r = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': f'привет ⟦@{slug_target}⟧'},
+    )
+    assert r.status_code == 200
+    assert '⟦@' in r.json()['text'] and slug_target.lower() in r.json()['text'].lower()
+    assert r.json()['author']['id'] == author['id']
+
+
+@pytest.mark.asyncio
+async def test_comment_mention_not_following_rejected(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=90222)
+    await _login(async_client, telegram_user_id=90223)
+    slug_other = await _profile_slug_for_telegram(90223)
+    await _login(async_client, telegram_user_id=90222)
+
+    film = await _create_film(kinopoisk_id=100903, title='Без подписки', year=2021)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    r = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': f'⟦@{slug_other}⟧'},
+    )
+    assert r.status_code == 422
 
 
 @pytest.mark.asyncio

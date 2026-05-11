@@ -36,9 +36,11 @@ class MovieCardCommentValidationError(Exception):
     pass
 
 
-async def _normalize_text(value: str, session: AsyncSession) -> str:
+async def _normalize_text(value: str, session: AsyncSession, author_user_id: UUID) -> str:
     try:
-        return await validate_comment_text_with_reaction_tokens(value, session)
+        return await validate_comment_text_with_reaction_tokens(
+            value, session, author_user_id=author_user_id
+        )
     except CommentReactionTokenError as e:
         raise MovieCardCommentValidationError(str(e)) from e
 
@@ -53,7 +55,7 @@ class CreateMovieCardCommentService:
         user_id: UUID,
         payload: CreateMovieCardCommentInput,
     ) -> MovieCardComment:
-        text = await _normalize_text(payload.text, self._session)
+        text = await _normalize_text(payload.text, self._session, user_id)
         card = (
             await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
         ).scalar_one_or_none()
