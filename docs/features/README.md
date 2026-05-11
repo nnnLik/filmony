@@ -11,3 +11,5 @@ Each file should include:
 - changed files
 - verification
 - limitations and next steps
+
+Запланированные спеки (ещё не реализовано в коде): [global-feed-tabs-timeline-sse.md](./global-feed-tabs-timeline-sse.md).

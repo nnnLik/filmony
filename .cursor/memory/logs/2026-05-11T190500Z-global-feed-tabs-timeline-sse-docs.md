@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-11T19:05:00Z
+- **Feature slug:** global-feed-tabs-timeline-sse
+- **Action type:** docs
+- **Summary:** Запланирована реализация глобальной ленты (вкладки Всё/Посты/Карточки), хронология без режимов подписок, локальный «просмотр», SSE для индикатора новизны; план зафиксирован в docs/features.
+- **Files:** `docs/features/global-feed-tabs-timeline-sse.md`
+- **Verification:** документ создан вручную, ревью текста в репозитории.
