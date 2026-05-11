@@ -59,7 +59,7 @@ class AppSettings(BaseSettings):
 class DatabaseSettings(BaseSettings):
     url: str = Field(..., alias='DATABASE_URL')
     default_schema: str = Field(default='public', alias='DATABASE_SCHEMA')
-    test_schema: str = Field(default='filmony_test', alias='DATABASE_TEST_SCHEMA')
+    test_url: str | None = Field(default=None, alias='DATABASE_TEST_URL')
     echo: bool = Field(False, alias='DATABASE_ECHO')
 
     @property

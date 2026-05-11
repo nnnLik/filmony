@@ -11,7 +11,7 @@
 
 ## Step-by-Step Plan (фактический порядок работ)
 1. Настройки: `DatabaseSettings`, `TelegramAuthSettings`, `AuthJwtSettings`, `AppEnv.TEST` для pytest.
-2. `core/database.py`: asyncpg, `search_path` для `ENV=test` + `DATABASE_TEST_SCHEMA`.
+2. `core/database.py`: asyncpg; при `ENV=test` — подключение к `DATABASE_TEST_URL`.
 3. Модель `User`, миграция Alembic (`src/migrations`), `docker-compose.yml` + homelab Postgres.
 4. Сервисы: `VerifyTelegramInitDataService`, `UpsertTelegramUserService`, `IssueSessionJwtService`, `DecodeSessionJwtService`.
 5. Роуты `api/auth`, зависимость `CurrentUser`, `GET /api/me` на `api/router`.

@@ -130,8 +130,10 @@ export function FeedPage() {
     const p0 = feedQuery.data?.pages[0]
     if (p0 == null) return
     const v = p0.feed_head_version ?? 0
-    setAckHeadVersion((prev) => Math.max(prev, v))
-    setLiveHeadVersion((prev) => Math.max(prev, v))
+    queueMicrotask(() => {
+      setAckHeadVersion((prev) => Math.max(prev, v))
+      setLiveHeadVersion((prev) => Math.max(prev, v))
+    })
   }, [feedQuery.data?.pages, feedQuery.dataUpdatedAt])
 
   useEffect(() => {

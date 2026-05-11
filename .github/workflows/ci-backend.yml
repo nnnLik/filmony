@@ -35,11 +35,11 @@ jobs:
         env:
           POSTGRES_USER: filmony
           POSTGRES_PASSWORD: filmony
-          POSTGRES_DB: filmony
+          POSTGRES_DB: filmony_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U filmony -d filmony"
+          --health-cmd "pg_isready -U filmony -d filmony_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -56,8 +56,8 @@ jobs:
       run:
         working-directory: backend
     env:
-      DATABASE_URL: postgresql://filmony:filmony@localhost:5432/filmony
-      DATABASE_TEST_SCHEMA: filmony_test
+      DATABASE_URL: postgresql://filmony:filmony@localhost:5432/filmony_test
+      DATABASE_TEST_URL: postgresql://filmony:filmony@localhost:5432/filmony_test
       CELERY_BROKER_URL: redis://127.0.0.1:6379/15
       TG_APP_TOKEN: ci-placeholder-token
       KINOPOISK_API_KEY: ci-placeholder-key

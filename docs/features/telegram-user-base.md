@@ -37,7 +37,7 @@
 
 - `DATABASE_URL` — `postgresql://...` или уже с драйвером `postgresql+asyncpg://...` (в коде для async подставляется asyncpg).
 - `DATABASE_SCHEMA` — схема приложения (в коде: `default_schema`, по умолчанию `public`)
-- `DATABASE_TEST_SCHEMA` — схема для pytest при `ENV=test`
+- `DATABASE_TEST_URL` — отдельная база для pytest при `ENV=test` (создайте `CREATE DATABASE …` в кластере)
 - `ENV` — `dev` | `prod` | `test` (pytest выставляет `test` в `src/tests/conftest.py` до импорта настроек)
 - `TG_APP_TOKEN` / `TELEGRAM_BOT_TOKEN`, `AUTH_JWT_SECRET`, опционально `TELEGRAM_BOT_USERNAME`
 
@@ -59,7 +59,7 @@ Alembic: `backend/alembic.ini`, скрипты в `backend/src/migrations/`.
 make backend-test
 ```
 
-Используется тот же Postgres, что и приложение; данные тестов — в схеме из `DATABASE_TEST_SCHEMA`.
+Используется отдельная база из `DATABASE_TEST_URL` (тот же кластер Postgres, что и `DATABASE_URL`).
 
 ## Статус
 

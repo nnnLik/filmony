@@ -16,7 +16,7 @@ function parseSseDataLines(buffer: string): { events: { version: number }[]; res
       try {
         const obj: unknown = JSON.parse(payload)
         if (typeof obj === 'object' && obj !== null && 'version' in obj) {
-          const v = (obj as { version: unknown }).version
+          const v = obj.version
           if (typeof v === 'number' && Number.isFinite(v)) {
             events.push({ version: v })
           }

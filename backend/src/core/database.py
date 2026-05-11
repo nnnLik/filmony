@@ -17,10 +17,30 @@ _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
+def _normalize_async_sqlalchemy_url(raw: str) -> str:
+    u = raw.strip()
+    if u.startswith('postgresql+asyncpg://'):
+        return u
+    if u.startswith('postgresql://'):
+        return 'postgresql+asyncpg://' + u.removeprefix('postgresql://')
+    return u
+
+
+def async_engine_connect_url() -> str:
+    if settings.app.is_test:
+        tu = settings.database.test_url
+        if not (tu and str(tu).strip()):
+            raise RuntimeError('DATABASE_TEST_URL is not set')
+        return _normalize_async_sqlalchemy_url(str(tu))
+    return settings.database.async_sqlalchemy_url
+
+
 def _connect_args() -> dict[str, str] | None:
     if settings.app.is_test:
-        sch = settings.database.test_schema
-        return {'server_settings': {'search_path': f'{sch}, public'}}
+        sch = settings.database.default_schema
+        if sch != 'public':
+            return {'server_settings': {'search_path': f'{sch}, public'}}
+        return None
     sch = settings.database.default_schema
     if sch != 'public':
         return {'server_settings': {'search_path': f'{sch}, public'}}
@@ -38,7 +58,7 @@ def get_engine() -> AsyncEngine:
         if ca is not None:
             kwargs['connect_args'] = ca
         _engine = create_async_engine(
-            settings.database.async_sqlalchemy_url,
+            async_engine_connect_url(),
             **kwargs,
         )
     return _engine
@@ -56,7 +76,6 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 @asynccontextmanager
 async def disposable_async_session() -> AsyncGenerator[AsyncSession]:
-    """Отдельный engine на время вызова — для asyncio.run() в Celery (иной event loop)."""
     kwargs: dict[str, Any] = {
         'echo': settings.database.echo,
         'pool_pre_ping': True,
@@ -65,7 +84,7 @@ async def disposable_async_session() -> AsyncGenerator[AsyncSession]:
     if ca is not None:
         kwargs['connect_args'] = ca
     engine = create_async_engine(
-        settings.database.async_sqlalchemy_url,
+        async_engine_connect_url(),
         **kwargs,
     )
     factory = async_sessionmaker(engine, expire_on_commit=False)

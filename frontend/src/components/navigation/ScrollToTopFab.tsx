@@ -20,20 +20,21 @@ export function ScrollToTopFab() {
   const { pathname } = useLocation()
   const isFeedRoot = pathname === '/'
   const aboveBottomNav = pathHasBottomNav(pathname)
-  const [visible, setVisible] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
 
   useEffect(() => {
-    if (isFeedRoot) {
-      setVisible(false)
-      return
-    }
     const onScroll = () => {
-      setVisible(readScrollY() > SCROLL_SHOW_AFTER_PX)
+      setScrollY(readScrollY())
     }
     onScroll()
+    if (isFeedRoot) {
+      return
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [pathname, isFeedRoot])
+
+  const visible = !isFeedRoot && scrollY > SCROLL_SHOW_AFTER_PX
 
   const goTop = useCallback(() => {
     const el = document.scrollingElement ?? document.documentElement

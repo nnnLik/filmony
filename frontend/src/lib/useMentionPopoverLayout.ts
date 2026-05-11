@@ -61,10 +61,9 @@ export function useMentionPopoverLayout(
 
   useLayoutEffect(() => {
     if (!open) {
-      setLayout(null)
       return
     }
-    measure()
+    queueMicrotask(() => measure())
     const el = anchorRef.current
     const ro = new ResizeObserver(() => measure())
     if (el != null) {
@@ -77,7 +76,7 @@ export function useMentionPopoverLayout(
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
-  }, [open, measure])
+  }, [open, measure, anchorRef])
 
   if (!open) {
     return null

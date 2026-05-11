@@ -27,18 +27,14 @@ export function FeedTopFab({ liveHeadVersion, ackHeadVersion, onRefetch }: FeedT
 
   useEffect(() => {
     const onScroll = () => {
-      setScrollY(readScrollY())
+      const y = readScrollY()
+      setScrollY(y)
+      setReloadArmed((armed) => (armed && y > 160 ? false : armed))
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  useEffect(() => {
-    if (reloadArmed && scrollY > 160) {
-      setReloadArmed(false)
-    }
-  }, [scrollY, reloadArmed])
 
   const showFab = scrollY > SCROLL_SHOW_AFTER_PX || reloadArmed
   const hasNewDot = liveHeadVersion > ackHeadVersion && scrollY > 120

@@ -8,11 +8,7 @@ from tests.support import db_setup
 
 class _DummyConnection:
     def __init__(self) -> None:
-        self.executed: list[str] = []
         self.run_sync_called = False
-
-    async def execute(self, statement: object) -> None:
-        self.executed.append(str(statement))
 
     async def run_sync(self, _: object) -> None:
         self.run_sync_called = True
@@ -38,14 +34,6 @@ class _DummyEngine:
 
 
 @pytest.mark.asyncio
-async def test_ensure_test_schema_rejects_non_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings.app, 'ENV', AppEnv.DEV)
-
-    with pytest.raises(RuntimeError, match='outside test environment'):
-        await db_setup.ensure_test_schema()
-
-
-@pytest.mark.asyncio
 async def test_drop_all_tables_rejects_non_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.app, 'ENV', AppEnv.DEV)
 
@@ -54,21 +42,16 @@ async def test_drop_all_tables_rejects_non_test_env(monkeypatch: pytest.MonkeyPa
 
 
 @pytest.mark.asyncio
-async def test_drop_all_tables_ensures_test_schema_before_drop(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Avoid dropping app tables in public when search_path skips missing test schema."""
+async def test_create_all_tables_rejects_non_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.app, 'ENV', AppEnv.DEV)
 
+    with pytest.raises(RuntimeError, match='outside test environment'):
+        await db_setup.create_all_tables()
+
+
+@pytest.mark.asyncio
+async def test_drop_all_tables_runs_metadata_drop_all(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
-    monkeypatch.setattr(settings.database, 'default_schema', 'public')
-    monkeypatch.setattr(settings.database, 'test_schema', 'filmony_test')
-
-    order: list[str] = []
-
-    async def fake_ensure() -> None:
-        order.append('ensure')
-
-    monkeypatch.setattr(db_setup, 'ensure_test_schema', fake_ensure)
 
     conn = _DummyConnection()
     engine = _DummyEngine(conn)
@@ -76,45 +59,4 @@ async def test_drop_all_tables_ensures_test_schema_before_drop(
 
     await db_setup.drop_all_tables()
 
-    assert order == ['ensure']
     assert conn.run_sync_called
-
-
-@pytest.mark.asyncio
-async def test_ensure_test_schema_rejects_public_schema(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
-    monkeypatch.setattr(settings.database, 'default_schema', 'app')
-    monkeypatch.setattr(settings.database, 'test_schema', 'public')
-
-    with pytest.raises(RuntimeError, match='public schema'):
-        await db_setup.ensure_test_schema()
-
-
-@pytest.mark.asyncio
-async def test_ensure_test_schema_rejects_same_default_and_test_schema(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
-    monkeypatch.setattr(settings.database, 'default_schema', 'kino')
-    monkeypatch.setattr(settings.database, 'test_schema', 'kino')
-
-    with pytest.raises(RuntimeError, match='equal to DATABASE_SCHEMA'):
-        await db_setup.ensure_test_schema()
-
-
-@pytest.mark.asyncio
-async def test_ensure_test_schema_creates_schema_when_configuration_is_safe(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
-    monkeypatch.setattr(settings.database, 'default_schema', 'public')
-    monkeypatch.setattr(settings.database, 'test_schema', 'filmony_test')
-
-    conn = _DummyConnection()
-    engine = _DummyEngine(conn)
-    monkeypatch.setattr(db_setup, 'get_engine', lambda: engine)
-
-    await db_setup.ensure_test_schema()
-
-    assert conn.executed
-    assert 'CREATE SCHEMA IF NOT EXISTS filmony_test' in conn.executed[0]
