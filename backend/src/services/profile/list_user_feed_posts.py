@@ -92,7 +92,9 @@ class ListUserFeedPostsService:
         if not slice_rows:
             return UserFeedPostsPage(items=[], next_cursor=None)
 
-        ref_cids = [int(fp.referenced_movie_card_id) for fp, _ in slice_rows if fp.referenced_movie_card_id]
+        ref_cids = [
+            int(fp.referenced_movie_card_id) for fp, _ in slice_rows if fp.referenced_movie_card_id
+        ]
         ref_by_cid: dict[int, tuple[MovieCard, Film]] = {}
         if ref_cids:
             rq = (
@@ -133,7 +135,9 @@ class ListUserFeedPostsService:
                     body=fp.body or '',
                     image_url=fp.image_url,
                     referenced_movie_card_id=int(rid) if rid is not None else None,
-                    source_comment_id=int(fp.source_comment_id) if fp.source_comment_id is not None else None,
+                    source_comment_id=int(fp.source_comment_id)
+                    if fp.source_comment_id is not None
+                    else None,
                     created_at=fp.created_at,
                     feed_source='feed_posts',
                     referenced_card=ref_snippet,

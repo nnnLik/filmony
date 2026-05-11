@@ -39,15 +39,12 @@ async def validate_and_canonicalize_mentions(
 
     unique_slugs = list(set(normalized_slugs))
     user_rows = (
-        (
-            await session.execute(
-                select(User.id, User.profile_slug).where(
-                    func.lower(User.profile_slug).in_(unique_slugs)
-                )
+        await session.execute(
+            select(User.id, User.profile_slug).where(
+                func.lower(User.profile_slug).in_(unique_slugs)
             )
         )
-        .all()
-    )
+    ).all()
     by_lower: dict[str, tuple[UUID, str]] = {}
     for row in user_rows:
         uid, slug = row[0], row[1]

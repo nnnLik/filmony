@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from conf import settings
 from core.database import get_session_factory
@@ -9,7 +10,6 @@ from models.film import Film
 from models.movie_card import MovieCard
 from models.reaction_type import ReactionType
 from models.user import User
-from sqlalchemy import select
 from tests.auth.telegram_init_data import build_init_data
 
 
