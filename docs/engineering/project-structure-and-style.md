@@ -106,7 +106,13 @@
 
 Крупные виджеты разбиты на подпапки рядом с публичным входом (импорты в коде не меняются): например `components/reactions/ReactionStrip.tsx` реэкспортирует из `reactionStrip/`; карточка ленты использует `feedCardUtils.ts` и `FeedCardIcons.tsx`.
 
-- ESLint: `consistent-type-imports`, `no-unused-vars` с префиксом `_` — [`frontend/eslint.config.js`](/frontend/eslint.config.js).
+- ESLint: `consistent-type-imports`, `no-unused-vars` с префиксом `_` — [`frontend/eslint.config.js`](/frontend/eslint.config.js); включён **type-aware** режим (`typescript-eslint` + `tsconfig.app.json`).
+
+**Линт и типы (обязательно к прочтению агентам):** см. раздел *TypeScript, ESLint, and `src/lib` boundaries* в [`.cursor/rules/frontend-react-telegram-ui-standards.mdc`](/.cursor/rules/frontend-react-telegram-ui-standards.mdc). Кратко:
+
+- перед PR: **`cd frontend && npm run lint && npm run build`** — без ошибок и без «заглушек» `eslint-disable` для `no-unsafe-*` / `react-hooks/*` (только осознанное исключение с обоснованием в PR);
+- чистые функции над DTO API (фильтры списков, форматирование без React) — в **узких** `frontend/src/lib/*.ts`, без смешения с токенами/парсерами, чтобы не ловить ложные `no-unsafe-call` при импорте из «толстых» модулей;
+- проблемный `setState` внутри `useEffect` — чинить паттерном (отложенный колбэк, `key` на дочернем виджете, перенос состояния), а не отключением правила.
 
 ### 4.4. Проверки
 

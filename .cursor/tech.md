@@ -78,6 +78,8 @@ docker compose -f docker-compose.yml exec -w /opt/app backend pytest src/tests/a
 | Фронтенд | React + @telegram-apps/telegram-ui + **lucide-react** (иконки) + Vite + TypeScript | |
 | Интеграция | Telegram Bot API, Kinopoisk API Unofficial | |
 
+**Фронт — линт и типы:** перед завершением правок в `frontend/` — `npm run lint` и `npm run build` без ошибок ESLint в затронутых файлах. Не заглушать `no-unsafe-*` / `react-hooks/*` через `eslint-disable` без архитектурного обоснования; чистые хелперы над DTO — в узких `src/lib/*.ts` (см. раздел *TypeScript, ESLint, and `src/lib` boundaries* в [`.cursor/rules/frontend-react-telegram-ui-standards.mdc`](./rules/frontend-react-telegram-ui-standards.mdc)).
+
 Подробнее про ленту, `ReactionStrip`, `IconButton` и центрирование иконок: **[`docs/frontend/ui-conventions.md`](../docs/frontend/ui-conventions.md)**.
 
 Структура репозитория и соглашения по стилю: **[`docs/engineering/project-structure-and-style.md`](../docs/engineering/project-structure-and-style.md)**.

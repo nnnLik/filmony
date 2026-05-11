@@ -30,11 +30,11 @@ import { MentionProfileLookupProvider } from '../context/MentionProfileLookupPro
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import {
   applyMentionPick,
-  filterFollowingForMentionQuery,
   mentionReplacementFromSlug,
   parseActiveMentionQuery,
   type ActiveMentionQuery,
 } from '../lib/feedMentionCompose'
+import { filterFollowingForMentionQuery } from '../lib/mentionFollowingFilter'
 import { markGlobalFeedPostDetailOpened } from '../lib/globalFeedViewedIds'
 import {
   authorLikeToMentionRow,

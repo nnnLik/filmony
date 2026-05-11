@@ -25,6 +25,15 @@ alwaysApply: true
 - Reuse existing project patterns for folder structure, naming, and component APIs.
 - Add or update frontend tests for meaningful behavior changes where coverage exists.
 
+## TypeScript, ESLint, and `src/lib` boundaries
+
+- **No merge-ready frontend change may leave ESLint errors or warnings** in touched files. Run `cd frontend && npm run lint && npm run build` before considering work done (same commands as `.cursor/tech.md` and `docs/engineering/project-structure-and-style.md`).
+- **Do not silence `@typescript-eslint/no-unsafe-*` or `react-hooks/*` with `eslint-disable`** unless the PR explains a platform bug and lists a tracked follow-up. Prefer a real fix: clearer types, smaller modules, or a different React pattern.
+- **Type-aware ESLint + mixed modules:** helpers that only transform API DTOs (e.g. filter lists for @-mention pickers) should live in **small `frontend/src/lib/*.ts` files** that depend only on `api/profileTypes` (or similar) — not in the same file as token parsers / `commentReactionTokens` / React-heavy graphs. If a helper is re-exported from a “kitchen sink” module for convenience, components that hit `no-unsafe-call` should **import the helper from the thin module** (example: `frontend/src/lib/mentionFollowingFilter.ts` vs `frontend/src/lib/feedMentionCompose.ts`).
+- **`react-hooks/set-state-in-effect`:** avoid synchronous `setState` directly in the `useEffect` body when the rule fires; defer with `queueMicrotask` / `requestAnimationFrame`, reset via a keyed child component, or lift state so the effect only subscribes to external systems.
+- **`@tanstack/react-query`:** when query data is consumed under strict typing, give `useQuery` explicit generics (e.g. `useQuery<SubscriptionListResponse, Error>({ ... })`) and normalize `data` in `useMemo` with explicit array types if needed.
+- **Tailwind v4 (IDE hints):** prefer suggested class forms (`z-200` instead of `z-[200]`, `absolute!` / `font-semibold!` suffix order per linter) to keep style checks clean.
+
 ## Delivery Artifacts (Mandatory)
 - Follow `.cursor/rules/feature-delivery-workflow.mdc` for every frontend feature task.
 - Keep `.cursor/active/{feature-slug}/plan.md`, `progress.md`, and `result.md` updated.

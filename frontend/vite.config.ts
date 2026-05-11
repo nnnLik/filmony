@@ -32,6 +32,9 @@ export default defineConfig(({ mode }) => {
   return {
     envDir,
     plugins: [react(), tailwindcss(), cloudflare()],
+    build: {
+      chunkSizeWarningLimit: 900,
+    },
     server: {
       proxy,
       host: true,

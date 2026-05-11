@@ -46,5 +46,7 @@
 ## Проверка после правок
 
 ```bash
-cd frontend && npm run build && npm run lint
+cd frontend && npm run lint && npm run build
 ```
+
+Ошибок ESLint в изменённых файлах быть не должно; не использовать `eslint-disable` для `no-unsafe-*` / `react-hooks/*` без причины — см. раздел про линт и `src/lib` в [`.cursor/rules/frontend-react-telegram-ui-standards.mdc`](../.cursor/rules/frontend-react-telegram-ui-standards.mdc) и **§4.3** в [`docs/engineering/project-structure-and-style.md`](../engineering/project-structure-and-style.md).

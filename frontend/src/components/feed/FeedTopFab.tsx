@@ -1,6 +1,6 @@
 import { IconButton } from '@telegram-apps/telegram-ui'
 import { ChevronUp, RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 const SCROLL_SHOW_AFTER_PX = 240
 const SCROLL_NEAR_TOP_PX = 12
@@ -18,17 +18,26 @@ export type FeedTopFabProps = {
 }
 
 /**
- * FAB только для главной ленты: вверх → наверху иконка обновления, точка при live > ack и скролле вниз.
+ * FAB только для главной ленты: «наверх» при скролле вниз; наверху при live > ack — круглое «обновить»;
+ * красная точка на стрелке, пока не у верха. После плавного скролла наверх флаг не гасим по пути.
  */
 export function FeedTopFab({ liveHeadVersion, ackHeadVersion, onRefetch }: FeedTopFabProps) {
   const [scrollY, setScrollY] = useState(0)
   const [reloadArmed, setReloadArmed] = useState(false)
   const [refetchBusy, setRefetchBusy] = useState(false)
+  /** Пока едет smooth scroll «наверх», не сбрасывать reloadArmed (иначе первый же тик с y>160 гасит флаг). */
+  const scrollToTopInProgressRef = useRef(false)
 
   useEffect(() => {
     const onScroll = () => {
       const y = readScrollY()
       setScrollY(y)
+      if (scrollToTopInProgressRef.current) {
+        if (y <= SCROLL_NEAR_TOP_PX) {
+          scrollToTopInProgressRef.current = false
+        }
+        return
+      }
       setReloadArmed((armed) => (armed && y > 160 ? false : armed))
     }
     onScroll()
@@ -36,18 +45,23 @@ export function FeedTopFab({ liveHeadVersion, ackHeadVersion, onRefetch }: FeedT
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const showFab = scrollY > SCROLL_SHOW_AFTER_PX || reloadArmed
-  const hasNewDot = liveHeadVersion > ackHeadVersion && scrollY > 120
+  const hasPendingNew = liveHeadVersion > ackHeadVersion
   const atTop = scrollY <= SCROLL_NEAR_TOP_PX
-  const showReload = reloadArmed && atTop
+  const showFab = scrollY > SCROLL_SHOW_AFTER_PX || reloadArmed || (atTop && hasPendingNew)
+  const hasNewDot = hasPendingNew && scrollY > 120 && !atTop
+  const showReload = atTop && (reloadArmed || hasPendingNew)
 
   const goTop = useCallback(() => {
+    scrollToTopInProgressRef.current = true
     const el = document.scrollingElement ?? document.documentElement
     const reduce =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     el.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
     setReloadArmed(true)
+    window.setTimeout(() => {
+      scrollToTopInProgressRef.current = false
+    }, 900)
   }, [])
 
   const doRefetch = useCallback(async () => {

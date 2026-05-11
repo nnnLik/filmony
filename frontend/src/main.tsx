@@ -10,21 +10,13 @@ if (isTMA()) {
   init()
 }
 
-function shouldLoadEruda(): boolean {
-  if (import.meta.env.DEV) {
-    return true
-  }
-  const flag = import.meta.env.VITE_ENABLE_ERUDA?.trim().toLowerCase()
-  return flag === 'true' || flag === '1'
-}
-
-if (shouldLoadEruda()) {
+if (import.meta.env.DEV) {
   void import('eruda')
     .then((m) => {
       m.default.init()
     })
     .catch(() => {
-        console.error('Failed to load Eruda')
+      console.error('Failed to load Eruda')
     })
 }
 

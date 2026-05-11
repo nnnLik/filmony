@@ -15,17 +15,18 @@ import { createPortal } from 'react-dom'
 import { createFeedPost, uploadFeedPostImage } from '../../api/feedPostApi'
 import { getMyProfile, getUserSubscriptions } from '../../api/profileApi'
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
+import type { SubscriptionListItem, SubscriptionListResponse } from '../../api/profileTypes'
 import { useAuthStatus } from '../../auth/useAuthStatus'
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
 import {
   applyMentionPick,
-  filterFollowingForMentionQuery,
   mentionReplacementFromSlug,
   parseActiveMentionQuery,
   type ActiveMentionQuery,
 } from '../../lib/feedMentionCompose'
+import { filterFollowingForMentionQuery } from '../../lib/mentionFollowingFilter'
 import { readMyProfileBundleCache } from '../../lib/myProfileBundleCache'
 import { displayNameFromProfile } from '../../lib/profileDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
@@ -73,13 +74,19 @@ export function FeedComposeSheet({
     if (auth.kind !== 'ready') return
     const cached = readMyProfileBundleCache()?.profile.id ?? null
     if (cached != null) {
-      setSubscriptionsUserId(cached)
+      queueMicrotask(() => {
+        setSubscriptionsUserId(cached)
+      })
       return
     }
     let alive = true
     void getMyProfile().then(
       (p) => {
-        if (alive) setSubscriptionsUserId(p.id)
+        if (alive) {
+          queueMicrotask(() => {
+            setSubscriptionsUserId(p.id)
+          })
+        }
       },
       () => {
         void 0
@@ -90,19 +97,22 @@ export function FeedComposeSheet({
     }
   }, [auth.kind])
 
-  const followingQuery = useQuery({
+  const followingQuery = useQuery<SubscriptionListResponse, Error>({
     queryKey: ['userSubscriptions', subscriptionsUserId, 'following'],
     queryFn: () => getUserSubscriptions(subscriptionsUserId as string, 'following'),
     enabled: subscriptionsUserId != null,
     staleTime: 60_000,
   })
 
-  const followingItems = useMemo(() => followingQuery.data?.items ?? [], [followingQuery.data])
-  const mentionFiltered = useMemo(
-    () =>
-      mentionPicker != null ? filterFollowingForMentionQuery(followingItems, mentionPicker.query) : [],
-    [followingItems, mentionPicker],
-  )
+  const followingItems = useMemo((): SubscriptionListItem[] => {
+    const raw = followingQuery.data?.items
+    return Array.isArray(raw) ? raw : []
+  }, [followingQuery.data])
+
+  const mentionFiltered = useMemo((): SubscriptionListItem[] => {
+    if (mentionPicker == null) return []
+    return filterFollowingForMentionQuery(followingItems, mentionPicker.query)
+  }, [followingItems, mentionPicker])
 
   useEffect(() => {
     mentionOpenRef.current = mentionPicker != null
@@ -369,14 +379,14 @@ export function FeedComposeSheet({
                       type="button"
                       tabIndex={-1}
                       aria-hidden
-                      className="fixed inset-0 z-[200] cursor-default bg-black/0"
+                      className="fixed inset-0 z-200 cursor-default bg-black/0"
                       onClick={() => {
                         setMentionPicker(null)
                         setMentionHighlightIdx(0)
                       }}
                     />
                     <div
-                      className="filmony-theme fixed z-[201] overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) py-1 shadow-[0_10px_36px_rgba(0,0,0,0.45)] ring-1 ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,transparent)]"
+                      className="filmony-theme fixed z-201 overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) py-1 shadow-[0_10px_36px_rgba(0,0,0,0.45)] ring-1 ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,transparent)]"
                       style={{
                         top: mentionPopoverLayout.top,
                         left: mentionPopoverLayout.left,
@@ -468,7 +478,7 @@ export function FeedComposeSheet({
               <IconButton
                 mode="gray"
                 size="s"
-                className="!absolute right-1 top-1"
+                className="absolute! right-1 top-1"
                 onClick={() => setImageUrl(null)}
                 disabled={submitBusy || uploadBusy}
                 aria-label="Убрать картинку"
@@ -490,7 +500,7 @@ export function FeedComposeSheet({
             stretched
             mode="filled"
             size="l"
-            className="!font-semibold !shadow-[0_1px_0_rgba(255,255,255,0.12)]"
+            className="font-semibold! shadow-[0_1px_0_rgba(255,255,255,0.12)]!"
             disabled={!canSubmit || submitBusy || uploadBusy || auth.kind !== 'ready'}
             onClick={() => void handleSubmit()}
           >

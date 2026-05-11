@@ -44,11 +44,11 @@ import {
 } from '../lib/mentionProfileLookupUtils'
 import {
   applyMentionPick,
-  filterFollowingForMentionQuery,
   mentionReplacementFromSlug,
   parseActiveMentionQuery,
   type ActiveMentionQuery,
 } from '../lib/feedMentionCompose'
+import { filterFollowingForMentionQuery } from '../lib/mentionFollowingFilter'
 import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import { kinopoiskTitleUrl, openExternalUrl } from '../lib/openExternalUrl'
