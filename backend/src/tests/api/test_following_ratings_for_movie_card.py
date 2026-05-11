@@ -68,14 +68,14 @@ async def test_following_ratings_lists_subscriptions_same_film_sorted_desc(
         film_id = row.film_id
 
     await _login(async_client, telegram_user_id=93102)
-    await _seed_movie_card_same_film(
+    dave_card_id = await _seed_movie_card_same_film(
         user_id=UUID(str(dave['id'])),
         film_id=film_id,
         rating=9.0,
     )
 
     await _login(async_client, telegram_user_id=93103)
-    await _seed_movie_card_same_film(
+    eve_card_id = await _seed_movie_card_same_film(
         user_id=UUID(str(eve['id'])),
         film_id=film_id,
         rating=10.0,
@@ -91,8 +91,10 @@ async def test_following_ratings_lists_subscriptions_same_film_sorted_desc(
     assert len(items) == 2
     assert items[0]['rating'] == 10.0
     assert items[0]['user_id'] == eve['id']
+    assert items[0]['movie_card_id'] == eve_card_id
     assert items[1]['rating'] == 9.0
     assert items[1]['user_id'] == dave['id']
+    assert items[1]['movie_card_id'] == dave_card_id
 
 
 @pytest.mark.asyncio
@@ -134,14 +136,14 @@ async def test_following_ratings_includes_viewer_row_when_viewer_has_same_film_c
         film_id = row.film_id
 
     await _login(async_client, telegram_user_id=93302)
-    await _seed_movie_card_same_film(
+    dave_card_id = await _seed_movie_card_same_film(
         user_id=UUID(str(dave['id'])),
         film_id=film_id,
         rating=8.5,
     )
 
     await _login(async_client, telegram_user_id=93303)
-    await _seed_movie_card_same_film(
+    frank_card_id = await _seed_movie_card_same_film(
         user_id=UUID(str(frank['id'])),
         film_id=film_id,
         rating=6.25,
@@ -155,10 +157,12 @@ async def test_following_ratings_includes_viewer_row_when_viewer_has_same_film_c
     assert vr is not None
     assert vr['user_id'] == frank['id']
     assert vr['rating'] == 6.25
+    assert vr['movie_card_id'] == frank_card_id
     items = body['items']
     assert len(items) == 1
     assert items[0]['user_id'] == dave['id']
     assert items[0]['rating'] == 8.5
+    assert items[0]['movie_card_id'] == dave_card_id
 
 
 @pytest.mark.asyncio

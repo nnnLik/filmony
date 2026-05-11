@@ -20,6 +20,10 @@
 - **Асинхронный** resolve через Celery + polling, если внешний API станет нестабильным или таймауты HTTP начнут бить UX.
 - Сохранение **сырого JSON** метаданных в отдельном поле для будущих фильтров (cast, страны и т.д.).
 
+## Связанные расширения
+
+- **Синопсис из Кинопоиска** (`shortDescription` / `description` в БД, UI на странице карточки, бэкфилл): [`film-kinopoisk-synopsis.md`](./film-kinopoisk-synopsis.md)
+
 ## References
 
 - Историческая спека: `.cursor/features/004-kinopoisk-movie-by-link.md`

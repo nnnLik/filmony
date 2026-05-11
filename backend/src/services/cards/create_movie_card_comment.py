@@ -36,7 +36,15 @@ class MovieCardCommentValidationError(Exception):
     pass
 
 
-async def _normalize_text(value: str, session: AsyncSession, author_user_id: UUID) -> str:
+@dataclass(frozen=True, slots=True)
+class CreateMovieCardCommentResult:
+    comment: MovieCardComment
+    mentioned_user_ids: tuple[UUID, ...]
+
+
+async def _normalize_text(
+    value: str, session: AsyncSession, author_user_id: UUID
+) -> tuple[str, tuple[UUID, ...]]:
     try:
         return await validate_comment_text_with_reaction_tokens(
             value, session, author_user_id=author_user_id
@@ -54,8 +62,8 @@ class CreateMovieCardCommentService:
         card_id: int,
         user_id: UUID,
         payload: CreateMovieCardCommentInput,
-    ) -> MovieCardComment:
-        text = await _normalize_text(payload.text, self._session, user_id)
+    ) -> CreateMovieCardCommentResult:
+        text, mentioned_user_ids = await _normalize_text(payload.text, self._session, user_id)
         card = (
             await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
         ).scalar_one_or_none()
@@ -84,4 +92,4 @@ class CreateMovieCardCommentService:
         self._session.add(comment)
         await self._session.commit()
         await self._session.refresh(comment)
-        return comment
+        return CreateMovieCardCommentResult(comment=comment, mentioned_user_ids=mentioned_user_ids)

@@ -25,8 +25,8 @@ async def validate_comment_text_with_reaction_tokens(
     session: AsyncSession,
     *,
     author_user_id: UUID,
-) -> str:
-    """Strip comment body, enforce length, validate ⟦r{id}⟧ and ⟦@slug⟧ mentions."""
+) -> tuple[str, tuple[UUID, ...]]:
+    """Strip comment body, validate tokens; returns canonical text and ordered mention user ids."""
     body = text.strip()
     if body == '':
         raise CommentReactionTokenError('comment text must not be empty')
@@ -56,10 +56,10 @@ async def validate_comment_text_with_reaction_tokens(
             raise CommentReactionTokenError('unknown reaction type in comment')
 
     try:
-        body, _mention_ids = await validate_and_canonicalize_mentions(
+        body, mention_ids = await validate_and_canonicalize_mentions(
             body, session, author_user_id=author_user_id
         )
     except MentionTokenValidationError as e:
         raise CommentReactionTokenError(str(e)) from e
 
-    return body
+    return body, mention_ids

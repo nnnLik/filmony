@@ -19,6 +19,16 @@ class KinopoiskFilmPayload:
     year: int | None
     poster_url: str | None
     genres: list[str]
+    short_description: str | None
+    description: str | None
+
+
+def _optional_text_field(payload: dict[str, object], key: str) -> str | None:
+    raw = payload.get(key)
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip()
+    return text if text else None
 
 
 def _parse_genres(payload: object) -> list[str]:
@@ -60,9 +70,13 @@ class KinopoiskClient:
             raise KinopoiskClientError(f'kinopoisk returned {response.status_code}')
 
         try:
-            payload = response.json()
+            payload_raw = response.json()
         except ValueError as exc:
             raise KinopoiskClientError('invalid kinopoisk response') from exc
+
+        if not isinstance(payload_raw, dict):
+            raise KinopoiskClientError('invalid kinopoisk response')
+        payload: dict[str, object] = payload_raw
 
         title = payload.get('nameRu') or payload.get('nameOriginal') or payload.get('nameEn')
         if not isinstance(title, str) or title.strip() == '':
@@ -77,10 +91,14 @@ class KinopoiskClient:
         poster_norm = normalize_absolute_http_url(
             poster_url if isinstance(poster_url, str) else None
         )
+        short_description = _optional_text_field(payload, 'shortDescription')
+        description = _optional_text_field(payload, 'description')
         return KinopoiskFilmPayload(
             kinopoisk_id=kinopoisk_id,
             title=title.strip(),
             year=year,
             poster_url=poster_norm,
             genres=genres,
+            short_description=short_description,
+            description=description,
         )

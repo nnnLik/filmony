@@ -53,9 +53,9 @@ export function TelegramMiniAppStartParamRedirect() {
       }
       ran.current = true
       sessionStorage.setItem(key, '1')
-      void navigate('/', {
+      void navigate(`/feed-posts/${postId}`, {
         replace: true,
-        state: { feedHighlightPostId: postId },
+        state: { fromFeed: true },
       })
     }
   }, [navigate])

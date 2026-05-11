@@ -6,12 +6,14 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from core.database import dispose_engine
+from services.feed.global_feed_head_broker import reset_global_feed_head_broker_for_tests
 from tests.support import db_setup
 from utils.app_utils import get_app, setup_app
 
 
 @pytest_asyncio.fixture
 async def prepare_db() -> None:
+    reset_global_feed_head_broker_for_tests()
     await db_setup.drop_all_tables()
     await db_setup.create_all_tables()
     yield

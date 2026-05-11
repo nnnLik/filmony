@@ -27,7 +27,7 @@ import { ReactionStripPopover } from './ReactionStripPopover'
 import { usePopoverPosition } from './usePopoverPosition'
 
 export type ReactionStripProps = {
-  targetKind: 'movie_card' | 'movie_card_comment'
+  targetKind: 'movie_card' | 'movie_card_comment' | 'feed_post_comment' | 'feed_post'
   targetId: number
   summary: ReactionSummary | undefined
   onSummaryChange: (next: ReactionSummary) => void

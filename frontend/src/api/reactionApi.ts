@@ -3,7 +3,7 @@ import type { ReactionGroupedCatalog, ReactionSummary } from './profileTypes'
 import { apiJson } from './client'
 
 export type UserReactionSetBody = {
-  target_kind: 'movie_card' | 'movie_card_comment'
+  target_kind: 'movie_card' | 'movie_card_comment' | 'feed_post_comment' | 'feed_post'
   target_id: number
   reaction_type_id: number
 }

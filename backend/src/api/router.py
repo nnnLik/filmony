@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
 from api.cards.routes import router as cards_router
+from api.feed.routes import router as feed_router
 from api.feed_posts.routes import router as feed_posts_router
 from api.films.routes import router as films_router
 from api.notifications.routes import router as notifications_router
@@ -17,6 +18,7 @@ router = APIRouter(prefix='/api', tags=['api'])
 
 router.include_router(auth_router)
 router.include_router(cards_router)
+router.include_router(feed_router)
 router.include_router(feed_posts_router)
 router.include_router(films_router)
 router.include_router(reactions_router)

@@ -25,6 +25,8 @@ class ResolveKinopoiskFilmService:
             film.year = payload.year
             film.poster_url = payload.poster_url
             film.genres = payload.genres
+            film.short_description = payload.short_description
+            film.description = payload.description
             await self._session.commit()
             await self._session.refresh(film)
             return film
@@ -35,6 +37,8 @@ class ResolveKinopoiskFilmService:
             year=payload.year,
             poster_url=payload.poster_url,
             genres=payload.genres,
+            short_description=payload.short_description,
+            description=payload.description,
         )
         self._session.add(film)
         await self._session.commit()

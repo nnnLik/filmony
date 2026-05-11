@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import time
 from urllib.parse import parse_qsl
+
+import orjson
 
 from services.auth.dto import TelegramWebAppUser
 from services.auth.errors import TelegramInitDataInvalidError
@@ -60,9 +61,11 @@ class VerifyTelegramInitDataService:
             raise TelegramInitDataInvalidError('missing user')
 
         try:
-            payload = json.loads(user_raw)
-        except json.JSONDecodeError as e:
+            payload = orjson.loads(user_raw)
+        except orjson.JSONDecodeError as e:
             raise TelegramInitDataInvalidError('invalid user json') from e
+        if not isinstance(payload, dict):
+            raise TelegramInitDataInvalidError('invalid user json')
 
         try:
             tid = int(payload['id'])

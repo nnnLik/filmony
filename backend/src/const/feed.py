@@ -10,6 +10,7 @@ StreamName = Literal[
     'personal_affinity',
     'discovery',
     'feed_posts',
+    'global',
 ]
 
 # Сколько id максимум держим в каждом внутреннем потоке за один запрос (глубокая пагинация

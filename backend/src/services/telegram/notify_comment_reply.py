@@ -52,7 +52,7 @@ class NotifyTelegramCommentReplyService:
 
             actor = await session.get(User, actor_user_id)
             recipient = await session.get(User, parent_author_id)
-            if actor is None or recipient is None:
+            if actor is None or recipient is None or recipient.telegram_user_id is None:
                 return
 
             actor_safe = html.escape(_format_actor_display(actor))
@@ -68,7 +68,7 @@ class NotifyTelegramCommentReplyService:
             ]
             body = '\n'.join(body_lines)
 
-            await deliver_engagement_html_message(recipient.telegram_user_id, body)
+            await deliver_engagement_html_message(int(recipient.telegram_user_id), body)
 
     @classmethod
     def build(cls) -> Self:

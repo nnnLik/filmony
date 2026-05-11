@@ -1,15 +1,29 @@
-import type { FeedListMode } from '../api/profileTypes'
+import type { GlobalFeedKind } from '../api/profileTypes'
 
 export const FEED_SCROLL_STORAGE_KEY = 'filmony.feed.scrollRestore'
 
 export type FeedScrollPayload = {
-  mode: FeedListMode
+  kind: GlobalFeedKind
   y: number
 }
 
-export function saveFeedScrollSnapshot(mode: FeedListMode, y: number): void {
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null
+}
+
+function modeToKind(mode: string): GlobalFeedKind | null {
+  if (mode === 'default' || mode === 'subscriptions_only' || mode === 'subscribers_only') {
+    return 'all'
+  }
+  if (mode === 'all' || mode === 'posts' || mode === 'cards') {
+    return mode
+  }
+  return null
+}
+
+export function saveFeedScrollSnapshot(kind: GlobalFeedKind, y: number): void {
   try {
-    const payload: FeedScrollPayload = { mode, y }
+    const payload: FeedScrollPayload = { kind, y }
     sessionStorage.setItem(FEED_SCROLL_STORAGE_KEY, JSON.stringify(payload))
   } catch {
     /* storage full / private mode */
@@ -21,13 +35,26 @@ export function readFeedScrollSnapshot(): FeedScrollPayload | null {
     const raw = sessionStorage.getItem(FEED_SCROLL_STORAGE_KEY)
     if (raw == null || raw === '') return null
     const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return null
-    if (!('mode' in parsed) || !('y' in parsed)) return null
-    const mode = (parsed as { mode: unknown }).mode
-    const y = (parsed as { y: unknown }).y
+    if (!isRecord(parsed) || !('y' in parsed)) return null
+    const y = parsed.y
     if (typeof y !== 'number' || !Number.isFinite(y)) return null
-    if (typeof mode !== 'string') return null
-    return { mode: mode as FeedListMode, y }
+
+    if ('kind' in parsed) {
+      const kind = parsed.kind
+      if (kind === 'all' || kind === 'posts' || kind === 'cards') {
+        return { kind, y }
+      }
+    }
+    if ('mode' in parsed) {
+      const mode = parsed.mode
+      if (typeof mode === 'string') {
+        const k = modeToKind(mode)
+        if (k != null) {
+          return { kind: k, y }
+        }
+      }
+    }
+    return null
   } catch {
     return null
   }

@@ -162,7 +162,10 @@ export function CountPill({
         <button
           type="button"
           disabled={disabled}
-          onClick={onPick}
+          onClick={(e) => {
+            e.stopPropagation()
+            onPick()
+          }}
           className={
             compact && pillTight
               ? `inline-flex h-9 min-h-9 cursor-pointer touch-manipulation items-center gap-1 rounded-full px-1.5 py-px text-[13px] leading-none tabular-nums ring-[0.5px] transition-[transform,opacity] active:scale-[0.97] disabled:opacity-50 ${

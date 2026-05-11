@@ -151,10 +151,14 @@ class ListMovieCardCommentsService:
             for root_id, count in descendant_rows:
                 descendants_count_by_comment[int(root_id)] = int(count)
 
-        _, comment_summaries = await GetReactionSummariesForTargetsService(self._session).execute(
+        _, comment_summaries, _, _ = await GetReactionSummariesForTargetsService(
+            self._session
+        ).execute(
             viewer_user_id=viewer_user_id,
             movie_card_ids=[],
             comment_ids=comment_ids,
+            feed_post_comment_ids=[],
+            feed_post_ids=[],
         )
 
         items = [

@@ -39,6 +39,8 @@ async def resolve_film(
         title=film.title,
         year=film.year,
         poster_url=film.poster_url,
+        short_description=film.short_description,
+        description=film.description,
         my_card_id=my_card_id,
     )
 
@@ -60,5 +62,7 @@ async def get_film(
         title=film.title,
         year=film.year,
         poster_url=film.poster_url,
+        short_description=film.short_description,
+        description=film.description,
         my_card_id=my_card_id,
     )

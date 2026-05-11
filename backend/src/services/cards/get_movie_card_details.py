@@ -26,6 +26,8 @@ class MovieCardDetails:
     film_title: str
     film_year: int | None
     film_poster_url: str | None
+    film_short_description: str | None
+    film_description: str | None
     rating: float
     company: str
     mood_before: str
@@ -68,10 +70,12 @@ class GetMovieCardDetailsService:
             .scalars()
             .all()
         )
-        summaries, _ = await GetReactionSummariesForTargetsService(self._session).execute(
+        summaries, _, _, _ = await GetReactionSummariesForTargetsService(self._session).execute(
             viewer_user_id=viewer_user_id,
             movie_card_ids=[card.id],
             comment_ids=[],
+            feed_post_comment_ids=[],
+            feed_post_ids=[],
         )
         return MovieCardDetails(
             id=card.id,
@@ -91,6 +95,8 @@ class GetMovieCardDetailsService:
             film_title=film.title,
             film_year=film.year,
             film_poster_url=film.poster_url,
+            film_short_description=film.short_description,
+            film_description=film.description,
             rating=float(card.rating),
             company=card.company,
             mood_before=card.mood_before,

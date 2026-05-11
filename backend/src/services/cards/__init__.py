@@ -7,6 +7,7 @@ from .create_movie_card import (
 )
 from .create_movie_card_comment import (
     CreateMovieCardCommentInput,
+    CreateMovieCardCommentResult,
     CreateMovieCardCommentService,
     MovieCardCommentValidationError,
     ParentCommentMismatchError,
@@ -28,6 +29,7 @@ __all__ = (
     'CommentMovieCardNotFoundError',
     'CommentNotFoundError',
     'CreateMovieCardCommentInput',
+    'CreateMovieCardCommentResult',
     'CreateMovieCardCommentService',
     'CreateMovieCardInput',
     'CreateMovieCardService',

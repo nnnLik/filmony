@@ -5,6 +5,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from api.cards.schemas import MovieCardCommentAuthorResponse
+from api.reactions.schemas import ReactionSummaryResponse
+
 
 class FeedPostCreateRequest(BaseModel):
     body: str = Field(default='', max_length=2000)
@@ -29,3 +32,27 @@ class FeedPostResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class FeedPostCommentResponse(BaseModel):
+    id: int
+    feed_post_id: int
+    parent_comment_id: int | None
+    text: str
+    created_at: datetime
+    replies_count: int = 0
+    total_descendants_count: int = 0
+    author: MovieCardCommentAuthorResponse
+    reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+
+
+class FeedPostCommentListResponse(BaseModel):
+    items: list[FeedPostCommentResponse]
+    next_cursor: str | None = None
+
+
+class FeedPostCommentCreateRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=250)
+    parent_comment_id: int | None = Field(default=None, ge=1)
+
+    model_config = ConfigDict(extra='forbid')

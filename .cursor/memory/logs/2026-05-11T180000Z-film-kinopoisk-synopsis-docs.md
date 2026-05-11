@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-11T18:00:00Z
+- **Feature slug:** film-kinopoisk-synopsis
+- **Action type:** docs
+- **Summary:** Публичная документация фичи, feature.md, plan/progress/result в active, перекрёстная ссылка из kinopoisk-movie-by-link.
+- **Files:** `docs/features/film-kinopoisk-synopsis.md`, `docs/features/kinopoisk-movie-by-link.md`, `.cursor/features/film-kinopoisk-synopsis/feature.md`, `.cursor/active/film-kinopoisk-synopsis/plan.md`, `.cursor/active/film-kinopoisk-synopsis/progress.md`, `.cursor/active/film-kinopoisk-synopsis/result.md`
+- **Verification:** n/a

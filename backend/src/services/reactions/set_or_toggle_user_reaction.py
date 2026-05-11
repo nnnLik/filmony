@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.feed_post import FeedPost
+from models.feed_post_comment import FeedPostComment
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.reaction_target_kind import ReactionTargetKind
@@ -50,37 +53,47 @@ class SetOrToggleUserReactionService:
         self._session = session
 
     async def execute(self, user_id: UUID, payload: SetUserReactionInput) -> SetUserReactionOutcome:
-        reaction_type_row = (
+        await self._require_valid_reaction_type(payload.reaction_type_id)
+        await self._require_target_allows_user(user_id, payload)
+        reaction_was_added = await self._toggle_reaction_row(user_id, payload)
+        await self._session.commit()
+        summary = await self._load_summary_for_target(user_id, payload)
+        return SetUserReactionOutcome(summary=summary, reaction_was_added=reaction_was_added)
+
+    async def _require_valid_reaction_type(self, reaction_type_id: int) -> None:
+        row = (
             await self._session.execute(
-                select(ReactionType.id).where(ReactionType.id == payload.reaction_type_id)
+                select(ReactionType.id).where(ReactionType.id == reaction_type_id)
             )
         ).scalar_one_or_none()
-        if reaction_type_row is None:
+        if row is None:
             raise ReactionTypeInvalidError()
 
-        if payload.target_kind == ReactionTargetKind.MOVIE_CARD:
-            owner_id = (
-                await self._session.execute(
-                    select(MovieCard.user_id).where(MovieCard.id == payload.target_id)
-                )
-            ).scalar_one_or_none()
-            if owner_id is None:
-                raise ReactionTargetNotFoundError()
-            if not ALLOW_SELF_REACTION and owner_id == user_id:
-                raise SelfReactionForbiddenError()
-        elif payload.target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
-            owner_id = (
-                await self._session.execute(
-                    select(MovieCardComment.user_id).where(MovieCardComment.id == payload.target_id)
-                )
-            ).scalar_one_or_none()
-            if owner_id is None:
-                raise ReactionTargetNotFoundError()
-            if not ALLOW_SELF_REACTION and owner_id == user_id:
-                raise SelfReactionForbiddenError()
-        else:
-            raise ReactionTypeInvalidError()
+    def _owner_id_select(self, payload: SetUserReactionInput) -> Select[Any]:
+        tid = payload.target_id
+        kind = payload.target_kind
+        if kind == ReactionTargetKind.MOVIE_CARD:
+            return select(MovieCard.user_id).where(MovieCard.id == tid)
+        if kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+            return select(MovieCardComment.user_id).where(MovieCardComment.id == tid)
+        if kind == ReactionTargetKind.FEED_POST_COMMENT:
+            return select(FeedPostComment.user_id).where(FeedPostComment.id == tid)
+        if kind == ReactionTargetKind.FEED_POST:
+            return select(FeedPost.user_id).where(FeedPost.id == tid)
+        raise ReactionTypeInvalidError()
 
+    async def _require_target_allows_user(
+        self, user_id: UUID, payload: SetUserReactionInput
+    ) -> None:
+        owner_id = (
+            await self._session.execute(self._owner_id_select(payload))
+        ).scalar_one_or_none()
+        if owner_id is None:
+            raise ReactionTargetNotFoundError()
+        if not ALLOW_SELF_REACTION and owner_id == user_id:
+            raise SelfReactionForbiddenError()
+
+    async def _toggle_reaction_row(self, user_id: UUID, payload: SetUserReactionInput) -> bool:
         existing = (
             await self._session.execute(
                 select(UserReaction).where(
@@ -91,7 +104,6 @@ class SetOrToggleUserReactionService:
                 )
             )
         ).scalar_one_or_none()
-
         reaction_was_added = existing is None
         if existing is not None:
             await self._session.delete(existing)
@@ -104,22 +116,38 @@ class SetOrToggleUserReactionService:
                     target_id=payload.target_id,
                 )
             )
+        return reaction_was_added
 
-        await self._session.commit()
-
-        # Точка расширения для Telegram / outbox (уведомления о реакциях вне scope MVP).
+    async def _load_summary_for_target(
+        self, user_id: UUID, payload: SetUserReactionInput
+    ) -> ReactionTargetSummary:
         cards: list[int] = []
         comments: list[int] = []
+        feed_post_comments: list[int] = []
+        feed_posts: list[int] = []
+        tid = payload.target_id
         if payload.target_kind == ReactionTargetKind.MOVIE_CARD:
-            cards = [payload.target_id]
+            cards = [tid]
+        elif payload.target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+            comments = [tid]
+        elif payload.target_kind == ReactionTargetKind.FEED_POST_COMMENT:
+            feed_post_comments = [tid]
         else:
-            comments = [payload.target_id]
+            feed_posts = [tid]
 
-        card_m, comment_m = await GetReactionSummariesForTargetsService(self._session).execute(
+        card_m, comment_m, fpc_m, fp_m = await GetReactionSummariesForTargetsService(
+            self._session
+        ).execute(
             viewer_user_id=user_id,
             movie_card_ids=cards,
             comment_ids=comments,
+            feed_post_comment_ids=feed_post_comments,
+            feed_post_ids=feed_posts,
         )
-        summary = card_m[payload.target_id] if cards else comment_m[payload.target_id]
-
-        return SetUserReactionOutcome(summary=summary, reaction_was_added=reaction_was_added)
+        if cards:
+            return card_m[payload.target_id]
+        if comments:
+            return comment_m[payload.target_id]
+        if feed_post_comments:
+            return fpc_m[payload.target_id]
+        return fp_m[payload.target_id]

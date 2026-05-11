@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
+import orjson
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
 from models.film import Film
@@ -51,6 +55,8 @@ async def _create_film(
     title: str = 'Интерстеллар',
     year: int = 2014,
     genres: list[str] | None = None,
+    short_description: str | None = None,
+    description: str | None = None,
 ) -> Film:
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -60,6 +66,8 @@ async def _create_film(
             year=year,
             poster_url='https://example.com/poster.jpg',
             genres=genres or [],
+            short_description=short_description,
+            description=description,
         )
         session.add(film)
         await session.commit()
@@ -858,6 +866,162 @@ async def test_comment_mention_follower_token_ok(async_client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
+async def test_comment_mention_queues_celery(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_movie_card_comment_mentions'],
+        'delay',
+        mock_delay,
+    )
+
+    author = await _login(async_client, telegram_user_id=90240)
+    target = await _login(async_client, telegram_user_id=90241)
+    slug_target = await _profile_slug_for_telegram(90241)
+    await _login(async_client, telegram_user_id=90240)
+    await async_client.post(f'/api/users/{target["id"]}/subscriptions')
+
+    film = await _create_film(kinopoisk_id=10090240, title='Mention celery', year=2021)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    r = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': f'hey ⟦@{slug_target}⟧'},
+    )
+    assert r.status_code == 200
+    comment_id = int(r.json()['id'])
+
+    mock_delay.assert_called_once()
+    kwargs = mock_delay.call_args.kwargs
+    assert kwargs['actor_user_id'] == author['id']
+    assert kwargs['card_id'] == card_id
+    assert kwargs['comment_id'] == comment_id
+    listed = orjson.loads(kwargs['recipient_user_ids_json'])
+    assert listed == [target['id']]
+
+
+@pytest.mark.asyncio
+async def test_comment_reply_mention_same_parent_no_mention_celery(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    reply_delay = MagicMock()
+    mention_delay = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_comment_reply'],
+        'delay',
+        reply_delay,
+    )
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_movie_card_comment_mentions'],
+        'delay',
+        mention_delay,
+    )
+
+    await _login(async_client, telegram_user_id=90250)
+    film = await _create_film(kinopoisk_id=10090250, title='Dedupe reply', year=2020)
+    card = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert card.status_code == 200
+    card_id = card.json()['id']
+
+    author_a = await _login(async_client, telegram_user_id=90251)
+    root = await async_client.post(f'/api/cards/{card_id}/comments', json={'text': 'root by A'})
+    assert root.status_code == 200
+    root_id = int(root.json()['id'])
+    slug_a = await _profile_slug_for_telegram(90251)
+
+    await _login(async_client, telegram_user_id=90252)
+    await async_client.post(f'/api/users/{author_a["id"]}/subscriptions')
+
+    rep = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={
+            'text': f'⟦@{slug_a}⟧ ответ',
+            'parent_comment_id': root_id,
+        },
+    )
+    assert rep.status_code == 200
+
+    reply_delay.assert_called_once()
+    mention_delay.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_comment_root_mention_card_owner_no_mention_celery(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    root_delay = MagicMock()
+    mention_delay = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_movie_card_root_comment'],
+        'delay',
+        root_delay,
+    )
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_movie_card_comment_mentions'],
+        'delay',
+        mention_delay,
+    )
+
+    owner = await _login(async_client, telegram_user_id=90260)
+    film = await _create_film(kinopoisk_id=10090260, title='Dedupe root', year=2019)
+    card = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 7.5,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert card.status_code == 200
+    card_id = card.json()['id']
+    slug_owner = await _profile_slug_for_telegram(90260)
+
+    await _login(async_client, telegram_user_id=90261)
+    await async_client.post(f'/api/users/{owner["id"]}/subscriptions')
+
+    r = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': f'привет ⟦@{slug_owner}⟧'},
+    )
+    assert r.status_code == 200
+
+    root_delay.assert_called_once()
+    mention_delay.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_comment_mention_not_following_rejected(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=90222)
     await _login(async_client, telegram_user_id=90223)
@@ -991,6 +1155,8 @@ async def test_resolve_film_and_get_by_id(
             year=1999,
             poster_url='https://example.com/matrix.jpg',
             genres=['фантастика', 'боевик'],
+            short_description='Коротко.',
+            description='Длинное описание фильма.',
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
@@ -1004,11 +1170,15 @@ async def test_resolve_film_and_get_by_id(
     assert body['kinopoisk_id'] == 301
     assert body['genres'] == ['фантастика', 'боевик']
     assert body['title'] == 'Матрица'
+    assert body['short_description'] == 'Коротко.'
+    assert body['description'] == 'Длинное описание фильма.'
 
     fetched = await async_client.get(f'/api/films/{body["id"]}')
     assert fetched.status_code == 200
     assert fetched.json()['id'] == body['id']
     assert fetched.json()['genres'] == ['фантастика', 'боевик']
+    assert fetched.json()['short_description'] == 'Коротко.'
+    assert fetched.json()['description'] == 'Длинное описание фильма.'
 
     resolved_again = await async_client.post(
         '/api/films/resolve',
@@ -1045,6 +1215,36 @@ async def test_get_film_includes_my_card_id(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_card_includes_film_synopsis(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=631)
+    film = await _create_film(
+        kinopoisk_id=100631,
+        short_description='Кратко про фильм.',
+        description='Развёрнутое описание для теста.',
+    )
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': film.genres,
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    detail = await async_client.get(f'/api/cards/{card_id}')
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body['film_short_description'] == 'Кратко про фильм.'
+    assert body['film_description'] == 'Развёрнутое описание для теста.'
+
+
+@pytest.mark.asyncio
 async def test_resolve_film_series_url(
     async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1059,6 +1259,8 @@ async def test_resolve_film_series_url(
             year=2024,
             poster_url=None,
             genres=['драма'],
+            short_description=None,
+            description=None,
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)

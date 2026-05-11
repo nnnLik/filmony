@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-11T200000Z-global-feed-tabs-timeline-sse-code.md`
 - `2026-05-11T190500Z-global-feed-tabs-timeline-sse-docs.md`
 - `2026-05-11T180000Z-film-kinopoisk-synopsis-docs.md`
 - `2026-05-11T120000Z-feed-posts-mentions-code.md`

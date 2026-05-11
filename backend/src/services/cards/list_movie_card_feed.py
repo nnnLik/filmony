@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import datetime as dt
-import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 from uuid import UUID
 
+import orjson
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import const.feed
 from const.feed import FeedMode
 from models.feed_post import FeedPost
+from models.feed_post_comment import FeedPostComment
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
@@ -20,10 +22,135 @@ from models.movie_card_tag import MovieCardTag
 from models.user import User
 from models.user_subscription import UserSubscription
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor, MovieCardCommentItem
+from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
 CURSOR_PREFIX = 'v1.'
+
+
+def _empty_reaction_summary() -> ReactionTargetSummary:
+    return ReactionTargetSummary(counts=(), my_reaction_type_ids=())
+
+
+async def _load_feed_post_engagement_maps(
+    session: AsyncSession,
+    viewer_user_id: UUID,
+    post_ids: list[int],
+) -> tuple[dict[int, int], dict[int, list[FeedPostCommentItem]], dict[int, ReactionTargetSummary]]:
+    """Счётчики комментариев, превью корневых комментариев (до 3 на пост) и реакции на посты/превью."""
+    if not post_ids:
+        return {}, {}, {}
+
+    counts_by_post: dict[int, int] = dict.fromkeys(post_ids, 0)
+    count_rows = (
+        await session.execute(
+            select(FeedPostComment.feed_post_id, func.count(FeedPostComment.id))
+            .where(FeedPostComment.feed_post_id.in_(post_ids))
+            .group_by(FeedPostComment.feed_post_id)
+        )
+    ).all()
+    for fpid, cnt in count_rows:
+        counts_by_post[int(fpid)] = int(cnt)
+
+    ranked = (
+        select(
+            FeedPostComment.id,
+            FeedPostComment.feed_post_id,
+            FeedPostComment.user_id,
+            FeedPostComment.parent_comment_id,
+            FeedPostComment.text,
+            FeedPostComment.created_at,
+            func.row_number()
+            .over(
+                partition_by=FeedPostComment.feed_post_id,
+                order_by=FeedPostComment.id.desc(),
+            )
+            .label('rn'),
+        )
+        .where(
+            FeedPostComment.feed_post_id.in_(post_ids),
+            FeedPostComment.parent_comment_id.is_(None),
+        )
+        .subquery()
+    )
+
+    preview_stmt = (
+        select(
+            ranked.c.id,
+            ranked.c.feed_post_id,
+            ranked.c.parent_comment_id,
+            ranked.c.text,
+            ranked.c.created_at,
+            User,
+        )
+        .join(User, User.id == ranked.c.user_id)
+        .where(ranked.c.rn <= 3)
+        .order_by(ranked.c.feed_post_id.asc(), ranked.c.id.asc())
+    )
+    preview_rows = (await session.execute(preview_stmt)).all()
+
+    previews_by_post: dict[int, list[FeedPostCommentItem]] = {pid: [] for pid in post_ids}
+    preview_comment_ids: list[int] = []
+    for cid, fpid, parent_comment_id, text, created_at, author_row in preview_rows:
+        preview_comment_ids.append(int(cid))
+        previews_by_post[int(fpid)].append(
+            FeedPostCommentItem(
+                id=int(cid),
+                feed_post_id=int(fpid),
+                parent_comment_id=parent_comment_id,
+                text=text,
+                created_at=created_at,
+                replies_count=0,
+                total_descendants_count=0,
+                author=MovieCardCommentAuthor(
+                    id=author_row.id,
+                    profile_slug=author_row.profile_slug,
+                    username=author_row.username,
+                    first_name=author_row.first_name,
+                    last_name=author_row.last_name,
+                    photo_url=author_row.photo_url,
+                    display_name=author_row.display_name,
+                ),
+                reactions=_empty_reaction_summary(),
+            )
+        )
+
+    _, _, fpc_rx, fp_rx = await GetReactionSummariesForTargetsService(session).execute(
+        viewer_user_id=viewer_user_id,
+        movie_card_ids=[],
+        comment_ids=[],
+        feed_post_comment_ids=preview_comment_ids,
+        feed_post_ids=post_ids,
+    )
+
+    for pid, plist in list(previews_by_post.items()):
+        previews_by_post[pid] = [replace(p, reactions=fpc_rx[p.id]) for p in plist]
+
+    return counts_by_post, previews_by_post, fp_rx
+
+
+async def attach_feed_post_list_engagement(
+    session: AsyncSession,
+    viewer_user_id: UUID,
+    items: list[FeedPostFeedItem],
+) -> list[FeedPostFeedItem]:
+    """Дополняет посты счётчиком/превью комментариев и реакциями (профиль, детальная страница)."""
+    if not items:
+        return []
+    post_ids = [it.id for it in items]
+    counts_by_post, previews_by_post, fp_rx = await _load_feed_post_engagement_maps(
+        session, viewer_user_id, post_ids
+    )
+    return [
+        replace(
+            it,
+            reactions=fp_rx[it.id],
+            comments_count=counts_by_post.get(it.id, 0),
+            comments_preview=tuple(previews_by_post.get(it.id, [])),
+        )
+        for it in items
+    ]
 
 
 def _norm_genre(g: str) -> str:
@@ -93,6 +220,9 @@ class FeedPostFeedItem:
     created_at: dt.datetime
     feed_source: const.feed.StreamName
     referenced_card: FeedPostReferencedCardSnippet | None
+    reactions: ReactionTargetSummary = field(default_factory=_empty_reaction_summary)
+    comments_count: int = 0
+    comments_preview: tuple[FeedPostCommentItem, ...] = ()
 
 
 FeedPageEntry = MovieCardFeedItem | FeedPostFeedItem
@@ -196,7 +326,7 @@ class _MergeState:
 
 
 def _encode_cursor(state: _MergeState) -> str:
-    raw = json.dumps(state.to_payload(), separators=(',', ':')).encode()
+    raw = orjson.dumps(state.to_payload())
     b64 = base64.urlsafe_b64encode(raw).decode('ascii').rstrip('=')
     return f'{CURSOR_PREFIX}{b64}'
 
@@ -212,8 +342,8 @@ def _decode_cursor(cursor: str | None) -> _MergeState | None:
         payload += '=' * pad
     try:
         raw = base64.urlsafe_b64decode(payload.encode('ascii'))
-        data = json.loads(raw.decode('utf-8'))
-    except (ValueError, json.JSONDecodeError):
+        data = orjson.loads(raw)
+    except (ValueError, binascii.Error, orjson.JSONDecodeError):
         return None
     if not isinstance(data, dict):
         return None
@@ -705,12 +835,14 @@ class ListMovieCardFeedService:
             for p in plist:
                 preview_comment_ids.append(p.id)
 
-        card_summaries, comment_summaries = await GetReactionSummariesForTargetsService(
+        card_summaries, comment_summaries, _, _ = await GetReactionSummariesForTargetsService(
             self._session
         ).execute(
             viewer_user_id=viewer_user_id,
             movie_card_ids=card_ids,
             comment_ids=preview_comment_ids,
+            feed_post_comment_ids=[],
+            feed_post_ids=[],
         )
 
         items: list[MovieCardFeedItem] = []
@@ -766,7 +898,7 @@ class ListMovieCardFeedService:
 
     async def _hydrate_feed_post_items(
         self,
-        _viewer_user_id: UUID,
+        viewer_user_id: UUID,
         ordered_post_ids: list[int],
         source_by_id: dict[int, const.feed.StreamName],
     ) -> list[FeedPostFeedItem]:
@@ -780,6 +912,11 @@ class ListMovieCardFeedService:
             )
         ).all()
         by_id = {int(fp.id): (fp, u) for fp, u in rows}
+
+        pids = [pid for pid in ordered_post_ids if pid in by_id]
+        counts_by_post, previews_by_post, fp_rx = await _load_feed_post_engagement_maps(
+            self._session, viewer_user_id, pids
+        )
 
         ref_cids = [
             int(fp.referenced_movie_card_id)
@@ -822,9 +959,10 @@ class ListMovieCardFeedService:
                 photo_url=author_user.photo_url,
                 display_name=author_user.display_name,
             )
+            fpid = int(fp.id)
             items.append(
                 FeedPostFeedItem(
-                    id=int(fp.id),
+                    id=fpid,
                     user_id=fp.user_id,
                     author=author,
                     body=fp.body or '',
@@ -834,8 +972,33 @@ class ListMovieCardFeedService:
                     if fp.source_comment_id is not None
                     else None,
                     created_at=fp.created_at,
-                    feed_source=source_by_id[int(fp.id)],
+                    feed_source=source_by_id[fpid],
                     referenced_card=ref_snippet,
+                    reactions=fp_rx[fpid],
+                    comments_count=counts_by_post.get(fpid, 0),
+                    comments_preview=tuple(previews_by_post.get(fpid, [])),
                 )
             )
         return items
+
+    async def hydrate_global_feed_movie_cards(
+        self,
+        viewer_user_id: UUID,
+        ordered_card_ids: list[int],
+    ) -> list[MovieCardFeedItem]:
+        """Публичная глобальная лента: карточки с feed_source=global (без merge-потоков)."""
+        if not ordered_card_ids:
+            return []
+        rows = await self._load_card_rows_ordered(ordered_card_ids)
+        sources: dict[int, const.feed.StreamName] = dict.fromkeys(ordered_card_ids, 'global')
+        return await self._hydrate_feed_items(viewer_user_id, rows, sources)
+
+    async def hydrate_global_feed_posts(
+        self,
+        viewer_user_id: UUID,
+        ordered_post_ids: list[int],
+    ) -> list[FeedPostFeedItem]:
+        if not ordered_post_ids:
+            return []
+        sources: dict[int, const.feed.StreamName] = dict.fromkeys(ordered_post_ids, 'global')
+        return await self._hydrate_feed_post_items(viewer_user_id, ordered_post_ids, sources)

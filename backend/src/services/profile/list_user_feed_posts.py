@@ -12,7 +12,11 @@ from models.film import Film
 from models.movie_card import MovieCard
 from models.user import User
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
-from services.cards.list_movie_card_feed import FeedPostFeedItem, FeedPostReferencedCardSnippet
+from services.cards.list_movie_card_feed import (
+    FeedPostFeedItem,
+    FeedPostReferencedCardSnippet,
+    attach_feed_post_list_engagement,
+)
 
 _CURSOR_PREFIX = 'ufp1'
 
@@ -59,6 +63,7 @@ class ListUserFeedPostsService:
         user_id: UUID,
         cursor: str | None,
         limit: int,
+        viewer_user_id: UUID,
     ) -> UserFeedPostsPage:
         cursor_ts: dt.datetime | None = None
         cursor_id: int | None = None
@@ -149,4 +154,5 @@ class ListUserFeedPostsService:
             fp_last, _ = slice_rows[-1]
             next_cursor = _encode_cursor(fp_last.created_at, int(fp_last.id))
 
-        return UserFeedPostsPage(items=items, next_cursor=next_cursor)
+        enriched = await attach_feed_post_list_engagement(self._session, viewer_user_id, items)
+        return UserFeedPostsPage(items=enriched, next_cursor=next_cursor)

@@ -8,25 +8,36 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
-import { getMovieCardFeedPage } from '../api/cardApi'
+import { getGlobalFeedPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyMovieCardTagStats } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
-import type { FeedListMode, FeedMovieCardPage, MovieCardComment } from '../api/profileTypes'
+import type { FeedMovieCardPage, FeedPostComment, GlobalFeedKind, MovieCardComment } from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
-import { FEED_MODE_ENTRIES, feedModeHint } from '../components/feed/feedModePickerConstants'
+import { FeedTopFab } from '../components/feed/FeedTopFab'
 import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
 import {
   MY_PROFILE_BUNDLE_CHANGED_EVENT,
   readMyProfileBundleCache,
 } from '../lib/myProfileBundleCache'
-import { movieCardFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
+import { globalFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
 import { readFeedScrollSnapshot, saveFeedScrollSnapshot } from '../lib/feedScrollRestore'
+import { consumeGlobalFeedHeadSse } from '../lib/globalFeedSse'
+import {
+  isGlobalFeedCardDetailOpened,
+  isGlobalFeedPostDetailOpened,
+} from '../lib/globalFeedViewedIds'
+
+const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
+  { value: 'all', segmentLabel: 'Всё' },
+  { value: 'posts', segmentLabel: 'Посты' },
+  { value: 'cards', segmentLabel: 'Карточки' },
+]
 
 export function FeedPage() {
   const auth = useAuthStatus()
@@ -35,9 +46,9 @@ export function FeedPage() {
   const location = useLocation()
   const { openCompose } = useComposeFeedPost()
   const pendingScrollYRef = useRef<number | null>(null)
-  const feedModeRef = useRef<FeedListMode>('default')
+  const feedKindRef = useRef<GlobalFeedKind>('all')
 
-  const [feedMode, setFeedMode] = useState<FeedListMode>('default')
+  const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
   const viewerUserId = myProfileBundle?.profile.id ?? null
   const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
@@ -47,9 +58,12 @@ export function FeedPage() {
     return uid != null ? readRecentCardViews(uid) : []
   })
 
+  const [liveHeadVersion, setLiveHeadVersion] = useState(0)
+  const [ackHeadVersion, setAckHeadVersion] = useState(0)
+
   useEffect(() => {
-    feedModeRef.current = feedMode
-  }, [feedMode])
+    feedKindRef.current = feedKind
+  }, [feedKind])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -61,7 +75,7 @@ export function FeedPage() {
         window.clearTimeout(timeoutId)
       }
       timeoutId = window.setTimeout(() => {
-        saveFeedScrollSnapshot(feedModeRef.current, window.scrollY)
+        saveFeedScrollSnapshot(feedKindRef.current, window.scrollY)
       }, 200)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -82,31 +96,11 @@ export function FeedPage() {
     void navigate('.', { replace: true, state: {} })
     queueMicrotask(() => {
       if (snapshot != null) {
-        setFeedMode(snapshot.mode)
+        setFeedKind(snapshot.kind)
         pendingScrollYRef.current = snapshot.y
       }
     })
   }, [location.state, navigate, auth.kind])
-
-  useEffect(() => {
-    const st = location.state as { feedHighlightPostId?: number } | undefined
-    const postId = st?.feedHighlightPostId
-    if (postId == null || !Number.isInteger(postId) || postId < 1) {
-      return
-    }
-    void navigate('.', { replace: true, state: {} })
-    const t = window.setTimeout(() => {
-      const el = document.querySelector(`[data-feed-post-id="${postId}"]`)
-      if (el instanceof HTMLElement) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        el.classList.add('ring-2', 'ring-amber-400/70')
-        window.setTimeout(() => {
-          el.classList.remove('ring-2', 'ring-amber-400/70')
-        }, 2200)
-      }
-    }, 400)
-    return () => window.clearTimeout(t)
-  }, [location.state, navigate])
 
   const refreshRecentStrip = useCallback(() => {
     const uid = readMyProfileBundleCache()?.profile.id
@@ -118,12 +112,12 @@ export function FeedPage() {
   }, [])
 
   const feedQuery = useInfiniteQuery({
-    queryKey: movieCardFeedQueryKey(feedMode),
+    queryKey: globalFeedQueryKey(feedKind),
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) =>
-      getMovieCardFeedPage({
+      getGlobalFeedPage({
         limit: 20,
-        mode: feedMode,
+        kind: feedKind,
         ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
       }),
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
@@ -131,6 +125,23 @@ export function FeedPage() {
     staleTime: 2 * 60_000,
     gcTime: 60 * 60_000,
   })
+
+  useEffect(() => {
+    const p0 = feedQuery.data?.pages[0]
+    if (p0 == null) return
+    const v = p0.feed_head_version ?? 0
+    setAckHeadVersion((prev) => Math.max(prev, v))
+    setLiveHeadVersion((prev) => Math.max(prev, v))
+  }, [feedQuery.data?.pages, feedQuery.dataUpdatedAt])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready') return
+    const ac = new AbortController()
+    void consumeGlobalFeedHeadSse(ac.signal, (v) => {
+      setLiveHeadVersion((prev) => Math.max(prev, v))
+    }).catch(() => {})
+    return () => ac.abort()
+  }, [auth.kind])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -199,7 +210,7 @@ export function FeedPage() {
 
   const onCommentsState = useCallback(
     (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
-      const key = movieCardFeedQueryKey(feedMode)
+      const key = globalFeedQueryKey(feedKind)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
         return {
@@ -219,7 +230,29 @@ export function FeedPage() {
         }
       })
     },
-    [queryClient, feedMode],
+    [queryClient, feedKind],
+  )
+
+  const onFeedPostCommentsState = useCallback(
+    (postId: number, next: { comments_count: number; comments_preview: FeedPostComment[] }) => {
+      const key = globalFeedQueryKey(feedKind)
+      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
+        if (old == null) return old
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.map((entry) => {
+              if (entry.kind !== 'feed_post' || entry.id !== postId) {
+                return entry
+              }
+              return { ...entry, ...next }
+            }),
+          })),
+        }
+      })
+    },
+    [queryClient, feedKind],
   )
 
   useEffect(() => {
@@ -232,7 +265,11 @@ export function FeedPage() {
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: y, behavior: 'auto' })
     })
-  }, [auth.kind, feedQuery.isPending, items.length, feedMode])
+  }, [auth.kind, feedQuery.isPending, items.length, feedKind])
+
+  const onRefetchFeed = useCallback(async () => {
+    await feedQuery.refetch()
+  }, [feedQuery])
 
   if (auth.kind === 'error') {
     return (
@@ -284,10 +321,10 @@ export function FeedPage() {
           <div
             className="flex w-full rounded-xl bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] p-0.5"
             role="tablist"
-            aria-label="Источник ленты"
+            aria-label="Тип ленты"
           >
-            {FEED_MODE_ENTRIES.map((entry) => {
-              const selected = feedMode === entry.value
+            {FEED_KIND_TABS.map((entry) => {
+              const selected = feedKind === entry.value
               return (
                 <button
                   key={entry.value}
@@ -299,14 +336,16 @@ export function FeedPage() {
                       ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-[0_1px_2px_rgba(0,0,0,0.12)]'
                       : 'text-(--tgui--hint_color)'
                   }`}
-                  onClick={() => setFeedMode(entry.value)}
+                  onClick={() => setFeedKind(entry.value)}
                 >
                   {entry.segmentLabel}
                 </button>
               )
             })}
           </div>
-          <p className="mt-2 text-[12px] leading-snug text-(--tgui--hint_color)">{feedModeHint(feedMode)}</p>
+          <p className="mt-2 text-[12px] leading-snug text-(--tgui--hint_color)">
+            Публичная лента приложения по времени публикации.
+          </p>
         </div>
       </header>
 
@@ -335,8 +374,8 @@ export function FeedPage() {
             <div className="flex flex-col items-center gap-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-10">
               <p className="text-center text-[14px] leading-relaxed text-(--tgui--hint_color)">
                 {emptyFeedGreeting != null
-                  ? `${emptyFeedGreeting}, добавь первую карточку`
-                  : 'Добавь первую карточку — здесь появятся оценки друзей и рекомендации.'}
+                  ? `${emptyFeedGreeting}, здесь пока пусто`
+                  : 'Здесь появятся публичные посты и карточки пользователей.'}
               </p>
               <Link to="/cards/new" className="w-full no-underline">
                 <Button stretched>Добавить карточку</Button>
@@ -348,17 +387,29 @@ export function FeedPage() {
             <>
               {items.map((entry) => {
                 if (entry.kind === 'feed_post') {
+                  const dim = isGlobalFeedPostDetailOpened(entry.id)
                   return (
-                    <FeedPostCard key={`post-${entry.id}`} post={entry} viewerUserId={viewerUserId} />
+                    <div
+                      key={`post-${entry.id}`}
+                      className={dim ? 'opacity-[0.88]' : undefined}
+                    >
+                      <FeedPostCard
+                        post={entry}
+                        viewerUserId={viewerUserId}
+                        onCommentsState={onFeedPostCommentsState}
+                      />
+                    </div>
                   )
                 }
+                const dimC = isGlobalFeedCardDetailOpened(entry.id)
                 return (
-                  <FeedCard
-                    key={`card-${entry.id}`}
-                    card={entry}
-                    viewerUserId={viewerUserId}
-                    onCommentsState={onCommentsState}
-                  />
+                  <div key={`card-${entry.id}`} className={dimC ? 'opacity-[0.88]' : undefined}>
+                    <FeedCard
+                      card={entry}
+                      viewerUserId={viewerUserId}
+                      onCommentsState={onCommentsState}
+                    />
+                  </div>
                 )
               })}
               {hasNextPage ? (
@@ -377,6 +428,14 @@ export function FeedPage() {
           )}
         </div>
       </main>
+
+      {auth.kind === 'ready' ? (
+        <FeedTopFab
+          liveHeadVersion={liveHeadVersion}
+          ackHeadVersion={ackHeadVersion}
+          onRefetch={onRefetchFeed}
+        />
+      ) : null}
     </div>
   )
 }

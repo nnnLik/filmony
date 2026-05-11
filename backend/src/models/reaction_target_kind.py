@@ -8,3 +8,5 @@ class ReactionTargetKind(StrEnum):
 
     MOVIE_CARD = 'movie_card'
     MOVIE_CARD_COMMENT = 'movie_card_comment'
+    FEED_POST_COMMENT = 'feed_post_comment'
+    FEED_POST = 'feed_post'

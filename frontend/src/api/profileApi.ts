@@ -1,4 +1,5 @@
 import { ApiError, apiFetch, apiJson } from './client'
+import { normalizeFeedPostInFeed } from './feedPostApi'
 import type {
   CardCompany,
   CardMoodAfter,
@@ -135,7 +136,13 @@ export async function getUserFeedPosts(
     q.set('limit', String(params.limit))
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  return apiJson<UserFeedPostsPage>(`/api/users/${encodeURIComponent(userId)}/feed-posts${suffix}`)
+  const body = await apiJson<{ items: Record<string, unknown>[]; next_cursor: string | null }>(
+    `/api/users/${encodeURIComponent(userId)}/feed-posts${suffix}`,
+  )
+  return {
+    next_cursor: body.next_cursor,
+    items: body.items.map((it) => normalizeFeedPostInFeed(it)),
+  }
 }
 
 export async function getUserWatchlist(

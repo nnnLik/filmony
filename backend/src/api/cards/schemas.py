@@ -65,6 +65,13 @@ class CardDetailResponse(BaseModel):
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
 
 
+class MovieCardDetailResponse(CardDetailResponse):
+    """Полная карточка (GET /cards/:id): синопсис из БД, не отдаётся в ленте."""
+
+    film_short_description: str | None = None
+    film_description: str | None = None
+
+
 class CardUpdateRequest(BaseModel):
     rating: float | None = Field(default=None, ge=1, le=10, multiple_of=0.5)
     company: CardCompany | None = None
@@ -113,6 +120,7 @@ FeedCardSource = Literal[
     'personal_affinity',
     'discovery',
     'feed_posts',
+    'global',
 ]
 
 
@@ -131,6 +139,20 @@ class FeedPostReferencedCardResponse(BaseModel):
     rating: float
 
 
+class FeedPostCommentPreviewResponse(BaseModel):
+    """Превью комментария к посту в ленте (без циклического импорта с `api.feed_posts.schemas`)."""
+
+    id: int
+    feed_post_id: int
+    parent_comment_id: int | None
+    text: str
+    created_at: datetime
+    replies_count: int = 0
+    total_descendants_count: int = 0
+    author: MovieCardCommentAuthorResponse
+    reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+
+
 class FeedPostFeedItemResponse(BaseModel):
     kind: Literal['feed_post'] = 'feed_post'
     id: int
@@ -143,6 +165,9 @@ class FeedPostFeedItemResponse(BaseModel):
     created_at: datetime
     feed_source: FeedCardSource
     referenced_card: FeedPostReferencedCardResponse | None = None
+    reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+    comments_count: int = 0
+    comments_preview: list[FeedPostCommentPreviewResponse] = Field(default_factory=list)
 
 
 FeedPageItemResponse = MovieCardFeedItemResponse | FeedPostFeedItemResponse
@@ -151,6 +176,10 @@ FeedPageItemResponse = MovieCardFeedItemResponse | FeedPostFeedItemResponse
 class MovieCardFeedPageResponse(BaseModel):
     items: list[FeedPageItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
+    feed_head_version: int = Field(
+        default=0,
+        description='Монотонная версия «головы» глобальной ленты (для SSE/клиента); 0 если не применимо',
+    )
 
 
 class UserFeedPostsPageResponse(BaseModel):
@@ -167,6 +196,8 @@ class FilmResolveResponse(BaseModel):
     title: str
     year: int | None
     poster_url: str | None
+    short_description: str | None = None
+    description: str | None = None
 
 
 class ShareCardRequest(BaseModel):
@@ -182,6 +213,7 @@ class ShareCardResponse(BaseModel):
 
 class FollowingRatingEntryResponse(BaseModel):
     user_id: UUID
+    movie_card_id: int
     profile_slug: str
     username: str | None
     first_name: str | None

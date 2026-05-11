@@ -1,23 +1,34 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Annotated
+from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+import orjson
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
+from api.cards.schemas import FeedPostFeedItemResponse, MovieCardCommentAuthorResponse
 from api.feed_posts.schemas import (
+    FeedPostCommentCreateRequest,
+    FeedPostCommentListResponse,
+    FeedPostCommentResponse,
     FeedPostCreateRequest,
     FeedPostImageUploadResponse,
     FeedPostResponse,
 )
+from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
+from models.feed_post_comment import FeedPostComment
+from models.user import User
+from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.feed_posts import (
     FEED_POST_IMAGE_MAX_BYTES,
     CreateFeedPostInput,
@@ -25,12 +36,25 @@ from services.feed_posts import (
     FeedPostImageUploadError,
     FeedPostNotFoundError,
     FeedPostValidationError,
-    GetFeedPostByIdService,
     ReferencedMovieCardNotFoundError,
     SourceCommentForbiddenError,
     SourceCommentNotFoundError,
     UploadFeedPostImageService,
 )
+from services.feed_posts.create_feed_post_comment import (
+    CreateFeedPostCommentInput,
+    CreateFeedPostCommentService,
+    FeedPostCommentValidationError,
+    ParentCommentMismatchError,
+    ParentCommentNotFoundError,
+)
+from services.feed_posts.get_feed_post_feed_item import GetFeedPostFeedItemService
+from services.feed_posts.list_feed_post_comments import (
+    CommentNotFoundError,
+    FeedPostCommentItem,
+    ListFeedPostCommentsService,
+)
+from services.reactions import GetReactionSummariesForTargetsService
 from utils.feed_post_media_key import is_safe_feed_post_media_key
 from utils.rustfs_get_object import (
     RustfsClientError,
@@ -39,6 +63,68 @@ from utils.rustfs_get_object import (
 )
 
 router = APIRouter(prefix='/feed-posts', tags=['feed-posts'])
+
+
+def _feed_post_comment_item_to_response(item: FeedPostCommentItem) -> FeedPostCommentResponse:
+    a = item.author
+    return FeedPostCommentResponse(
+        id=item.id,
+        feed_post_id=item.feed_post_id,
+        parent_comment_id=item.parent_comment_id,
+        text=item.text,
+        created_at=item.created_at,
+        replies_count=item.replies_count,
+        total_descendants_count=item.total_descendants_count,
+        author=MovieCardCommentAuthorResponse(
+            id=a.id,
+            profile_slug=a.profile_slug,
+            username=a.username,
+            first_name=a.first_name,
+            last_name=a.last_name,
+            photo_url=a.photo_url,
+            display_name=a.display_name,
+        ),
+        reactions=reaction_target_summary_to_response(item.reactions),
+    )
+
+
+async def _load_feed_post_comment_response(
+    db: AsyncSession, comment_id: int, viewer_user_id: UUID
+) -> FeedPostCommentResponse:
+    row = (
+        await db.execute(
+            select(FeedPostComment, User)
+            .join(User, User.id == FeedPostComment.user_id)
+            .where(FeedPostComment.id == comment_id)
+        )
+    ).one()
+    comment, author = row
+    _, _, rx, _ = await GetReactionSummariesForTargetsService(db).execute(
+        viewer_user_id=viewer_user_id,
+        movie_card_ids=[],
+        comment_ids=[],
+        feed_post_comment_ids=[comment.id],
+        feed_post_ids=[],
+    )
+    return FeedPostCommentResponse(
+        id=comment.id,
+        feed_post_id=comment.feed_post_id,
+        parent_comment_id=comment.parent_comment_id,
+        text=comment.text,
+        created_at=comment.created_at,
+        replies_count=0,
+        total_descendants_count=0,
+        author=MovieCardCommentAuthorResponse(
+            id=author.id,
+            profile_slug=author.profile_slug,
+            username=author.username,
+            first_name=author.first_name,
+            last_name=author.last_name,
+            photo_url=author.photo_url,
+            display_name=author.display_name,
+        ),
+        reactions=reaction_target_summary_to_response(rx[comment.id]),
+    )
 
 
 async def _read_upload_body(file: UploadFile, max_bytes: int) -> bytes:
@@ -161,20 +247,130 @@ async def create_feed_post(
         celery_application.tasks['tasks.telegram_engagement.notify_feed_post_mentions'].delay(
             actor_user_id=str(user.id),
             feed_post_id=post.id,
-            recipient_user_ids_json=json.dumps([str(x) for x in created.mentioned_user_ids]),
+            recipient_user_ids_json=orjson.dumps(
+                [str(x) for x in created.mentioned_user_ids]
+            ).decode(),
         )
 
+    await bump_global_feed_head_version()
     return FeedPostResponse.model_validate(post)
 
 
-@router.get('/{post_id}', response_model=FeedPostResponse)
+@router.get(
+    '/{post_id}/comments',
+    response_model=FeedPostCommentListResponse,
+    summary='Комментарии к посту ленты',
+)
+async def list_feed_post_comments_route(
+    post_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=20, ge=1),
+) -> FeedPostCommentListResponse:
+    try:
+        page = await ListFeedPostCommentsService.build(db).execute(
+            viewer.id,
+            feed_post_id=post_id,
+            parent_comment_id=None,
+            cursor=cursor,
+            limit=min(limit, 50),
+            flat=True,
+        )
+    except FeedPostNotFoundError:
+        raise HTTPException(status_code=404, detail='feed post not found') from None
+    return FeedPostCommentListResponse(
+        items=[_feed_post_comment_item_to_response(item) for item in page.items],
+        next_cursor=page.next_cursor,
+    )
+
+
+@router.get(
+    '/{post_id}/comments/{comment_id}/replies',
+    response_model=FeedPostCommentListResponse,
+    summary='Ответы на комментарий к посту',
+)
+async def list_feed_post_comment_replies_route(
+    post_id: int,
+    comment_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=20, ge=1),
+) -> FeedPostCommentListResponse:
+    try:
+        page = await ListFeedPostCommentsService.build(db).execute(
+            viewer.id,
+            feed_post_id=post_id,
+            parent_comment_id=comment_id,
+            cursor=cursor,
+            limit=min(limit, 50),
+        )
+    except FeedPostNotFoundError:
+        raise HTTPException(status_code=404, detail='feed post not found') from None
+    except CommentNotFoundError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    return FeedPostCommentListResponse(
+        items=[_feed_post_comment_item_to_response(item) for item in page.items],
+        next_cursor=page.next_cursor,
+    )
+
+
+@router.post(
+    '/{post_id}/comments',
+    response_model=FeedPostCommentResponse,
+    summary='Создать комментарий к посту',
+)
+async def create_feed_post_comment_route(
+    post_id: int,
+    body: FeedPostCommentCreateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FeedPostCommentResponse:
+    try:
+        outcome = await CreateFeedPostCommentService.build(db).execute(
+            post_id,
+            user.id,
+            CreateFeedPostCommentInput(
+                text=body.text,
+                parent_comment_id=body.parent_comment_id,
+            ),
+        )
+    except FeedPostNotFoundError:
+        raise HTTPException(status_code=404, detail='feed post not found') from None
+    except ParentCommentNotFoundError:
+        raise HTTPException(status_code=404, detail='parent comment not found') from None
+    except ParentCommentMismatchError:
+        raise HTTPException(
+            status_code=422, detail='parent comment belongs to another post'
+        ) from None
+    except FeedPostCommentValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    created = outcome.comment
+    if outcome.mentioned_user_ids:
+        celery_application.tasks[
+            'tasks.telegram_engagement.notify_feed_post_comment_mentions'
+        ].delay(
+            actor_user_id=str(user.id),
+            feed_post_id=post_id,
+            comment_id=created.id,
+            recipient_user_ids_json=orjson.dumps(
+                [str(x) for x in outcome.mentioned_user_ids]
+            ).decode(),
+        )
+
+    return await _load_feed_post_comment_response(db, created.id, user.id)
+
+
+@router.get('/{post_id}', response_model=FeedPostFeedItemResponse)
 async def get_feed_post(
     post_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: CurrentUser,
-) -> FeedPostResponse:
+    user: CurrentUser,
+) -> FeedPostFeedItemResponse:
     try:
-        post = await GetFeedPostByIdService.build(db).execute(post_id)
+        item = await GetFeedPostFeedItemService.build(db).execute(post_id, user.id)
     except FeedPostNotFoundError:
         raise HTTPException(status_code=404, detail='feed post not found') from None
-    return FeedPostResponse.model_validate(post)
+    return feed_post_feed_item_to_response(item)

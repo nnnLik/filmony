@@ -3,11 +3,38 @@
 from __future__ import annotations
 
 from api.cards.schemas import (
+    FeedPostCommentPreviewResponse,
     FeedPostFeedItemResponse,
     FeedPostReferencedCardResponse,
     MovieCardCommentAuthorResponse,
 )
+from api.reactions.schemas import reaction_target_summary_to_response
 from services.cards.list_movie_card_feed import FeedPostFeedItem
+from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
+
+
+def _feed_post_comment_preview_to_response(
+    c: FeedPostCommentItem,
+) -> FeedPostCommentPreviewResponse:
+    return FeedPostCommentPreviewResponse(
+        id=c.id,
+        feed_post_id=c.feed_post_id,
+        parent_comment_id=c.parent_comment_id,
+        text=c.text,
+        created_at=c.created_at,
+        replies_count=c.replies_count,
+        total_descendants_count=c.total_descendants_count,
+        author=MovieCardCommentAuthorResponse(
+            id=c.author.id,
+            profile_slug=c.author.profile_slug,
+            username=c.author.username,
+            first_name=c.author.first_name,
+            last_name=c.author.last_name,
+            photo_url=c.author.photo_url,
+            display_name=c.author.display_name,
+        ),
+        reactions=reaction_target_summary_to_response(c.reactions),
+    )
 
 
 def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemResponse:
@@ -41,4 +68,7 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
             if ref is not None
             else None
         ),
+        reactions=reaction_target_summary_to_response(item.reactions),
+        comments_count=item.comments_count,
+        comments_preview=[_feed_post_comment_preview_to_response(c) for c in item.comments_preview],
     )

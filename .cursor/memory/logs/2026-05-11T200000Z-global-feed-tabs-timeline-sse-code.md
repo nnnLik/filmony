@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-11T20:00:00Z
+- **Feature slug:** global-feed-tabs-timeline-sse
+- **Action type:** code
+- **Summary:** Реализованы глобальная лента API, SSE-брокер in-process, bump при создании карточки/поста; фронт: вкладки kind, globalFeed SSE клиент, FeedTopFab, локальные viewed id, скрытие ScrollToTopFab на `/`.
+- **Files:** `backend/src/services/feed/list_global_feed.py`, `backend/src/services/feed/global_feed_head_broker.py`, `backend/src/api/feed/routes.py`, `backend/src/api/router.py`, `backend/src/api/cards/routes.py`, `backend/src/api/feed_posts/routes.py`, `backend/src/tests/api/test_global_feed_routes.py`, `backend/src/tests/support/plugins.py`, `frontend/src/pages/FeedPage.tsx`, `frontend/src/components/feed/FeedTopFab.tsx`, `frontend/src/lib/globalFeedSse.ts`, `frontend/src/lib/globalFeedViewedIds.ts`, и др.
+- **Verification:** `make backend-test-one target=src/tests/api/test_global_feed_routes.py` (ожидается в Docker); `npm run build` на хосте недоступен (npm не в PATH).

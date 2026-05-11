@@ -18,17 +18,22 @@ function readScrollY(): number {
 
 export function ScrollToTopFab() {
   const { pathname } = useLocation()
+  const isFeedRoot = pathname === '/'
   const aboveBottomNav = pathHasBottomNav(pathname)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    if (isFeedRoot) {
+      setVisible(false)
+      return
+    }
     const onScroll = () => {
       setVisible(readScrollY() > SCROLL_SHOW_AFTER_PX)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [pathname])
+  }, [pathname, isFeedRoot])
 
   const goTop = useCallback(() => {
     const el = document.scrollingElement ?? document.documentElement
@@ -37,6 +42,10 @@ export function ScrollToTopFab() {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     el.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
   }, [])
+
+  if (isFeedRoot) {
+    return null
+  }
 
   return (
     <div

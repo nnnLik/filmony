@@ -50,6 +50,8 @@ import {
 } from '../lib/feedMentionCompose'
 import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
+import { kinopoiskTitleUrl, openExternalUrl } from '../lib/openExternalUrl'
+import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
@@ -57,6 +59,7 @@ import { CommentReactionTokenPicker } from '../components/comments/CommentReacti
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
@@ -142,6 +145,7 @@ function snippet(text: string): string {
 
 type FollowingRatingRow = {
   user_id: string
+  movie_card_id: number
   profile_slug: string
   username: string | null
   first_name: string | null
@@ -491,6 +495,7 @@ export function MovieCardDetailPage() {
       film_title: card.film_title,
       film_poster_url: card.film_poster_url,
     })
+    markGlobalFeedCardDetailOpened(card.id)
   }, [card, viewerId])
 
   const loadComments = useCallback(
@@ -921,8 +926,24 @@ function MovieCardDetailLoadedBody({
                       </p>
                     </div>
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
+                    <FilmSynopsisBlock
+                      shortDescription={card.film_short_description}
+                      description={card.film_description}
+                      className="mt-3"
+                    />
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
+                    <IconButton
+                      type="button"
+                      size="s"
+                      mode="gray"
+                      aria-label="Открыть страницу фильма на Кинопоиске"
+                      onClick={() => openExternalUrl(kinopoiskTitleUrl(card.film_kinopoisk_id))}
+                    >
+                      <span className="relative z-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] bg-[#ff6600] px-[3px] text-[8px] font-black leading-none tracking-tight text-white">
+                        КП
+                      </span>
+                    </IconButton>
                     {cardDeepLinkUrl != null ? (
                       <IconButton
                         type="button"
@@ -1048,9 +1069,9 @@ function MovieCardDetailLoadedBody({
                   {followingRatings.map((row: FollowingRatingRow) => {
                     const rp = ratingPalette(row.rating)
                     return (
-                      <li key={row.user_id}>
+                      <li key={row.movie_card_id}>
                         <Link
-                          to={`/u/${encodeURIComponent(row.user_id)}`}
+                          to={`/cards/${row.movie_card_id}`}
                           className="flex items-center gap-3 rounded-xl px-1 py-1.5 no-underline outline-none transition-colors duration-200 motion-safe:hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_06%,transparent)] ring-(--tgui--link_color) focus-visible:ring-2"
                         >
                           <Avatar

@@ -8,14 +8,21 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.database import disposable_async_session
+from models.feed_post import FeedPost
+from models.feed_post_comment import FeedPostComment
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.reaction_target_kind import ReactionTargetKind
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
-from services.telegram.mini_app_link import html_card_deep_link_block
+from services.telegram.mini_app_link import (
+    html_card_deep_link_block,
+    html_feed_post_deep_link_block,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +45,66 @@ def _format_actor_display(user: User) -> str:
     return user.profile_slug or 'Пользователь'
 
 
+@dataclass(frozen=True, slots=True)
+class _ReactionDmTargetContext:
+    owner_id: UUID
+    card_id_for_link: int | None
+    feed_post_id_for_link: int | None
+    comment_text_for_dm: str | None
+    film_for_dm: Film | None
+
+
+async def _load_reaction_dm_target_context(
+    session: AsyncSession,
+    *,
+    target_kind: ReactionTargetKind,
+    target_id: int,
+) -> _ReactionDmTargetContext | None:
+    ctx: _ReactionDmTargetContext | None = None
+    if target_kind == ReactionTargetKind.MOVIE_CARD:
+        card = await session.get(MovieCard, target_id)
+        if card is not None:
+            film_for_dm = await session.get(Film, card.film_id)
+            ctx = _ReactionDmTargetContext(
+                owner_id=card.user_id,
+                card_id_for_link=card.id,
+                feed_post_id_for_link=None,
+                comment_text_for_dm=None,
+                film_for_dm=film_for_dm,
+            )
+    elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+        comment = await session.get(MovieCardComment, target_id)
+        if comment is not None:
+            ctx = _ReactionDmTargetContext(
+                owner_id=comment.user_id,
+                card_id_for_link=comment.movie_card_id,
+                feed_post_id_for_link=None,
+                comment_text_for_dm=comment.text,
+                film_for_dm=None,
+            )
+    elif target_kind == ReactionTargetKind.FEED_POST_COMMENT:
+        fp_comment = await session.get(FeedPostComment, target_id)
+        if fp_comment is not None:
+            ctx = _ReactionDmTargetContext(
+                owner_id=fp_comment.user_id,
+                card_id_for_link=None,
+                feed_post_id_for_link=fp_comment.feed_post_id,
+                comment_text_for_dm=fp_comment.text,
+                film_for_dm=None,
+            )
+    elif target_kind == ReactionTargetKind.FEED_POST:
+        fp_row = await session.get(FeedPost, target_id)
+        if fp_row is not None:
+            ctx = _ReactionDmTargetContext(
+                owner_id=fp_row.user_id,
+                card_id_for_link=None,
+                feed_post_id_for_link=int(fp_row.id),
+                comment_text_for_dm=fp_row.body or '',
+                film_for_dm=None,
+            )
+    return ctx
+
+
 @dataclass
 class NotifyTelegramReactionAddedService:
     """Sends a Telegram DM when a user adds (not removes) a reaction on a card or comment."""
@@ -53,50 +120,46 @@ class NotifyTelegramReactionAddedService:
         _ = reaction_type_id  # событие «поставили реакцию» без названия типа в тексте
 
         async with disposable_async_session() as session:
-            owner_id: UUID | None = None
-            card_id_for_link: int | None = None
-            comment_text_for_dm: str | None = None
-            film_for_dm: Film | None = None
-
-            if target_kind == ReactionTargetKind.MOVIE_CARD:
-                card = await session.get(MovieCard, target_id)
-                if card is None:
-                    return
-                owner_id = card.user_id
-                card_id_for_link = card.id
-                film_for_dm = await session.get(Film, card.film_id)
-            elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
-                comment = await session.get(MovieCardComment, target_id)
-                if comment is None:
-                    return
-                owner_id = comment.user_id
-                card_id_for_link = comment.movie_card_id
-                comment_text_for_dm = comment.text
-            else:
+            ctx = await _load_reaction_dm_target_context(
+                session, target_kind=target_kind, target_id=target_id
+            )
+            if ctx is None:
                 return
-
-            if owner_id is None or owner_id == actor_user_id or card_id_for_link is None:
+            if ctx.owner_id == actor_user_id:
+                return
+            if ctx.card_id_for_link is None and ctx.feed_post_id_for_link is None:
                 return
 
             actor = await session.get(User, actor_user_id)
-            recipient = await session.get(User, owner_id)
+            recipient = await session.get(User, ctx.owner_id)
             if actor is None or recipient is None:
                 return
 
             actor_safe = html.escape(_format_actor_display(actor))
-            deep_link = html_card_deep_link_block(card_id_for_link)
+            deep_link_card = (
+                html_card_deep_link_block(ctx.card_id_for_link)
+                if ctx.card_id_for_link is not None
+                else ''
+            )
+            deep_link_post = (
+                html_feed_post_deep_link_block(ctx.feed_post_id_for_link)
+                if ctx.feed_post_id_for_link is not None
+                else ''
+            )
 
             if target_kind == ReactionTargetKind.MOVIE_CARD:
                 film_hint = (
-                    _format_film_title_html(film_for_dm) if film_for_dm is not None else '«…»'
+                    _format_film_title_html(ctx.film_for_dm)
+                    if ctx.film_for_dm is not None
+                    else '«…»'
                 )
                 body_lines = [
                     f'⭐ <b>{actor_safe}</b> отреагировал на вашу карточку фильма {film_hint}',
                     '',
-                    deep_link,
+                    deep_link_card,
                 ]
-            else:
-                raw_snippet = (comment_text_for_dm or '').strip()
+            elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+                raw_snippet = (ctx.comment_text_for_dm or '').strip()
                 snippet = html.escape(raw_snippet[:100] if raw_snippet else '…')
                 body_lines = [
                     '⭐ Реакция на ваш комментарий',
@@ -104,7 +167,29 @@ class NotifyTelegramReactionAddedService:
                     f'👤 <b>{actor_safe}</b>',
                     f'📝 <i>«{snippet}»</i>',
                     '',
-                    deep_link,
+                    deep_link_card,
+                ]
+            elif target_kind == ReactionTargetKind.FEED_POST:
+                raw_snippet = (ctx.comment_text_for_dm or '').strip()
+                snippet = html.escape(raw_snippet[:100] if raw_snippet else '…')
+                body_lines = [
+                    '⭐ Реакция на ваш пост',
+                    '',
+                    f'👤 <b>{actor_safe}</b>',
+                    f'📝 <i>«{snippet}»</i>',
+                    '',
+                    deep_link_post,
+                ]
+            else:
+                raw_snippet = (ctx.comment_text_for_dm or '').strip()
+                snippet = html.escape(raw_snippet[:100] if raw_snippet else '…')
+                body_lines = [
+                    '⭐ Реакция на ваш комментарий к посту',
+                    '',
+                    f'👤 <b>{actor_safe}</b>',
+                    f'📝 <i>«{snippet}»</i>',
+                    '',
+                    deep_link_post,
                 ]
             body = '\n'.join(body_lines)
 

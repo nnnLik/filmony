@@ -229,7 +229,7 @@ async def list_user_watchlist_films(
 )
 async def list_user_feed_posts(
     user_id: UUID,
-    _viewer: CurrentUser,
+    viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = None,
     limit: int = Query(default=20, ge=1, le=50),
@@ -239,7 +239,7 @@ async def list_user_feed_posts(
         raise _not_found()
     cap = min(limit, 50)
     try:
-        page = await ListUserFeedPostsService(db).execute(user_id, cursor, cap)
+        page = await ListUserFeedPostsService(db).execute(user_id, cursor, cap, viewer.id)
     except ListUserFeedPostsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None
     return UserFeedPostsPageResponse(

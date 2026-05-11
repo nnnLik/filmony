@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import JSON, Integer, String
+from sqlalchemy import JSON, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -13,3 +13,5 @@ class Film(Base):
     year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     poster_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     genres: Mapped[list[str]] = mapped_column(JSON, default=list)
+    short_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)

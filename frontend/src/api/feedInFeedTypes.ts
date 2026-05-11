@@ -4,6 +4,8 @@
  * и сохранить ациклический импорт (`profileTypes` реэкспортирует эти типы).
  */
 
+import type { FeedPostComment, ReactionSummary } from './profileTypes'
+
 /** Должен совпадать по значениям с `FeedCardSource` в `profileTypes`. */
 export type FeedInFeedCardSource =
   | 'subscriptions'
@@ -11,6 +13,7 @@ export type FeedInFeedCardSource =
   | 'personal_affinity'
   | 'discovery'
   | 'feed_posts'
+  | 'global'
 
 /** Совпадает по полям с `MovieCardCommentAuthor` (структурная совместимость). */
 export type FeedPostAuthorInFeed = {
@@ -43,6 +46,9 @@ export type FeedPostInFeed = {
   created_at: string
   feed_source: FeedInFeedCardSource
   referenced_card: FeedPostReferencedCard | null
+  reactions?: ReactionSummary
+  comments_count: number
+  comments_preview: FeedPostComment[]
 }
 
 /** GET /api/users/:id/feed-posts */

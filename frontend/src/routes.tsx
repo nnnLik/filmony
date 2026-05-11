@@ -4,6 +4,7 @@ import { AppShell } from './layout/AppShell'
 import { CreateCardPage } from './pages/CreateCardPage'
 import { EditMovieCardPage } from './pages/EditMovieCardPage'
 import { FeedPage } from './pages/FeedPage'
+import { FeedPostDetailPage } from './pages/FeedPostDetailPage'
 import { FilmDetailPage } from './pages/FilmDetailPage'
 import { MovieCardDetailPage } from './pages/MovieCardDetailPage'
 import { ShareMovieCardPage } from './pages/ShareMovieCardPage'
@@ -27,6 +28,7 @@ export function AppRoutes() {
       <Route path="/u/:userId" element={<PublicProfilePage />} />
       <Route path="/u/:userId/subscriptions" element={<SubscriptionsPage />} />
       <Route path="/films/:filmId" element={<FilmDetailPage />} />
+      <Route path="/feed-posts/:postId" element={<FeedPostDetailPage />} />
       <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
       <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />
       <Route path="/cards/:cardId/edit" element={<EditMovieCardPage />} />

@@ -8,8 +8,10 @@ import type {
   FeedMovieCard,
   FeedMovieCardPage,
   FeedPageItem,
+  FeedPostComment,
   Film,
   FollowingRatingsResponse,
+  GlobalFeedKind,
   MovieCard,
   MovieCardComment,
   MovieCardCommentPage,
@@ -78,7 +80,16 @@ export async function getFollowingRatingsForCard(cardId: number): Promise<Follow
 
 function normalizeFeedPageItem(raw: Record<string, unknown>): FeedPageItem {
   if (raw.kind === 'feed_post') {
-    return raw as FeedPostInFeed
+    const commentsCount = typeof raw.comments_count === 'number' ? raw.comments_count : 0
+    const preview = Array.isArray(raw.comments_preview)
+      ? (raw.comments_preview as FeedPostComment[])
+      : []
+    return {
+      ...(raw as unknown as FeedPostInFeed),
+      kind: 'feed_post',
+      comments_count: commentsCount,
+      comments_preview: preview,
+    }
   }
   return { ...raw, kind: 'movie_card' as const } as FeedMovieCard
 }
@@ -94,12 +105,39 @@ export async function getMovieCardFeedPage(params?: {
   if (params?.limit != null) search.set('limit', String(params.limit))
   if (params?.mode != null && params.mode !== 'default') search.set('mode', params.mode)
   const suffix = search.toString()
-  const body = await apiJson<{ items: Record<string, unknown>[]; next_cursor: string | null }>(
-    `/api/cards/feed${suffix ? `?${suffix}` : ''}`,
-  )
+  const body = await apiJson<{
+    items: Record<string, unknown>[]
+    next_cursor: string | null
+    feed_head_version?: number
+  }>(`/api/cards/feed${suffix ? `?${suffix}` : ''}`)
   return {
     next_cursor: body.next_cursor,
     items: body.items.map(normalizeFeedPageItem),
+    feed_head_version: typeof body.feed_head_version === 'number' ? body.feed_head_version : 0,
+  }
+}
+
+/** Глобальная лента: GET /api/feed/global */
+export async function getGlobalFeedPage(params?: {
+  cursor?: string | null
+  limit?: number
+  kind?: GlobalFeedKind
+}): Promise<FeedMovieCardPage> {
+  const search = new URLSearchParams()
+  if (params?.cursor) search.set('cursor', params.cursor)
+  if (params?.limit != null) search.set('limit', String(params.limit))
+  const kind = params?.kind ?? 'all'
+  if (kind !== 'all') search.set('kind', kind)
+  const suffix = search.toString()
+  const body = await apiJson<{
+    items: Record<string, unknown>[]
+    next_cursor: string | null
+    feed_head_version?: number
+  }>(`/api/feed/global${suffix ? `?${suffix}` : ''}`)
+  return {
+    next_cursor: body.next_cursor,
+    items: body.items.map(normalizeFeedPageItem),
+    feed_head_version: typeof body.feed_head_version === 'number' ? body.feed_head_version : 0,
   }
 }
 

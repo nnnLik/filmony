@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock
 from uuid import UUID
 
+import orjson
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -14,6 +14,7 @@ from core.database import get_session_factory
 from models.film import Film
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
+from models.reaction_type import ReactionType
 from models.user import User
 from tests.auth.telegram_init_data import build_init_data
 
@@ -312,10 +313,121 @@ async def test_feed_post_get_by_id(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=711)
     r = await async_client.get(f'/api/feed-posts/{pid}')
     assert r.status_code == 200
-    assert r.json()['body'] == 'find me'
+    data = r.json()
+    assert data['body'] == 'find me'
+    assert data['kind'] == 'feed_post'
+    assert 'author' in data
+    assert 'reactions' in data and 'counts' in data['reactions']
+    assert data['comments_count'] == 0
+    assert data['comments_preview'] == []
 
     r404 = await async_client.get('/api/feed-posts/999999')
     assert r404.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comments_create_and_list(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=740)
+    create = await async_client.post('/api/feed-posts', json={'body': 'post root'})
+    assert create.status_code == 200
+    pid = int(create.json()['id'])
+
+    r_com = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': ' first reply '},
+    )
+    assert r_com.status_code == 200
+    assert r_com.json()['text'] == 'first reply'
+    assert r_com.json()['feed_post_id'] == pid
+
+    lst = await async_client.get(f'/api/feed-posts/{pid}/comments')
+    assert lst.status_code == 200
+    bodies = [it['text'] for it in lst.json()['items']]
+    assert 'first reply' in bodies
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_reply_and_reaction(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=741)
+    create = await async_client.post('/api/feed-posts', json={'body': 'thr'})
+    pid = int(create.json()['id'])
+    root = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': 'root c'},
+    )
+    assert root.status_code == 200
+    root_id = int(root.json()['id'])
+
+    rep = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': 'nested', 'parent_comment_id': root_id},
+    )
+    assert rep.status_code == 200
+    assert rep.json()['parent_comment_id'] == root_id
+
+    replies = await async_client.get(f'/api/feed-posts/{pid}/comments/{root_id}/replies')
+    assert replies.status_code == 200
+    assert len(replies.json()['items']) >= 1
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        rt = ReactionType(
+            image_url='https://example.com/fpc_rx.png',
+            category_slug='feed_post_test',
+            asset_key='reactions/feed_post_test/x.png',
+        )
+        session.add(rt)
+        await session.commit()
+        await session.refresh(rt)
+        tid = int(rt.id)
+
+    rx = await async_client.post(
+        '/api/reactions',
+        json={
+            'target_kind': 'feed_post_comment',
+            'target_id': root_id,
+            'reaction_type_id': tid,
+        },
+    )
+    assert rx.status_code == 200
+    assert rx.json()['target_kind'] == 'feed_post_comment'
+
+
+@pytest.mark.asyncio
+async def test_feed_post_reaction_on_post(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=742)
+    create = await async_client.post('/api/feed-posts', json={'body': 'post for rx'})
+    pid = int(create.json()['id'])
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        rt = ReactionType(
+            image_url='https://example.com/fp_rx.png',
+            category_slug='feed_post_rx2',
+            asset_key='reactions/feed_post_rx2/x.png',
+        )
+        session.add(rt)
+        await session.commit()
+        await session.refresh(rt)
+        tid = int(rt.id)
+
+    rx = await async_client.post(
+        '/api/reactions',
+        json={
+            'target_kind': 'feed_post',
+            'target_id': pid,
+            'reaction_type_id': tid,
+        },
+    )
+    assert rx.status_code == 200
+    assert rx.json()['target_kind'] == 'feed_post'
+    assert rx.json()['target_id'] == pid
+    assert len(rx.json()['reactions']['counts']) >= 1
+
+    detail = await async_client.get(f'/api/feed-posts/{pid}')
+    assert detail.status_code == 200
+    mine = detail.json()['reactions'].get('my_reaction_type_ids') or []
+    assert tid in mine
 
 
 @pytest.mark.asyncio
@@ -400,7 +512,46 @@ async def test_feed_post_mention_valid_queues_celery(
     kwargs = mock_delay.call_args.kwargs
     assert kwargs['actor_user_id'] == author['id']
     assert kwargs['feed_post_id'] == data['id']
-    listed = json.loads(kwargs['recipient_user_ids_json'])
+    listed = orjson.loads(kwargs['recipient_user_ids_json'])
+    assert listed == [recipient_id]
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_mention_queues_celery(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_feed_post_comment_mentions'],
+        'delay',
+        mock_delay,
+    )
+
+    author = await _login(async_client, telegram_user_id=736)
+    target = await _login(async_client, telegram_user_id=737)
+    slug_target = await _profile_slug_for_tg(737)
+    await _login(async_client, telegram_user_id=736)
+    await async_client.post(f'/api/users/{target["id"]}/subscriptions')
+
+    post = await async_client.post('/api/feed-posts', json={'body': 'post for comment mention'})
+    assert post.status_code == 200
+    pid = int(post.json()['id'])
+
+    token = f'⟦@{slug_target}⟧'
+    com = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': f'Привет {token}'},
+    )
+    assert com.status_code == 200
+    comment_id = int(com.json()['id'])
+
+    recipient_id = str(await _get_user_id(737))
+    mock_delay.assert_called_once()
+    kwargs = mock_delay.call_args.kwargs
+    assert kwargs['actor_user_id'] == author['id']
+    assert kwargs['feed_post_id'] == pid
+    assert kwargs['comment_id'] == comment_id
+    listed = orjson.loads(kwargs['recipient_user_ids_json'])
     assert listed == [recipient_id]
 
 

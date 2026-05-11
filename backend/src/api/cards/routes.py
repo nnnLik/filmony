@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
+import orjson
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy import select
@@ -21,6 +22,7 @@ from api.cards.schemas import (
     MovieCardCommentCreateRequest,
     MovieCardCommentListResponse,
     MovieCardCommentResponse,
+    MovieCardDetailResponse,
     MovieCardFeedItemResponse,
     MovieCardFeedPageResponse,
     ShareCardRequest,
@@ -31,6 +33,7 @@ from celery_app import app as celery_application
 from const.feed import FeedMode
 from core.database import get_db
 from deps.auth import CurrentUser
+from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.movie_card_tag import MovieCardTag
 from models.user import User
@@ -98,6 +101,7 @@ from services.cards.update_movie_card import (
     UpdateMovieCardInput,
     UpdateMovieCardService,
 )
+from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
@@ -114,10 +118,12 @@ async def _load_comment_response(
         )
     ).one()
     comment, author = row
-    _, comment_rx = await GetReactionSummariesForTargetsService(db).execute(
+    _, comment_rx, _, _ = await GetReactionSummariesForTargetsService(db).execute(
         viewer_user_id=viewer_user_id,
         movie_card_ids=[],
         comment_ids=[comment.id],
+        feed_post_comment_ids=[],
+        feed_post_ids=[],
     )
     return MovieCardCommentResponse(
         id=comment.id,
@@ -201,6 +207,7 @@ async def create_card(
         .scalars()
         .all()
     )
+    await bump_global_feed_head_version()
     return CardResponse(
         id=card.id,
         film_id=card.film_id,
@@ -283,6 +290,7 @@ async def list_following_ratings_for_movie_card(
     def _entry(r: FollowingRatingRow) -> FollowingRatingEntryResponse:
         return FollowingRatingEntryResponse(
             user_id=r.user_id,
+            movie_card_id=r.movie_card_id,
             profile_slug=r.profile_slug,
             username=r.username,
             first_name=r.first_name,
@@ -299,18 +307,18 @@ async def list_following_ratings_for_movie_card(
 
 
 @router.get(
-    '/{card_id}', response_model=CardDetailResponse, summary='Получить карточку фильма по id'
+    '/{card_id}', response_model=MovieCardDetailResponse, summary='Получить карточку фильма по id'
 )
 async def get_card(
     card_id: int,
     viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> CardDetailResponse:
+) -> MovieCardDetailResponse:
     try:
         card = await GetMovieCardDetailsService(db).execute(card_id, viewer.id)
     except MovieCardNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
-    return CardDetailResponse(
+    return MovieCardDetailResponse(
         id=card.id,
         user_id=card.user_id,
         card_author=MovieCardCommentAuthorResponse(
@@ -328,6 +336,8 @@ async def get_card(
         film_title=card.film_title,
         film_year=card.film_year,
         film_poster_url=card.film_poster_url,
+        film_short_description=card.film_short_description,
+        film_description=card.film_description,
         rating=card.rating,
         company=card.company,
         mood_before=card.mood_before,
@@ -529,7 +539,7 @@ async def create_card_comment(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MovieCardCommentResponse:
     try:
-        created = await CreateMovieCardCommentService(db).execute(
+        outcome = await CreateMovieCardCommentService(db).execute(
             card_id,
             user.id,
             CreateMovieCardCommentInput(
@@ -548,6 +558,25 @@ async def create_card_comment(
     except MovieCardCommentValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    created = outcome.comment
+    mention_recipients = list(outcome.mentioned_user_ids)
+    if body.parent_comment_id is not None:
+        parent_author_id = (
+            await db.execute(
+                select(MovieCardComment.user_id).where(
+                    MovieCardComment.id == body.parent_comment_id
+                )
+            )
+        ).scalar_one_or_none()
+        if parent_author_id is not None:
+            mention_recipients = [uid for uid in mention_recipients if uid != parent_author_id]
+    else:
+        card_owner_id = (
+            await db.execute(select(MovieCard.user_id).where(MovieCard.id == card_id))
+        ).scalar_one_or_none()
+        if card_owner_id is not None:
+            mention_recipients = [uid for uid in mention_recipients if uid != card_owner_id]
+
     if body.parent_comment_id is None:
         celery_application.tasks['tasks.telegram_engagement.notify_movie_card_root_comment'].delay(
             actor_user_id=str(user.id),
@@ -560,6 +589,16 @@ async def create_card_comment(
             card_id=card_id,
             parent_comment_id=body.parent_comment_id,
             reply_text=created.text,
+        )
+
+    if mention_recipients:
+        celery_application.tasks[
+            'tasks.telegram_engagement.notify_movie_card_comment_mentions'
+        ].delay(
+            actor_user_id=str(user.id),
+            card_id=card_id,
+            comment_id=created.id,
+            recipient_user_ids_json=orjson.dumps([str(x) for x in mention_recipients]).decode(),
         )
 
     return await _load_comment_response(db, created.id, user.id)

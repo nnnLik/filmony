@@ -18,6 +18,7 @@ FOLLOWING_RATINGS_TOP_LIMIT = 5
 @dataclass(frozen=True, slots=True)
 class FollowingRatingRow:
     user_id: UUID
+    movie_card_id: int
     profile_slug: str
     username: str | None
     first_name: str | None
@@ -67,7 +68,7 @@ class ListFollowingRatingsForMovieCardService:
         viewer_row: FollowingRatingRow | None = None
         if viewer_user_id != owner_id:
             viewer_stmt = (
-                select(User, MovieCard.rating)
+                select(User, MovieCard.rating, MovieCard.id)
                 .join(MovieCard, MovieCard.user_id == User.id)
                 .where(MovieCard.film_id == film_id)
                 .where(MovieCard.user_id == viewer_user_id)
@@ -76,9 +77,10 @@ class ListFollowingRatingsForMovieCardService:
             )
             vr = (await self._session.execute(viewer_stmt)).one_or_none()
             if vr is not None:
-                u, rating = vr
+                u, rating, movie_card_id = vr
                 viewer_row = FollowingRatingRow(
                     user_id=u.id,
+                    movie_card_id=int(movie_card_id),
                     profile_slug=u.profile_slug,
                     username=u.username,
                     first_name=u.first_name,
@@ -89,7 +91,7 @@ class ListFollowingRatingsForMovieCardService:
                 )
 
         stmt = (
-            select(User, MovieCard.rating)
+            select(User, MovieCard.rating, MovieCard.id)
             .join(MovieCard, MovieCard.user_id == User.id)
             .join(
                 UserSubscription,
@@ -106,6 +108,7 @@ class ListFollowingRatingsForMovieCardService:
         items = [
             FollowingRatingRow(
                 user_id=u.id,
+                movie_card_id=int(movie_card_id),
                 profile_slug=u.profile_slug,
                 username=u.username,
                 first_name=u.first_name,
@@ -114,6 +117,6 @@ class ListFollowingRatingsForMovieCardService:
                 display_name=u.display_name,
                 rating=float(rating),
             )
-            for u, rating in rows
+            for u, rating, movie_card_id in rows
         ]
         return ListFollowingRatingsResult(viewer_row=viewer_row, items=items)

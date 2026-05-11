@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import time
 from urllib.parse import urlencode
+
+import orjson
 
 
 def build_init_data(
@@ -19,7 +20,7 @@ def build_init_data(
     if auth_date is None:
         auth_date = int(time.time())
     user_obj: dict = {'id': user_id, 'first_name': 'Test', 'username': username}
-    user_json = json.dumps(user_obj, separators=(',', ':'))
+    user_json = orjson.dumps(user_obj).decode()
     pairs = [('auth_date', str(auth_date)), ('user', user_json)]
     pairs.sort(key=lambda x: x[0])
     data_check_string = '\n'.join(f'{k}={v}' for k, v in pairs)

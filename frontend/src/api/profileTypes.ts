@@ -154,6 +154,9 @@ export type MovieCard = {
   film_title: string
   film_year: number | null
   film_poster_url: string | null
+  /** Только GET /api/cards/:id (не в ленте). */
+  film_short_description?: string | null
+  film_description?: string | null
   rating: number
   company: CardCompany
   mood_before: CardMoodBefore
@@ -165,16 +168,20 @@ export type MovieCard = {
   is_favorite?: boolean
 }
 
-/** Query-параметр `mode` для GET /api/cards/feed */
+/** Query-параметр `mode` для GET /api/cards/feed (legacy) */
 export type FeedListMode = 'default' | 'subscriptions_only' | 'subscribers_only'
 
-/** Источник элемента в персональной ленте (ответ GET /api/cards/feed) */
+/** Вкладка GET /api/feed/global */
+export type GlobalFeedKind = 'all' | 'posts' | 'cards'
+
+/** Источник элемента в ленте (legacy + глобальная лента) */
 export type FeedCardSource =
   | 'subscriptions'
   | 'subscribers'
   | 'personal_affinity'
   | 'discovery'
   | 'feed_posts'
+  | 'global'
 
 /** Карточка ленты: данные тайтла и автора из GET /api/cards/feed */
 export type FeedMovieCard = MovieCard & {
@@ -191,6 +198,8 @@ export type FeedPageItem = FeedMovieCard | FeedPostInFeed
 export type FeedMovieCardPage = {
   items: FeedPageItem[]
   next_cursor: string | null
+  /** Версия головы глобальной ленты (GET /api/feed/global); для legacy-ленты может быть 0 */
+  feed_head_version?: number
 }
 
 /** Ответ POST /api/feed-posts */
@@ -206,6 +215,7 @@ export type FeedPostPayload = {
 
 export type FollowingRatingEntry = {
   user_id: string
+  movie_card_id: number
   profile_slug: string
   username: string | null
   first_name: string | null
@@ -238,6 +248,24 @@ export type MovieCardCommentPage = {
   next_cursor: string | null
 }
 
+/** Комментарий к текстовому посту ленты (GET/POST `/api/feed-posts/:id/comments`). */
+export type FeedPostComment = {
+  id: number
+  feed_post_id: number
+  parent_comment_id: number | null
+  text: string
+  created_at: string
+  replies_count: number
+  total_descendants_count: number
+  author: MovieCardCommentAuthor
+  reactions?: ReactionSummary
+}
+
+export type FeedPostCommentPage = {
+  items: FeedPostComment[]
+  next_cursor: string | null
+}
+
 export type Film = {
   id: number
   kinopoisk_id: number
@@ -245,6 +273,8 @@ export type Film = {
   title: string
   year: number | null
   poster_url: string | null
+  short_description?: string | null
+  description?: string | null
   /** Present when the API knows the viewer already has a card for this film. */
   my_card_id?: number | null
 }
