@@ -75,6 +75,8 @@ async def test_global_feed_cards_and_posts_chronology(async_client: AsyncClient)
     assert isinstance(body['feed_head_version'], int)
     kinds = [it['kind'] for it in body['items']]
     assert 'movie_card' in kinds and 'feed_post' in kinds
+    card_ids_all = [it['id'] for it in body['items'] if it['kind'] == 'movie_card']
+    assert card_id in card_ids_all
     # Пост создан позже — первым в хронологии
     assert kinds[0] == 'feed_post'
     assert body['items'][0]['id'] == post_id
@@ -200,3 +202,42 @@ async def test_global_feed_includes_other_users_cards(async_client: AsyncClient)
     items = r.json()['items']
     match = next(x for x in items if x['id'] == other_card_id)
     assert str(match['user_id']) == author_id
+
+
+@pytest.mark.asyncio
+async def test_global_feed_exclude_own_hides_viewer_posts_and_cards(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=71011)
+    viewer_uuid = str(me['id'])
+    film = await _create_film(kinopoisk_id=71012)
+    r_card = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': film.genres,
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r_card.status_code == 200
+    r_post = await async_client.post('/api/feed-posts', json={'body': 'only mine'})
+    assert r_post.status_code == 200
+
+    r_all = await async_client.get('/api/feed/global?kind=all&limit=50')
+    assert r_all.status_code == 200
+    assert any(it['user_id'] == viewer_uuid for it in r_all.json()['items'])
+
+    r_hide = await async_client.get('/api/feed/global?kind=all&limit=50&exclude_own=true')
+    assert r_hide.status_code == 200
+    assert all(it['user_id'] != viewer_uuid for it in r_hide.json()['items'])
+
+    r_posts_hide = await async_client.get('/api/feed/global?kind=posts&limit=50&exclude_own=true')
+    assert r_posts_hide.status_code == 200
+    assert all(it['user_id'] != viewer_uuid for it in r_posts_hide.json()['items'])
+
+    r_cards_hide = await async_client.get('/api/feed/global?kind=cards&limit=50&exclude_own=true')
+    assert r_cards_hide.status_code == 200
+    assert all(it['user_id'] != viewer_uuid for it in r_cards_hide.json()['items'])

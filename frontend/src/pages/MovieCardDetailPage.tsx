@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { CopyPlus, Link2, Share2 } from 'lucide-react'
+import { CopyPlus, Link2, Paperclip, Share2, X } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type CSSProperties,
   type Dispatch,
   type KeyboardEventHandler,
@@ -17,7 +18,7 @@ import {
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 
-import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments } from '../api/cardApi'
+import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments, uploadMovieCardCommentImage, type WatchedInlinePickerItem } from '../api/cardApi'
 import { getUserSubscriptions } from '../api/profileApi'
 import type { SubscriptionListItem } from '../api/profileTypes'
 import { ApiError, formatApiDetail } from '../api/client'
@@ -35,7 +36,8 @@ import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
-import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { inlineMovieCardRefMapFromSnippets } from '../lib/inlineMovieCardRefMap'
 import {
   authorLikeToMentionRow,
   mentionProfileKeyFromSlug,
@@ -56,6 +58,7 @@ import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
+import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
@@ -63,6 +66,7 @@ import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { movieCardCommentImageSrc } from '../lib/movieCardCommentMedia'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
@@ -225,6 +229,11 @@ export function MovieCardDetailPage() {
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsError, setCommentsError] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
+  const [commentDraftInlineCardRefs, setCommentDraftInlineCardRefs] = useState(
+    () => new Map<number, { film_title: string; film_year: number | null }>(),
+  )
+  const [commentImageUrl, setCommentImageUrl] = useState<string | null>(null)
+  const [commentImageUploadBusy, setCommentImageUploadBusy] = useState(false)
   const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [jumpBusy, setJumpBusy] = useState(false)
@@ -236,6 +245,7 @@ export function MovieCardDetailPage() {
   const [commentMentionHighlightIdx, setCommentMentionHighlightIdx] = useState(0)
   const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const commentTextAreaRef = useRef<HTMLTextAreaElement>(null)
+  const commentImageFileInputRef = useRef<HTMLInputElement>(null)
 
   const parsedCardId = useMemo(() => {
     if (cardId == null) return null
@@ -395,6 +405,35 @@ export function MovieCardDetailPage() {
     [commentText],
   )
 
+  const insertMovieCardIntoComment = useCallback(
+    (row: WatchedInlinePickerItem) => {
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
+      const token = movieCardRefTokenFromId(row.movie_card_id)
+      const el = commentTextAreaRef.current
+      const inserted = insertSnippetAtCaret(
+        commentText,
+        el?.selectionStart ?? null,
+        el?.selectionEnd ?? null,
+        token,
+        COMMENT_BODY_MAX_LEN,
+      )
+      if (inserted == null) return
+      setCommentText(inserted.nextValue)
+      setCommentDraftInlineCardRefs((prev) => {
+        const next = new Map(prev)
+        next.set(row.movie_card_id, { film_title: row.film_title, film_year: row.film_year })
+        return next
+      })
+      const caret = inserted.caret
+      queueMicrotask(() => {
+        el?.focus()
+        el?.setSelectionRange(caret, caret)
+      })
+    },
+    [commentText],
+  )
+
   useEffect(() => {
     if (viewerId != null) return
     let alive = true
@@ -525,16 +564,20 @@ export function MovieCardDetailPage() {
   async function handleCreateComment() {
     if (parsedCardId == null || submitBusy) return
     const text = commentText.trim()
-    if (text === '') return
+    const img = (commentImageUrl ?? '').trim()
+    if (text === '' && img === '') return
     setSubmitBusy(true)
     setCommentsError(null)
     try {
       await createMovieCardComment(parsedCardId, {
         text,
         parent_comment_id: replyTo?.id ?? null,
+        image_url: img === '' ? null : img,
       })
       await loadComments(false)
       setCommentText('')
+      setCommentDraftInlineCardRefs(new Map())
+      setCommentImageUrl(null)
       setCommentMentionPicker(null)
       setCommentMentionHighlightIdx(0)
       setReplyTo(null)
@@ -549,6 +592,31 @@ export function MovieCardDetailPage() {
       setSubmitBusy(false)
     }
   }
+
+  const handlePickCommentImage = useCallback(() => {
+    commentImageFileInputRef.current?.click()
+  }, [])
+
+  const handleCommentImageFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (file == null) return
+    setCommentImageUploadBusy(true)
+    setCommentsError(null)
+    try {
+      const url = await uploadMovieCardCommentImage(file)
+      setCommentImageUrl(url)
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setCommentsError(formatApiDetail(e.detail))
+      } else {
+        setCommentsError('Не удалось загрузить изображение')
+      }
+    } finally {
+      setCommentImageUploadBusy(false)
+    }
+  }, [])
 
   async function handleJumpToParent(parentCommentId: number) {
     if (parsedCardId == null || jumpBusy) return
@@ -721,6 +789,8 @@ export function MovieCardDetailPage() {
             commentRefs={commentRefs}
             commentTextAreaRef={commentTextAreaRef}
             insertReactionIntoComment={insertReactionIntoComment}
+            insertMovieCardIntoComment={insertMovieCardIntoComment}
+            commentDraftInlineCardRefs={commentDraftInlineCardRefs}
             loadComments={loadComments}
             handleCreateComment={handleCreateComment}
             handleJumpToParent={handleJumpToParent}
@@ -756,6 +826,14 @@ export function MovieCardDetailPage() {
             setReplyTo={setReplyTo}
             setCard={setCard}
             setComments={setComments}
+            commentImageUrl={commentImageUrl}
+            setCommentImageUrl={setCommentImageUrl}
+            commentImageUploadBusy={commentImageUploadBusy}
+            commentImageFileInputRef={commentImageFileInputRef}
+            handlePickCommentImage={handlePickCommentImage}
+            handleCommentImageFileChange={(event) => {
+              void handleCommentImageFileChange(event)
+            }}
           />
           </MentionProfileLookupProvider>
         ) : null}
@@ -785,6 +863,8 @@ type MovieCardDetailLoadedBodyProps = {
   commentRefs: MutableRefObject<Record<number, HTMLDivElement | null>>
   commentTextAreaRef: RefObject<HTMLTextAreaElement | null>
   insertReactionIntoComment: (reactionTypeId: number) => void
+  insertMovieCardIntoComment: (row: WatchedInlinePickerItem) => void
+  commentDraftInlineCardRefs: ReadonlyMap<number, { film_title: string; film_year: number | null }>
   loadComments: (append: boolean) => Promise<void>
   handleCreateComment: () => Promise<void>
   handleJumpToParent: (parentCommentId: number) => Promise<void>
@@ -803,6 +883,12 @@ type MovieCardDetailLoadedBodyProps = {
   setReplyTo: Dispatch<SetStateAction<{ id: number; label: string } | null>>
   setCard: Dispatch<SetStateAction<MovieCard | null>>
   setComments: Dispatch<SetStateAction<MovieCardComment[]>>
+  commentImageUrl: string | null
+  setCommentImageUrl: Dispatch<SetStateAction<string | null>>
+  commentImageUploadBusy: boolean
+  commentImageFileInputRef: RefObject<HTMLInputElement | null>
+  handlePickCommentImage: () => void
+  handleCommentImageFileChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
 function MovieCardDetailLoadedBody({
@@ -826,6 +912,8 @@ function MovieCardDetailLoadedBody({
   commentRefs,
   commentTextAreaRef,
   insertReactionIntoComment,
+  insertMovieCardIntoComment,
+  commentDraftInlineCardRefs,
   loadComments,
   handleCreateComment,
   handleJumpToParent,
@@ -844,6 +932,12 @@ function MovieCardDetailLoadedBody({
   setReplyTo,
   setCard,
   setComments,
+  commentImageUrl,
+  setCommentImageUrl,
+  commentImageUploadBusy,
+  commentImageFileInputRef,
+  handlePickCommentImage,
+  handleCommentImageFileChange,
 }: MovieCardDetailLoadedBodyProps) {
   const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
   const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
@@ -1103,10 +1197,11 @@ function MovieCardDetailLoadedBody({
                       onKeyDown={onCommentKeyDown}
                       onKeyUp={onCommentKeyUp}
                       onSelect={onCommentSelect}
-                      disabled={submitBusy}
+                      disabled={submitBusy || commentImageUploadBusy}
                       rows={4}
                       maxLength={COMMENT_BODY_MAX_LEN}
                       placeholder="Напишите комментарий..."
+                      inlineMovieCardRefs={commentDraftInlineCardRefs}
                     />
                     {commentMentionPicker != null && commentMentionPopoverLayout != null
                       ? createPortal(
@@ -1175,21 +1270,62 @@ function MovieCardDetailLoadedBody({
                         )
                       : null}
                   </div>
-                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                  <div className="flex shrink-0 flex-col items-center justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
                       onPickReactionTypeId={insertReactionIntoComment}
-                      disabled={submitBusy}
+                      disabled={submitBusy || commentImageUploadBusy}
                       allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
+                    />
+                    <MovieCardInlinePickerButton
+                      onPick={insertMovieCardIntoComment}
+                      disabled={submitBusy || commentImageUploadBusy}
+                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
+                    />
+                    <IconButton
+                      mode="gray"
+                      size="s"
+                      disabled={submitBusy || commentImageUploadBusy}
+                      onClick={handlePickCommentImage}
+                      aria-label="Добавить картинку"
+                      title="Добавить картинку"
+                    >
+                      <Paperclip className="block size-[18px]" strokeWidth={2} />
+                    </IconButton>
+                    <input
+                      ref={commentImageFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => void handleCommentImageFileChange(e)}
                     />
                   </div>
                 </div>
+                {commentImageUrl != null && commentImageUrl.trim() !== '' ? (
+                  <div className="relative mt-2 overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--card_bg_color)">
+                    <img
+                      src={movieCardCommentImageSrc(commentImageUrl)}
+                      alt=""
+                      className="max-h-[min(50vw,14rem)] w-full object-cover object-center"
+                    />
+                    <IconButton
+                      mode="gray"
+                      size="s"
+                      className="absolute! right-1 top-1"
+                      onClick={() => setCommentImageUrl(null)}
+                      disabled={submitBusy || commentImageUploadBusy}
+                      aria-label="Убрать картинку"
+                    >
+                      <X className="block size-4" strokeWidth={2} />
+                    </IconButton>
+                  </div>
+                ) : null}
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className={`text-xs ${charsLeft < 20 ? 'text-(--tgui--destructive_text_color)' : 'text-(--tgui--hint_color)'}`}>
                     Осталось: {charsLeft}
                   </span>
                   <Button
                     size="s"
-                    disabled={submitBusy || commentText.trim() === ''}
+                    disabled={submitBusy || commentImageUploadBusy || (commentText.trim() === '' && (commentImageUrl ?? '').trim() === '')}
                     onClick={() => void handleCreateComment()}
                     className="motion-safe:transition motion-safe:duration-200 motion-safe:active:scale-[0.97]"
                   >
@@ -1261,6 +1397,7 @@ function MovieCardDetailLoadedBody({
                                       openCompose({
                                         sourceCommentId: comment.id,
                                         referencedMovieCardId: card.id,
+                                        sourceCommentImageUrl: comment.image_url ?? null,
                                       })
                                     }
                                     className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
@@ -1287,9 +1424,25 @@ function MovieCardDetailLoadedBody({
                               </button>
                             ) : null}
 
-                            <p className="mt-1 text-sm leading-relaxed">
-                              <CommentBodyWithReactionTokens text={comment.text} className="whitespace-pre-wrap" />
-                            </p>
+                            {comment.image_url != null && comment.image_url.trim() !== '' ? (
+                              <div className="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
+                                <img
+                                  src={movieCardCommentImageSrc(comment.image_url)}
+                                  alt=""
+                                  className="max-h-[min(60vw,16rem)] w-full object-cover object-center"
+                                />
+                              </div>
+                            ) : null}
+
+                            {comment.text.trim() !== '' ? (
+                              <p className="mt-1 text-sm leading-relaxed">
+                                <CommentBodyWithReactionTokens
+                                  text={comment.text}
+                                  className="whitespace-pre-wrap"
+                                  inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                                />
+                              </p>
+                            ) : null}
                             <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
                               <ReactionStrip
                                 compact

@@ -7,10 +7,25 @@ from api.cards.schemas import (
     FeedPostFeedItemResponse,
     FeedPostReferencedCardResponse,
     MovieCardCommentAuthorResponse,
+    ReferencedInlineMovieCardSnippetResponse,
 )
 from api.reactions.schemas import reaction_target_summary_to_response
+from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
 from services.cards.list_movie_card_feed import FeedPostFeedItem
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
+
+
+def inline_movie_card_snippets_to_response(
+    seq: tuple[ReferencedInlineMovieCardSnippet, ...],
+) -> list[ReferencedInlineMovieCardSnippetResponse]:
+    return [
+        ReferencedInlineMovieCardSnippetResponse(
+            movie_card_id=s.movie_card_id,
+            film_title=s.film_title,
+            film_year=s.film_year,
+        )
+        for s in seq
+    ]
 
 
 def _feed_post_comment_preview_to_response(
@@ -34,6 +49,7 @@ def _feed_post_comment_preview_to_response(
             display_name=c.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(c.reactions),
+        referenced_movie_cards=inline_movie_card_snippets_to_response(c.referenced_movie_cards),
     )
 
 
@@ -71,4 +87,5 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
         reactions=reaction_target_summary_to_response(item.reactions),
         comments_count=item.comments_count,
         comments_preview=[_feed_post_comment_preview_to_response(c) for c in item.comments_preview],
+        body_referenced_movie_cards=inline_movie_card_snippets_to_response(item.body_referenced_movie_cards),
     )

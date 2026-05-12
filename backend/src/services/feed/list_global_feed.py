@@ -20,6 +20,7 @@ from services.cards.list_movie_card_feed import (
     FeedPageEntry,
     ListMovieCardFeedService,
     MovieCardFeedPage,
+    enrich_feed_post_items_for_feed_paths,
 )
 
 GlobalFeedKind = Literal['all', 'posts', 'cards']
@@ -66,19 +67,23 @@ def _decode_cursor(cursor: str | None) -> tuple[dt.datetime, int, int] | None:
     return result
 
 
-def _union_subquery(kind: GlobalFeedKind):
+def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: bool):
     card_branch = select(
         literal('card', type_=String()).label('etype'),
         literal(0, type_=Integer()).label('kind_rank'),
         MovieCard.id.label('eid'),
         MovieCard.created_at.label('sort_at'),
     ).select_from(MovieCard)
+    if exclude_own:
+        card_branch = card_branch.where(MovieCard.user_id != viewer_user_id)
     post_branch = select(
         literal('post', type_=String()).label('etype'),
         literal(1, type_=Integer()).label('kind_rank'),
         FeedPost.id.label('eid'),
         FeedPost.created_at.label('sort_at'),
     ).select_from(FeedPost)
+    if exclude_own:
+        post_branch = post_branch.where(FeedPost.user_id != viewer_user_id)
     if kind == 'all':
         return union_all(card_branch, post_branch).subquery('u')
     if kind == 'cards':
@@ -102,9 +107,11 @@ class ListGlobalFeedService:
         kind: GlobalFeedKind,
         cursor: str | None,
         limit: int,
+        *,
+        exclude_own: bool = False,
     ) -> MovieCardFeedPage:
         cur = _decode_cursor(cursor)
-        u = _union_subquery(kind)
+        u = _union_subquery(kind, viewer_user_id, exclude_own=exclude_own)
         stmt = select(u.c.etype, u.c.kind_rank, u.c.eid, u.c.sort_at).select_from(u)
         if cur is not None:
             ca, kr, eid = cur

@@ -4,12 +4,15 @@ from typing import Annotated
 from uuid import UUID
 
 import orjson
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
+from api.cards.feed_post_feed_mapping import (
+    feed_post_feed_item_to_response,
+    inline_movie_card_snippets_to_response,
+)
 from api.cards.schemas import (
     CardCreateRequest,
     CardDetailResponse,
@@ -27,7 +30,10 @@ from api.cards.schemas import (
     MovieCardFeedPageResponse,
     ShareCardRequest,
     ShareCardResponse,
+    WatchedInlinePickerListResponse,
+    WatchedInlinePickerRowResponse,
 )
+from api.feed_posts.schemas import FeedPostImageUploadResponse
 from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
 from const.feed import FeedMode
@@ -75,11 +81,13 @@ from services.cards.list_movie_card_comments import (
 from services.cards.list_movie_card_comments import (
     MovieCardNotFoundError as ListCommentsMovieCardNotFoundError,
 )
+from services.cards.inline_movie_card_ref_tokens import batch_resolve_inline_movie_card_refs
 from services.cards.list_movie_card_feed import (
     FeedPostFeedItem,
     ListMovieCardFeedService,
     MovieCardFeedItem,
 )
+from services.cards.list_my_movie_cards_for_inline_picker import ListMyMovieCardsForInlinePickerService
 from services.cards.share_movie_card import (
     MovieCardNotFoundForShareError,
     ShareMovieCardForbiddenError,
@@ -102,9 +110,84 @@ from services.cards.update_movie_card import (
     UpdateMovieCardService,
 )
 from services.feed.global_feed_head_broker import bump_global_feed_head_version
+from services.feed_posts import (
+    FEED_POST_IMAGE_MAX_BYTES,
+    FeedPostImageUploadError,
+    UploadFeedPostImageService,
+)
 from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
+
+
+async def _read_upload_body_max(file: UploadFile, max_bytes: int) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(64 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(status_code=413, detail='file too large') from None
+        chunks.append(chunk)
+    return b''.join(chunks)
+
+
+@router.post(
+    '/comment-images/upload',
+    response_model=FeedPostImageUploadResponse,
+    summary='Загрузить изображение к комментарию карточки фильма',
+)
+async def upload_movie_card_comment_image(
+    user: CurrentUser,
+    file: UploadFile = File(...),
+) -> FeedPostImageUploadResponse:
+    content_type = (file.content_type or '').strip()
+    try:
+        data = await _read_upload_body_max(file, FEED_POST_IMAGE_MAX_BYTES)
+        url = await UploadFeedPostImageService.build().execute(
+            user_id=user.id,
+            content_type=content_type,
+            data=data,
+            media_subdir='movie_card_comments',
+        )
+    except HTTPException:
+        raise
+    except FeedPostImageUploadError as e:
+        msg = str(e).lower()
+        if 'not configured' in msg:
+            raise HTTPException(status_code=503, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return FeedPostImageUploadResponse(url=url)
+
+
+@router.get(
+    '/watched-inline-picker',
+    response_model=WatchedInlinePickerListResponse,
+    summary='Поиск своих карточек для вставки ⟦c{id}⟧ в комментарии и посты',
+)
+async def list_watched_inline_picker(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    q: str = Query(default='', max_length=200),
+    limit: int = Query(default=30, ge=1, le=80),
+) -> WatchedInlinePickerListResponse:
+    rows = await ListMyMovieCardsForInlinePickerService.build(db).execute(
+        user.id,
+        query=q,
+        limit=limit,
+    )
+    return WatchedInlinePickerListResponse(
+        items=[
+            WatchedInlinePickerRowResponse(
+                movie_card_id=r.movie_card_id,
+                film_title=r.film_title,
+                film_year=r.film_year,
+            )
+            for r in rows
+        ]
+    )
 
 
 async def _load_comment_response(
@@ -125,11 +208,13 @@ async def _load_comment_response(
         feed_post_comment_ids=[],
         feed_post_ids=[],
     )
+    (snips,) = await batch_resolve_inline_movie_card_refs(db, [(author.id, comment.text or '')])
     return MovieCardCommentResponse(
         id=comment.id,
         movie_card_id=comment.movie_card_id,
         parent_comment_id=comment.parent_comment_id,
         text=comment.text,
+        image_url=comment.image_url,
         created_at=comment.created_at,
         replies_count=0,
         total_descendants_count=0,
@@ -143,6 +228,7 @@ async def _load_comment_response(
             display_name=author.display_name,
         ),
         reactions=reaction_target_summary_to_response(comment_rx[comment.id]),
+        referenced_movie_cards=inline_movie_card_snippets_to_response(snips),
     )
 
 
@@ -152,6 +238,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
         movie_card_id=item.movie_card_id,
         parent_comment_id=item.parent_comment_id,
         text=item.text,
+        image_url=item.image_url,
         created_at=item.created_at,
         replies_count=item.replies_count,
         total_descendants_count=item.total_descendants_count,
@@ -165,6 +252,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
             display_name=item.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
+        referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
     )
 
 
@@ -545,6 +633,7 @@ async def create_card_comment(
             CreateMovieCardCommentInput(
                 text=body.text,
                 parent_comment_id=body.parent_comment_id,
+                image_url=body.image_url,
             ),
         )
     except CommentMovieCardNotFoundError:

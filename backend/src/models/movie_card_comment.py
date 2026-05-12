@@ -26,6 +26,7 @@ class MovieCardComment(Base):
         index=True,
     )
     text: Mapped[str] = mapped_column(String(250), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
     __table_args__ = (
         Index(

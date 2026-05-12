@@ -3,22 +3,26 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import { Link, useNavigate } from 'react-router-dom'
 
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
+import type { WatchedInlinePickerItem } from '../../api/cardApi'
 import type { FeedPostInFeed } from '../../api/feedInFeedTypes'
 import { createFeedPostComment, listAllFeedPostComments } from '../../api/feedPostApi'
 import type { FeedPostComment, ReactionSummary } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
-import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
-import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
-import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
-import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
-import { ReactionStrip } from '../reactions/ReactionStrip'
 import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
 import {
   COMMENT_BODY_MAX_LEN,
   insertSnippetAtCaret,
+  movieCardRefTokenFromId,
   reactionTokenFromId,
 } from '../../lib/commentReactionTokens'
+import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
+import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
+import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
+import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
+import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
+import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
+import { ReactionStrip } from '../reactions/ReactionStrip'
 import { formatCommentTime, formatRating } from './feedCardUtils'
 import { feedPostSourceBadge } from './feedPostSourceBadge'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
@@ -64,10 +68,17 @@ type FeedPostCardBodyProps = {
   linkToDetail: boolean
   stopPostNav: MouseEventHandler
   stopPostNavClick: MouseEventHandler
+  bodyInlineMovieCardRefs?: ReadonlyMap<number, InlineMovieCardRefMeta>
 }
 
 /** В ленте — line-clamp и «Ещё»; на странице поста — полный текст. */
-function FeedPostCardBody({ body, linkToDetail, stopPostNav, stopPostNavClick }: FeedPostCardBodyProps) {
+function FeedPostCardBody({
+  body,
+  linkToDetail,
+  stopPostNav,
+  stopPostNavClick,
+  bodyInlineMovieCardRefs,
+}: FeedPostCardBodyProps) {
   const clampRef = useRef<HTMLParagraphElement>(null)
   const [expanded, setExpanded] = useState(false)
   const [hasMore, setHasMore] = useState(false)
@@ -119,7 +130,11 @@ function FeedPostCardBody({ body, linkToDetail, stopPostNav, stopPostNavClick }:
             : 'min-w-0 wrap-break-word text-[13px] leading-relaxed text-(--tgui--text_color)'
         }
       >
-        <CommentBodyWithReactionTokens text={body} className="text-[13px] leading-relaxed" />
+        <CommentBodyWithReactionTokens
+          text={body}
+          className="text-[13px] leading-relaxed"
+          inlineMovieCardRefs={bodyInlineMovieCardRefs}
+        />
       </p>
       {linkToDetail && hasMore && !expanded ? (
         <Button
@@ -168,6 +183,7 @@ export function FeedPostCard({
     user_id,
     author,
     body,
+    body_referenced_movie_cards,
     created_at,
     referenced_card,
     image_url,
@@ -176,8 +192,15 @@ export function FeedPostCard({
 
   const name = useMemo(() => displayNameFromAuthorFields(author), [author])
   const postHref = `/feed-posts/${id}`
+  const bodyInlineRefMap = useMemo(
+    () => inlineMovieCardRefMapFromSnippets(body_referenced_movie_cards),
+    [body_referenced_movie_cards],
+  )
   const draftInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
+  const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
+    () => new Map<number, { film_title: string; film_year: number | null }>(),
+  )
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [commentsPreviewOpen, setCommentsPreviewOpen] = useState(false)
@@ -284,6 +307,7 @@ export function FeedPostCard({
       const created = await createFeedPostComment(post.id, { text })
       mergedPreviewAfterCreate(created)
       setDraft('')
+      setDraftInlineCardRefs(new Map())
       safeHapticSuccess()
     } catch (e) {
       setSubmitError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось отправить')
@@ -305,6 +329,33 @@ export function FeedPostCard({
       )
       if (inserted == null) return
       setDraft(inserted.nextValue)
+      const caret = inserted.caret
+      queueMicrotask(() => {
+        el?.focus()
+        el?.setSelectionRange(caret, caret)
+      })
+    },
+    [draft],
+  )
+
+  const insertMovieCardInline = useCallback(
+    (row: WatchedInlinePickerItem) => {
+      const token = movieCardRefTokenFromId(row.movie_card_id)
+      const el = draftInputRef.current
+      const inserted = insertSnippetAtCaret(
+        draft,
+        el?.selectionStart ?? null,
+        el?.selectionEnd ?? null,
+        token,
+        COMMENT_BODY_MAX_LEN,
+      )
+      if (inserted == null) return
+      setDraft(inserted.nextValue)
+      setDraftInlineCardRefs((prev) => {
+        const next = new Map(prev)
+        next.set(row.movie_card_id, { film_title: row.film_title, film_year: row.film_year })
+        return next
+      })
       const caret = inserted.caret
       queueMicrotask(() => {
         el?.focus()
@@ -491,7 +542,11 @@ export function FeedPostCard({
                           ) : null}
 
                           <p className="mt-1 text-[13px] leading-snug text-(--tgui--text_color)">
-                            <CommentBodyWithReactionTokens text={comment.text} className="whitespace-pre-wrap" />
+                            <CommentBodyWithReactionTokens
+                              text={comment.text}
+                              className="whitespace-pre-wrap"
+                              inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                            />
                           </p>
                           <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden" onMouseDown={linkToDetail ? stopPostNav : undefined}>
                             <ReactionStrip
@@ -529,6 +584,7 @@ export function FeedPostCard({
                 maxLength={COMMENT_BODY_MAX_LEN}
                 placeholder="Комментарий…"
                 ariaLabel="Текст комментария"
+                inlineMovieCardRefs={draftInlineCardRefs}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -538,6 +594,11 @@ export function FeedPostCard({
               />
               <CommentReactionTokenPicker
                 onPickReactionTypeId={insertReactionToken}
+                disabled={submitBusy}
+                allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
+              />
+              <MovieCardInlinePickerButton
+                onPick={insertMovieCardInline}
                 disabled={submitBusy}
                 allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
               />
@@ -639,6 +700,7 @@ export function FeedPostCard({
               linkToDetail={linkToDetail}
               stopPostNav={stopPostNav}
               stopPostNavClick={stopPostNavClick}
+              bodyInlineMovieCardRefs={bodyInlineRefMap}
             />
           ) : null}
 

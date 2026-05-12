@@ -181,6 +181,7 @@ export type FeedCardSource =
   | 'personal_affinity'
   | 'discovery'
   | 'feed_posts'
+  | 'own_cards'
   | 'global'
 
 /** Карточка ленты: данные тайтла и автора из GET /api/cards/feed */
@@ -231,16 +232,24 @@ export type FollowingRatingsResponse = {
   items: FollowingRatingEntry[]
 }
 
+export type ReferencedInlineMovieCardSnippet = {
+  movie_card_id: number
+  film_title: string
+  film_year: number | null
+}
+
 export type MovieCardComment = {
   id: number
   movie_card_id: number
   parent_comment_id: number | null
   text: string
+  image_url?: string | null
   created_at: string
   replies_count: number
   total_descendants_count: number
   author: MovieCardCommentAuthor
   reactions?: ReactionSummary
+  referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
 }
 
 export type MovieCardCommentPage = {
@@ -259,6 +268,7 @@ export type FeedPostComment = {
   total_descendants_count: number
   author: MovieCardCommentAuthor
   reactions?: ReactionSummary
+  referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
 }
 
 export type FeedPostCommentPage = {
@@ -277,6 +287,34 @@ export type Film = {
   description?: string | null
   /** Present when the API knows the viewer already has a card for this film. */
   my_card_id?: number | null
+}
+
+export type FilmCommunityAuthor = {
+  id: string
+  profile_slug: string
+  username: string | null
+  first_name: string | null
+  last_name: string | null
+  photo_url: string | null
+  display_name: string | null
+}
+
+export type FilmCommunityCardItem = {
+  id: number
+  author: FilmCommunityAuthor
+  rating: number
+  company: CardCompany
+  mood_before: CardMoodBefore
+  mood_after: CardMoodAfter
+  watch_note: string
+  custom_tags: string[]
+  updated_at: string
+  is_favorite: boolean
+}
+
+export type FilmCommunityCardsPage = {
+  items: FilmCommunityCardItem[]
+  next_cursor: string | null
 }
 
 export type RatingDistributionItem = {

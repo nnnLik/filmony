@@ -105,6 +105,9 @@ async def test_feed_empty_social_graph_fills_from_discovery(async_client: AsyncC
             'subscribers',
             'personal_affinity',
             'discovery',
+            'own_cards',
+            'feed_posts',
+            'global',
         )
     ids_on_page = [it['user_id'] for it in body['items']]
     assert str(s_id) in ids_on_page
@@ -210,22 +213,25 @@ async def test_feed_subscriptions_only_excludes_non_subscription_streams(
     assert sub_only.status_code == 200
     sub_items = sub_only.json()['items']
     assert str(s_id) not in [it['user_id'] for it in sub_items]
-    assert all(it['feed_source'] in ('subscriptions', 'feed_posts') for it in sub_items)
+    assert all(
+        it['feed_source'] in ('subscriptions', 'feed_posts', 'own_cards') for it in sub_items
+    )
 
 
 @pytest.mark.asyncio
-async def test_feed_never_includes_viewer_cards(async_client: AsyncClient) -> None:
+async def test_feed_includes_viewer_own_cards_with_own_cards_source(async_client: AsyncClient) -> None:
     viewer = await _login(async_client, telegram_user_id=9630)
     author = await _login(async_client, telegram_user_id=9631)
     v_id = UUID(str(viewer['id']))
     a_id = UUID(str(author['id']))
     await _subscribe(v_id, a_id)
 
-    await _seed_movie_card_for_user(user_id=v_id, kinopoisk_id=1963001, genres=['драма'])
+    own_cid = await _seed_movie_card_for_user(user_id=v_id, kinopoisk_id=1963001, genres=['драма'])
     await _seed_movie_card_for_user(user_id=a_id, kinopoisk_id=1963002, genres=['комедия'])
 
     await _login(async_client, telegram_user_id=9630)
     mix = await async_client.get('/api/cards/feed?limit=50')
     assert mix.status_code == 200
-    for it in mix.json()['items']:
-        assert it['user_id'] != str(v_id)
+    own_hits = [it for it in mix.json()['items'] if it['user_id'] == str(v_id) and it['kind'] == 'movie_card']
+    assert any(it['id'] == own_cid for it in own_hits)
+    assert all(it['feed_source'] == 'own_cards' for it in own_hits)

@@ -32,7 +32,7 @@
 |------|------|
 | `backend/src/celery_app.py` | `app = Celery(...)`, брокер из `settings`, `_register_all_tasks` импортирует `tasks.ping`, `tasks.telegram_engagement` |
 | `backend/src/tasks/ping.py` | Пример: `tasks.ping` |
-| `backend/src/tasks/telegram_engagement.py` | `tasks.telegram_engagement.notify_comment_reply`, `tasks.telegram_engagement.notify_reaction_added` (уведомления в Telegram) |
+| `backend/src/tasks/telegram_engagement.py` | Уведомления в Telegram: комментарии карточки/поста, ответы, @упоминания, реакции, шаринг карточки (см. `docs/features/engagement-telegram-notifications.md`) |
 
 Остальные параметры Celery (очередь по умолчанию, prefetch, acks и т.д.) — **дефолты библиотеки**, не дублируются в env.
 

@@ -20,6 +20,8 @@
 | **subscribers** | Авторы-подписчики: `follower_user_id` при `following_user_id == viewer`. |
 | **personal_affinity** | Карточки других пользователей без ML: скоринг по пересечению жанров фильма и тегов карточки с профилем зрителя (жанры + теги по его карточкам). |
 | **discovery** | Автор **вне** `{viewer} ∪ following ∪ followers}`; свежие карточки вне прямого соцграфа. |
+| **feed_posts** | Текстовые посты ленты; авторы из соцграфа, **включая зрителя**. |
+| **own_cards** | Карточки фильмов зрителя (`user_id == viewer`), новее первыми. |
 
 Формула **personal_affinity (MVP)**:
 
@@ -59,9 +61,10 @@ score = GENRE_OVERLAP_WEIGHT * |norm_genres(film) ∩ G_viewer|
 
 - Query **`mode`**: `default` | `subscriptions_only` | `subscribers_only`.
   - **`default`**: все потоки.
-  - **`subscriptions_only`**: только поток **`subscriptions`**.
-  - **`subscribers_only`**: только поток **`subscribers`**.
-- В каждом элементе **`feed_source`**: какой поток дал карточку в этой позиции слота (`subscriptions` | `subscribers` | `personal_affinity` | `discovery`). Карточки зрителя в ленту не попадают.
+  - **`subscriptions_only`**: потоки **`subscriptions`**, **`feed_posts`**, **`own_cards`**.
+  - **`subscribers_only`**: потоки **`subscribers`**, **`feed_posts`**, **`own_cards`**.
+- В каждом элементе **`feed_source`**: какой поток дал карточку в этой позиции слота (`subscriptions` | `subscribers` | `personal_affinity` | `discovery` | `feed_posts` | **`own_cards`**; значение `global` бывает только в публичной ленте `/api/feed/global`).
+- Карточки зрителя в рекомендательной ленте (`GET /api/cards/feed`) попадают через поток **`own_cards`** (отдельный слот в `SLOT_PATTERN`), по аналогии со своими текстовыми постами из **`feed_posts`**.
 
 ## Тесты
 

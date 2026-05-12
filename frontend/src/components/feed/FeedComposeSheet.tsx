@@ -12,14 +12,16 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
+import type { WatchedInlinePickerItem } from '../../api/cardApi'
 import { createFeedPost, uploadFeedPostImage } from '../../api/feedPostApi'
 import { getMyProfile, getUserSubscriptions } from '../../api/profileApi'
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import type { SubscriptionListItem, SubscriptionListResponse } from '../../api/profileTypes'
 import { useAuthStatus } from '../../auth/useAuthStatus'
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
+import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
-import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
+import { insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../../lib/commentReactionTokens'
 import {
   applyMentionPick,
   mentionReplacementFromSlug,
@@ -27,6 +29,7 @@ import {
   type ActiveMentionQuery,
 } from '../../lib/feedMentionCompose'
 import { filterFollowingForMentionQuery } from '../../lib/mentionFollowingFilter'
+import { globalFeedQueryRootKey } from '../../feed/feedQueryKeys'
 import { readMyProfileBundleCache } from '../../lib/myProfileBundleCache'
 import { displayNameFromProfile } from '../../lib/profileDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
@@ -38,6 +41,8 @@ export type FeedComposeSheetProps = {
   onClose: () => void
   sourceCommentId: number | null
   referencedMovieCardId: number | null
+  /** Если комментарий с картинкой — картинка поста фиксирована */
+  sourceCommentImageUrl: string | null
 }
 
 function feedPostImageSrc(url: string): string {
@@ -50,6 +55,7 @@ export function FeedComposeSheet({
   onClose,
   sourceCommentId,
   referencedMovieCardId,
+  sourceCommentImageUrl,
 }: FeedComposeSheetProps) {
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
@@ -59,7 +65,19 @@ export function FeedComposeSheet({
   const mentionOpenRef = useRef(false)
 
   const [body, setBody] = useState('')
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
+    () => new Map<number, { film_title: string; film_year: number | null }>(),
+  )
+  const [imageUrl, setImageUrl] = useState<string | null>(() => {
+    if (
+      sourceCommentId != null &&
+      sourceCommentImageUrl != null &&
+      sourceCommentImageUrl.trim() !== ''
+    ) {
+      return sourceCommentImageUrl.trim()
+    }
+    return null
+  })
   const [submitBusy, setSubmitBusy] = useState(false)
   const [uploadBusy, setUploadBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -142,6 +160,7 @@ export function FeedComposeSheet({
   }, [])
 
   const fromComment = sourceCommentId != null
+  const allowImageUpload = !fromComment
   const charsLeft = FEED_POST_BODY_MAX - body.length
 
   const canSubmit = useMemo(() => {
@@ -194,6 +213,31 @@ export function FeedComposeSheet({
     [body],
   )
 
+  const insertMovieCardInline = useCallback((row: WatchedInlinePickerItem) => {
+    setMentionPicker(null)
+    const token = movieCardRefTokenFromId(row.movie_card_id)
+    const el = bodyRef.current
+    const inserted = insertSnippetAtCaret(
+      body,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      token,
+      FEED_POST_BODY_MAX,
+    )
+    if (inserted == null) return
+    setBody(inserted.nextValue)
+    setDraftInlineCardRefs((prev) => {
+      const next = new Map(prev)
+      next.set(row.movie_card_id, { film_title: row.film_title, film_year: row.film_year })
+      return next
+    })
+    const caret = inserted.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [body])
+
   const handleBodyChange = useCallback(
     (v: string, meta?: { caret: number }) => {
       const next = v.slice(0, FEED_POST_BODY_MAX)
@@ -228,8 +272,9 @@ export function FeedComposeSheet({
   )
 
   const handlePickFile = useCallback(() => {
+    if (!allowImageUpload) return
     fileInputRef.current?.click()
-  }, [])
+  }, [allowImageUpload])
 
   const onFileChange = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -281,7 +326,8 @@ export function FeedComposeSheet({
         source_comment_id: sourceCommentId,
       })
       safeHapticSuccess()
-      await queryClient.invalidateQueries({ queryKey: ['movieCardFeed'] })
+      await queryClient.invalidateQueries({ queryKey: globalFeedQueryRootKey })
+      setDraftInlineCardRefs(new Map())
       onClose()
     } catch (err) {
       setError(err instanceof ApiError ? formatApiDetail(err.detail) : 'Не удалось отправить')
@@ -335,7 +381,9 @@ export function FeedComposeSheet({
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-(--tgui--bg_color) px-3 py-3">
           {fromComment ? (
             <p className="text-[12px] leading-snug text-(--tgui--hint_color)">
-              Текст можно оставить пустым — подставим из вашего комментария.
+              {imageUrl != null && imageUrl.trim() !== ''
+                ? 'Текст можно править; картинка из комментария переносится в пост без замены.'
+                : 'Текст можно оставить пустым — подставим из вашего комментария.'}
             </p>
           ) : null}
 
@@ -370,6 +418,7 @@ export function FeedComposeSheet({
               mirrorOverlayTextClassName="text-(--tgui--text_color)"
               wrapperClassName="min-h-[5.5rem] !rounded-xl !border !border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_22%,var(--tgui--divider_color))] !bg-(--tgui--card_bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-1px_0_rgba(0,0,0,0.2)] focus-within:!border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_38%,transparent)]"
               textareaClassName="text-sm caret-(--tgui--link_color) selection:bg-[color-mix(in_srgb,var(--tgui--link_color)_28%,transparent)]"
+              inlineMovieCardRefs={draftInlineCardRefs}
             />
 
             {mentionPicker != null && mentionPopoverLayout != null
@@ -447,13 +496,18 @@ export function FeedComposeSheet({
                 disabled={submitBusy || uploadBusy}
                 allowInsert={body.length < FEED_POST_BODY_MAX}
               />
+              <MovieCardInlinePickerButton
+                onPick={insertMovieCardInline}
+                disabled={submitBusy || uploadBusy}
+                allowInsert={body.length < FEED_POST_BODY_MAX}
+              />
               <IconButton
                 mode="gray"
                 size="s"
-                disabled={submitBusy || uploadBusy}
+                disabled={submitBusy || uploadBusy || !allowImageUpload}
                 onClick={handlePickFile}
                 aria-label="Добавить картинку"
-                title="Добавить картинку"
+                title={allowImageUpload ? 'Добавить картинку' : 'Картинка задаётся только из комментария'}
               >
                 <Paperclip className="block size-[18px]" strokeWidth={2} />
               </IconButton>
@@ -480,7 +534,7 @@ export function FeedComposeSheet({
                 size="s"
                 className="absolute! right-1 top-1"
                 onClick={() => setImageUrl(null)}
-                disabled={submitBusy || uploadBusy}
+                disabled={submitBusy || uploadBusy || !allowImageUpload}
                 aria-label="Убрать картинку"
               >
                 <X className="block size-4" strokeWidth={2} />

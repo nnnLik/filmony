@@ -48,6 +48,8 @@ export function feedCardSourceBadge(card: FeedMovieCard, viewerUserId: string | 
       return 'Новое'
     case 'feed_posts':
       return 'Пост'
+    case 'own_cards':
+      return 'Моя карточка'
     case 'global':
       return 'Публичное'
     default:

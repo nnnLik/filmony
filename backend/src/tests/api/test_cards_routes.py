@@ -724,6 +724,58 @@ async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_movie_card_comment_with_image_url(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=771)
+    film = await _create_film(kinopoisk_id=100771, title='Кадр из зала', year=2020)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    media_url = f"/api/feed-posts/media/user_media/movie_card_comments/{me['id']}/shot.webp"
+
+    only_img = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': '', 'image_url': media_url},
+    )
+    assert only_img.status_code == 200
+    only_body = only_img.json()
+    assert only_body['text'] == ''
+    assert only_body['image_url'] == media_url
+
+    both = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': 'см. кадр', 'image_url': media_url},
+    )
+    assert both.status_code == 200
+    assert both.json()['image_url'] == media_url
+
+    bad_key = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': '', 'image_url': 'https://example.com/x.jpg'},
+    )
+    assert bad_key.status_code == 422
+
+    empty_both = await async_client.post(f'/api/cards/{card_id}/comments', json={'text': '   '})
+    assert empty_both.status_code == 422
+
+    listed = await async_client.get(f'/api/cards/{card_id}/comments')
+    assert listed.status_code == 200
+    with_img = [it for it in listed.json()['items'] if it.get('image_url')]
+    assert len(with_img) == 2
+
+
+@pytest.mark.asyncio
 async def test_comments_validation_and_parent_checks(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=706)
     film = await _create_film(kinopoisk_id=100706, title='Бегущий по лезвию 2049', year=2017)

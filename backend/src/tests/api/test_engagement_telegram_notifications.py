@@ -10,6 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 import celery_app
+from tests.api.test_feed_posts_routes import _login as _login_feed
 from tests.api.test_reactions_routes import (
     _create_card_any,
     _login,
@@ -19,6 +20,8 @@ from tests.api.test_reactions_routes import (
 _DELIVER_ENGAGEMENT_PATCHES = (
     'services.telegram.notify_comment_reply.deliver_engagement_html_message',
     'services.telegram.notify_movie_card_root_comment.deliver_engagement_html_message',
+    'services.telegram.notify_feed_post_root_comment.deliver_engagement_html_message',
+    'services.telegram.notify_feed_post_comment_reply.deliver_engagement_html_message',
     'services.telegram.notify_reaction_added.deliver_engagement_html_message',
 )
 
@@ -205,3 +208,74 @@ async def test_reaction_on_comment_triggers_dm(async_client: AsyncClient) -> Non
         body = args[1]
         assert 'Реакция на ваш комментарий' in body and 'Открыть в Filmony' in body
         assert 'root' in body
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_reply_triggers_telegram_dm(async_client: AsyncClient) -> None:
+    await _seed_reaction_catalog()
+    with _patch_deliver_engagement_dm() as mock_dm:
+        await _login_feed(async_client, telegram_user_id=950_101)
+        post = await async_client.post('/api/feed-posts', json={'body': 'мой пост'})
+        assert post.status_code == 200
+        pid = int(post.json()['id'])
+
+        root = await async_client.post(
+            f'/api/feed-posts/{pid}/comments',
+            json={'text': 'корень'},
+        )
+        assert root.status_code == 200
+        com_id = root.json()['id']
+
+        await _login_feed(async_client, telegram_user_id=950_102)
+        reply = await async_client.post(
+            f'/api/feed-posts/{pid}/comments',
+            json={'text': 'ответ ветки', 'parent_comment_id': com_id},
+        )
+        assert reply.status_code == 200
+
+        mock_dm.assert_awaited_once()
+        args, _kwargs = mock_dm.await_args
+        assert args[0] == 950_101
+        assert 'Новый ответ' in args[1] and 'Открыть пост в ленте' in args[1]
+
+
+@pytest.mark.asyncio
+async def test_root_feed_post_comment_notifies_author(async_client: AsyncClient) -> None:
+    await _seed_reaction_catalog()
+    with _patch_deliver_engagement_dm() as mock_dm:
+        await _login_feed(async_client, telegram_user_id=950_201)
+        post = await async_client.post('/api/feed-posts', json={'body': 'текст поста'})
+        assert post.status_code == 200
+        pid = int(post.json()['id'])
+
+        await _login_feed(async_client, telegram_user_id=950_202)
+        r = await async_client.post(
+            f'/api/feed-posts/{pid}/comments',
+            json={'text': 'первый комментарий'},
+        )
+        assert r.status_code == 200
+        mock_dm.assert_awaited_once()
+        args, _kwargs = mock_dm.await_args
+        assert args[0] == 950_201
+        assert 'Новый комментарий к вашему посту' in args[1] and 'Открыть пост в ленте' in args[1]
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_reply_skips_self_reply(async_client: AsyncClient) -> None:
+    await _seed_reaction_catalog()
+    with _patch_deliver_engagement_dm() as mock_dm:
+        await _login_feed(async_client, telegram_user_id=950_301)
+        post = await async_client.post('/api/feed-posts', json={'body': 'solo post'})
+        pid = int(post.json()['id'])
+        root = await async_client.post(
+            f'/api/feed-posts/{pid}/comments',
+            json={'text': 'solo'},
+        )
+        com_id = root.json()['id']
+        same = await async_client.post(
+            f'/api/feed-posts/{pid}/comments',
+            json={'text': 'to self', 'parent_comment_id': com_id},
+        )
+        assert same.status_code == 200
+
+        mock_dm.assert_not_awaited()

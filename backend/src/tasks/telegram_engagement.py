@@ -15,7 +15,9 @@ from services.telegram.notify_comment_reply import run_notify_comment_reply_safe
 from services.telegram.notify_feed_post_comment_mention import (
     run_notify_feed_post_comment_mention_safe,
 )
+from services.telegram.notify_feed_post_comment_reply import run_notify_feed_post_comment_reply_safe
 from services.telegram.notify_feed_post_mention import run_notify_feed_post_mention_safe
+from services.telegram.notify_feed_post_root_comment import run_notify_feed_post_root_comment_safe
 from services.telegram.notify_movie_card_comment_mention import (
     run_notify_movie_card_comment_mention_safe,
 )
@@ -80,7 +82,7 @@ async def _notify_feed_post_comment_mentions_async(
         )
 
 
-def register_tasks(app: Celery) -> None:
+def _register_movie_card_comment_tasks(app: Celery) -> None:
     @app.task(name='tasks.telegram_engagement.notify_comment_reply')
     def notify_comment_reply_task(
         actor_user_id: str,
@@ -117,6 +119,46 @@ def register_tasks(app: Celery) -> None:
         except Exception:
             logger.exception('celery task notify_movie_card_root_comment_task failed')
 
+
+def _register_feed_post_comment_tasks(app: Celery) -> None:
+    @app.task(name='tasks.telegram_engagement.notify_feed_post_root_comment')
+    def notify_feed_post_root_comment_task(
+        actor_user_id: str,
+        feed_post_id: int,
+        comment_text: str,
+    ) -> None:
+        try:
+            _run_async_isolated(
+                run_notify_feed_post_root_comment_safe(
+                    actor_user_id=UUID(actor_user_id),
+                    feed_post_id=feed_post_id,
+                    comment_text=comment_text,
+                )
+            )
+        except Exception:
+            logger.exception('celery task notify_feed_post_root_comment_task failed')
+
+    @app.task(name='tasks.telegram_engagement.notify_feed_post_comment_reply')
+    def notify_feed_post_comment_reply_task(
+        actor_user_id: str,
+        feed_post_id: int,
+        parent_comment_id: int,
+        reply_text: str,
+    ) -> None:
+        try:
+            _run_async_isolated(
+                run_notify_feed_post_comment_reply_safe(
+                    actor_user_id=UUID(actor_user_id),
+                    feed_post_id=feed_post_id,
+                    parent_comment_id=parent_comment_id,
+                    reply_text=reply_text,
+                )
+            )
+        except Exception:
+            logger.exception('celery task notify_feed_post_comment_reply_task failed')
+
+
+def _register_reaction_and_share_tasks(app: Celery) -> None:
     @app.task(name='tasks.telegram_engagement.notify_reaction_added')
     def notify_reaction_added_task(
         actor_user_id: str,
@@ -156,6 +198,8 @@ def register_tasks(app: Celery) -> None:
         except Exception:
             logger.exception('celery task deliver_shared_movie_card_task failed')
 
+
+def _register_mention_tasks(app: Celery) -> None:
     @app.task(name='tasks.telegram_engagement.notify_feed_post_mentions')
     def notify_feed_post_mentions_task(
         actor_user_id: str,
@@ -222,3 +266,10 @@ def register_tasks(app: Celery) -> None:
             )
         except Exception:
             logger.exception('celery task notify_feed_post_comment_mentions_task failed')
+
+
+def register_tasks(app: Celery) -> None:
+    _register_movie_card_comment_tasks(app)
+    _register_feed_post_comment_tasks(app)
+    _register_reaction_and_share_tasks(app)
+    _register_mention_tasks(app)

@@ -11,7 +11,10 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
+from api.cards.feed_post_feed_mapping import (
+    feed_post_feed_item_to_response,
+    inline_movie_card_snippets_to_response,
+)
 from api.cards.schemas import FeedPostFeedItemResponse, MovieCardCommentAuthorResponse
 from api.feed_posts.schemas import (
     FeedPostCommentCreateRequest,
@@ -26,8 +29,10 @@ from celery_app import app as celery_application
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
+from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
+from services.cards.inline_movie_card_ref_tokens import batch_resolve_inline_movie_card_refs
 from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.feed_posts import (
     FEED_POST_IMAGE_MAX_BYTES,
@@ -85,6 +90,7 @@ def _feed_post_comment_item_to_response(item: FeedPostCommentItem) -> FeedPostCo
             display_name=a.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
+        referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
     )
 
 
@@ -106,6 +112,7 @@ async def _load_feed_post_comment_response(
         feed_post_comment_ids=[comment.id],
         feed_post_ids=[],
     )
+    (snips,) = await batch_resolve_inline_movie_card_refs(db, [(author.id, comment.text or '')])
     return FeedPostCommentResponse(
         id=comment.id,
         feed_post_id=comment.feed_post_id,
@@ -124,6 +131,7 @@ async def _load_feed_post_comment_response(
             display_name=author.display_name,
         ),
         reactions=reaction_target_summary_to_response(rx[comment.id]),
+        referenced_movie_cards=inline_movie_card_snippets_to_response(snips),
     )
 
 
@@ -348,7 +356,43 @@ async def create_feed_post_comment_route(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     created = outcome.comment
-    if outcome.mentioned_user_ids:
+    mention_recipients = list(outcome.mentioned_user_ids)
+    if body.parent_comment_id is not None:
+        parent_author_id = (
+            await db.execute(
+                select(FeedPostComment.user_id).where(
+                    FeedPostComment.id == body.parent_comment_id
+                )
+            )
+        ).scalar_one_or_none()
+        if parent_author_id is not None:
+            mention_recipients = [uid for uid in mention_recipients if uid != parent_author_id]
+    else:
+        post_owner_id = (
+            await db.execute(select(FeedPost.user_id).where(FeedPost.id == post_id))
+        ).scalar_one_or_none()
+        if post_owner_id is not None:
+            mention_recipients = [uid for uid in mention_recipients if uid != post_owner_id]
+
+    if body.parent_comment_id is None:
+        celery_application.tasks[
+            'tasks.telegram_engagement.notify_feed_post_root_comment'
+        ].delay(
+            actor_user_id=str(user.id),
+            feed_post_id=post_id,
+            comment_text=created.text,
+        )
+    else:
+        celery_application.tasks[
+            'tasks.telegram_engagement.notify_feed_post_comment_reply'
+        ].delay(
+            actor_user_id=str(user.id),
+            feed_post_id=post_id,
+            parent_comment_id=body.parent_comment_id,
+            reply_text=created.text,
+        )
+
+    if mention_recipients:
         celery_application.tasks[
             'tasks.telegram_engagement.notify_feed_post_comment_mentions'
         ].delay(
@@ -356,7 +400,7 @@ async def create_feed_post_comment_route(
             feed_post_id=post_id,
             comment_id=created.id,
             recipient_user_ids_json=orjson.dumps(
-                [str(x) for x in outcome.mentioned_user_ids]
+                [str(x) for x in mention_recipients]
             ).decode(),
         )
 

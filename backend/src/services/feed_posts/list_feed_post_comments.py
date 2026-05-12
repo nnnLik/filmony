@@ -11,6 +11,10 @@ from sqlalchemy.orm import aliased
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
+from services.cards.inline_movie_card_ref_tokens import (
+    ReferencedInlineMovieCardSnippet,
+    batch_resolve_inline_movie_card_refs,
+)
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.feed_posts.get_feed_post_by_id import FeedPostNotFoundError
 from services.reactions import GetReactionSummariesForTargetsService
@@ -28,6 +32,7 @@ class FeedPostCommentItem:
     total_descendants_count: int
     author: MovieCardCommentAuthor
     reactions: ReactionTargetSummary
+    referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
 
 
 class CommentNotFoundError(Exception):
@@ -173,6 +178,25 @@ class ListFeedPostCommentsService:
                 reactions=fpc_summaries[comment.id],
             )
             for comment, user in visible_rows
+        ]
+        ref_lists = await batch_resolve_inline_movie_card_refs(
+            self._session,
+            [(it.author.id, it.text) for it in items],
+        )
+        items = [
+            FeedPostCommentItem(
+                id=it.id,
+                feed_post_id=it.feed_post_id,
+                parent_comment_id=it.parent_comment_id,
+                text=it.text,
+                created_at=it.created_at,
+                replies_count=it.replies_count,
+                total_descendants_count=it.total_descendants_count,
+                author=it.author,
+                reactions=it.reactions,
+                referenced_movie_cards=ref_lists[i],
+            )
+            for i, it in enumerate(items)
         ]
         next_cursor = str(visible_rows[-1][0].id) if has_more and visible_rows else None
         return FeedPostCommentPage(items=items, next_cursor=next_cursor)

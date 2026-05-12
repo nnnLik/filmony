@@ -74,7 +74,6 @@ class CreateFeedPostService:
         return cls(session=session)
 
     async def execute(self, user_id: UUID, payload: CreateFeedPostInput) -> CreateFeedPostResult:
-        image_url = _normalize_image_url(payload.image_url)
         body_raw = payload.body.strip() if payload.body else ''
         ref_card_id = payload.referenced_movie_card_id
         source_comment_id = payload.source_comment_id
@@ -96,6 +95,10 @@ class CreateFeedPostService:
             ref_card_id = comment.movie_card_id
             if body_raw == '':
                 body_raw = comment.text
+            # Одна картинка на пост: при конвертации из комментария берём только изображение комментария.
+            image_url = _normalize_image_url(comment.image_url)
+        else:
+            image_url = _normalize_image_url(payload.image_url)
 
         if ref_card_id is not None:
             exists = (

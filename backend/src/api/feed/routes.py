@@ -6,7 +6,10 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
+from api.cards.feed_post_feed_mapping import (
+    feed_post_feed_item_to_response,
+    inline_movie_card_snippets_to_response,
+)
 from api.cards.schemas import (
     FeedPostFeedItemResponse,
     MovieCardCommentAuthorResponse,
@@ -34,6 +37,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
         movie_card_id=item.movie_card_id,
         parent_comment_id=item.parent_comment_id,
         text=item.text,
+        image_url=item.image_url,
         created_at=item.created_at,
         replies_count=item.replies_count,
         total_descendants_count=item.total_descendants_count,
@@ -47,6 +51,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
             display_name=item.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
+        referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
     )
 
 
@@ -114,12 +119,17 @@ async def list_global_feed(
         default='all',
         description='all — карточки и посты; posts — только посты; cards — только карточки',
     ),
+    exclude_own: bool = Query(
+        default=False,
+        description='Исключить из выдачи посты и карточки текущего пользователя',
+    ),
 ) -> MovieCardFeedPageResponse:
     page = await ListGlobalFeedService.build(db).execute(
         viewer.id,
         kind,
         cursor,
         limit,
+        exclude_own=exclude_own,
     )
     return _global_feed_domain_to_response(
         page.items,

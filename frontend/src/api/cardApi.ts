@@ -10,6 +10,7 @@ import type {
   FeedPageItem,
   FeedPostComment,
   Film,
+  FilmCommunityCardsPage,
   FollowingRatingsResponse,
   GlobalFeedKind,
   MovieCard,
@@ -70,6 +71,21 @@ export async function getFilmById(filmId: number): Promise<Film> {
   return apiJson<Film>(`/api/films/${filmId}`)
 }
 
+export async function getFilmCommunityCardsPage(
+  filmId: number,
+  params?: { cursor?: string | null; limit?: number },
+): Promise<FilmCommunityCardsPage> {
+  const sp = new URLSearchParams()
+  if (params?.cursor != null && params.cursor !== '') {
+    sp.set('cursor', params.cursor)
+  }
+  if (params?.limit != null) {
+    sp.set('limit', String(params.limit))
+  }
+  const q = sp.toString()
+  return apiJson<FilmCommunityCardsPage>(`/api/films/${filmId}/community-cards${q ? `?${q}` : ''}`)
+}
+
 export async function getMovieCardById(cardId: number): Promise<MovieCard> {
   return apiJson<MovieCard>(`/api/cards/${cardId}`)
 }
@@ -122,12 +138,15 @@ export async function getGlobalFeedPage(params?: {
   cursor?: string | null
   limit?: number
   kind?: GlobalFeedKind
+  /** GET /api/feed/global?exclude_own=true — скрыть посты и карточки текущего пользователя */
+  excludeOwn?: boolean
 }): Promise<FeedMovieCardPage> {
   const search = new URLSearchParams()
   if (params?.cursor) search.set('cursor', params.cursor)
   if (params?.limit != null) search.set('limit', String(params.limit))
   const kind = params?.kind ?? 'all'
   if (kind !== 'all') search.set('kind', kind)
+  if (params?.excludeOwn === true) search.set('exclude_own', 'true')
   const suffix = search.toString()
   const body = await apiJson<{
     items: Record<string, unknown>[]
@@ -201,15 +220,60 @@ export async function getMovieCardCommentReplies(
   )
 }
 
+export async function uploadMovieCardCommentImage(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await apiFetch('/api/cards/comment-images/upload', {
+    method: 'POST',
+    body: form,
+  })
+  if (!res.ok) {
+    const detail: unknown = await readHttpErrorDetail(res)
+    throw new ApiError(res.status, detail)
+  }
+  const data = (await res.json()) as { url?: string }
+  if (typeof data.url !== 'string' || data.url.trim() === '') {
+    throw new ApiError(res.status, 'invalid upload response')
+  }
+  return data.url.trim()
+}
+
 export async function createMovieCardComment(
   cardId: number,
-  body: { text: string; parent_comment_id?: number | null }
+  body: { text: string; parent_comment_id?: number | null; image_url?: string | null }
 ): Promise<MovieCardComment> {
   return apiJson<MovieCardComment>(`/api/cards/${cardId}/comments`, {
     method: 'POST',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   })
+}
+
+export type WatchedInlinePickerItem = {
+  movie_card_id: number
+  film_title: string
+  film_year: number | null
+}
+
+export type WatchedInlinePickerListResponse = {
+  items: WatchedInlinePickerItem[]
+}
+
+export async function listWatchedInlinePicker(params?: {
+  q?: string
+  limit?: number
+}): Promise<WatchedInlinePickerListResponse> {
+  const sp = new URLSearchParams()
+  if (params?.q != null && params.q.trim() !== '') {
+    sp.set('q', params.q.trim())
+  }
+  if (params?.limit != null) {
+    sp.set('limit', String(params.limit))
+  }
+  const qs = sp.toString()
+  return apiJson<WatchedInlinePickerListResponse>(
+    `/api/cards/watched-inline-picker${qs ? `?${qs}` : ''}`,
+  )
 }
 
 export type ShareMovieCardResponse = {

@@ -12,12 +12,14 @@ from services.cards.comment_reaction_tokens import (
     CommentReactionTokenError,
     validate_comment_text_with_reaction_tokens,
 )
+from services.cards.movie_card_comment_image_url import normalize_movie_card_comment_image_url
 
 
 @dataclass(frozen=True, slots=True)
 class CreateMovieCardCommentInput:
     text: str
     parent_comment_id: int | None
+    image_url: str | None = None
 
 
 class MovieCardNotFoundError(Exception):
@@ -63,7 +65,23 @@ class CreateMovieCardCommentService:
         user_id: UUID,
         payload: CreateMovieCardCommentInput,
     ) -> CreateMovieCardCommentResult:
-        text, mentioned_user_ids = await _normalize_text(payload.text, self._session, user_id)
+        try:
+            image_url = normalize_movie_card_comment_image_url(payload.image_url)
+        except ValueError as e:
+            raise MovieCardCommentValidationError(str(e)) from e
+
+        text_stripped = payload.text.strip()
+        if text_stripped == '' and image_url is None:
+            raise MovieCardCommentValidationError('text or image_url is required')
+
+        if text_stripped == '':
+            text_final = ''
+            mentioned_user_ids: tuple[UUID, ...] = ()
+        else:
+            text_final, mentioned_user_ids = await _normalize_text(
+                payload.text, self._session, user_id
+            )
+
         card = (
             await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
         ).scalar_one_or_none()
@@ -87,7 +105,8 @@ class CreateMovieCardCommentService:
             movie_card_id=card_id,
             user_id=user_id,
             parent_comment_id=payload.parent_comment_id,
-            text=text,
+            text=text_final,
+            image_url=image_url,
         )
         self._session.add(comment)
         await self._session.commit()

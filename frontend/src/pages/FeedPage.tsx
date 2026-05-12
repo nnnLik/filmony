@@ -1,5 +1,5 @@
 import { Button, IconButton } from '@telegram-apps/telegram-ui'
-import { PenLine } from 'lucide-react'
+import { PenLine, UserRoundX } from 'lucide-react'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -32,6 +32,7 @@ import {
   isGlobalFeedCardDetailOpened,
   isGlobalFeedPostDetailOpened,
 } from '../lib/globalFeedViewedIds'
+import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
 
 const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
   { value: 'all', segmentLabel: 'Всё' },
@@ -51,6 +52,11 @@ export function FeedPage() {
   const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
   const viewerUserId = myProfileBundle?.profile.id ?? null
+  const [hideMine, setHideMine] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const uid = readMyProfileBundleCache()?.profile.id ?? null
+    return readGlobalFeedHideMine(uid)
+  })
   const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
 
   const [recentStrip, setRecentStrip] = useState(() => {
@@ -64,6 +70,12 @@ export function FeedPage() {
   useEffect(() => {
     feedKindRef.current = feedKind
   }, [feedKind])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setHideMine(readGlobalFeedHideMine(viewerUserId))
+    })
+  }, [viewerUserId])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -111,13 +123,16 @@ export function FeedPage() {
     setMyProfileBundle(readMyProfileBundleCache())
   }, [])
 
+  const excludeOwn = auth.kind === 'ready' && hideMine
+
   const feedQuery = useInfiniteQuery({
-    queryKey: globalFeedQueryKey(feedKind),
+    queryKey: globalFeedQueryKey(feedKind, excludeOwn),
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) =>
       getGlobalFeedPage({
         limit: 20,
         kind: feedKind,
+        excludeOwn,
         ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
       }),
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
@@ -212,7 +227,7 @@ export function FeedPage() {
 
   const onCommentsState = useCallback(
     (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
-      const key = globalFeedQueryKey(feedKind)
+      const key = globalFeedQueryKey(feedKind, excludeOwn)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
         return {
@@ -232,12 +247,12 @@ export function FeedPage() {
         }
       })
     },
-    [queryClient, feedKind],
+    [queryClient, feedKind, excludeOwn],
   )
 
   const onFeedPostCommentsState = useCallback(
     (postId: number, next: { comments_count: number; comments_preview: FeedPostComment[] }) => {
-      const key = globalFeedQueryKey(feedKind)
+      const key = globalFeedQueryKey(feedKind, excludeOwn)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
         return {
@@ -254,8 +269,16 @@ export function FeedPage() {
         }
       })
     },
-    [queryClient, feedKind],
+    [queryClient, feedKind, excludeOwn],
   )
+
+  const onToggleHideMine = useCallback(() => {
+    setHideMine((prev) => {
+      const next = !prev
+      writeGlobalFeedHideMine(viewerUserId, next)
+      return next
+    })
+  }, [viewerUserId])
 
   useEffect(() => {
     const y = pendingScrollYRef.current
@@ -303,6 +326,23 @@ export function FeedPage() {
               Лента
             </h1>
             <div className="flex shrink-0 items-center gap-1">
+              {auth.kind === 'ready' ? (
+                <IconButton
+                  type="button"
+                  mode={hideMine ? 'bezeled' : 'gray'}
+                  size="s"
+                  onClick={onToggleHideMine}
+                  aria-label={hideMine ? 'Показывать в ленте мои посты и карточки' : 'Скрыть из ленты мои посты и карточки'}
+                  aria-pressed={hideMine}
+                  title={
+                    hideMine
+                      ? 'Показать мои посты и карточки на этой вкладке'
+                      : 'Скрыть мои посты и карточки на этой вкладке'
+                  }
+                >
+                  <UserRoundX className="block size-[18px]" strokeWidth={2} />
+                </IconButton>
+              ) : null}
               {auth.kind === 'ready' ? (
                 <IconButton
                   type="button"

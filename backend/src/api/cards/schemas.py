@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from api.reactions.schemas import ReactionSummaryResponse
 from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
@@ -33,6 +33,22 @@ class CardResponse(BaseModel):
     mood_after: CardMoodAfter
     custom_tags: list[str]
     is_favorite: bool = False
+
+
+class ReferencedInlineMovieCardSnippetResponse(BaseModel):
+    movie_card_id: int
+    film_title: str
+    film_year: int | None = None
+
+
+class WatchedInlinePickerRowResponse(BaseModel):
+    movie_card_id: int
+    film_title: str
+    film_year: int | None = None
+
+
+class WatchedInlinePickerListResponse(BaseModel):
+    items: list[WatchedInlinePickerRowResponse] = Field(default_factory=list)
 
 
 class MovieCardCommentAuthorResponse(BaseModel):
@@ -89,11 +105,16 @@ class MovieCardCommentResponse(BaseModel):
     movie_card_id: int
     parent_comment_id: int | None
     text: str
+    image_url: str | None = None
     created_at: datetime
     replies_count: int = 0
     total_descendants_count: int = 0
     author: MovieCardCommentAuthorResponse
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+        default_factory=list,
+        description='Сниппеты фильмов для токенов ⟦c{id}⟧ в тексте (порядок первых вхождений id)',
+    )
 
 
 class MovieCardCommentListResponse(BaseModel):
@@ -102,10 +123,17 @@ class MovieCardCommentListResponse(BaseModel):
 
 
 class MovieCardCommentCreateRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=250)
+    text: str = Field(default='', max_length=250)
     parent_comment_id: int | None = Field(default=None, ge=1)
+    image_url: str | None = Field(default=None, max_length=2048)
 
     model_config = ConfigDict(extra='forbid')
+
+    @model_validator(mode='after')
+    def require_text_or_image(self) -> MovieCardCommentCreateRequest:
+        if self.text.strip() == '' and (self.image_url is None or str(self.image_url).strip() == ''):
+            raise ValueError('text or image_url is required')
+        return self
 
 
 class FilmResolveRequest(BaseModel):
@@ -120,6 +148,7 @@ FeedCardSource = Literal[
     'personal_affinity',
     'discovery',
     'feed_posts',
+    'own_cards',
     'global',
 ]
 
@@ -151,6 +180,9 @@ class FeedPostCommentPreviewResponse(BaseModel):
     total_descendants_count: int = 0
     author: MovieCardCommentAuthorResponse
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+        default_factory=list,
+    )
 
 
 class FeedPostFeedItemResponse(BaseModel):
@@ -168,6 +200,9 @@ class FeedPostFeedItemResponse(BaseModel):
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
     comments_count: int = 0
     comments_preview: list[FeedPostCommentPreviewResponse] = Field(default_factory=list)
+    body_referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+        default_factory=list,
+    )
 
 
 FeedPageItemResponse = MovieCardFeedItemResponse | FeedPostFeedItemResponse

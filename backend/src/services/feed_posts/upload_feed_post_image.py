@@ -34,7 +34,14 @@ class UploadFeedPostImageService:
     def build(cls) -> Self:
         return cls()
 
-    async def execute(self, *, user_id: UUID, content_type: str, data: bytes) -> str:
+    async def execute(
+        self,
+        *,
+        user_id: UUID,
+        content_type: str,
+        data: bytes,
+        media_subdir: str = 'feed_posts',
+    ) -> str:
         ct = content_type.strip().lower()
         if ct not in _ALLOWED_CT_SUFFIX:
             raise FeedPostImageUploadError('unsupported image type')
@@ -53,8 +60,10 @@ class UploadFeedPostImageService:
         if not bucket or not access or not secret:
             raise FeedPostImageUploadError('storage not configured')
 
+        if media_subdir not in ('feed_posts', 'movie_card_comments'):
+            raise FeedPostImageUploadError('invalid media path')
         ext = _ALLOWED_CT_SUFFIX[ct]
-        key = f'user_media/feed_posts/{user_id}/{uuid4().hex}{ext}'
+        key = f'user_media/{media_subdir}/{user_id}/{uuid4().hex}{ext}'
 
         try:
             await asyncio.to_thread(

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -22,3 +25,31 @@ class FilmResponse(BaseModel):
         default=None,
         description='Id карточки текущего пользователя для этого фильма, если уже оценивал',
     )
+
+
+class FilmCommunityAuthorResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    photo_url: str | None = None
+    display_name: str | None = None
+
+
+class FilmCommunityCardItemResponse(BaseModel):
+    id: int
+    author: FilmCommunityAuthorResponse
+    rating: float
+    company: str
+    mood_before: str
+    mood_after: str
+    watch_note: str = ''
+    custom_tags: list[str] = Field(default_factory=list)
+    updated_at: datetime
+    is_favorite: bool = False
+
+
+class FilmCommunityCardsPageResponse(BaseModel):
+    items: list[FilmCommunityCardItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None

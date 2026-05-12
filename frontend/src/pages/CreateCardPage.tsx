@@ -25,8 +25,13 @@ import { CommentDraftMultiline } from '../components/comments/CommentDraftMirror
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
-import { myMovieCardTagStatsQueryKey, userMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
+import {
+  globalFeedQueryRootKey,
+  myMovieCardTagStatsQueryKey,
+  userMovieCardTagStatsQueryKey,
+} from '../feed/feedQueryKeys'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { recordRecentCardView } from '../lib/recentCardViews'
 import {
   readCachedMyMovieCardTagStats,
   writeCachedMyMovieCardTagStats,
@@ -514,9 +519,14 @@ export function CreateCardPage() {
       void queryClient.invalidateQueries({ queryKey: myMovieCardTagStatsQueryKey() })
       clearMyProfileBundleCache()
       safeHapticSuccess()
-      void queryClient.invalidateQueries({
-        predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'movieCardFeed',
-      })
+      void queryClient.invalidateQueries({ queryKey: globalFeedQueryRootKey })
+      if (bundleUid != null && bundleUid !== '') {
+        recordRecentCardView(bundleUid, {
+          id: newCard.id,
+          film_title: newCard.film_title,
+          film_poster_url: newCard.film_poster_url,
+        })
+      }
       const returnToFeed = searchParams.get('returnTo') === 'feed'
       if (shareSelected.size > 0) {
         try {

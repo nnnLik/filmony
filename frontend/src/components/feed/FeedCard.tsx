@@ -2,19 +2,23 @@ import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler } from 'react'
 import { Link } from 'react-router-dom'
 
-import { createMovieCardComment, listAllMovieCardComments } from '../../api/cardApi'
+import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
+import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
+import { inlineMovieCardRefMapFromSnippets } from '../../lib/inlineMovieCardRefMap'
 import {
   COMMENT_BODY_MAX_LEN,
   insertSnippetAtCaret,
+  movieCardRefTokenFromId,
   reactionTokenFromId,
 } from '../../lib/commentReactionTokens'
+import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { ReactionStrip } from '../reactions/ReactionStrip'
@@ -44,6 +48,9 @@ export type FeedCardProps = {
 export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCardProps) {
   const draftInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
+  const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
+    () => new Map<number, { film_title: string; film_year: number | null }>(),
+  )
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [commentsPreviewOpen, setCommentsPreviewOpen] = useState(false)
@@ -150,6 +157,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       const created = await createMovieCardComment(card.id, { text })
       mergedPreviewAfterCreate(created)
       setDraft('')
+      setDraftInlineCardRefs(new Map())
       safeHapticSuccess()
     } catch (e) {
       setSubmitError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось отправить')
@@ -192,6 +200,30 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     })
   }, [draft])
 
+  const insertMovieCardInline = useCallback((row: WatchedInlinePickerItem) => {
+    const token = movieCardRefTokenFromId(row.movie_card_id)
+    const el = draftInputRef.current
+    const inserted = insertSnippetAtCaret(
+      draft,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      token,
+      COMMENT_BODY_MAX_LEN,
+    )
+    if (inserted == null) return
+    setDraft(inserted.nextValue)
+    setDraftInlineCardRefs((prev) => {
+      const next = new Map(prev)
+      next.set(row.movie_card_id, { film_title: row.film_title, film_year: row.film_year })
+      return next
+    })
+    const caret = inserted.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [draft])
+
   const stopCardNav: MouseEventHandler = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -225,7 +257,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                     ? 'Похоже на ваши теги'
                     : card.feed_source === 'discovery'
                       ? 'Рекомендации'
-                      : 'Источник в ленте'
+                      : card.feed_source === 'own_cards'
+                        ? 'Твоя карточка в ленте'
+                        : card.feed_source === 'global'
+                          ? 'Публичная лента'
+                          : 'Источник в ленте'
           }
         >
           {sourceBadgeText}
@@ -450,9 +486,25 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                                 </Link>
                               ) : null}
 
-                              <p className="mt-1 text-[13px] leading-snug text-(--tgui--text_color)">
-                                <CommentBodyWithReactionTokens text={comment.text} className="whitespace-pre-wrap" />
-                              </p>
+                              {comment.image_url != null && comment.image_url.trim() !== '' ? (
+                                <div className="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
+                                  <img
+                                    src={movieCardCommentImageSrc(comment.image_url)}
+                                    alt=""
+                                    className="max-h-[min(55vw,12rem)] w-full object-cover object-center"
+                                  />
+                                </div>
+                              ) : null}
+
+                              {comment.text.trim() !== '' ? (
+                                <p className="mt-1 text-[13px] leading-snug text-(--tgui--text_color)">
+                                  <CommentBodyWithReactionTokens
+                                    text={comment.text}
+                                    className="whitespace-pre-wrap"
+                                    inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                                  />
+                                </p>
+                              ) : null}
                               <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden" onMouseDown={stopCardNav}>
                                 <ReactionStrip
                                   compact
@@ -485,6 +537,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                     maxLength={COMMENT_BODY_MAX_LEN}
                     placeholder="Комментарий…"
                     ariaLabel="Текст комментария"
+                    inlineMovieCardRefs={draftInlineCardRefs}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
@@ -494,6 +547,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                   />
                   <CommentReactionTokenPicker
                     onPickReactionTypeId={insertReactionToken}
+                    disabled={submitBusy}
+                    allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
+                  />
+                  <MovieCardInlinePickerButton
+                    onPick={insertMovieCardInline}
                     disabled={submitBusy}
                     allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
                   />

@@ -1,6 +1,10 @@
 import type { GlobalFeedKind } from '../api/profileTypes'
 
-export const globalFeedQueryKey = (kind: GlobalFeedKind) => ['globalFeed', kind] as const
+/** Корень ключа бесконечной ленты — частичная инвалидация после создания карточки/поста. */
+export const globalFeedQueryRootKey = ['globalFeed'] as const
+
+export const globalFeedQueryKey = (kind: GlobalFeedKind, excludeOwn: boolean) =>
+  ['globalFeed', kind, excludeOwn] as const
 
 /** Теги с моих карточек (автодополнение при создании карточки). */
 export const myMovieCardTagStatsQueryKey = () => ['myMovieCardTagStats'] as const

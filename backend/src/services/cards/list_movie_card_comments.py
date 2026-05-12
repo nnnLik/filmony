@@ -11,6 +11,14 @@ from sqlalchemy.orm import aliased
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.user import User
+from services.cards.inline_movie_card_ref_tokens import (
+    ReferencedInlineMovieCardSnippet,
+    batch_resolve_inline_movie_card_refs,
+)
+from services.profile.batch_resolve_inline_mentions import (
+    ReferencedMentionSnippet,
+    batch_resolve_inline_mentions,
+)
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
@@ -32,11 +40,14 @@ class MovieCardCommentItem:
     movie_card_id: int
     parent_comment_id: int | None
     text: str
+    image_url: str | None
     created_at: dt.datetime
     replies_count: int
     total_descendants_count: int
     author: MovieCardCommentAuthor
     reactions: ReactionTargetSummary
+    referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
 
 
 class MovieCardNotFoundError(Exception):
@@ -167,6 +178,7 @@ class ListMovieCardCommentsService:
                 movie_card_id=comment.movie_card_id,
                 parent_comment_id=comment.parent_comment_id,
                 text=comment.text,
+                image_url=comment.image_url,
                 created_at=comment.created_at,
                 replies_count=replies_count_by_comment.get(comment.id, 0),
                 total_descendants_count=descendants_count_by_comment.get(comment.id, 0),
@@ -182,6 +194,31 @@ class ListMovieCardCommentsService:
                 reactions=comment_summaries[comment.id],
             )
             for comment, user in visible_rows
+        ]
+        ref_lists = await batch_resolve_inline_movie_card_refs(
+            self._session,
+            [(it.author.id, it.text) for it in items],
+        )
+        men_lists = await batch_resolve_inline_mentions(
+            self._session,
+            [it.text for it in items],
+        )
+        items = [
+            MovieCardCommentItem(
+                id=it.id,
+                movie_card_id=it.movie_card_id,
+                parent_comment_id=it.parent_comment_id,
+                text=it.text,
+                image_url=it.image_url,
+                created_at=it.created_at,
+                replies_count=it.replies_count,
+                total_descendants_count=it.total_descendants_count,
+                author=it.author,
+                reactions=it.reactions,
+                referenced_movie_cards=ref_lists[i],
+                referenced_mentions=men_lists[i],
+            )
+            for i, it in enumerate(items)
         ]
         next_cursor = str(visible_rows[-1][0].id) if has_more and visible_rows else None
         return MovieCardCommentPage(items=items, next_cursor=next_cursor)

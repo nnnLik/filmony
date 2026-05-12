@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from api.cards.schemas import MovieCardCommentAuthorResponse
+from api.cards.schemas import MovieCardCommentAuthorResponse, ReferencedInlineMovieCardSnippetResponse
 from api.reactions.schemas import ReactionSummaryResponse
 
 
@@ -44,6 +44,9 @@ class FeedPostCommentResponse(BaseModel):
     total_descendants_count: int = 0
     author: MovieCardCommentAuthorResponse
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+        default_factory=list,
+    )
 
 
 class FeedPostCommentListResponse(BaseModel):
