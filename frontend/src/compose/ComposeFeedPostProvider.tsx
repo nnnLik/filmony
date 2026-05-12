@@ -1,9 +1,12 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
-
-import { FeedComposeSheet } from '../components/feed/FeedComposeSheet'
+import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
 
 import { ComposeFeedPostContext } from './composeFeedPostContext'
 import type { OpenComposeFeedPostPayload } from './feedComposeTypes'
+
+const FeedComposeSheet = lazy(async () => {
+  const m = await import('../components/feed/FeedComposeSheet')
+  return { default: m.FeedComposeSheet }
+})
 
 export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -31,12 +34,14 @@ export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
     <ComposeFeedPostContext.Provider value={value}>
       {children}
       {open ? (
-        <FeedComposeSheet
-          key={composeSessionKey}
-          onClose={closeCompose}
-          sourceCommentId={sourceCommentId}
-          referencedMovieCardId={referencedMovieCardId}
-        />
+        <Suspense fallback={null}>
+          <FeedComposeSheet
+            key={composeSessionKey}
+            onClose={closeCompose}
+            sourceCommentId={sourceCommentId}
+            referencedMovieCardId={referencedMovieCardId}
+          />
+        </Suspense>
       ) : null}
     </ComposeFeedPostContext.Provider>
   )

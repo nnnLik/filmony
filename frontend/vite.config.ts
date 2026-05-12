@@ -33,7 +33,22 @@ export default defineConfig(({ mode }) => {
     envDir,
     plugins: [react(), tailwindcss(), cloudflare()],
     build: {
-      chunkSizeWarningLimit: 900,
+      chunkSizeWarningLimit: 550,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('react-router')) return 'vendor-router'
+            if (id.includes('@tanstack/react-query')) return 'vendor-query'
+            if (id.includes('@telegram-apps')) return 'vendor-telegram'
+            if (id.includes('react-dom') || id.includes('scheduler')) return 'vendor-react'
+            if (id.includes('/node_modules/react/') || id.includes('\\node_modules\\react\\')) {
+              return 'vendor-react'
+            }
+            return undefined
+          },
+        },
+      },
     },
     server: {
       proxy,
