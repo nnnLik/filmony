@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ReactionGroupedCatalog } from '../../api/profileTypes'
+import type { ReferencedMentionSnippet } from '../../api/inlineReferenceSnippetTypes'
 import { ApiError, formatApiDetail } from '../../api/client'
 import { useMentionProfileLookup } from '../../hooks/useMentionProfileLookup'
 import {
@@ -9,7 +10,8 @@ import {
   type CommentTextSegmentWithRange,
 } from '../../lib/commentReactionTokens'
 import type { InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
-import { mentionHandleForDisplay } from '../../lib/mentionProfileLookupUtils'
+import { mentionChipLabelFromRow } from '../../lib/mentionChipDisplayLabel'
+import { mentionProfileKeyFromSlug, type MentionProfileRow } from '../../lib/mentionProfileLookupUtils'
 import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 
@@ -21,6 +23,9 @@ const CARD_CHIP_CLASS =
 
 const INLINE_CARD_UNAVAILABLE = 'Карточка недоступна'
 
+/** Нет сегментов mention — lookup для @ не используется. */
+const NO_MENTION_SLUGS: ReadonlyMap<string, MentionProfileRow> = new Map()
+
 type CommentBodyWithReactionTokensProps = {
   text: string
   className?: string
@@ -31,6 +36,8 @@ type CommentBodyWithReactionTokensProps = {
   annotateCharRanges?: boolean
   /** Разрешённые подписи для токенов ⟦c{id}⟧ (из API или локально при наборе). */
   inlineMovieCardRefs?: ReadonlyMap<number, InlineMovieCardRefMeta>
+  /** Сниппеты ⟦@slug⟧ с сервера (имя для всех зрителей, не только из контекста подписок). */
+  referencedMentions?: readonly ReferencedMentionSnippet[]
 }
 
 function buildImageUrlMap(catalog: ReactionGroupedCatalog): Map<number, string> {
@@ -63,9 +70,36 @@ export function CommentBodyWithReactionTokens({
   className,
   annotateCharRanges = false,
   inlineMovieCardRefs,
+  referencedMentions,
 }: CommentBodyWithReactionTokensProps) {
   const mentionProfiles = useMentionProfileLookup()
   const segments = useMemo(() => splitCommentTextIntoSegmentsWithRanges(text), [text])
+  const textHasMentionTokens = useMemo(
+    () => segments.some((s) => s.type === 'mention'),
+    [segments],
+  )
+  const mentionRowBySlug = useMemo((): ReadonlyMap<string, MentionProfileRow> => {
+    if (!textHasMentionTokens) {
+      return NO_MENTION_SLUGS
+    }
+    const extras = referencedMentions ?? []
+    if (extras.length === 0) {
+      return mentionProfiles
+    }
+    const m = new Map<string, MentionProfileRow>(mentionProfiles)
+    for (const s of extras) {
+      const key = mentionProfileKeyFromSlug(s.profile_slug)
+      m.set(key, {
+        userId: s.user_id,
+        username: s.username,
+        display_name: s.display_name,
+        first_name: s.first_name,
+        last_name: s.last_name,
+        display_label: s.display_label,
+      })
+    }
+    return m
+  }, [mentionProfiles, referencedMentions, textHasMentionTokens])
   const needsCatalog = useMemo(
     () => segments.some((s) => s.type === 'reaction'),
     [segments],
@@ -112,18 +146,21 @@ export function CommentBodyWithReactionTokens({
           )
         }
         if (seg.type === 'mention') {
-          const row = mentionProfiles.get(seg.profileSlug)
-          const handle = mentionHandleForDisplay(row?.username, seg.profileSlug)
+          const profileKey = mentionProfileKeyFromSlug(seg.profileSlug)
+          const row: MentionProfileRow | undefined = mentionRowBySlug.get(profileKey)
+          const handle = mentionChipLabelFromRow(row, profileKey)
           const label = `@${handle}`
           const slugTitle = `@${seg.profileSlug}`
           if (!annotateCharRanges) {
             if (row != null) {
+              const chipTitle =
+                handle === seg.profileSlug ? slugTitle : `${label} (${slugTitle})`
               return (
                 <Link
                   key={`m-${i}`}
                   to={`/u/${encodeURIComponent(row.userId)}`}
                   className={MENTION_CHIP_CLASS}
-                  title={row.username?.trim() ? `${label} (${slugTitle})` : slugTitle}
+                  title={chipTitle}
                   aria-label={`Профиль ${label}`}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -142,7 +179,7 @@ export function CommentBodyWithReactionTokens({
               <Link
                 to={`/u/${encodeURIComponent(row.userId)}`}
                 className={MENTION_CHIP_CLASS}
-                title={row.username?.trim() ? `${label} (${slugTitle})` : slugTitle}
+                title={handle === seg.profileSlug ? slugTitle : `${label} (${slugTitle})`}
                 aria-label={`Профиль ${label}`}
                 onClick={(e) => e.stopPropagation()}
               >

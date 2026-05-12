@@ -17,6 +17,7 @@ import {
   getFeedPostById,
   getFeedPostComments,
 } from '../api/feedPostApi'
+import type { WatchedInlinePickerItem } from '../api/cardApi'
 import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import type { FeedPostInFeed } from '../api/feedInFeedTypes'
@@ -24,10 +25,11 @@ import type { FeedPostComment, ReactionSummary } from '../api/profileTypes'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
+import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
-import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
 import {
   applyMentionPick,
   mentionReplacementFromSlug,
@@ -36,12 +38,13 @@ import {
 } from '../lib/feedMentionCompose'
 import { filterFollowingForMentionQuery } from '../lib/mentionFollowingFilter'
 import { markGlobalFeedPostDetailOpened } from '../lib/globalFeedViewedIds'
+import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '../lib/inlineMovieCardRefMap'
 import {
   authorLikeToMentionRow,
   mentionProfileKeyFromSlug,
-  subscriptionToMentionRow,
   type MentionProfileRowInput,
 } from '../lib/mentionProfileLookupUtils'
+import { subscriptionToMentionRow } from '../lib/subscriptionToMentionRow'
 import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { displayNameFromProfile } from '../lib/profileDisplay'
 import { safeHapticSuccess } from '../lib/safeHaptic'
@@ -94,6 +97,9 @@ export function FeedPostDetailPage() {
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsError, setCommentsError] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
+  const [commentDraftInlineCardRefs, setCommentDraftInlineCardRefs] = useState<
+    Map<number, InlineMovieCardRefMeta>
+  >(() => new Map())
   const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
   const [submitBusy, setSubmitBusy] = useState(false)
   const [jumpBusy, setJumpBusy] = useState(false)
@@ -334,6 +340,35 @@ export function FeedPostDetailPage() {
     [commentText],
   )
 
+  const insertMovieCardIntoComment = useCallback(
+    (row: WatchedInlinePickerItem) => {
+      setCommentMentionPicker(null)
+      setCommentMentionHighlightIdx(0)
+      const token = movieCardRefTokenFromId(row.movie_card_id)
+      const el = commentTextAreaRef.current
+      const inserted = insertSnippetAtCaret(
+        commentText,
+        el?.selectionStart ?? null,
+        el?.selectionEnd ?? null,
+        token,
+        COMMENT_BODY_MAX_LEN,
+      )
+      if (inserted == null) return
+      setCommentText(inserted.nextValue)
+      setCommentDraftInlineCardRefs((prev) => {
+        const next = new Map(prev)
+        next.set(row.movie_card_id, { film_title: row.film_title, film_year: row.film_year })
+        return next
+      })
+      const caret = inserted.caret
+      queueMicrotask(() => {
+        el?.focus()
+        el?.setSelectionRange(caret, caret)
+      })
+    },
+    [commentText],
+  )
+
   async function handleCreateComment() {
     if (parsedPostId == null || submitBusy) return
     const text = commentText.trim()
@@ -353,6 +388,7 @@ export function FeedPostDetailPage() {
         void 0
       }
       setCommentText('')
+      setCommentDraftInlineCardRefs(new Map())
       setCommentMentionPicker(null)
       setCommentMentionHighlightIdx(0)
       setReplyTo(null)
@@ -479,6 +515,7 @@ export function FeedPostDetailPage() {
                       rows={4}
                       maxLength={COMMENT_BODY_MAX_LEN}
                       placeholder="Напишите комментарий..."
+                      inlineMovieCardRefs={commentDraftInlineCardRefs}
                     />
                     {commentMentionPicker != null && commentMentionPopoverLayout != null
                       ? createPortal(
@@ -550,9 +587,14 @@ export function FeedPostDetailPage() {
                         )
                       : null}
                   </div>
-                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                  <div className="flex shrink-0 flex-col items-center justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
                       onPickReactionTypeId={insertReactionIntoComment}
+                      disabled={submitBusy}
+                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
+                    />
+                    <MovieCardInlinePickerButton
+                      onPick={insertMovieCardIntoComment}
                       disabled={submitBusy}
                       allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
                     />
@@ -658,7 +700,12 @@ export function FeedPostDetailPage() {
                             ) : null}
 
                             <p className="mt-1 text-sm leading-relaxed">
-                              <CommentBodyWithReactionTokens text={comment.text} className="whitespace-pre-wrap" />
+                              <CommentBodyWithReactionTokens
+                                text={comment.text}
+                                className="whitespace-pre-wrap"
+                                inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                                referencedMentions={comment.referenced_mentions}
+                              />
                             </p>
                             <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
                               <ReactionStrip

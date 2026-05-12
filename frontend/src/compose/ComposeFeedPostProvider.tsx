@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
 
 import { ComposeFeedPostContext } from './composeFeedPostContext'
-import type { OpenComposeFeedPostPayload } from './feedComposeTypes'
+import type { FeedComposeSourceCommentPreview, OpenComposeFeedPostPayload } from './feedComposeTypes'
 
 const FeedComposeSheet = lazy(async () => {
   const m = await import('../components/feed/FeedComposeSheet')
@@ -14,6 +14,7 @@ export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
   const [sourceCommentId, setSourceCommentId] = useState<number | null>(null)
   const [referencedMovieCardId, setReferencedMovieCardId] = useState<number | null>(null)
   const [sourceCommentImageUrl, setSourceCommentImageUrl] = useState<string | null>(null)
+  const [sourceCommentPreview, setSourceCommentPreview] = useState<FeedComposeSourceCommentPreview | null>(null)
 
   const openCompose = useCallback((payload?: OpenComposeFeedPostPayload) => {
     setSourceCommentId(payload?.sourceCommentId ?? null)
@@ -23,6 +24,17 @@ export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
         ? payload.sourceCommentImageUrl.trim()
         : null,
     )
+    if (payload?.sourceCommentId != null) {
+      const label = payload.sourceCommentPreviewAuthorLabel?.trim()
+      setSourceCommentPreview({
+        authorLabel: label != null && label !== '' ? label : 'Ваш комментарий',
+        text: payload.sourceCommentPreviewText ?? '',
+        referencedMovieCards: payload.sourceCommentReferencedMovieCards ?? undefined,
+        referencedMentions: payload.sourceCommentReferencedMentions ?? undefined,
+      })
+    } else {
+      setSourceCommentPreview(null)
+    }
     setComposeSessionKey((k) => k + 1)
     setOpen(true)
   }, [])
@@ -47,6 +59,7 @@ export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
             sourceCommentId={sourceCommentId}
             referencedMovieCardId={referencedMovieCardId}
             sourceCommentImageUrl={sourceCommentImageUrl}
+            sourceCommentPreview={sourceCommentPreview}
           />
         </Suspense>
       ) : null}

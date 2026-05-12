@@ -9,8 +9,6 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-
 from core.database import disposable_async_session
 from models.feed_post import FeedPost
 from models.user import User

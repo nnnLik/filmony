@@ -18,7 +18,14 @@ import {
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 
-import { createMovieCardComment, getFollowingRatingsForCard, getMovieCardById, getMovieCardComments, uploadMovieCardCommentImage, type WatchedInlinePickerItem } from '../api/cardApi'
+import {
+  createMovieCardComment as submitMovieCardCommentApi,
+  getFollowingRatingsForCard,
+  getMovieCardById,
+  getMovieCardComments,
+} from '../api/cardApi'
+import { uploadMovieCardCommentImage } from '../api/movieCardCommentImageApi'
+import type { WatchedInlinePickerItem } from '../api/watchedInlinePickerTypes'
 import { getUserSubscriptions } from '../api/profileApi'
 import type { SubscriptionListItem } from '../api/profileTypes'
 import { ApiError, formatApiDetail } from '../api/client'
@@ -41,9 +48,9 @@ import { inlineMovieCardRefMapFromSnippets } from '../lib/inlineMovieCardRefMap'
 import {
   authorLikeToMentionRow,
   mentionProfileKeyFromSlug,
-  subscriptionToMentionRow,
   type MentionProfileRowInput,
 } from '../lib/mentionProfileLookupUtils'
+import { subscriptionToMentionRow } from '../lib/subscriptionToMentionRow'
 import {
   applyMentionPick,
   mentionReplacementFromSlug,
@@ -67,6 +74,8 @@ import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { movieCardCommentImageSrc } from '../lib/movieCardCommentMedia'
+import { movieCardCommentDerivedFields } from '../lib/movieCardCommentDerivedFields'
+import type { OpenComposeFeedPostPayload } from '../compose/feedComposeTypes'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
@@ -569,7 +578,7 @@ export function MovieCardDetailPage() {
     setSubmitBusy(true)
     setCommentsError(null)
     try {
-      await createMovieCardComment(parsedCardId, {
+      await submitMovieCardCommentApi(parsedCardId, {
         text,
         parent_comment_id: replyTo?.id ?? null,
         image_url: img === '' ? null : img,
@@ -1210,11 +1219,11 @@ function MovieCardDetailLoadedBody({
                               type="button"
                               tabIndex={-1}
                               aria-hidden
-                              className="fixed inset-0 z-[200] cursor-default bg-black/0"
+                              className="fixed inset-0 z-200 cursor-default bg-black/0"
                               onClick={onDismissCommentMention}
                             />
                             <div
-                              className="filmony-theme fixed z-[201] overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) py-1 shadow-lg"
+                              className="filmony-theme fixed z-201 overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) py-1 shadow-lg"
                               style={{
                                 top: commentMentionPopoverLayout.top,
                                 left: commentMentionPopoverLayout.left,
@@ -1348,26 +1357,30 @@ function MovieCardDetailLoadedBody({
 
               {comments.length > 0 ? (
                 <div className="mt-3 space-y-2">
-                  {comments.map((comment) => {
-                    const parent = comment.parent_comment_id != null ? commentsById.get(comment.parent_comment_id) ?? null : null
-                    const parentCommentId = comment.parent_comment_id
+                  {comments.map((cardComment: MovieCardComment) => {
+                    const parent =
+                      cardComment.parent_comment_id != null
+                        ? commentsById.get(cardComment.parent_comment_id) ?? null
+                        : null
+                    const parentCommentId = cardComment.parent_comment_id
+                    const d = movieCardCommentDerivedFields(cardComment)
                     return (
                       <div
-                        key={comment.id}
+                        key={cardComment.id}
                         ref={(element) => {
-                          commentRefs.current[comment.id] = element
+                          commentRefs.current[cardComment.id] = element
                         }}
                         className={`rounded-xl border bg-(--tgui--bg_color) p-3 motion-safe:transition-[border-color,box-shadow,transform] motion-safe:duration-300 ${
-                          highlightCommentId === comment.id
+                          highlightCommentId === cardComment.id
                             ? 'border-(--tgui--link_color) shadow-[0_0_0_2px_color-mix(in_srgb,var(--tgui--link_color)_35%,transparent)] motion-safe:scale-[1.01]'
                             : 'border-(--tgui--divider_color) motion-safe:hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_22%,var(--tgui--divider_color))]'
                         }`}
                       >
                         <div className="flex items-start gap-2">
-                          <Link to={`/u/${encodeURIComponent(comment.author.id)}`} className="no-underline">
+                          <Link to={`/u/${encodeURIComponent(cardComment.author.id)}`} className="no-underline">
                             <Avatar
-                              src={comment.author.photo_url ?? undefined}
-                              acronym={authorName(comment).slice(0, 2).toUpperCase()}
+                              src={cardComment.author.photo_url ?? undefined}
+                              acronym={authorName(cardComment).slice(0, 2).toUpperCase()}
                               size={28}
                             />
                           </Link>
@@ -1375,31 +1388,36 @@ function MovieCardDetailLoadedBody({
                             <div className="flex min-w-0 items-center justify-between gap-2">
                               <div className="flex min-w-0 flex-wrap items-center gap-2">
                                 <Link
-                                  to={`/u/${encodeURIComponent(comment.author.id)}`}
+                                  to={`/u/${encodeURIComponent(cardComment.author.id)}`}
                                   className="text-sm font-medium text-(--tgui--link_color) no-underline"
                                 >
-                                  {authorName(comment)}
+                                  {authorName(cardComment)}
                                 </Link>
-                                <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
+                                <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(cardComment.created_at)}</span>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
+                                  onClick={() => setReplyTo({ id: cardComment.id, label: authorName(cardComment) })}
                                   className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
                                 >
                                   Ответить
                                 </button>
-                                {viewerId != null && comment.author.id === viewerId ? (
+                                {viewerId != null && cardComment.author.id === viewerId ? (
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      openCompose({
-                                        sourceCommentId: comment.id,
+                                    onClick={() => {
+                                      const payload: OpenComposeFeedPostPayload = {
+                                        sourceCommentId: d.id,
                                         referencedMovieCardId: card.id,
-                                        sourceCommentImageUrl: comment.image_url ?? null,
-                                      })
-                                    }
+                                        sourceCommentImageUrl: d.sourceCommentImageUrl,
+                                        sourceCommentPreviewAuthorLabel: authorName(cardComment),
+                                        sourceCommentPreviewText: d.text,
+                                        sourceCommentReferencedMovieCards: d.referenced_movie_cards ?? null,
+                                        sourceCommentReferencedMentions: d.referenced_mentions ?? null,
+                                      }
+                                      openCompose(payload)
+                                    }}
                                     className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
                                   >
                                     В ленту
@@ -1424,22 +1442,23 @@ function MovieCardDetailLoadedBody({
                               </button>
                             ) : null}
 
-                            {comment.image_url != null && comment.image_url.trim() !== '' ? (
+                            {d.imageSrc != null ? (
                               <div className="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
                                 <img
-                                  src={movieCardCommentImageSrc(comment.image_url)}
+                                  src={movieCardCommentImageSrc(d.imageSrc)}
                                   alt=""
                                   className="max-h-[min(60vw,16rem)] w-full object-cover object-center"
                                 />
                               </div>
                             ) : null}
 
-                            {comment.text.trim() !== '' ? (
+                            {d.textTrimmed !== '' ? (
                               <p className="mt-1 text-sm leading-relaxed">
                                 <CommentBodyWithReactionTokens
-                                  text={comment.text}
+                                  text={d.text}
                                   className="whitespace-pre-wrap"
-                                  inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                                  inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(d.referenced_movie_cards)}
+                                  referencedMentions={d.referenced_mentions}
                                 />
                               </p>
                             ) : null}
@@ -1447,11 +1466,11 @@ function MovieCardDetailLoadedBody({
                               <ReactionStrip
                                 compact
                                 targetKind="movie_card_comment"
-                                targetId={comment.id}
-                                summary={comment.reactions}
+                                targetId={cardComment.id}
+                                summary={cardComment.reactions}
                                 onSummaryChange={(next: ReactionSummary) =>
                                   setComments((prev) =>
-                                    prev.map((c) => (c.id === comment.id ? { ...c, reactions: next } : c))
+                                    prev.map((c) => (c.id === cardComment.id ? { ...c, reactions: next } : c))
                                   )
                                 }
                               />

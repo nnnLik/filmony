@@ -502,6 +502,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                                     text={comment.text}
                                     className="whitespace-pre-wrap"
                                     inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                                    referencedMentions={comment.referenced_mentions}
                                   />
                                 </p>
                               ) : null}

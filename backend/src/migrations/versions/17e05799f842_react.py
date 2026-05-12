@@ -7,7 +7,6 @@ Create Date: 2026-05-06 21:53:22.416277
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

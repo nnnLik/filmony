@@ -5,7 +5,12 @@ import type {
   FeedPostCommentPage,
   FeedPostPayload,
 } from './profileTypes'
-import type { FeedPostInFeed } from './feedInFeedTypes'
+import type { ReferencedInlineMovieCardSnippet, ReferencedMentionSnippet } from './inlineReferenceSnippetTypes'
+import type {
+  FeedPostAuthorInFeed,
+  FeedPostInFeed,
+  FeedPostSourceCommentInFeed,
+} from './feedInFeedTypes'
 
 export type CreateFeedPostBody = {
   body?: string
@@ -32,6 +37,50 @@ export async function uploadFeedPostImage(file: File): Promise<string> {
   return data.url.trim()
 }
 
+function parseFeedPostSourceComment(raw: unknown): FeedPostSourceCommentInFeed | null {
+  if (raw == null || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  const id = typeof o.id === 'number' ? o.id : Number(o.id)
+  if (!Number.isFinite(id)) return null
+  const text = typeof o.text === 'string' ? o.text : ''
+  const au = o.author
+  if (au == null || typeof au !== 'object') return null
+  const a = au as Record<string, unknown>
+  let authorId = ''
+  if (typeof a.id === 'string') {
+    authorId = a.id
+  } else if (typeof a.id === 'number' && Number.isFinite(a.id)) {
+    authorId = String(a.id)
+  }
+  if (authorId === '') return null
+  const author: FeedPostAuthorInFeed = {
+    id: authorId,
+    profile_slug: typeof a.profile_slug === 'string' ? a.profile_slug : '',
+    username: typeof a.username === 'string' ? a.username : null,
+    first_name: typeof a.first_name === 'string' ? a.first_name : null,
+    last_name: typeof a.last_name === 'string' ? a.last_name : null,
+    photo_url: typeof a.photo_url === 'string' ? a.photo_url : null,
+    display_name: typeof a.display_name === 'string' ? a.display_name : null,
+  }
+  const referenced_movie_cards = Array.isArray(o.referenced_movie_cards)
+    ? (o.referenced_movie_cards as ReferencedInlineMovieCardSnippet[])
+    : undefined
+  const referenced_mentions = Array.isArray(o.referenced_mentions)
+    ? (o.referenced_mentions as ReferencedMentionSnippet[])
+    : undefined
+  const imageUrlRaw = o.image_url
+  const image_url =
+    imageUrlRaw == null ? null : typeof imageUrlRaw === 'string' ? imageUrlRaw : null
+  return {
+    id,
+    text,
+    image_url,
+    author,
+    referenced_movie_cards,
+    referenced_mentions,
+  }
+}
+
 export async function createFeedPost(body: CreateFeedPostBody): Promise<FeedPostPayload> {
   return apiJson<FeedPostPayload>('/api/feed-posts', {
     method: 'POST',
@@ -48,11 +97,13 @@ export async function createFeedPost(body: CreateFeedPostBody): Promise<FeedPost
 export function normalizeFeedPostInFeed(raw: Record<string, unknown>): FeedPostInFeed {
   const commentsCount = typeof raw.comments_count === 'number' ? raw.comments_count : 0
   const preview = Array.isArray(raw.comments_preview) ? (raw.comments_preview as FeedPostComment[]) : []
+  const source_comment = parseFeedPostSourceComment(raw.source_comment)
   return {
     ...(raw as unknown as FeedPostInFeed),
     kind: 'feed_post',
     comments_count: commentsCount,
     comments_preview: preview,
+    source_comment: source_comment ?? undefined,
   }
 }
 

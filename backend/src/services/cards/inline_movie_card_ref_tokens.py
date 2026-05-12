@@ -55,20 +55,17 @@ async def validate_inline_movie_card_refs_for_author(
     if not ids:
         return
     rows = (
-        (
-            await session.execute(
-                select(MovieCard.id, MovieCard.user_id).where(MovieCard.id.in_(ids))
-            )
-        )
-        .all()
-    )
+        await session.execute(select(MovieCard.id, MovieCard.user_id).where(MovieCard.id.in_(ids)))
+    ).all()
     by_id: dict[int, UUID] = {int(r[0]): r[1] for r in rows}
     for cid in ids:
         owner = by_id.get(cid)
         if owner is None:
             raise MovieCardRefTokenValidationError('unknown movie card in inline reference')
         if owner != author_user_id:
-            raise MovieCardRefTokenValidationError('inline card references are limited to your own cards')
+            raise MovieCardRefTokenValidationError(
+                'inline card references are limited to your own cards'
+            )
 
 
 async def batch_resolve_inline_movie_card_refs(
@@ -85,15 +82,12 @@ async def batch_resolve_inline_movie_card_refs(
         return [() for _ in requests]
 
     rows = (
-        (
-            await session.execute(
-                select(MovieCard.id, MovieCard.user_id, Film.title, Film.year)
-                .join(Film, Film.id == MovieCard.film_id)
-                .where(MovieCard.id.in_(all_ids))
-            )
+        await session.execute(
+            select(MovieCard.id, MovieCard.user_id, Film.title, Film.year)
+            .join(Film, Film.id == MovieCard.film_id)
+            .where(MovieCard.id.in_(all_ids))
         )
-        .all()
-    )
+    ).all()
     by_id: dict[int, tuple[UUID, str, int | None]] = {
         int(r[0]): (r[1], str(r[2]), r[3]) for r in rows
     }

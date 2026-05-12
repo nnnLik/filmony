@@ -10,12 +10,12 @@ import type {
   PublicProfile,
   SubscriptionListResponse,
   SubscriptionListType,
-  UserFeedPostsPage,
   UserMovieCardStats,
   WatchlistFilmItem,
   WatchlistFilmPage,
   WatchlistMembership,
 } from './profileTypes'
+import type { UserFeedPostsPage } from './feedInFeedTypes'
 
 export type ProfileCardsSort = 'recent' | 'rating_desc' | 'rating_asc'
 

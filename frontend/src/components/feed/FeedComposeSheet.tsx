@@ -18,6 +18,7 @@ import { getMyProfile, getUserSubscriptions } from '../../api/profileApi'
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import type { SubscriptionListItem, SubscriptionListResponse } from '../../api/profileTypes'
 import { useAuthStatus } from '../../auth/useAuthStatus'
+import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
@@ -29,7 +30,9 @@ import {
   type ActiveMentionQuery,
 } from '../../lib/feedMentionCompose'
 import { filterFollowingForMentionQuery } from '../../lib/mentionFollowingFilter'
+import type { FeedComposeSourceCommentPreview } from '../../compose/feedComposeTypes'
 import { globalFeedQueryRootKey } from '../../feed/feedQueryKeys'
+import { inlineMovieCardRefMapFromSnippets } from '../../lib/inlineMovieCardRefMap'
 import { readMyProfileBundleCache } from '../../lib/myProfileBundleCache'
 import { displayNameFromProfile } from '../../lib/profileDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
@@ -43,6 +46,7 @@ export type FeedComposeSheetProps = {
   referencedMovieCardId: number | null
   /** Если комментарий с картинкой — картинка поста фиксирована */
   sourceCommentImageUrl: string | null
+  sourceCommentPreview: FeedComposeSourceCommentPreview | null
 }
 
 function feedPostImageSrc(url: string): string {
@@ -56,6 +60,7 @@ export function FeedComposeSheet({
   sourceCommentId,
   referencedMovieCardId,
   sourceCommentImageUrl,
+  sourceCommentPreview,
 }: FeedComposeSheetProps) {
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
@@ -163,12 +168,12 @@ export function FeedComposeSheet({
   const allowImageUpload = !fromComment
   const charsLeft = FEED_POST_BODY_MAX - body.length
 
+  const hasPostImage = (imageUrl ?? '').trim() !== ''
+
   const canSubmit = useMemo(() => {
-    const img = (imageUrl ?? '').trim()
-    if (img !== '') return true
-    if (fromComment) return true
+    if (hasPostImage) return true
     return body.trim() !== ''
-  }, [body, imageUrl, fromComment])
+  }, [body, hasPostImage])
 
   const pickMentionSlug = useCallback(
     (slug: string) => {
@@ -379,11 +384,30 @@ export function FeedComposeSheet({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-(--tgui--bg_color) px-3 py-3">
+          {fromComment && sourceCommentPreview != null ? (
+            <div className="rounded-xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,var(--tgui--divider_color))] bg-(--tgui--secondary_bg_color) px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-(--tgui--hint_color)">Из комментария</p>
+              <p className="mt-0.5 text-[13px] font-medium text-(--tgui--text_color)">{sourceCommentPreview.authorLabel}</p>
+              {sourceCommentPreview.text.trim() !== '' ? (
+                <p className="mt-2 text-sm leading-relaxed text-(--tgui--text_color)">
+                  <CommentBodyWithReactionTokens
+                    text={sourceCommentPreview.text}
+                    className="whitespace-pre-wrap"
+                    inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(sourceCommentPreview.referencedMovieCards)}
+                    referencedMentions={sourceCommentPreview.referencedMentions}
+                  />
+                </p>
+              ) : sourceCommentImageUrl != null && sourceCommentImageUrl.trim() !== '' ? (
+                <p className="mt-2 text-[12px] text-(--tgui--hint_color)">
+                  В комментарии только фото — оно переносится в пост ниже; здесь напишите подпись к посту (по желанию).
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           {fromComment ? (
             <p className="text-[12px] leading-snug text-(--tgui--hint_color)">
-              {imageUrl != null && imageUrl.trim() !== ''
-                ? 'Текст можно править; картинка из комментария переносится в пост без замены.'
-                : 'Текст можно оставить пустым — подставим из вашего комментария.'}
+              Ниже — только текст поста в ленту; он не смешивается с комментарием выше.
             </p>
           ) : null}
 

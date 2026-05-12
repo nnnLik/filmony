@@ -4,7 +4,8 @@
  * и сохранить ациклический импорт (`profileTypes` реэкспортирует эти типы).
  */
 
-import type { FeedPostComment, ReactionSummary, ReferencedInlineMovieCardSnippet } from './profileTypes'
+import type { FeedPostComment, ReactionSummary } from './profileTypes'
+import type { ReferencedInlineMovieCardSnippet, ReferencedMentionSnippet } from './inlineReferenceSnippetTypes'
 
 /** Должен совпадать по значениям с `FeedCardSource` в `profileTypes`. */
 export type FeedInFeedCardSource =
@@ -25,6 +26,16 @@ export type FeedPostAuthorInFeed = {
   last_name: string | null
   photo_url: string | null
   display_name: string | null
+}
+
+/** Исходный комментарий к карточке (цитата над телом поста). */
+export type FeedPostSourceCommentInFeed = {
+  id: number
+  text: string
+  image_url?: string | null
+  author: FeedPostAuthorInFeed
+  referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
+  referenced_mentions?: ReferencedMentionSnippet[]
 }
 
 export type FeedPostReferencedCard = {
@@ -51,6 +62,8 @@ export type FeedPostInFeed = {
   comments_count: number
   comments_preview: FeedPostComment[]
   body_referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
+  body_referenced_mentions?: ReferencedMentionSnippet[]
+  source_comment?: FeedPostSourceCommentInFeed | null
 }
 
 /** GET /api/users/:id/feed-posts */

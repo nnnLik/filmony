@@ -21,16 +21,11 @@ from models.movie_card_comment import MovieCardComment
 from models.movie_card_tag import MovieCardTag
 from models.user import User
 from models.user_subscription import UserSubscription
-from services.cards.inline_movie_card_ref_tokens import (
-    ReferencedInlineMovieCardSnippet,
-    batch_resolve_inline_movie_card_refs,
-)
+from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
+from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor, MovieCardCommentItem
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
-from services.profile.batch_resolve_inline_mentions import (
-    ReferencedMentionSnippet,
-    batch_resolve_inline_mentions,
-)
+from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
@@ -39,6 +34,15 @@ CURSOR_PREFIX = 'v1.'
 
 def _empty_reaction_summary() -> ReactionTargetSummary:
     return ReactionTargetSummary(counts=(), my_reaction_type_ids=())
+
+
+@dataclass(frozen=True, slots=True)
+class FeedPostEngagementSnapshot:
+    """Результат `_load_feed_post_engagement_maps` для повторного использования в `attach_*`."""
+
+    counts_by_post: dict[int, int]
+    previews_by_post: dict[int, list[FeedPostCommentItem]]
+    fp_reactions: dict[int, ReactionTargetSummary]
 
 
 async def _load_feed_post_engagement_maps(
@@ -146,25 +150,19 @@ async def enrich_feed_post_items_for_feed_paths(
     if not items:
         return []
     body_pairs = [(it.user_id, it.body) for it in items]
-    body_snips_list = await batch_resolve_inline_movie_card_refs(session, body_pairs)
-    body_men_list = await batch_resolve_inline_mentions(session, [it.body for it in items])
+    body_snips_list, body_men_list = await batch_resolve_comment_inline_refs(session, body_pairs)
 
     preview_pairs: list[tuple[UUID, str]] = []
-    preview_texts: list[str] = []
     for it in items:
         for c in it.comments_preview:
             preview_pairs.append((c.author.id, c.text))
-            preview_texts.append(c.text)
-    preview_snips_list = (
-        await batch_resolve_inline_movie_card_refs(session, preview_pairs)
-        if preview_pairs
-        else []
-    )
-    preview_men_list = (
-        await batch_resolve_inline_mentions(session, preview_texts)
-        if preview_texts
-        else []
-    )
+    if preview_pairs:
+        preview_snips_list, preview_men_list = await batch_resolve_comment_inline_refs(
+            session, preview_pairs
+        )
+    else:
+        preview_snips_list = []
+        preview_men_list = []
 
     snip_i = 0
     out: list[FeedPostFeedItem] = []
@@ -188,39 +186,107 @@ async def enrich_feed_post_items_for_feed_paths(
     return out
 
 
+async def enrich_feed_posts_source_comments(
+    session: AsyncSession,
+    items: list[FeedPostFeedItem],
+) -> list[FeedPostFeedItem]:
+    """Подмешивает текст и автора исходного комментария для постов с ``source_comment_id``."""
+    if not items:
+        return []
+    wanted = {it.source_comment_id for it in items if it.source_comment_id is not None}
+    if not wanted:
+        return items
+    stmt = (
+        select(MovieCardComment, User)
+        .join(User, User.id == MovieCardComment.user_id)
+        .where(MovieCardComment.id.in_(wanted))
+    )
+    rows = (await session.execute(stmt)).all()
+    by_comment_id: dict[int, tuple[MovieCardComment, User]] = {int(c.id): (c, u) for c, u in rows}
+
+    pairs: list[tuple[UUID, str]] = []
+    pair_meta: list[tuple[int, MovieCardComment, User]] = []
+    for sid in sorted(wanted):
+        row = by_comment_id.get(sid)
+        if row is None:
+            continue
+        comm, usr = row
+        pairs.append((comm.user_id, comm.text or ''))
+        pair_meta.append((sid, comm, usr))
+
+    if not pairs:
+        return items
+
+    snips_list, mens_list = await batch_resolve_comment_inline_refs(session, pairs)
+
+    snippet_by_comment_id: dict[int, FeedPostSourceCommentSnippet] = {}
+    for i, (sid, comm, usr) in enumerate(pair_meta):
+        author = MovieCardCommentAuthor(
+            id=usr.id,
+            profile_slug=usr.profile_slug,
+            username=usr.username,
+            first_name=usr.first_name,
+            last_name=usr.last_name,
+            photo_url=usr.photo_url,
+            display_name=usr.display_name,
+        )
+        snippet_by_comment_id[sid] = FeedPostSourceCommentSnippet(
+            id=int(comm.id),
+            text=comm.text or '',
+            image_url=comm.image_url,
+            author=author,
+            referenced_movie_cards=snips_list[i],
+            referenced_mentions=mens_list[i],
+        )
+
+    return [
+        replace(
+            it,
+            source_comment=(
+                snippet_by_comment_id[it.source_comment_id]
+                if it.source_comment_id is not None
+                and it.source_comment_id in snippet_by_comment_id
+                else None
+            ),
+        )
+        for it in items
+    ]
+
+
 async def attach_feed_post_list_engagement(
     session: AsyncSession,
     viewer_user_id: UUID,
     items: list[FeedPostFeedItem],
+    *,
+    engagement: FeedPostEngagementSnapshot | None = None,
 ) -> list[FeedPostFeedItem]:
     """Дополняет посты счётчиком/превью комментариев и реакциями (профиль, детальная страница)."""
     if not items:
         return []
     post_ids = [it.id for it in items]
-    counts_by_post, previews_by_post, fp_rx = await _load_feed_post_engagement_maps(
-        session, viewer_user_id, post_ids
-    )
+    if engagement is None:
+        counts_by_post, previews_by_post, fp_rx = await _load_feed_post_engagement_maps(
+            session, viewer_user_id, post_ids
+        )
+    else:
+        counts_by_post = engagement.counts_by_post
+        previews_by_post = engagement.previews_by_post
+        fp_rx = engagement.fp_reactions
 
     body_pairs = [(it.user_id, it.body) for it in items]
-    body_snips_list = await batch_resolve_inline_movie_card_refs(session, body_pairs)
-    body_men_list = await batch_resolve_inline_mentions(session, [it.body for it in items])
+    body_snips_list, body_men_list = await batch_resolve_comment_inline_refs(session, body_pairs)
 
     preview_pairs: list[tuple[UUID, str]] = []
-    preview_texts: list[str] = []
     for it in items:
         for c in previews_by_post.get(it.id, []):
             preview_pairs.append((c.author.id, c.text))
-            preview_texts.append(c.text)
-    preview_snips_list = (
-        await batch_resolve_inline_movie_card_refs(session, preview_pairs)
-        if preview_pairs
-        else []
-    )
-    preview_men_list = (
-        await batch_resolve_inline_mentions(session, preview_texts)
-        if preview_texts
-        else []
-    )
+    if preview_pairs:
+        preview_snips_list, preview_men_list = await batch_resolve_comment_inline_refs(
+            session, preview_pairs
+        )
+    else:
+        preview_snips_list = []
+        preview_men_list = []
 
     snip_i = 0
     upgraded_by_post: dict[int, tuple[FeedPostCommentItem, ...]] = {}
@@ -235,7 +301,7 @@ async def attach_feed_post_list_engagement(
             upgraded.append(replace(c, referenced_movie_cards=snips, referenced_mentions=mens))
         upgraded_by_post[pid] = tuple(upgraded)
 
-    return [
+    merged = [
         replace(
             it,
             reactions=fp_rx[it.id],
@@ -246,6 +312,7 @@ async def attach_feed_post_list_engagement(
         )
         for idx, it in enumerate(items)
     ]
+    return await enrich_feed_posts_source_comments(session, merged)
 
 
 def _norm_genre(g: str) -> str:
@@ -304,6 +371,18 @@ class FeedPostReferencedCardSnippet:
 
 
 @dataclass(frozen=True, slots=True)
+class FeedPostSourceCommentSnippet:
+    """Исходный комментарий к карточке, из которого сделан пост (для цитаты в UI)."""
+
+    id: int
+    text: str
+    image_url: str | None
+    author: MovieCardCommentAuthor
+    referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class FeedPostFeedItem:
     id: int
     user_id: UUID
@@ -320,7 +399,7 @@ class FeedPostFeedItem:
     comments_preview: tuple[FeedPostCommentItem, ...] = ()
     body_referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
     body_referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
-
+    source_comment: FeedPostSourceCommentSnippet | None = None
 
 
 FeedPageEntry = MovieCardFeedItem | FeedPostFeedItem
@@ -944,36 +1023,41 @@ class ListMovieCardFeedService:
             feed_post_ids=[],
         )
 
+        flat_tmps: list[MovieCardCommentItem] = []
+        flat_card_ids: list[int] = []
+        for card, _film, _card_author_user in visible_rows:
+            for p in previews_by_card.get(card.id, []):
+                flat_tmps.append(
+                    MovieCardCommentItem(
+                        id=p.id,
+                        movie_card_id=p.movie_card_id,
+                        parent_comment_id=p.parent_comment_id,
+                        text=p.text,
+                        image_url=p.image_url,
+                        created_at=p.created_at,
+                        replies_count=p.replies_count,
+                        total_descendants_count=p.total_descendants_count,
+                        author=p.author,
+                        reactions=comment_summaries[p.id],
+                    )
+                )
+                flat_card_ids.append(card.id)
+        flat_pairs = [(t.author.id, t.text) for t in flat_tmps]
+        if flat_pairs:
+            ref_all, men_all = await batch_resolve_comment_inline_refs(self._session, flat_pairs)
+        else:
+            ref_all, men_all = [], []
+        enriched_flat = [
+            replace(flat_tmps[i], referenced_movie_cards=ref_all[i], referenced_mentions=men_all[i])
+            for i in range(len(flat_tmps))
+        ]
+        previews_resolved: dict[int, list[MovieCardCommentItem]] = {cid: [] for cid in card_ids}
+        for i, cid in enumerate(flat_card_ids):
+            previews_resolved[cid].append(enriched_flat[i])
+
         items: list[MovieCardFeedItem] = []
         for card, film, card_author_user in visible_rows:
-            prev_list = previews_by_card.get(card.id, [])
-            tmp_preview = [
-                MovieCardCommentItem(
-                    id=p.id,
-                    movie_card_id=p.movie_card_id,
-                    parent_comment_id=p.parent_comment_id,
-                    text=p.text,
-                    image_url=p.image_url,
-                    created_at=p.created_at,
-                    replies_count=p.replies_count,
-                    total_descendants_count=p.total_descendants_count,
-                    author=p.author,
-                    reactions=comment_summaries[p.id],
-                )
-                for p in prev_list
-            ]
-            ref_lists = await batch_resolve_inline_movie_card_refs(
-                self._session,
-                [(t.author.id, t.text) for t in tmp_preview],
-            )
-            men_lists = await batch_resolve_inline_mentions(
-                self._session,
-                [t.text for t in tmp_preview],
-            )
-            preview_with_rx = [
-                replace(t, referenced_movie_cards=ref_lists[i], referenced_mentions=men_lists[i])
-                for i, t in enumerate(tmp_preview)
-            ]
+            preview_with_rx = previews_resolved.get(card.id, [])
             items.append(
                 MovieCardFeedItem(
                     id=card.id,
@@ -1028,6 +1112,11 @@ class ListMovieCardFeedService:
         pids = [pid for pid in ordered_post_ids if pid in by_id]
         counts_by_post, previews_by_post, fp_rx = await _load_feed_post_engagement_maps(
             self._session, viewer_user_id, pids
+        )
+        snap = FeedPostEngagementSnapshot(
+            counts_by_post=counts_by_post,
+            previews_by_post=previews_by_post,
+            fp_reactions=fp_rx,
         )
 
         ref_cids = [
@@ -1086,12 +1175,11 @@ class ListMovieCardFeedService:
                     created_at=fp.created_at,
                     feed_source=source_by_id[fpid],
                     referenced_card=ref_snippet,
-                    reactions=fp_rx[fpid],
-                    comments_count=counts_by_post.get(fpid, 0),
-                    comments_preview=tuple(previews_by_post.get(fpid, [])),
                 )
             )
-        return items
+        return await attach_feed_post_list_engagement(
+            self._session, viewer_user_id, items, engagement=snap
+        )
 
     async def hydrate_global_feed_movie_cards(
         self,

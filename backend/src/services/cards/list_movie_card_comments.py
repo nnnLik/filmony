@@ -11,14 +11,9 @@ from sqlalchemy.orm import aliased
 from models.movie_card import MovieCard
 from models.movie_card_comment import MovieCardComment
 from models.user import User
-from services.cards.inline_movie_card_ref_tokens import (
-    ReferencedInlineMovieCardSnippet,
-    batch_resolve_inline_movie_card_refs,
-)
-from services.profile.batch_resolve_inline_mentions import (
-    ReferencedMentionSnippet,
-    batch_resolve_inline_mentions,
-)
+from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
+from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
+from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
@@ -195,14 +190,8 @@ class ListMovieCardCommentsService:
             )
             for comment, user in visible_rows
         ]
-        ref_lists = await batch_resolve_inline_movie_card_refs(
-            self._session,
-            [(it.author.id, it.text) for it in items],
-        )
-        men_lists = await batch_resolve_inline_mentions(
-            self._session,
-            [it.text for it in items],
-        )
+        ref_pairs = [(it.author.id, it.text) for it in items]
+        ref_lists, men_lists = await batch_resolve_comment_inline_refs(self._session, ref_pairs)
         items = [
             MovieCardCommentItem(
                 id=it.id,

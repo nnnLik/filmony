@@ -10,9 +10,9 @@ import type {
   MovieCardPage,
   MyProfile,
   PublicProfile,
-  UserFeedPostsPage,
   WatchlistFilmPage,
 } from '../api/profileTypes'
+import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'

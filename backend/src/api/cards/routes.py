@@ -11,11 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.cards.feed_post_feed_mapping import (
     feed_post_feed_item_to_response,
+    inline_mention_snippets_to_response,
     inline_movie_card_snippets_to_response,
 )
 from api.cards.schemas import (
     CardCreateRequest,
-    CardDetailResponse,
     CardResponse,
     CardUpdateRequest,
     FeedPostFeedItemResponse,
@@ -68,6 +68,7 @@ from services.cards.delete_movie_card import (
     MovieCardNotFoundError as DeleteMovieCardNotFoundError,
 )
 from services.cards.get_movie_card_details import GetMovieCardDetailsService, MovieCardNotFoundError
+from services.cards.inline_movie_card_ref_tokens import batch_resolve_inline_movie_card_refs
 from services.cards.list_following_ratings_for_movie_card import (
     FollowingRatingRow,
     ListFollowingRatingsForMovieCardService,
@@ -81,13 +82,13 @@ from services.cards.list_movie_card_comments import (
 from services.cards.list_movie_card_comments import (
     MovieCardNotFoundError as ListCommentsMovieCardNotFoundError,
 )
-from services.cards.inline_movie_card_ref_tokens import batch_resolve_inline_movie_card_refs
 from services.cards.list_movie_card_feed import (
     FeedPostFeedItem,
     ListMovieCardFeedService,
-    MovieCardFeedItem,
 )
-from services.cards.list_my_movie_cards_for_inline_picker import ListMyMovieCardsForInlinePickerService
+from services.cards.list_my_movie_cards_for_inline_picker import (
+    ListMyMovieCardsForInlinePickerService,
+)
 from services.cards.share_movie_card import (
     MovieCardNotFoundForShareError,
     ShareMovieCardForbiddenError,
@@ -115,6 +116,7 @@ from services.feed_posts import (
     FeedPostImageUploadError,
     UploadFeedPostImageService,
 )
+from services.profile.batch_resolve_inline_mentions import batch_resolve_inline_mentions
 from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
@@ -209,6 +211,7 @@ async def _load_comment_response(
         feed_post_ids=[],
     )
     (snips,) = await batch_resolve_inline_movie_card_refs(db, [(author.id, comment.text or '')])
+    (mens,) = await batch_resolve_inline_mentions(db, [comment.text or ''])
     return MovieCardCommentResponse(
         id=comment.id,
         movie_card_id=comment.movie_card_id,
@@ -229,6 +232,7 @@ async def _load_comment_response(
         ),
         reactions=reaction_target_summary_to_response(comment_rx[comment.id]),
         referenced_movie_cards=inline_movie_card_snippets_to_response(snips),
+        referenced_mentions=inline_mention_snippets_to_response(mens),
     )
 
 
@@ -253,6 +257,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
         referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
+        referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
 

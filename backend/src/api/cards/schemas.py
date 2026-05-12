@@ -41,6 +41,18 @@ class ReferencedInlineMovieCardSnippetResponse(BaseModel):
     film_year: int | None = None
 
 
+class ReferencedMentionSnippetResponse(BaseModel):
+    """Подписи для токенов ⟦@slug⟧ (slug в нижнем регистре, как в тексте)."""
+
+    user_id: UUID
+    profile_slug: str
+    display_label: str
+    username: str | None = None
+    display_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+
+
 class WatchedInlinePickerRowResponse(BaseModel):
     movie_card_id: int
     film_title: str
@@ -115,6 +127,10 @@ class MovieCardCommentResponse(BaseModel):
         default_factory=list,
         description='Сниппеты фильмов для токенов ⟦c{id}⟧ в тексте (порядок первых вхождений id)',
     )
+    referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(
+        default_factory=list,
+        description='Профили для токенов ⟦@slug⟧ (порядок первых вхождений slug)',
+    )
 
 
 class MovieCardCommentListResponse(BaseModel):
@@ -131,7 +147,9 @@ class MovieCardCommentCreateRequest(BaseModel):
 
     @model_validator(mode='after')
     def require_text_or_image(self) -> MovieCardCommentCreateRequest:
-        if self.text.strip() == '' and (self.image_url is None or str(self.image_url).strip() == ''):
+        if self.text.strip() == '' and (
+            self.image_url is None or str(self.image_url).strip() == ''
+        ):
             raise ValueError('text or image_url is required')
         return self
 
@@ -183,6 +201,20 @@ class FeedPostCommentPreviewResponse(BaseModel):
     referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
         default_factory=list,
     )
+    referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(
+        default_factory=list,
+    )
+
+
+class FeedPostSourceCommentSnippetResponse(BaseModel):
+    id: int
+    text: str
+    image_url: str | None = None
+    author: MovieCardCommentAuthorResponse
+    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+        default_factory=list,
+    )
+    referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(default_factory=list)
 
 
 class FeedPostFeedItemResponse(BaseModel):
@@ -203,6 +235,10 @@ class FeedPostFeedItemResponse(BaseModel):
     body_referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
         default_factory=list,
     )
+    body_referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(
+        default_factory=list,
+    )
+    source_comment: FeedPostSourceCommentSnippetResponse | None = None
 
 
 FeedPageItemResponse = MovieCardFeedItemResponse | FeedPostFeedItemResponse

@@ -6,8 +6,6 @@ import type {
   CardMoodBefore,
   FeedListMode,
   FeedMovieCard,
-  FeedMovieCardPage,
-  FeedPageItem,
   FeedPostComment,
   Film,
   FilmCommunityCardsPage,
@@ -17,7 +15,12 @@ import type {
   MovieCardComment,
   MovieCardCommentPage,
 } from './profileTypes'
+import type { FeedMovieCardPage, FeedPageItem } from './feedListPageTypes'
 import type { FeedPostInFeed } from './feedInFeedTypes'
+import type { WatchedInlinePickerItem } from './watchedInlinePickerTypes'
+
+export { uploadMovieCardCommentImage } from './movieCardCommentImageApi'
+export type { WatchedInlinePickerItem } from './watchedInlinePickerTypes'
 
 export type CreateMovieCardPayload = {
   film_id: number
@@ -220,24 +223,6 @@ export async function getMovieCardCommentReplies(
   )
 }
 
-export async function uploadMovieCardCommentImage(file: File): Promise<string> {
-  const form = new FormData()
-  form.append('file', file)
-  const res = await apiFetch('/api/cards/comment-images/upload', {
-    method: 'POST',
-    body: form,
-  })
-  if (!res.ok) {
-    const detail: unknown = await readHttpErrorDetail(res)
-    throw new ApiError(res.status, detail)
-  }
-  const data = (await res.json()) as { url?: string }
-  if (typeof data.url !== 'string' || data.url.trim() === '') {
-    throw new ApiError(res.status, 'invalid upload response')
-  }
-  return data.url.trim()
-}
-
 export async function createMovieCardComment(
   cardId: number,
   body: { text: string; parent_comment_id?: number | null; image_url?: string | null }
@@ -247,12 +232,6 @@ export async function createMovieCardComment(
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   })
-}
-
-export type WatchedInlinePickerItem = {
-  movie_card_id: number
-  film_title: string
-  film_year: number | null
 }
 
 export type WatchedInlinePickerListResponse = {

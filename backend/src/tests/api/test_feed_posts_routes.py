@@ -213,11 +213,63 @@ async def test_feed_post_from_own_comment(async_client: AsyncClient) -> None:
         comm_id = comment.id
         card_id = card.id
 
+    r_empty = await async_client.post('/api/feed-posts', json={'source_comment_id': comm_id})
+    assert r_empty.status_code == 400
+
+    r = await async_client.post(
+        '/api/feed-posts',
+        json={'source_comment_id': comm_id, 'body': 'Текст поста, не комментарий'},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data['body'] == 'Текст поста, не комментарий'
+    assert data['referenced_movie_card_id'] == card_id
+    assert data['source_comment_id'] == comm_id
+
+    got = await async_client.get(f'/api/feed-posts/{data["id"]}')
+    assert got.status_code == 200
+    quote = got.json().get('source_comment')
+    assert quote is not None
+    assert quote['text'] == 'Мой коммент для поста'
+    assert quote['author']['id'] == str(user_id)
+
+
+@pytest.mark.asyncio
+async def test_feed_post_from_own_comment_empty_body_ok_with_comment_image(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=713)
+    film = await _create_film(kinopoisk_id=200098)
+    user_id = await _get_user_id(713)
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        card = MovieCard(
+            user_id=user_id,
+            film_id=film.id,
+            rating=8.0,
+            company='alone',
+            mood_before='laugh',
+            mood_after='laughed',
+        )
+        session.add(card)
+        await session.flush()
+        comment = MovieCardComment(
+            movie_card_id=card.id,
+            user_id=user_id,
+            parent_comment_id=None,
+            text='',
+            image_url='https://example.com/comment_only.png',
+        )
+        session.add(comment)
+        await session.commit()
+        await session.refresh(comment)
+        comm_id = comment.id
+
     r = await async_client.post('/api/feed-posts', json={'source_comment_id': comm_id})
     assert r.status_code == 200
     data = r.json()
-    assert data['body'] == 'Мой коммент для поста'
-    assert data['referenced_movie_card_id'] == card_id
+    assert data['body'] == ''
+    assert data['image_url'] == 'https://example.com/comment_only.png'
     assert data['source_comment_id'] == comm_id
 
 

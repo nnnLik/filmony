@@ -6,7 +6,7 @@ import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import type { WatchedInlinePickerItem } from '../../api/cardApi'
 import type { FeedPostInFeed } from '../../api/feedInFeedTypes'
 import { createFeedPostComment, listAllFeedPostComments } from '../../api/feedPostApi'
-import type { FeedPostComment, ReactionSummary } from '../../api/profileTypes'
+import type { FeedPostComment, ReactionSummary, ReferencedMentionSnippet } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
 import {
@@ -69,6 +69,7 @@ type FeedPostCardBodyProps = {
   stopPostNav: MouseEventHandler
   stopPostNavClick: MouseEventHandler
   bodyInlineMovieCardRefs?: ReadonlyMap<number, InlineMovieCardRefMeta>
+  bodyReferencedMentions?: readonly ReferencedMentionSnippet[]
 }
 
 /** В ленте — line-clamp и «Ещё»; на странице поста — полный текст. */
@@ -78,6 +79,7 @@ function FeedPostCardBody({
   stopPostNav,
   stopPostNavClick,
   bodyInlineMovieCardRefs,
+  bodyReferencedMentions,
 }: FeedPostCardBodyProps) {
   const clampRef = useRef<HTMLParagraphElement>(null)
   const [expanded, setExpanded] = useState(false)
@@ -134,6 +136,7 @@ function FeedPostCardBody({
           text={body}
           className="text-[13px] leading-relaxed"
           inlineMovieCardRefs={bodyInlineMovieCardRefs}
+          referencedMentions={bodyReferencedMentions}
         />
       </p>
       {linkToDetail && hasMore && !expanded ? (
@@ -184,10 +187,12 @@ export function FeedPostCard({
     author,
     body,
     body_referenced_movie_cards,
+    body_referenced_mentions,
     created_at,
     referenced_card,
     image_url,
     source_comment_id,
+    source_comment: sourceCommentQuote,
   } = post
 
   const name = useMemo(() => displayNameFromAuthorFields(author), [author])
@@ -195,6 +200,10 @@ export function FeedPostCard({
   const bodyInlineRefMap = useMemo(
     () => inlineMovieCardRefMapFromSnippets(body_referenced_movie_cards),
     [body_referenced_movie_cards],
+  )
+  const sourceQuoteInlineRefMap = useMemo(
+    () => inlineMovieCardRefMapFromSnippets(sourceCommentQuote?.referenced_movie_cards),
+    [sourceCommentQuote?.referenced_movie_cards],
   )
   const draftInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
@@ -229,6 +238,9 @@ export function FeedPostCard({
 
   const mentionProfileRows = useMemo(() => {
     const rows = [authorLikeToMentionRow(author)]
+    if (sourceCommentQuote != null) {
+      rows.push(authorLikeToMentionRow(sourceCommentQuote.author))
+    }
     for (const c of post.comments_preview) {
       rows.push(authorLikeToMentionRow(c.author))
     }
@@ -236,7 +248,7 @@ export function FeedPostCard({
       rows.push(authorLikeToMentionRow(c.author))
     }
     return rows
-  }, [author, post.comments_preview, panelComments])
+  }, [author, post.comments_preview, panelComments, sourceCommentQuote])
 
   useEffect(() => {
     let cancelled = false
@@ -546,6 +558,7 @@ export function FeedPostCard({
                               text={comment.text}
                               className="whitespace-pre-wrap"
                               inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                              referencedMentions={comment.referenced_mentions}
                             />
                           </p>
                           <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden" onMouseDown={linkToDetail ? stopPostNav : undefined}>
@@ -653,7 +666,7 @@ export function FeedPostCard({
           {source_comment_id != null ? (
             <span
               className="shrink-0 rounded-md border border-(--tgui--divider_color) bg-(--tgui--section_bg_color) px-1.5 py-0.5 text-[10px] font-medium text-(--tgui--hint_color)"
-              title="Текст взят из вашего комментария к карточке"
+              title="Пост создан из вашего комментария к карточке фильма"
             >
               Из комментария
             </span>
@@ -693,6 +706,37 @@ export function FeedPostCard({
             </div>
           </div>
 
+          {sourceCommentQuote != null ? (
+            <div
+              onClick={stopPostNavClick}
+              className="rounded-lg border-l-2 border-(--tgui--link_color) bg-(--tgui--secondary_bg_color) px-2 py-1.5"
+            >
+              <Link
+                to={`/u/${encodeURIComponent(sourceCommentQuote.author.id)}`}
+                onClick={(e) => {
+                  if (linkToDetail) e.stopPropagation()
+                }}
+                className="block truncate text-xs font-medium text-(--tgui--link_color) no-underline"
+              >
+                {displayNameFromAuthorFields(sourceCommentQuote.author)}
+              </Link>
+              {sourceCommentQuote.text.trim() !== '' ? (
+                <p className="mt-1 text-xs leading-relaxed text-(--tgui--hint_color)">
+                  <CommentBodyWithReactionTokens
+                    text={sourceCommentQuote.text}
+                    className="whitespace-pre-wrap"
+                    inlineMovieCardRefs={sourceQuoteInlineRefMap}
+                    referencedMentions={sourceCommentQuote.referenced_mentions}
+                  />
+                </p>
+              ) : sourceCommentQuote.image_url != null && String(sourceCommentQuote.image_url).trim() !== '' ? (
+                <p className="mt-1 text-[11px] leading-snug text-(--tgui--hint_color)">
+                  В комментарии было только изображение — оно перенесено в пост ниже.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           {body.trim() !== '' ? (
             <FeedPostCardBody
               key={post.id}
@@ -701,6 +745,7 @@ export function FeedPostCard({
               stopPostNav={stopPostNav}
               stopPostNavClick={stopPostNavClick}
               bodyInlineMovieCardRefs={bodyInlineRefMap}
+              bodyReferencedMentions={body_referenced_mentions}
             />
           ) : null}
 

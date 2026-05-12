@@ -7,7 +7,6 @@ from sqlalchemy import select
 from conf import settings
 from core.database import get_session_factory
 from models.film import Film
-from models.movie_card import MovieCard
 from models.user import User
 from tests.auth.telegram_init_data import build_init_data
 
@@ -205,7 +204,9 @@ async def test_global_feed_includes_other_users_cards(async_client: AsyncClient)
 
 
 @pytest.mark.asyncio
-async def test_global_feed_exclude_own_hides_viewer_posts_and_cards(async_client: AsyncClient) -> None:
+async def test_global_feed_exclude_own_hides_viewer_posts_and_cards(
+    async_client: AsyncClient,
+) -> None:
     me = await _login(async_client, telegram_user_id=71011)
     viewer_uuid = str(me['id'])
     film = await _create_film(kinopoisk_id=71012)

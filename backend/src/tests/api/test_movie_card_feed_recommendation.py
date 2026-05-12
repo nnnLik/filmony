@@ -219,7 +219,9 @@ async def test_feed_subscriptions_only_excludes_non_subscription_streams(
 
 
 @pytest.mark.asyncio
-async def test_feed_includes_viewer_own_cards_with_own_cards_source(async_client: AsyncClient) -> None:
+async def test_feed_includes_viewer_own_cards_with_own_cards_source(
+    async_client: AsyncClient,
+) -> None:
     viewer = await _login(async_client, telegram_user_id=9630)
     author = await _login(async_client, telegram_user_id=9631)
     v_id = UUID(str(viewer['id']))
@@ -232,6 +234,10 @@ async def test_feed_includes_viewer_own_cards_with_own_cards_source(async_client
     await _login(async_client, telegram_user_id=9630)
     mix = await async_client.get('/api/cards/feed?limit=50')
     assert mix.status_code == 200
-    own_hits = [it for it in mix.json()['items'] if it['user_id'] == str(v_id) and it['kind'] == 'movie_card']
+    own_hits = [
+        it
+        for it in mix.json()['items']
+        if it['user_id'] == str(v_id) and it['kind'] == 'movie_card'
+    ]
     assert any(it['id'] == own_cid for it in own_hits)
     assert all(it['feed_source'] == 'own_cards' for it in own_hits)

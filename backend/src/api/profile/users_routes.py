@@ -23,7 +23,6 @@ from api.profile.schemas import (
     build_user_movie_card_stats_response,
     build_watchlist_film_page_response,
 )
-from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
 from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore

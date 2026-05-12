@@ -1,6 +1,12 @@
-import type { FeedPostInFeed, FeedPostReferencedCard, UserFeedPostsPage } from './feedInFeedTypes'
+import type {
+  ReferencedInlineMovieCardSnippet,
+  ReferencedMentionSnippet,
+} from './inlineReferenceSnippetTypes'
 
-export type { FeedPostInFeed, FeedPostReferencedCard, UserFeedPostsPage }
+export type {
+  ReferencedInlineMovieCardSnippet,
+  ReferencedMentionSnippet,
+} from './inlineReferenceSnippetTypes'
 
 export type MyMovieCardTagStatItem = {
   tag: string
@@ -194,15 +200,6 @@ export type FeedMovieCard = MovieCard & {
   comments_preview: MovieCardComment[]
 }
 
-export type FeedPageItem = FeedMovieCard | FeedPostInFeed
-
-export type FeedMovieCardPage = {
-  items: FeedPageItem[]
-  next_cursor: string | null
-  /** Версия головы глобальной ленты (GET /api/feed/global); для legacy-ленты может быть 0 */
-  feed_head_version?: number
-}
-
 /** Ответ POST /api/feed-posts */
 export type FeedPostPayload = {
   id: number
@@ -232,12 +229,6 @@ export type FollowingRatingsResponse = {
   items: FollowingRatingEntry[]
 }
 
-export type ReferencedInlineMovieCardSnippet = {
-  movie_card_id: number
-  film_title: string
-  film_year: number | null
-}
-
 export type MovieCardComment = {
   id: number
   movie_card_id: number
@@ -250,6 +241,7 @@ export type MovieCardComment = {
   author: MovieCardCommentAuthor
   reactions?: ReactionSummary
   referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
+  referenced_mentions?: ReferencedMentionSnippet[]
 }
 
 export type MovieCardCommentPage = {
@@ -269,6 +261,7 @@ export type FeedPostComment = {
   author: MovieCardCommentAuthor
   reactions?: ReactionSummary
   referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
+  referenced_mentions?: ReferencedMentionSnippet[]
 }
 
 export type FeedPostCommentPage = {

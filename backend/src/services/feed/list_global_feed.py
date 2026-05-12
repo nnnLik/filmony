@@ -142,6 +142,7 @@ class ListGlobalFeedService:
         post_ids = [i for k, i in ordered if k == 'post']
         cards = await hydrator.hydrate_global_feed_movie_cards(viewer_user_id, card_ids)
         posts = await hydrator.hydrate_global_feed_posts(viewer_user_id, post_ids)
+        posts = await enrich_feed_post_items_for_feed_paths(self._session, posts)
         byc = {c.id: c for c in cards}
         byp = {p.id: p for p in posts}
 

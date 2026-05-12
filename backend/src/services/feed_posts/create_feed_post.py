@@ -62,8 +62,9 @@ def _normalize_image_url(raw: str | None) -> str | None:
 class CreateFeedPostService:
     """Создаёт пост ленты: plain text и/или одна картинка, опционально ссылка на карточку фильма.
 
-    Позволяет опубликовать пост «с нуля» или с привязкой к чужой/своей карточке; при указании
-    ``source_comment_id`` тело по умолчанию копируется из своего комментария к этой карточке.
+    Позволяет опубликовать пост «с нуля» или с привязкой к чужой/своей карточке. При указании
+    ``source_comment_id`` пост привязывается к своему комментарию и карточке комментария;
+    текст поста задаётся только полем ``body`` (без автоподстановки из комментария).
     """
 
     def __init__(self, session: AsyncSession) -> None:
@@ -93,9 +94,7 @@ class CreateFeedPostService:
                     'referenced_movie_card_id does not match comment card'
                 )
             ref_card_id = comment.movie_card_id
-            if body_raw == '':
-                body_raw = comment.text
-            # Одна картинка на пост: при конвертации из комментария берём только изображение комментария.
+            # Одна картинка на пост: при конвертации из комментария берём изображение комментария.
             image_url = _normalize_image_url(comment.image_url)
         else:
             image_url = _normalize_image_url(payload.image_url)

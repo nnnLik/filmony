@@ -79,7 +79,9 @@ class ListFilmCommunityCardsService:
     def build(cls, session: AsyncSession) -> Self:
         return cls(session)
 
-    async def execute(self, film_id: int, cursor: str | None, limit: int) -> FilmCommunityCardsPageDTO:
+    async def execute(
+        self, film_id: int, cursor: str | None, limit: int
+    ) -> FilmCommunityCardsPageDTO:
         cap = max(1, min(limit, 50))
         cursor_ts: dt.datetime | None = None
         cursor_id: int | None = None

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.cards.feed_post_feed_mapping import (
     feed_post_feed_item_to_response,
+    inline_mention_snippets_to_response,
     inline_movie_card_snippets_to_response,
 )
 from api.cards.schemas import (
@@ -52,6 +53,7 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
         referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
+        referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
 

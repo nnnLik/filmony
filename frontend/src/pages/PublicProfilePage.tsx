@@ -13,7 +13,8 @@ import {
   subscribeToUser,
   unsubscribeFromUser,
 } from '../api/profileApi'
-import type { MovieCard, MovieCardPage, PublicProfile, UserFeedPostsPage, WatchlistFilmPage } from '../api/profileTypes'
+import type { MovieCard, MovieCardPage, PublicProfile, WatchlistFilmPage } from '../api/profileTypes'
+import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import {
   DEFAULT_RATED_CARDS_QUERY,
   type RatedCardsListQuery,

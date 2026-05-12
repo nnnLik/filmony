@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.cards.feed_post_feed_mapping import (
     feed_post_feed_item_to_response,
+    inline_mention_snippets_to_response,
     inline_movie_card_snippets_to_response,
 )
 from api.cards.schemas import FeedPostFeedItemResponse, MovieCardCommentAuthorResponse
@@ -59,6 +60,7 @@ from services.feed_posts.list_feed_post_comments import (
     FeedPostCommentItem,
     ListFeedPostCommentsService,
 )
+from services.profile.batch_resolve_inline_mentions import batch_resolve_inline_mentions
 from services.reactions import GetReactionSummariesForTargetsService
 from utils.feed_post_media_key import is_safe_feed_post_media_key
 from utils.rustfs_get_object import (
@@ -91,6 +93,7 @@ def _feed_post_comment_item_to_response(item: FeedPostCommentItem) -> FeedPostCo
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
         referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
+        referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
 
@@ -113,6 +116,7 @@ async def _load_feed_post_comment_response(
         feed_post_ids=[],
     )
     (snips,) = await batch_resolve_inline_movie_card_refs(db, [(author.id, comment.text or '')])
+    (mens,) = await batch_resolve_inline_mentions(db, [comment.text or ''])
     return FeedPostCommentResponse(
         id=comment.id,
         feed_post_id=comment.feed_post_id,
@@ -132,6 +136,7 @@ async def _load_feed_post_comment_response(
         ),
         reactions=reaction_target_summary_to_response(rx[comment.id]),
         referenced_movie_cards=inline_movie_card_snippets_to_response(snips),
+        referenced_mentions=inline_mention_snippets_to_response(mens),
     )
 
 
@@ -360,9 +365,7 @@ async def create_feed_post_comment_route(
     if body.parent_comment_id is not None:
         parent_author_id = (
             await db.execute(
-                select(FeedPostComment.user_id).where(
-                    FeedPostComment.id == body.parent_comment_id
-                )
+                select(FeedPostComment.user_id).where(FeedPostComment.id == body.parent_comment_id)
             )
         ).scalar_one_or_none()
         if parent_author_id is not None:
@@ -375,17 +378,13 @@ async def create_feed_post_comment_route(
             mention_recipients = [uid for uid in mention_recipients if uid != post_owner_id]
 
     if body.parent_comment_id is None:
-        celery_application.tasks[
-            'tasks.telegram_engagement.notify_feed_post_root_comment'
-        ].delay(
+        celery_application.tasks['tasks.telegram_engagement.notify_feed_post_root_comment'].delay(
             actor_user_id=str(user.id),
             feed_post_id=post_id,
             comment_text=created.text,
         )
     else:
-        celery_application.tasks[
-            'tasks.telegram_engagement.notify_feed_post_comment_reply'
-        ].delay(
+        celery_application.tasks['tasks.telegram_engagement.notify_feed_post_comment_reply'].delay(
             actor_user_id=str(user.id),
             feed_post_id=post_id,
             parent_comment_id=body.parent_comment_id,
@@ -399,9 +398,7 @@ async def create_feed_post_comment_route(
             actor_user_id=str(user.id),
             feed_post_id=post_id,
             comment_id=created.id,
-            recipient_user_ids_json=orjson.dumps(
-                [str(x) for x in mention_recipients]
-            ).decode(),
+            recipient_user_ids_json=orjson.dumps([str(x) for x in mention_recipients]).decode(),
         )
 
     return await _load_feed_post_comment_response(db, created.id, user.id)

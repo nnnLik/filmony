@@ -4,7 +4,8 @@ import { useMemo, type ReactNode } from 'react'
 import { getUserSubscriptions } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
-import { authorLikeToMentionRow, subscriptionToMentionRow } from '../lib/mentionProfileLookupUtils'
+import { authorLikeToMentionRow } from '../lib/mentionProfileLookupUtils'
+import { subscriptionToMentionRow } from '../lib/subscriptionToMentionRow'
 import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
 /**

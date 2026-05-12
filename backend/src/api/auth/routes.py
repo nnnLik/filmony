@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth.schemas import TelegramAuthRequest, TelegramAuthResponse, UserResponse
 from conf import settings
 from core.database import get_db
-from models.user import User
 from services.auth.errors import TelegramInitDataInvalidError
 from services.auth.issue_session_jwt import IssueSessionJwtService
 from services.auth.upsert_telegram_user import UpsertTelegramUserService

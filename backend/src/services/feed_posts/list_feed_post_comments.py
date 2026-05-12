@@ -11,12 +11,11 @@ from sqlalchemy.orm import aliased
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
-from services.cards.inline_movie_card_ref_tokens import (
-    ReferencedInlineMovieCardSnippet,
-    batch_resolve_inline_movie_card_refs,
-)
+from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
+from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.feed_posts.get_feed_post_by_id import FeedPostNotFoundError
+from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
@@ -33,6 +32,7 @@ class FeedPostCommentItem:
     author: MovieCardCommentAuthor
     reactions: ReactionTargetSummary
     referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
 
 
 class CommentNotFoundError(Exception):
@@ -179,10 +179,8 @@ class ListFeedPostCommentsService:
             )
             for comment, user in visible_rows
         ]
-        ref_lists = await batch_resolve_inline_movie_card_refs(
-            self._session,
-            [(it.author.id, it.text) for it in items],
-        )
+        ref_pairs = [(it.author.id, it.text) for it in items]
+        ref_lists, men_lists = await batch_resolve_comment_inline_refs(self._session, ref_pairs)
         items = [
             FeedPostCommentItem(
                 id=it.id,
@@ -195,6 +193,7 @@ class ListFeedPostCommentsService:
                 author=it.author,
                 reactions=it.reactions,
                 referenced_movie_cards=ref_lists[i],
+                referenced_mentions=men_lists[i],
             )
             for i, it in enumerate(items)
         ]

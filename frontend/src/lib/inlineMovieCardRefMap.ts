@@ -1,4 +1,4 @@
-import type { ReferencedInlineMovieCardSnippet } from '../api/profileTypes'
+import type { ReferencedInlineMovieCardSnippet } from '../api/inlineReferenceSnippetTypes'
 
 export type InlineMovieCardRefMeta = {
   film_title: string

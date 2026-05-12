@@ -742,7 +742,7 @@ async def test_create_movie_card_comment_with_image_url(async_client: AsyncClien
     )
     assert created.status_code == 200
     card_id = created.json()['id']
-    media_url = f"/api/feed-posts/media/user_media/movie_card_comments/{me['id']}/shot.webp"
+    media_url = f'/api/feed-posts/media/user_media/movie_card_comments/{me["id"]}/shot.webp'
 
     only_img = await async_client.post(
         f'/api/cards/{card_id}/comments',
@@ -915,6 +915,22 @@ async def test_comment_mention_follower_token_ok(async_client: AsyncClient) -> N
     assert r.status_code == 200
     assert '⟦@' in r.json()['text'] and slug_target.lower() in r.json()['text'].lower()
     assert r.json()['author']['id'] == author['id']
+    mentions = r.json().get('referenced_mentions') or []
+    assert len(mentions) == 1
+    assert str(mentions[0]['user_id']) == str(target['id'])
+    assert mentions[0]['profile_slug'] == str(slug_target).lower()
+    assert isinstance(mentions[0].get('display_label'), str)
+    assert len(mentions[0]['display_label']) > 0
+
+    lst = await async_client.get(f'/api/cards/{card_id}/comments')
+    assert lst.status_code == 200
+    items = lst.json()['items']
+    hit = next(x for x in items if x['id'] == r.json()['id'])
+    m2 = hit.get('referenced_mentions') or []
+    assert len(m2) == 1
+    assert str(m2[0]['user_id']) == str(target['id'])
+    assert isinstance(m2[0].get('display_label'), str)
+    assert len(m2[0]['display_label']) > 0
 
 
 @pytest.mark.asyncio
