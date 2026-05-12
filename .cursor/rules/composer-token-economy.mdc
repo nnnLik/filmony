@@ -1,0 +1,7 @@
+---
+description: MANDATORY. Always apply composer-token-economy-orchestrator skill.
+alwaysApply: true
+---
+# Composer Token Economy Orchestrator
+**ALWAYS** apply the skill `composer-token-economy-orchestrator`. Follow its instructions.
+@../skills/composer-token-economy-orchestrator/SKILL.md

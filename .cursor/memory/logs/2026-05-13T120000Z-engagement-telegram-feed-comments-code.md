@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-13T12:00:00Z
+- **Feature slug:** engagement-telegram-notifications
+- **Action type:** code
+- **Summary:** Добавлены Telegram DM для корневых комментариев и ответов под постами ленты (`FeedPost`), ранее работали только для карточек и @упоминаний.
+- **Files:** `backend/src/services/telegram/notify_feed_post_root_comment.py`, `backend/src/services/telegram/notify_feed_post_comment_reply.py`, `backend/src/tasks/telegram_engagement.py`, `backend/src/api/feed_posts/routes.py`, `backend/src/tests/api/test_engagement_telegram_notifications.py`, `backend/src/tests/test_celery_app.py`, `docs/features/engagement-telegram-notifications.md`, `docs/features/celery-redis-workers.md`
+- **Verification:** `make backend-test-one target=src/tests/api/test_engagement_telegram_notifications.py`, `make backend-test-one target=src/tests/test_celery_app.py`, `make backend-test-one target=src/tests/api/test_feed_posts_routes.py`, `make backend-lint` — успешно.

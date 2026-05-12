@@ -17,6 +17,10 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-12T160000Z-film-catalog-community-view-code.md`
+- `2026-05-13T120000Z-engagement-telegram-feed-comments-code.md`
+- `2026-05-12T140000Z-comment-draft-caret-alignment-code.md`
+- `2026-05-12T120000Z-comment-draft-caret-alignment-code.md`
 - `2026-05-11T210500Z-frontend-eslint-standards-docs.md`
 - `2026-05-11T200000Z-global-feed-tabs-timeline-sse-code.md`
 - `2026-05-11T190500Z-global-feed-tabs-timeline-sse-docs.md`
