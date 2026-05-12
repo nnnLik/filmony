@@ -15,6 +15,7 @@
   - роут ветки: `/cards/:cardId/comments/:commentId/thread`.
 
 ## Контракт
+- Текст комментария (до **250** символов): токены `⟦r{id}⟧`, `⟦c{movie_card_id}⟧` (только **свои** карточки), `⟦@profile_slug⟧` (правила как в постах ленты) — валидация `validate_comment_text_with_reaction_tokens`; в ответах API — поля `referenced_movie_cards`, `referenced_mentions` (см. также [`feed-posts.md`](./feed-posts.md) для постов).
 - `POST /api/cards/{card_id}/comments`
   - Body: `{ "text": string, "parent_comment_id": int | null }`
   - Ошибки:

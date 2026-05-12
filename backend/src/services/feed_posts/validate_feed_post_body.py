@@ -27,7 +27,7 @@ class FeedPostBodyValidationError(Exception):
 async def validate_feed_post_body(
     text: str, session: AsyncSession, *, author_user_id: UUID
 ) -> tuple[str, tuple[UUID, ...]]:
-    """Strip body, max length, validate ⟦r{id}⟧ and ⟦@slug⟧ mentions (followers only).
+    """Strip body, max length; validate ⟦r{id}⟧, ⟦c{card_id}⟧ (own cards), ⟦@slug⟧ mentions.
 
     Returns canonical body and deduplicated mentioned user ids (for notifications).
     """
