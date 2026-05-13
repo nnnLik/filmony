@@ -44,6 +44,7 @@ from models.movie_card_comment import MovieCardComment
 from models.movie_card_tag import MovieCardTag
 from models.user import User
 from services.cards.create_movie_card import (
+    CatalogItemNotFoundError,
     CreateMovieCardInput,
     CreateMovieCardService,
     FilmNotFoundError,
@@ -120,6 +121,22 @@ from services.profile.batch_resolve_inline_mentions import batch_resolve_inline_
 from services.reactions import GetReactionSummariesForTargetsService
 
 router = APIRouter(prefix='/cards', tags=['cards'])
+
+
+def _card_response_from_movie_card(card: MovieCard, tags: list[str]) -> CardResponse:
+    title = (card.display_title or '').strip() or 'Untitled'
+    return CardResponse(
+        id=card.id,
+        film_id=card.film_id,
+        catalog_item_id=card.catalog_item_id,
+        display_title=title,
+        rating=float(card.rating),
+        company=card.company,
+        mood_before=card.mood_before,
+        mood_after=card.mood_after,
+        custom_tags=list(tags),
+        is_favorite=bool(card.is_favorite),
+    )
 
 
 async def _read_upload_body_max(file: UploadFile, max_bytes: int) -> bytes:
@@ -273,6 +290,7 @@ async def create_card(
             CreateMovieCardInput(
                 film_id=body.film_id,
                 kinopoisk_id=body.kinopoisk_id,
+                catalog_item_id=body.catalog_item_id,
                 genres=body.genres,
                 rating=body.rating,
                 company=body.company,
@@ -280,10 +298,15 @@ async def create_card(
                 mood_after=body.mood_after,
                 custom_tags=body.custom_tags,
                 watch_note=body.watch_note,
+                display_title=(body.display_title or '').strip() or None,
+                display_cover_url=body.display_cover_url,
+                display_summary=body.display_summary,
             ),
         )
     except FilmNotFoundError:
         raise HTTPException(status_code=404, detail='film not found') from None
+    except CatalogItemNotFoundError:
+        raise HTTPException(status_code=404, detail='catalog item not found') from None
     except MovieCardAlreadyExistsError:
         raise HTTPException(status_code=409, detail='movie card already exists') from None
     except MovieCardValidationError as e:
@@ -301,16 +324,7 @@ async def create_card(
         .all()
     )
     await bump_global_feed_head_version()
-    return CardResponse(
-        id=card.id,
-        film_id=card.film_id,
-        rating=float(card.rating),
-        company=card.company,
-        mood_before=card.mood_before,
-        mood_after=card.mood_after,
-        custom_tags=list(tags),
-        is_favorite=bool(card.is_favorite),
-    )
+    return _card_response_from_movie_card(card, list(tags))
 
 
 @router.get('/feed', response_model=MovieCardFeedPageResponse, summary='Лента карточек')
@@ -349,6 +363,10 @@ async def list_movie_card_feed(
                 film_title=item.film_title,
                 film_year=item.film_year,
                 film_poster_url=item.film_poster_url,
+                catalog_item_id=item.catalog_item_id,
+                display_title=item.display_title,
+                display_cover_url=item.display_cover_url,
+                display_summary=item.display_summary,
                 rating=item.rating,
                 company=item.company,
                 mood_before=item.mood_before,
@@ -429,6 +447,10 @@ async def get_card(
         film_title=card.film_title,
         film_year=card.film_year,
         film_poster_url=card.film_poster_url,
+        catalog_item_id=card.catalog_item_id,
+        display_title=card.display_title,
+        display_cover_url=card.display_cover_url,
+        display_summary=card.display_summary,
         film_short_description=card.film_short_description,
         film_description=card.film_description,
         rating=card.rating,
@@ -485,16 +507,7 @@ async def patch_card(
         .scalars()
         .all()
     )
-    return CardResponse(
-        id=card.id,
-        film_id=card.film_id,
-        rating=float(card.rating),
-        company=card.company,
-        mood_before=card.mood_before,
-        mood_after=card.mood_after,
-        custom_tags=list(tags),
-        is_favorite=bool(card.is_favorite),
-    )
+    return _card_response_from_movie_card(card, list(tags))
 
 
 @router.delete(

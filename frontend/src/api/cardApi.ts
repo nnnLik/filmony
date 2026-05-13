@@ -22,7 +22,7 @@ import type { WatchedInlinePickerItem } from './watchedInlinePickerTypes'
 export { uploadMovieCardCommentImage } from './movieCardCommentImageApi'
 export type { WatchedInlinePickerItem } from './watchedInlinePickerTypes'
 
-export type CreateMovieCardPayload = {
+export type CreateMovieCardFilmPayload = {
   film_id: number
   kinopoisk_id: number
   genres: string[]
@@ -33,6 +33,35 @@ export type CreateMovieCardPayload = {
   custom_tags: string[]
   watch_note?: string
 }
+
+export type CreateMovieCardCatalogPayload = {
+  catalog_item_id: number
+  genres?: string[]
+  rating: number
+  company: CardCompany
+  mood_before: CardMoodBefore
+  mood_after: CardMoodAfter
+  custom_tags: string[]
+  watch_note?: string
+}
+
+export type CreateMovieCardManualPayload = {
+  display_title: string
+  display_cover_url?: string | null
+  display_summary?: string | null
+  genres?: string[]
+  rating: number
+  company: CardCompany
+  mood_before: CardMoodBefore
+  mood_after: CardMoodAfter
+  custom_tags: string[]
+  watch_note?: string
+}
+
+export type CreateMovieCardPayload =
+  | CreateMovieCardFilmPayload
+  | CreateMovieCardCatalogPayload
+  | CreateMovieCardManualPayload
 
 export type UpdateMovieCardPayload = {
   rating?: number

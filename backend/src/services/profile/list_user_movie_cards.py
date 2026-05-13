@@ -79,12 +79,15 @@ def _decode_rating_cursor(cursor: str, *, desc: bool) -> tuple[float, int] | Non
 @dataclass(frozen=True, slots=True)
 class MovieCardListItem:
     id: int
-    film_id: int
-    film_kinopoisk_id: int
+    film_id: int | None
+    film_kinopoisk_id: int | None
     film_genres: list[str]
     film_title: str
     film_year: int | None
     film_poster_url: str | None
+    catalog_item_id: int | None
+    display_title: str
+    display_cover_url: str | None
     rating: float
     company: str
     mood_before: str
@@ -102,29 +105,39 @@ class MovieCardPage:
 
 
 def _rows_to_items(
-    visible_rows: list[tuple[MovieCard, Film]],
+    visible_rows: list[tuple[MovieCard, Film | None]],
     tags_by_card: dict[int, list[str]],
 ) -> list[MovieCardListItem]:
-    return [
-        MovieCardListItem(
-            id=card.id,
-            film_id=film.id,
-            film_kinopoisk_id=film.kinopoisk_id,
-            film_genres=list(film.genres or []),
-            film_title=film.title,
-            film_year=film.year,
-            film_poster_url=film.poster_url,
-            rating=float(card.rating),
-            company=card.company,
-            mood_before=card.mood_before,
-            mood_after=card.mood_after,
-            watch_note=card.watch_note or '',
-            custom_tags=tags_by_card.get(card.id, []),
-            updated_at=card.updated_at,
-            is_favorite=bool(card.is_favorite),
+    items: list[MovieCardListItem] = []
+    for card, film in visible_rows:
+        display_title = (card.display_title or '').strip()
+        film_title = film.title if film is not None else (display_title or 'Untitled')
+        if not display_title:
+            display_title = film_title
+        poster = film.poster_url if film is not None else card.display_cover_url
+        items.append(
+            MovieCardListItem(
+                id=card.id,
+                film_id=film.id if film is not None else None,
+                film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
+                film_genres=list(film.genres or []) if film is not None else [],
+                film_title=film_title,
+                film_year=film.year if film is not None else None,
+                film_poster_url=poster,
+                catalog_item_id=card.catalog_item_id,
+                display_title=display_title,
+                display_cover_url=card.display_cover_url,
+                rating=float(card.rating),
+                company=card.company,
+                mood_before=card.mood_before,
+                mood_after=card.mood_after,
+                watch_note=card.watch_note or '',
+                custom_tags=tags_by_card.get(card.id, []),
+                updated_at=card.updated_at,
+                is_favorite=bool(card.is_favorite),
+            )
         )
-        for card, film in visible_rows
-    ]
+    return items
 
 
 class ListUserMovieCardsService:
@@ -184,7 +197,7 @@ class ListUserMovieCardsService:
 
     def _apply_filters(
         self,
-        query: SASelect[tuple[MovieCard, Film]],
+        query: SASelect[tuple[MovieCard, Film | None]],
         *,
         tags_all: list[str],
         year_min: int | None,
@@ -193,7 +206,7 @@ class ListUserMovieCardsService:
         mood_before: str | None,
         mood_after: str | None,
         film_title_search: str | None,
-    ) -> SASelect[tuple[MovieCard, Film]]:
+    ) -> SASelect[tuple[MovieCard, Film | None]]:
         for tag in tags_all:
             query = query.where(
                 exists(
@@ -216,8 +229,12 @@ class ListUserMovieCardsService:
         if mood_after is not None:
             query = query.where(MovieCard.mood_after == mood_after)
         if film_title_search is not None:
+            pattern = _film_title_ilike_pattern(film_title_search)
             query = query.where(
-                Film.title.ilike(_film_title_ilike_pattern(film_title_search), escape='\\'),
+                or_(
+                    Film.title.ilike(pattern, escape='\\'),
+                    MovieCard.display_title.ilike(pattern, escape='\\'),
+                )
             )
         return query
 
@@ -236,9 +253,9 @@ class ListUserMovieCardsService:
         mood_after: str | None,
         film_title_search: str | None,
     ) -> MovieCardPage:
-        query: Select[tuple[MovieCard, Film]] = (
+        query: Select[tuple[MovieCard, Film | None]] = (
             select(MovieCard, Film)
-            .join(Film, Film.id == MovieCard.film_id)
+            .outerjoin(Film, Film.id == MovieCard.film_id)
             .where(MovieCard.user_id == user_id)
         )
         query = self._apply_filters(
@@ -323,9 +340,9 @@ class ListUserMovieCardsService:
         mood_after: str | None,
         film_title_search: str | None,
     ) -> MovieCardPage:
-        query: Select[tuple[MovieCard, Film]] = (
+        query: Select[tuple[MovieCard, Film | None]] = (
             select(MovieCard, Film)
-            .join(Film, Film.id == MovieCard.film_id)
+            .outerjoin(Film, Film.id == MovieCard.film_id)
             .where(
                 MovieCard.user_id == user_id,
                 MovieCard.is_favorite.is_(True),
@@ -425,9 +442,9 @@ class ListUserMovieCardsService:
         return tags_by_card
 
     async def list_all_for_user(self, user_id: UUID) -> list[MovieCardListItem]:
-        query: Select[tuple[MovieCard, Film]] = (
+        query: Select[tuple[MovieCard, Film | None]] = (
             select(MovieCard, Film)
-            .join(Film, Film.id == MovieCard.film_id)
+            .outerjoin(Film, Film.id == MovieCard.film_id)
             .where(MovieCard.user_id == user_id)
             .order_by(desc(MovieCard.id))
         )

@@ -4,22 +4,22 @@ overview: "Переформулировать фичу как реструкту
 todos:
   - id: schema-design
     content: "Зафиксировать card-first схему: `movie_card -> user_card`, `film -> catalog_item(provider='kinopoisk')`, nullable catalog link."
-    status: in_progress
+    status: completed
   - id: migration-plan
     content: Спроектировать миграцию с сохранением всех существующих `movie_card.id`, связей, реакций, feed posts и статистики.
-    status: in_progress
+    status: completed
   - id: backend-services
     content: Перевести backend read/write сервисы с film-centered логики на user-card + catalog/provider модель.
-    status: pending
+    status: completed
   - id: api-compat
     content: Добавить новые catalog/card DTO и сохранить deprecated `film_*` compatibility на переходный период.
-    status: pending
+    status: completed
   - id: frontend-migration
     content: Обновить frontend типы, страницы создания/редактирования, detail/feed/profile UI под универсальные карточки.
-    status: pending
+    status: completed
   - id: verification
     content: Добавить backend миграционные/API тесты и выполнить frontend lint/build перед завершением.
-    status: pending
+    status: completed
 isProject: false
 ---
 

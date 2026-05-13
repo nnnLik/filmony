@@ -154,12 +154,18 @@ export type MovieCard = {
   user_id?: string
   /** Приходит в GET /api/cards/:id и в элементах ленты; может отсутствовать в укороченных ответах. */
   card_author?: MovieCardCommentAuthor
-  film_id: number
-  film_kinopoisk_id: number
+  film_id: number | null
+  film_kinopoisk_id: number | null
   film_genres: string[]
   film_title: string
   film_year: number | null
   film_poster_url: string | null
+  /** Связка с каталогом (универсальные карточки). */
+  catalog_item_id?: number | null
+  /** Пользовательские поля отображения (приоритетнее legacy `film_*` в UI). */
+  display_title: string
+  display_cover_url?: string | null
+  display_summary?: string | null
   /** Только GET /api/cards/:id (не в ленте). */
   film_short_description?: string | null
   film_description?: string | null
@@ -332,10 +338,12 @@ export type TagDistributionItem = {
 
 export type ProfileStatsMovieItem = {
   card_id: number
-  film_id: number
+  film_id: number | null
   film_title: string
   film_year: number | null
   film_poster_url: string | null
+  display_title?: string | null
+  display_cover_url?: string | null
   rating: number
 }
 

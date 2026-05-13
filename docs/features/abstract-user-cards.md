@@ -1,37 +1,34 @@
 # Feature: Universal User Cards (`abstract-user-cards`)
 
 ## Summary
-The product moves from a **film- and Kinopoisk-centric** model to **card-first universal user cards**. A user’s primary object is a `user_card` (evolution of today’s `movie_card`). Optional external metadata is attached via `catalog_item` (evolution of today’s `film` rows) with a `provider` such as `kinopoisk`, with room for future providers without polluting `user_card` with provider-specific columns.
 
-## Domain model (target)
-- **`user_card`:** User-owned record: content, visibility, reactions, feed posts, statistics. Same primary keys as today’s cards **must** be preserved (1000+ cards in production).
-- **`catalog_item`:** Optional canonical external object (deduped by provider + external id). Not a substitute for a user card.
-- **Providers / adapters:** Resolve URLs or search, normalize metadata (first implementation: Kinopoisk).
+The product shifts from a **film- and Kinopoisk-centric** card model to **card-first universal user cards**. The persisted row remains `movie_card` with stable ids; optional linkage uses `catalog_item` (provider-discriminated canonical metadata, first provider `kinopoisk`) plus **user-owned display fields** (`display_title`, `display_cover_url`, `display_summary`) so manual cards and transitional reads stay coherent.
 
-## Migration mapping
-```text
-movie_card → user_card
-film       → catalog_item(provider='kinopoisk')
-```
+## Current implementation (2026-05)
 
-Nullable `catalog_item_id` on `user_card` enables fully manual cards with no external source.
+- **Schema:** `catalog_item`; nullable `movie_card.catalog_item_id` and `movie_card.film_id`; partial uniques for duplicates; migrations `u1v2w3x4y890`, `w3x4y5z6a012` (display backfill). Model tests: `backend/src/tests/models/test_movie_card_catalog_schema.py`.
+- **Writes:** `POST /api/cards` — film-backed (`film_id` / `kinopoisk_id`, optional `catalog_item_id`), catalog-only (`catalog_item_id`), manual (`display_title` without Kinopoisk/film); validation and 409 on duplicate partial unique.
+- **Reads:** Card detail, feed items, profile grids/lists, inline picker, inline card refs, and following-ratings honor nullable film joins and catalog/manual display fields. Deprecated `film_*` populated when a `Film` row exists; otherwise sensible fallbacks (e.g. display title).
+- **Resolve:** `POST /api/catalog/resolve` with `{ provider, url }` (Kinopoisk first) upserts `CatalogItem` + nested film payload; `POST /api/films/resolve` unchanged for legacy clients.
+- **Frontend:** Types and create wizard (`catalogApi` + legacy film resolve + manual path); `movieCardDisplay` used across detail, feed, profile, share; Kinopoisk UI cues only when `film_kinopoisk_id` is set.
 
 ## API and compatibility
-- New responses emphasize `card`, optional `catalog`, and `provider`.
-- Deprecated `film_*` / `film_id` fields remain on a transition window for legacy clients.
 
-## Delivery phases (high level)
-1. Schema + backfill + migration tests (counts, id preservation, FK integrity).
-2. Backend reads with new DTOs + deprecated fields.
-3. Backend writes: manual card, catalog-linked card, resolver path.
-4. Frontend types and flows; detail/feed/profile use card-first UI.
-5. Cleanup of legacy paths when clients have migrated.
+New fields: `catalog_item_id`, `display_title`, `display_cover_url`, `display_summary`. Deprecated `film_*` / nullable `film_id` remain for legacy clients until a dedicated cleanup milestone.
+
+## Roadmap / cleanup
+
+- Remove or narrow deprecated `film_*` once all clients consume card-first fields.
+- Additional catalog providers beside Kinopoisk.
+- Align any remaining statistics DTOs with explicit display metadata if needed.
 
 ## Verification
-- Backend: Docker-backed `make backend-test` (migration invariants, API scenarios, resolver).
-- Frontend: `npm run lint && npm run build`; manual create/view/profile checks.
+
+- Backend (Docker): `make backend-test`.
+- Frontend: `cd frontend && npm run lint && npm run build`.
 
 ## References
+
 - Feature spec: `.cursor/features/abstract-user-cards/feature.md`
-- Active plan: `.cursor/active/abstract-user-cards/plan.md`
-- Read-only planning copy: `.cursor/plans/abstract-user-cards-v2_6f1f3132.plan.md`
+- Active delivery notes: `.cursor/active/abstract-user-cards/result.md`
+- Read-only planning snapshot: `.cursor/plans/abstract-user-cards-v2_6f1f3132.plan.md`

@@ -43,6 +43,9 @@ export type FeedPostReferencedCard = {
   film_title: string
   film_year: number | null
   film_poster_url: string | null
+  /** Если бэкенд отдаёт — приоритетнее `film_title` в UI. */
+  display_title?: string | null
+  display_cover_url?: string | null
   rating: number
 }
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
@@ -42,15 +42,17 @@ class ListMyMovieCardsForInlinePickerService:
         cap = max(1, min(limit, 80))
         q = query.strip()
         stmt = (
-            select(MovieCard.id, Film.title, Film.year)
-            .join(Film, Film.id == MovieCard.film_id)
+            select(MovieCard.id, func.coalesce(Film.title, MovieCard.display_title, ''), Film.year)
+            .outerjoin(Film, Film.id == MovieCard.film_id)
             .where(MovieCard.user_id == user_id)
             .order_by(desc(MovieCard.created_at), desc(MovieCard.id))
             .limit(cap)
         )
         if q != '':
             pattern = f'%{q}%'
-            stmt = stmt.where(Film.title.ilike(pattern))
+            stmt = stmt.where(
+                or_(Film.title.ilike(pattern), MovieCard.display_title.ilike(pattern)),
+            )
 
         rows = (await self._session.execute(stmt)).all()
         return [

@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
@@ -83,8 +83,13 @@ async def batch_resolve_inline_movie_card_refs(
 
     rows = (
         await session.execute(
-            select(MovieCard.id, MovieCard.user_id, Film.title, Film.year)
-            .join(Film, Film.id == MovieCard.film_id)
+            select(
+                MovieCard.id,
+                MovieCard.user_id,
+                func.coalesce(Film.title, MovieCard.display_title, ''),
+                Film.year,
+            )
+            .outerjoin(Film, Film.id == MovieCard.film_id)
             .where(MovieCard.id.in_(all_ids))
         )
     ).all()

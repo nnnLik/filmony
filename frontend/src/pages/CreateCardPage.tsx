@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
+import { inferCatalogProviderFromUrl, resolveCatalogByProviderUrl } from '../api/catalogApi'
 import { createMovieCard, getFilmById, getMovieCardById, resolveFilmByKinopoiskUrl, shareMovieCardWithFollowers } from '../api/cardApi'
 import {
   getMyMovieCardTagStats,
@@ -36,6 +37,7 @@ import {
   readCachedMyMovieCardTagStats,
   writeCachedMyMovieCardTagStats,
 } from '../lib/movieCardTagStatsStorage'
+import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../lib/movieCardDisplay'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
@@ -72,11 +74,26 @@ const CHIP_COLORS = [
 type WizardStep = 1 | 2 | 3 | 4 | 5
 const TOTAL_STEPS = 5
 const STEP_TITLES: Record<WizardStep, string> = {
-  1: 'Ссылка на Кинопоиск',
+  1: 'Ссылка или название',
   2: 'Подтверждение',
   3: 'Оценка и контекст',
   4: 'Ваши теги',
   5: 'Поделиться',
+}
+
+type CreationBinding =
+  | { kind: 'film'; film: Film }
+  | { kind: 'catalog'; catalogItemId: number; film: Film }
+  | {
+      kind: 'manual'
+      display_title: string
+      display_cover_url: string | null
+      display_summary: string | null
+    }
+
+function watchlistFilmId(binding: CreationBinding): number | null {
+  if (binding.kind === 'manual') return null
+  return binding.film.id
 }
 
 const WIZARD_TEXT_FIELD_CLASS =
@@ -147,7 +164,10 @@ export function CreateCardPage() {
   const [submitLoading, setSubmitLoading] = useState(false)
   const [watchlistBusy, setWatchlistBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [film, setFilm] = useState<Film | null>(null)
+  const [creationBinding, setCreationBinding] = useState<CreationBinding | null>(null)
+  const [manualTitle, setManualTitle] = useState('')
+  const [manualCoverUrl, setManualCoverUrl] = useState('')
+  const [manualSummary, setManualSummary] = useState('')
   const [rating, setRating] = useState(7.5)
   const [company, setCompany] = useState<CardCompany>('alone')
   const [moodBefore, setMoodBefore] = useState<CardMoodBefore>('relax')
@@ -223,7 +243,7 @@ export function CreateCardPage() {
       setLoadingFilm(true)
       try {
         const item = await getFilmById(filmId)
-        setFilm(item)
+        setCreationBinding({ kind: 'film', film: item })
         setStep(2)
       } catch (e) {
         if (e instanceof ApiError) {
@@ -271,9 +291,19 @@ export function CreateCardPage() {
           void navigate(cleanCreatePath, { replace: true })
           return
         }
-        const item = await getFilmById(card.film_id)
-        if (!alive || seq !== fromCardBootstrapSeq.current) return
-        setFilm(item)
+        if (card.film_id != null && card.film_id > 0) {
+          const item = await getFilmById(card.film_id)
+          if (!alive || seq !== fromCardBootstrapSeq.current) return
+          setCreationBinding({ kind: 'film', film: item })
+        } else {
+          if (!alive || seq !== fromCardBootstrapSeq.current) return
+          setCreationBinding({
+            kind: 'manual',
+            display_title: movieCardPrimaryTitle(card),
+            display_cover_url: movieCardPrimaryPoster(card),
+            display_summary: card.display_summary ?? null,
+          })
+        }
         setRemixFromCard(true)
         setStep(2)
         void navigate(cleanCreatePath, { replace: true })
@@ -352,6 +382,34 @@ export function CreateCardPage() {
   const watchNoteTooLong = watchNote.length > MAX_WATCH_NOTE_LEN
   const canProceedFromTags = !tagInputTooLong && !watchNoteTooLong
 
+  const confirmPreview = useMemo(() => {
+    const b = creationBinding
+    if (b == null) return null
+    if (b.kind === 'manual') {
+      return {
+        posterUrl: b.display_cover_url,
+        title: b.display_title,
+        yearLabel: '—',
+        genres: [] as string[],
+        showDupWarning: false,
+        myCardId: null as number | null,
+        showWatchlist: false,
+      }
+    }
+    const f = b.film
+    return {
+      posterUrl: f.poster_url ?? null,
+      title: f.title,
+      yearLabel: f.year != null ? String(f.year) : 'Год неизвестен',
+      genres: f.genres ?? [],
+      showDupWarning: filmHasMyCard(f),
+      myCardId: f.my_card_id ?? null,
+      showWatchlist: true,
+    }
+  }, [creationBinding])
+
+  const sharePreview = confirmPreview
+
   function toggleShareRecipient(userId: string) {
     setShareSelected((prev) => {
       const next = new Set(prev)
@@ -366,11 +424,25 @@ export function CreateCardPage() {
       setError('Вставьте ссылку на Кинопоиск')
       return
     }
+    const trimmedUrl = kinopoiskUrl.trim()
     setLoadingFilm(true)
     setError(null)
     try {
-      const item = await resolveFilmByKinopoiskUrl(kinopoiskUrl.trim())
-      setFilm(item)
+      const provider = inferCatalogProviderFromUrl(trimmedUrl)
+      if (provider != null) {
+        try {
+          const resolved = await resolveCatalogByProviderUrl(provider, trimmedUrl)
+          setCreationBinding({ kind: 'catalog', catalogItemId: resolved.catalog_item_id, film: resolved.film })
+          setStep(2)
+          return
+        } catch (e) {
+          const fallback =
+            e instanceof ApiError && (e.status === 422 || e.status === 404 || e.status === 501)
+          if (!fallback) throw e
+        }
+      }
+      const item = await resolveFilmByKinopoiskUrl(trimmedUrl)
+      setCreationBinding({ kind: 'film', film: item })
       setStep(2)
     } catch (e) {
       if (e instanceof ApiError) {
@@ -383,14 +455,36 @@ export function CreateCardPage() {
     }
   }
 
+  function handleManualContinue() {
+    const title = manualTitle.trim()
+    if (title === '') {
+      setError('Введите название тайтла')
+      return
+    }
+    setError(null)
+    const cover = manualCoverUrl.trim()
+    const sum = manualSummary.trim()
+    setCreationBinding({
+      kind: 'manual',
+      display_title: title,
+      display_cover_url: cover === '' ? null : cover,
+      display_summary: sum === '' ? null : sum,
+    })
+    setStep(2)
+  }
+
   async function handleAddToWatchlist() {
-    if (film == null) {
+    if (creationBinding == null || creationBinding.kind === 'manual') {
+      return
+    }
+    const fid = watchlistFilmId(creationBinding)
+    if (fid == null || fid <= 0) {
       return
     }
     setWatchlistBusy(true)
     setError(null)
     try {
-      await postMyWatchlistFilm(film.id)
+      await postMyWatchlistFilm(fid)
       clearMyProfileBundleCache()
       safeHapticSuccess()
       void navigate('/profile', { replace: true, state: { moviesSegment: 'watchlist' as const } })
@@ -461,7 +555,13 @@ export function CreateCardPage() {
       return
     }
     setError(null)
-    setStep((prev) => (prev - 1) as WizardStep)
+    setStep((prev) => {
+      const next = (prev - 1) as WizardStep
+      if (next === 1) {
+        setCreationBinding(null)
+      }
+      return next
+    })
   }
 
   function renderChoiceChips<T extends string>(
@@ -494,24 +594,55 @@ export function CreateCardPage() {
   }
 
   async function handleSubmit() {
-    if (film == null) {
-      setError('Сначала выберите тайтл по ссылке')
+    if (creationBinding == null) {
+      setError('Сначала выберите тайтл')
       return
     }
     setSubmitLoading(true)
     setError(null)
     try {
-      const newCard: MovieCard = await createMovieCard({
-        film_id: film.id,
-        kinopoisk_id: film.kinopoisk_id,
-        genres: film.genres ?? [],
-        rating: normalizeRating(rating),
-        company,
-        mood_before: moodBefore,
-        mood_after: moodAfter,
-        custom_tags: customTags,
-        watch_note: watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
-      })
+      const watchNotePayload = watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN)
+      const ratingPayload = normalizeRating(rating)
+      let newCard: MovieCard
+      if (creationBinding.kind === 'film') {
+        const f = creationBinding.film
+        newCard = await createMovieCard({
+          film_id: f.id,
+          kinopoisk_id: f.kinopoisk_id,
+          genres: f.genres ?? [],
+          rating: ratingPayload,
+          company,
+          mood_before: moodBefore,
+          mood_after: moodAfter,
+          custom_tags: customTags,
+          watch_note: watchNotePayload,
+        })
+      } else if (creationBinding.kind === 'catalog') {
+        newCard = await createMovieCard({
+          catalog_item_id: creationBinding.catalogItemId,
+          genres: [],
+          rating: ratingPayload,
+          company,
+          mood_before: moodBefore,
+          mood_after: moodAfter,
+          custom_tags: customTags,
+          watch_note: watchNotePayload,
+        })
+      } else {
+        const m = creationBinding
+        newCard = await createMovieCard({
+          display_title: m.display_title.trim(),
+          display_cover_url: m.display_cover_url ?? undefined,
+          display_summary: m.display_summary ?? undefined,
+          genres: [],
+          rating: ratingPayload,
+          company,
+          mood_before: moodBefore,
+          mood_after: moodAfter,
+          custom_tags: customTags,
+          watch_note: watchNotePayload,
+        })
+      }
       const bundleUid = readMyProfileBundleCache()?.profile.id
       if (bundleUid != null && bundleUid !== '') {
         void queryClient.invalidateQueries({ queryKey: userMovieCardTagStatsQueryKey(bundleUid) })
@@ -523,8 +654,8 @@ export function CreateCardPage() {
       if (bundleUid != null && bundleUid !== '') {
         recordRecentCardView(bundleUid, {
           id: newCard.id,
-          film_title: newCard.film_title,
-          film_poster_url: newCard.film_poster_url,
+          film_title: movieCardPrimaryTitle(newCard),
+          film_poster_url: movieCardPrimaryPoster(newCard),
         })
       }
       const returnToFeed = searchParams.get('returnTo') === 'feed'
@@ -593,7 +724,7 @@ export function CreateCardPage() {
         ) : null}
 
         {fromCardPrefillDone && step === 1 ? (
-          <WizardStepPanel title="1. Ссылка на Кинопоиск">
+          <WizardStepPanel title="1. Ссылка или своё название">
             <div className="filmony-text-panel flex flex-col gap-4">
               <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
                 <p className="text-sm font-medium text-(--tgui--text_color)">Откуда взять ссылку</p>
@@ -622,7 +753,64 @@ export function CreateCardPage() {
                 />
               </div>
               <Button stretched disabled={loadingFilm} onClick={() => void handleResolveFilm()}>
-                {loadingFilm ? 'Загружаем...' : 'Далее'}
+                {loadingFilm ? 'Загружаем...' : 'Далее по ссылке'}
+              </Button>
+
+              <div className="relative flex items-center gap-3 py-1">
+                <div className="h-px flex-1 bg-(--tgui--divider_color)" />
+                <span className="text-[11px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">или</span>
+                <div className="h-px flex-1 bg-(--tgui--divider_color)" />
+              </div>
+
+              <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Без Кинопоиска</p>
+                <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
+                  Укажите название вручную — например сериал с другого сервиса или спектакль.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-card-manual-title" className="text-xs font-medium text-(--tgui--hint_color)">
+                  Название
+                </label>
+                <input
+                  id="create-card-manual-title"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Например: Название тайтла"
+                  value={manualTitle}
+                  onChange={(e) => setManualTitle(e.currentTarget.value)}
+                  className={WIZARD_TEXT_FIELD_CLASS}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-card-manual-cover" className="text-xs font-medium text-(--tgui--hint_color)">
+                  Обложка (необязательно)
+                </label>
+                <input
+                  id="create-card-manual-cover"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://…"
+                  value={manualCoverUrl}
+                  onChange={(e) => setManualCoverUrl(e.currentTarget.value)}
+                  className={WIZARD_TEXT_FIELD_CLASS}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="create-card-manual-summary" className="text-xs font-medium text-(--tgui--hint_color)">
+                  Коротко о чём (необязательно)
+                </label>
+                <textarea
+                  id="create-card-manual-summary"
+                  rows={3}
+                  placeholder="Одно-два предложения"
+                  value={manualSummary}
+                  onChange={(e) => setManualSummary(e.currentTarget.value)}
+                  className={`${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
+                />
+              </div>
+              <Button stretched disabled={loadingFilm} onClick={() => handleManualContinue()}>
+                Далее без ссылки
               </Button>
             </div>
           </WizardStepPanel>
@@ -630,9 +818,9 @@ export function CreateCardPage() {
 
         {fromCardPrefillDone && step === 2 ? (
           <WizardStepPanel title="2. Подтверждение">
-            {film != null ? (
+            {confirmPreview != null ? (
               <div className="filmony-text-panel">
-                {filmHasMyCard(film) ? (
+                {confirmPreview.showDupWarning ? (
                   <p className="filmony-text-panel mb-3 text-sm text-(--tgui--text_color)">
                     У вас уже есть карточка на этот тайтл в профиле.
                   </p>
@@ -643,25 +831,29 @@ export function CreateCardPage() {
                 ) : null}
                 <div className="filmony-text-panel flex gap-3">
                   <div className="h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-(--tgui--secondary_bg_color)">
-                    {film.poster_url ? (
-                      <img src={film.poster_url} alt={film.title} className="h-full w-full object-cover" />
+                    {confirmPreview.posterUrl ? (
+                      <img
+                        src={confirmPreview.posterUrl}
+                        alt={confirmPreview.title}
+                        className="h-full w-full object-cover"
+                      />
                     ) : null}
                   </div>
                   <div className="min-w-0">
                     <Title level="3" weight="2">
-                      {film.title}
+                      {confirmPreview.title}
                     </Title>
-                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
-                    <FilmGenreChips genres={film.genres ?? []} size="md" maxVisible={6} className="mt-2" />
+                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{confirmPreview.yearLabel}</p>
+                    <FilmGenreChips genres={confirmPreview.genres} size="md" maxVisible={6} className="mt-2" />
                   </div>
                 </div>
                 <div className="mt-5 flex flex-col gap-2">
-                  {filmHasMyCard(film) ? (
+                  {confirmPreview.showDupWarning ? (
                     <>
                       <Button
                         stretched
                         onClick={() => {
-                          void navigate(`/cards/${Number(film.my_card_id)}`)
+                          void navigate(`/cards/${Number(confirmPreview.myCardId)}`)
                         }}
                       >
                         Открыть карточку
@@ -670,7 +862,7 @@ export function CreateCardPage() {
                         mode="gray"
                         stretched
                         onClick={() => {
-                          void navigate(`/cards/${Number(film.my_card_id)}/edit`)
+                          void navigate(`/cards/${Number(confirmPreview.myCardId)}/edit`)
                         }}
                       >
                         Редактировать
@@ -679,9 +871,12 @@ export function CreateCardPage() {
                         mode="gray"
                         stretched
                         onClick={() => {
-                          setFilm(null)
+                          setCreationBinding(null)
                           setRemixFromCard(false)
                           setError(null)
+                          setManualTitle('')
+                          setManualCoverUrl('')
+                          setManualSummary('')
                           setStep(1)
                         }}
                       >
@@ -693,25 +888,30 @@ export function CreateCardPage() {
                       <Button stretched onClick={() => setStep(3)}>
                         Оценить просмотр
                       </Button>
-                      <Button
-                        mode="gray"
-                        stretched
-                        disabled={watchlistBusy}
-                        onClick={() => void handleAddToWatchlist()}
-                      >
-                        {watchlistBusy ? 'Добавляем…' : 'К просмотру'}
-                      </Button>
+                      {confirmPreview.showWatchlist ? (
+                        <Button
+                          mode="gray"
+                          stretched
+                          disabled={watchlistBusy}
+                          onClick={() => void handleAddToWatchlist()}
+                        >
+                          {watchlistBusy ? 'Добавляем…' : 'К просмотру'}
+                        </Button>
+                      ) : null}
                       <Button
                         mode="gray"
                         stretched
                         onClick={() => {
-                          setFilm(null)
+                          setCreationBinding(null)
                           setRemixFromCard(false)
                           setError(null)
+                          setManualTitle('')
+                          setManualCoverUrl('')
+                          setManualSummary('')
                           setStep(1)
                         }}
                       >
-                        Другая ссылка
+                        Начать заново
                       </Button>
                     </>
                   )}
@@ -724,7 +924,7 @@ export function CreateCardPage() {
                 </p>
                 <div className="mt-3">
                   <Button stretched onClick={() => setStep(1)}>
-                    К ссылке
+                    К шагу 1
                   </Button>
                 </div>
               </div>
@@ -906,12 +1106,12 @@ export function CreateCardPage() {
         {fromCardPrefillDone && step === 5 ? (
           <WizardStepPanel title="5. Поделиться карточкой">
             <div className="filmony-text-panel">
-              {film != null ? (
+              {sharePreview != null ? (
                 <ShareFollowersPicker
                   preview={{
-                    posterUrl: film.poster_url,
-                    title: film.title,
-                    yearLabel: film.year != null ? String(film.year) : '—',
+                    posterUrl: sharePreview.posterUrl,
+                    title: sharePreview.title,
+                    yearLabel: sharePreview.yearLabel,
                   }}
                   followers={shareFollowers}
                   loading={shareFollowersLoading}
@@ -937,7 +1137,11 @@ export function CreateCardPage() {
                 </p>
               </div>
               <div className="mt-5">
-                <Button stretched disabled={film == null || submitLoading} onClick={() => void handleSubmit()}>
+                <Button
+                  stretched
+                  disabled={creationBinding == null || submitLoading}
+                  onClick={() => void handleSubmit()}
+                >
                   {submitLoading ? 'Создаем...' : 'Готово'}
                 </Button>
               </div>

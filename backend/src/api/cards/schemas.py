@@ -11,8 +11,14 @@ from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 
 
 class CardCreateRequest(BaseModel):
-    film_id: int = Field(..., ge=1)
-    kinopoisk_id: int = Field(..., ge=1)
+    """Create a card: exactly one of film-backed, ``catalog_item_id``, or manual ``display_title``."""
+
+    film_id: int | None = Field(default=None, ge=1)
+    kinopoisk_id: int | None = Field(default=None, ge=1)
+    catalog_item_id: int | None = Field(default=None, ge=1)
+    display_title: str | None = Field(default=None, max_length=255)
+    display_cover_url: str | None = Field(default=None, max_length=2048)
+    display_summary: str | None = None
     genres: list[str] = Field(default_factory=list, max_length=20)
     rating: float = Field(..., ge=1, le=10, multiple_of=0.5)
     company: CardCompany
@@ -23,10 +29,28 @@ class CardCreateRequest(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
+    @model_validator(mode='after')
+    def validate_create_mode(self) -> CardCreateRequest:
+        has_film = self.film_id is not None
+        has_catalog = self.catalog_item_id is not None
+        title = (self.display_title or '').strip()
+        is_manual = not has_film and not has_catalog and bool(title)
+        n = int(has_film) + int(has_catalog) + int(is_manual)
+        if n != 1:
+            raise ValueError(
+                'exactly one of film_id (with kinopoisk_id), catalog_item_id, or non-empty '
+                'display_title (manual card) must be provided',
+            )
+        if has_film and self.kinopoisk_id is None:
+            raise ValueError('kinopoisk_id is required when film_id is set')
+        return self
+
 
 class CardResponse(BaseModel):
     id: int
-    film_id: int
+    film_id: int | None = None
+    catalog_item_id: int | None = None
+    display_title: str
     rating: float
     company: CardCompany
     mood_before: CardMoodBefore
@@ -77,12 +101,16 @@ class CardDetailResponse(BaseModel):
     id: int
     user_id: UUID
     card_author: MovieCardCommentAuthorResponse
-    film_id: int
-    film_kinopoisk_id: int
+    film_id: int | None = None
+    film_kinopoisk_id: int | None = None
     film_genres: list[str] = Field(default_factory=list)
     film_title: str
     film_year: int | None
     film_poster_url: str | None
+    catalog_item_id: int | None = None
+    display_title: str
+    display_cover_url: str | None = None
+    display_summary: str | None = None
     rating: float
     company: CardCompany
     mood_before: CardMoodBefore

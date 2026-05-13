@@ -342,12 +342,16 @@ class MovieCardFeedItem:
     id: int
     user_id: UUID
     card_author: MovieCardCommentAuthor
-    film_id: int
-    film_kinopoisk_id: int
+    film_id: int | None
+    film_kinopoisk_id: int | None
     film_genres: list[str]
     film_title: str
     film_year: int | None
     film_poster_url: str | None
+    catalog_item_id: int | None
+    display_title: str
+    display_cover_url: str | None
+    display_summary: str | None
     rating: float
     company: str
     mood_before: str
@@ -705,7 +709,12 @@ class ListMovieCardFeedService:
                 .limit(const.feed.STREAM_POOL_LIMIT)
             )
             rows = (await self._session.execute(q)).all()
-            return [(int(r[0]), r[1], int(r[2])) for r in rows]
+            out: list[tuple[int, UUID, int]] = []
+            for r in rows:
+                fid = r[2]
+                tail_fid = int(fid) if fid is not None else -1
+                out.append((int(r[0]), r[1], tail_fid))
+            return out
 
         if following_ids:
             sub_cards = await _ordered_cards(MovieCard.user_id.in_(following_ids))
@@ -895,12 +904,12 @@ class ListMovieCardFeedService:
 
     async def _load_card_rows_ordered(
         self, ordered_ids: list[int]
-    ) -> list[tuple[MovieCard, Film, User]]:
+    ) -> list[tuple[MovieCard, Film | None, User]]:
         if not ordered_ids:
             return []
         q = (
             select(MovieCard, Film, User)
-            .join(Film, Film.id == MovieCard.film_id)
+            .outerjoin(Film, Film.id == MovieCard.film_id)
             .join(User, User.id == MovieCard.user_id)
             .where(MovieCard.id.in_(ordered_ids))
         )
@@ -911,7 +920,7 @@ class ListMovieCardFeedService:
     async def _hydrate_feed_items(
         self,
         viewer_user_id: UUID,
-        visible_rows: list[tuple[MovieCard, Film, User]],
+        visible_rows: list[tuple[MovieCard, Film | None, User]],
         source_by_id: dict[int, const.feed.StreamName],
     ) -> list[MovieCardFeedItem]:
         card_ids = [card.id for card, _film, _author in visible_rows]
@@ -1058,6 +1067,12 @@ class ListMovieCardFeedService:
         items: list[MovieCardFeedItem] = []
         for card, film, card_author_user in visible_rows:
             preview_with_rx = previews_resolved.get(card.id, [])
+            display_title = (card.display_title or '').strip()
+            if not display_title and film is not None:
+                display_title = (film.title or '').strip()
+            if not display_title:
+                display_title = 'Untitled'
+            film_title_dep = film.title if film is not None else display_title
             items.append(
                 MovieCardFeedItem(
                     id=card.id,
@@ -1071,12 +1086,16 @@ class ListMovieCardFeedService:
                         photo_url=card_author_user.photo_url,
                         display_name=card_author_user.display_name,
                     ),
-                    film_id=film.id,
-                    film_kinopoisk_id=film.kinopoisk_id,
-                    film_genres=list(film.genres or []),
-                    film_title=film.title,
-                    film_year=film.year,
-                    film_poster_url=film.poster_url,
+                    film_id=film.id if film is not None else None,
+                    film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
+                    film_genres=list(film.genres or []) if film is not None else [],
+                    film_title=film_title_dep,
+                    film_year=film.year if film is not None else None,
+                    film_poster_url=film.poster_url if film is not None else None,
+                    catalog_item_id=card.catalog_item_id,
+                    display_title=display_title,
+                    display_cover_url=card.display_cover_url,
+                    display_summary=card.display_summary,
                     rating=float(card.rating),
                     company=card.company,
                     mood_before=card.mood_before,
@@ -1124,11 +1143,11 @@ class ListMovieCardFeedService:
             for fp, _ in by_id.values()
             if fp.referenced_movie_card_id
         ]
-        ref_by_cid: dict[int, tuple[MovieCard, Film]] = {}
+        ref_by_cid: dict[int, tuple[MovieCard, Film | None]] = {}
         if ref_cids:
             rq = (
                 select(MovieCard, Film)
-                .join(Film, Film.id == MovieCard.film_id)
+                .outerjoin(Film, Film.id == MovieCard.film_id)
                 .where(MovieCard.id.in_(ref_cids))
             )
             for card, film in (await self._session.execute(rq)).all():
@@ -1144,11 +1163,16 @@ class ListMovieCardFeedService:
             rid = fp.referenced_movie_card_id
             if rid is not None and int(rid) in ref_by_cid:
                 mc, fl = ref_by_cid[int(rid)]
+                ref_title = (
+                    str(fl.title)
+                    if fl is not None
+                    else ((mc.display_title or '').strip() or 'Untitled')
+                )
                 ref_snippet = FeedPostReferencedCardSnippet(
                     movie_card_id=int(mc.id),
-                    film_title=str(fl.title),
-                    film_year=fl.year,
-                    film_poster_url=fl.poster_url,
+                    film_title=ref_title,
+                    film_year=fl.year if fl is not None else None,
+                    film_poster_url=fl.poster_url if fl is not None else None,
                     rating=float(mc.rating),
                 )
             author = MovieCardCommentAuthor(

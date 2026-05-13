@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { ApiError, formatApiDetail } from '../../api/client'
 import { getUserMovieCardStats } from '../../api/profileApi'
 import type { ProfileStatsMovieItem, UserMovieCardStats } from '../../api/profileTypes'
+import { profileStatsMoviePrimaryTitle } from '../../lib/movieCardDisplay'
 
 type ProfileStatsPanelProps = {
   userId: string
@@ -74,7 +75,7 @@ function MovieList({ items }: { items: ProfileStatsMovieItem[] }) {
               className="flex items-center justify-between gap-3 px-3 py-3 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color)"
             >
               <div className="min-w-0">
-                <p className="truncate text-(--tgui--text_color)">{movie.film_title}</p>
+                <p className="truncate text-(--tgui--text_color)">{profileStatsMoviePrimaryTitle(movie)}</p>
                 <p className="text-xs text-(--tgui--hint_color)">{movie.film_year ?? 'Год неизвестен'}</p>
               </div>
               <span className="shrink-0 text-lg font-semibold tabular-nums text-(--tgui--link_color)">

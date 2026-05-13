@@ -5,6 +5,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import type { WatchedInlinePickerItem } from '../../api/cardApi'
 import type { FeedPostInFeed } from '../../api/feedInFeedTypes'
+import {
+  feedPostReferencedCardPoster,
+  feedPostReferencedCardTitle,
+} from '../../lib/movieCardDisplay'
 import { createFeedPostComment, listAllFeedPostComments } from '../../api/feedPostApi'
 import type { FeedPostComment, ReactionSummary, ReferencedMentionSnippet } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
@@ -194,6 +198,11 @@ export function FeedPostCard({
     source_comment_id,
     source_comment: sourceCommentQuote,
   } = post
+
+  const referencedCardPoster =
+    referenced_card != null ? feedPostReferencedCardPoster(referenced_card) : null
+  const referencedCardTitle =
+    referenced_card != null ? feedPostReferencedCardTitle(referenced_card) : ''
 
   const name = useMemo(() => displayNameFromAuthorFields(author), [author])
   const postHref = `/feed-posts/${id}`
@@ -759,8 +768,8 @@ export function FeedPostCard({
               className="flex min-w-0 gap-2.5 rounded-xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] p-2 no-underline transition-[border-color,box-shadow] active:opacity-95 hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_28%,var(--tgui--divider_color))]"
             >
               <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)">
-                {referenced_card.film_poster_url ? (
-                  <img src={referenced_card.film_poster_url} alt="" className="h-full w-full object-cover" />
+                {referencedCardPoster ? (
+                  <img src={referencedCardPoster} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[9px] text-(--tgui--hint_color)">
                     н/д
@@ -770,9 +779,12 @@ export function FeedPostCard({
               <div className="min-w-0 flex-1 py-0.5">
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <p className="line-clamp-2 min-w-0 flex-1 text-[13px] font-semibold leading-snug text-(--tgui--text_color)">
-                    {referenced_card.film_title}
+                    {referencedCardTitle}
                     {referenced_card.film_year != null ? (
-                      <span className="font-normal text-(--tgui--hint_color)"> · {referenced_card.film_year}</span>
+                      <span className="font-normal text-(--tgui--hint_color)">
+                        {' '}
+                        · {referenced_card.film_year}
+                      </span>
                     ) : null}
                   </p>
                   <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-(--tgui--text_color)">

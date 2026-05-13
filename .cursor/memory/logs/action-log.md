@@ -17,6 +17,11 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-13T200600Z-abstract-user-cards-docs.md`
+- `2026-05-13T200500Z-abstract-user-cards-test.md`
+- `2026-05-13T193500Z-abstract-user-cards-code.md`
+- `2026-05-13T191000Z-abstract-user-cards-code.md`
+- `2026-05-13T180000Z-abstract-user-cards-code.md`
 - `2026-05-13T171000Z-abstract-user-cards-code.md`
 - `2026-05-13T160000Z-abstract-user-cards-code.md`
 - `2026-05-13T140000Z-abstract-user-cards-plan.md`

@@ -63,19 +63,36 @@ class ListFollowingRatingsForMovieCardService:
             raise MovieCardAnchorNotFoundError()
 
         film_id = anchor.film_id
+        catalog_id = anchor.catalog_item_id
         owner_id = anchor.user_id
 
         viewer_row: FollowingRatingRow | None = None
         if viewer_user_id != owner_id:
-            viewer_stmt = (
-                select(User, MovieCard.rating, MovieCard.id)
-                .join(MovieCard, MovieCard.user_id == User.id)
-                .where(MovieCard.film_id == film_id)
-                .where(MovieCard.user_id == viewer_user_id)
-                .order_by(MovieCard.id.desc())
-                .limit(1)
-            )
-            vr = (await self._session.execute(viewer_stmt)).one_or_none()
+            if film_id is not None:
+                viewer_stmt = (
+                    select(User, MovieCard.rating, MovieCard.id)
+                    .join(MovieCard, MovieCard.user_id == User.id)
+                    .where(MovieCard.film_id == film_id)
+                    .where(MovieCard.user_id == viewer_user_id)
+                    .order_by(MovieCard.id.desc())
+                    .limit(1)
+                )
+            elif catalog_id is not None:
+                viewer_stmt = (
+                    select(User, MovieCard.rating, MovieCard.id)
+                    .join(MovieCard, MovieCard.user_id == User.id)
+                    .where(MovieCard.catalog_item_id == catalog_id)
+                    .where(MovieCard.user_id == viewer_user_id)
+                    .order_by(MovieCard.id.desc())
+                    .limit(1)
+                )
+            else:
+                viewer_stmt = None
+
+            if viewer_stmt is not None:
+                vr = (await self._session.execute(viewer_stmt)).one_or_none()
+            else:
+                vr = None
             if vr is not None:
                 u, rating, movie_card_id = vr
                 viewer_row = FollowingRatingRow(
@@ -90,6 +107,13 @@ class ListFollowingRatingsForMovieCardService:
                     rating=float(rating),
                 )
 
+        if film_id is not None:
+            match_on_film = MovieCard.film_id == film_id
+        elif catalog_id is not None:
+            match_on_film = MovieCard.catalog_item_id == catalog_id
+        else:
+            return ListFollowingRatingsResult(viewer_row=viewer_row, items=[])
+
         stmt = (
             select(User, MovieCard.rating, MovieCard.id)
             .join(MovieCard, MovieCard.user_id == User.id)
@@ -98,7 +122,7 @@ class ListFollowingRatingsForMovieCardService:
                 (UserSubscription.following_user_id == MovieCard.user_id)
                 & (UserSubscription.follower_user_id == viewer_user_id),
             )
-            .where(MovieCard.film_id == film_id)
+            .where(match_on_film)
             .where(MovieCard.user_id != viewer_user_id)
             .where(MovieCard.user_id != owner_id)
             .order_by(MovieCard.rating.desc(), MovieCard.id.desc())

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
+from models.catalog_item import CatalogItem
 from models.film import Film
 from models.movie_card import MovieCard
 from models.reaction_type import ReactionType
@@ -75,6 +76,28 @@ async def _create_film(
         return film
 
 
+async def _catalog_item_id_for_film_id(film_id: int) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        existing = (
+            await session.execute(
+                select(CatalogItem.id).where(CatalogItem.film_id == film_id)
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            return int(existing)
+        film = (await session.execute(select(Film).where(Film.id == film_id))).scalar_one()
+        ci = CatalogItem(
+            provider='kinopoisk',
+            external_id=str(film.kinopoisk_id),
+            film_id=film.id,
+        )
+        session.add(ci)
+        await session.commit()
+        await session.refresh(ci)
+        return int(ci.id)
+
+
 @pytest.mark.asyncio
 async def test_create_card_requires_auth(async_client: AsyncClient) -> None:
     film = await _create_film()
@@ -116,6 +139,7 @@ async def test_create_card_success(async_client: AsyncClient) -> None:
     assert body['film_id'] == film.id
     assert body['rating'] == 7.5
     assert body['custom_tags'] == ['IMAX', 'Пятница']
+    assert body['display_title'] == film.title
 
 
 @pytest.mark.asyncio
@@ -127,6 +151,76 @@ async def test_create_card_duplicate_returns_409(async_client: AsyncClient) -> N
         'kinopoisk_id': film.kinopoisk_id,
         'genres': ['комедия'],
         'rating': 8.0,
+        'company': 'family',
+        'mood_before': 'relax',
+        'mood_after': 'enjoyed',
+        'custom_tags': [],
+    }
+    first = await async_client.post('/api/cards', json=payload)
+    assert first.status_code == 200
+    second = await async_client.post('/api/cards', json=payload)
+    assert second.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_create_manual_movie_card_without_film(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=760010)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': '',
+            'display_title': '  Кастомный спектакль  ',
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['film_id'] is None
+    assert body['catalog_item_id'] is None
+    assert body['display_title'] == 'Кастомный спектакль'
+
+
+@pytest.mark.asyncio
+async def test_get_manual_movie_card_detail_includes_display_and_legacy_fields(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=760011)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'rating': 6.0,
+            'company': 'partner',
+            'mood_before': 'thrill',
+            'mood_after': 'tense',
+            'custom_tags': [],
+            'watch_note': 'note',
+            'display_title': 'Manual title',
+        },
+    )
+    assert created.status_code == 200
+    cid = int(created.json()['id'])
+    detail = await async_client.get(f'/api/cards/{cid}')
+    assert detail.status_code == 200
+    d = detail.json()
+    assert d['display_title'] == 'Manual title'
+    assert d['film_title'] == 'Manual title'
+    assert d['film_id'] is None
+    assert d['catalog_item_id'] is None
+
+
+@pytest.mark.asyncio
+async def test_create_card_by_catalog_item_id_duplicate_returns_409(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=760012)
+    film = await _create_film(kinopoisk_id=770012)
+    cat_id = await _catalog_item_id_for_film_id(film.id)
+    payload = {
+        'catalog_item_id': cat_id,
+        'genres': list(film.genres or []),
+        'rating': 7.0,
         'company': 'family',
         'mood_before': 'relax',
         'mood_after': 'enjoyed',
@@ -1350,9 +1444,12 @@ async def test_resolve_film_invalid_url(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_card_model_uses_unique_user_film_pair() -> None:
-    constraints = {constraint.name for constraint in MovieCard.__table__.constraints}
-    assert 'uq_movie_card_user_film' in constraints
+async def test_card_model_uses_partial_unique_indexes_for_film_and_catalog() -> None:
+    constraint_names = {c.name for c in MovieCard.__table__.constraints}
+    assert 'uq_movie_card_user_film' not in constraint_names
+    index_names = {ix.name for ix in MovieCard.__table__.indexes}
+    assert 'uq_movie_card_user_film_id_partial' in index_names
+    assert 'uq_movie_card_user_catalog_item_id_partial' in index_names
 
 
 @pytest.mark.asyncio
