@@ -17,6 +17,9 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-13T171000Z-abstract-user-cards-code.md`
+- `2026-05-13T160000Z-abstract-user-cards-code.md`
+- `2026-05-13T140000Z-abstract-user-cards-plan.md`
 - `2026-05-12T160000Z-film-catalog-community-view-code.md`
 - `2026-05-13T120000Z-engagement-telegram-feed-comments-code.md`
 - `2026-05-12T140000Z-comment-draft-caret-alignment-code.md`

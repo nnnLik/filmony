@@ -11,7 +11,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
-    UniqueConstraint,
+    Text,
     Uuid,
     false,
     func,
@@ -29,12 +29,22 @@ class MovieCard(Base):
         nullable=False,
         index=True,
     )
-    film_id: Mapped[int] = mapped_column(
+    film_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey('film.id', ondelete='CASCADE'),
-        nullable=False,
+        nullable=True,
         index=True,
     )
+    catalog_item_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey('catalog_item.id', ondelete='RESTRICT'),
+        nullable=True,
+        index=True,
+    )
+    display_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    display_cover_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    display_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     rating: Mapped[float] = mapped_column(Float, nullable=False)
     company: Mapped[str] = mapped_column(String(32), nullable=False)
     mood_before: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -62,7 +72,20 @@ class MovieCard(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'film_id', name='uq_movie_card_user_film'),
+        Index(
+            'uq_movie_card_user_catalog_item_id_partial',
+            'user_id',
+            'catalog_item_id',
+            unique=True,
+            postgresql_where=text('catalog_item_id IS NOT NULL'),
+        ),
+        Index(
+            'uq_movie_card_user_film_id_partial',
+            'user_id',
+            'film_id',
+            unique=True,
+            postgresql_where=text('film_id IS NOT NULL'),
+        ),
         Index(
             'ix_movie_card_user_id_created_at_id',
             'user_id',
