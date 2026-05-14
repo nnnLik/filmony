@@ -1,0 +1,26 @@
+---
+description: Domain naming, reactions, catalog_item provider XOR, migrations awareness
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend domain integrity
+
+## Naming vocabulary
+
+- Prefer consistent domain names matching models and public API: **`UserCard`**, **`CardComment`**, **`CardTag`** (and related enums/tables). Avoid legacy-only names (`MovieCard`, etc.) in new code, APIs, and migrations unless a compatibility shim is explicitly required.
+
+## Polymorphic reactions
+
+- **`user_reaction` (and target kinds)** must stay internally consistent: target type discriminator, foreign keys/nullability, and invariants enforced in one place (model helpers, service pre-checks, or DB constraints as appropriate). Adding a new target kind requires updating all relevant enums, indexes, and reaction aggregation paths so summaries and toggles cannot point at orphaned or ambiguous targets.
+
+**Bad:** a reaction row whose `target_kind` does not match the set non-null FK column; API accepts a target id without validating it exists for that kind.
+
+## Catalog and `catalog_item` / providers
+
+- **`catalog_item` (and related catalog rows)** must satisfy **provider exclusivity**: fields that identify the upstream source should be **mutually consistent** — e.g. exactly one provider identity or a documented XOR between provider key columns (no ambiguous double-assignment). Enforce in services on write and, where possible, with DB checks or constraints in **migrations** under `backend/src/migrations/versions/`.
+- When introducing provider-specific tables (e.g. games vs films), keep **`catalog_item` as the stable join surface** and document which provider fields must be populated for each type.
+
+**Good:** migration adds `CHECK` or partial unique index mirroring the XOR rule the service already validates.
+
+**Bad:** both “local only” and “external provider id” set, or neither set, without a defined default row state.

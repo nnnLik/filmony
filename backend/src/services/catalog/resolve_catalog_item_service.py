@@ -6,8 +6,9 @@ from typing import Self
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.catalog_item import CatalogItem
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from services.catalog.ttl_coalescing_cache import CATALOG_RESOLVE_IDS_CACHE
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 
 
@@ -32,20 +33,39 @@ class ResolveCatalogItemService:
             _resolve_kinopoisk_film=ResolveKinopoiskFilmService(session),
         )
 
-    async def execute(self, *, provider: str, url: str) -> tuple[CatalogItem, Film]:
-        key = provider.strip().lower()
-        if key == 'kinopoisk':
-            film = await self._resolve_kinopoisk_film.execute(url)
-            item = await self._ensure_kinopoisk_catalog_item(film)
-            return item, film
-        raise self.UnsupportedCatalogProviderError
+    async def _catalog_pair_ids(self, *, url: str) -> tuple[int, int]:
+        film = await self._resolve_kinopoisk_film.execute(url)
+        item = await self._ensure_kinopoisk_catalog_item(film)
+        return item.id, film.id
+
+    async def execute(self, *, provider: CatalogProvider, url: str) -> tuple[CatalogItem, Film]:
+        if provider is CatalogProvider.no_provider:
+            raise self.UnsupportedCatalogProviderError
+        if provider is not CatalogProvider.kinopoisk:
+            raise self.UnsupportedCatalogProviderError
+
+        key = f'catalog:resolve:{provider.value}:{url.strip()}'
+        c_id, f_id = await CATALOG_RESOLVE_IDS_CACHE.get_or_fetch(
+            key,
+            lambda: self._catalog_pair_ids(url=url),
+        )
+        item = await self._session.get(CatalogItem, c_id)
+        film = await self._session.get(Film, f_id)
+        if item is None or film is None:
+            return await self._execute_uncached(url)
+        return item, film
+
+    async def _execute_uncached(self, url: str) -> tuple[CatalogItem, Film]:
+        film = await self._resolve_kinopoisk_film.execute(url)
+        item = await self._ensure_kinopoisk_catalog_item(film)
+        return item, film
 
     async def _ensure_kinopoisk_catalog_item(self, film: Film) -> CatalogItem:
         external_id = str(film.kinopoisk_id)
         existing = (
             await self._session.execute(
                 select(CatalogItem).where(
-                    CatalogItem.provider == 'kinopoisk',
+                    CatalogItem.provider == CatalogProvider.kinopoisk,
                     CatalogItem.external_id == external_id,
                 )
             )
@@ -58,7 +78,7 @@ class ResolveCatalogItemService:
             return existing
 
         item = CatalogItem(
-            provider='kinopoisk',
+            provider=CatalogProvider.kinopoisk,
             external_id=external_id,
             film_id=film.id,
         )

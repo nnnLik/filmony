@@ -1,4 +1,5 @@
 import type { MovieCard, ProfileStatsMovieItem } from '../api/profileTypes'
+import { kinopoiskNumericIdFromCard } from './openExternalUrl'
 import type { FeedPostReferencedCard } from '../api/feedInFeedTypes'
 
 /** Primary title: user-owned display field first, then legacy film title. */
@@ -31,9 +32,10 @@ export function movieCardPrimarySummary(
   return card.film_short_description ?? card.film_description ?? null
 }
 
-export function movieCardHasKinopoiskLink(card: Pick<MovieCard, 'film_kinopoisk_id'>): boolean {
-  const id = card.film_kinopoisk_id
-  return typeof id === 'number' && id > 0
+export function movieCardHasKinopoiskLink(
+  card: Pick<MovieCard, 'film_kinopoisk_id' | 'provider' | 'external_id'>,
+): boolean {
+  return kinopoiskNumericIdFromCard(card.film_kinopoisk_id, card.provider, card.external_id) != null
 }
 
 export function feedPostReferencedCardTitle(ref: FeedPostReferencedCard): string {

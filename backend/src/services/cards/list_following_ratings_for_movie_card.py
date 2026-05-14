@@ -8,8 +8,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
 from models.user import User
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 
 FOLLOWING_RATINGS_TOP_LIMIT = 5
@@ -57,7 +57,7 @@ class ListFollowingRatingsForMovieCardService:
         self, viewer_user_id: UUID, anchor_card_id: int
     ) -> ListFollowingRatingsResult:
         anchor = (
-            await self._session.execute(select(MovieCard).where(MovieCard.id == anchor_card_id))
+            await self._session.execute(select(UserCard).where(UserCard.id == anchor_card_id))
         ).scalar_one_or_none()
         if anchor is None:
             raise MovieCardAnchorNotFoundError()
@@ -70,20 +70,20 @@ class ListFollowingRatingsForMovieCardService:
         if viewer_user_id != owner_id:
             if film_id is not None:
                 viewer_stmt = (
-                    select(User, MovieCard.rating, MovieCard.id)
-                    .join(MovieCard, MovieCard.user_id == User.id)
-                    .where(MovieCard.film_id == film_id)
-                    .where(MovieCard.user_id == viewer_user_id)
-                    .order_by(MovieCard.id.desc())
+                    select(User, UserCard.rating, UserCard.id)
+                    .join(UserCard, UserCard.user_id == User.id)
+                    .where(UserCard.film_id == film_id)
+                    .where(UserCard.user_id == viewer_user_id)
+                    .order_by(UserCard.id.desc())
                     .limit(1)
                 )
             elif catalog_id is not None:
                 viewer_stmt = (
-                    select(User, MovieCard.rating, MovieCard.id)
-                    .join(MovieCard, MovieCard.user_id == User.id)
-                    .where(MovieCard.catalog_item_id == catalog_id)
-                    .where(MovieCard.user_id == viewer_user_id)
-                    .order_by(MovieCard.id.desc())
+                    select(User, UserCard.rating, UserCard.id)
+                    .join(UserCard, UserCard.user_id == User.id)
+                    .where(UserCard.catalog_item_id == catalog_id)
+                    .where(UserCard.user_id == viewer_user_id)
+                    .order_by(UserCard.id.desc())
                     .limit(1)
                 )
             else:
@@ -108,24 +108,24 @@ class ListFollowingRatingsForMovieCardService:
                 )
 
         if film_id is not None:
-            match_on_film = MovieCard.film_id == film_id
+            match_on_film = UserCard.film_id == film_id
         elif catalog_id is not None:
-            match_on_film = MovieCard.catalog_item_id == catalog_id
+            match_on_film = UserCard.catalog_item_id == catalog_id
         else:
             return ListFollowingRatingsResult(viewer_row=viewer_row, items=[])
 
         stmt = (
-            select(User, MovieCard.rating, MovieCard.id)
-            .join(MovieCard, MovieCard.user_id == User.id)
+            select(User, UserCard.rating, UserCard.id)
+            .join(UserCard, UserCard.user_id == User.id)
             .join(
                 UserSubscription,
-                (UserSubscription.following_user_id == MovieCard.user_id)
+                (UserSubscription.following_user_id == UserCard.user_id)
                 & (UserSubscription.follower_user_id == viewer_user_id),
             )
             .where(match_on_film)
-            .where(MovieCard.user_id != viewer_user_id)
-            .where(MovieCard.user_id != owner_id)
-            .order_by(MovieCard.rating.desc(), MovieCard.id.desc())
+            .where(UserCard.user_id != viewer_user_id)
+            .where(UserCard.user_id != owner_id)
+            .order_by(UserCard.rating.desc(), UserCard.id.desc())
             .limit(FOLLOWING_RATINGS_TOP_LIMIT)
         )
         rows = (await self._session.execute(stmt)).all()

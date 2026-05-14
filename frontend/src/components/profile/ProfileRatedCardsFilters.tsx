@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
 
-import { getUserMovieCardTags } from '../../api/profileApi'
+import { getMyCardCategories, getUserMovieCardTags } from '../../api/profileApi'
 import type { ProfileCardsSort } from '../../api/profileApi'
 import type {
   CardCompany,
@@ -11,9 +11,10 @@ import type {
   CardMoodBefore,
   MyMovieCardTagStatItem,
   MyMovieCardTagStatsResponse,
+  MyUserCardCategoryListResponse,
 } from '../../api/profileTypes'
 import { ApiError, formatApiDetail } from '../../api/client'
-import { userMovieCardTagStatsQueryKey } from '../../feed/feedQueryKeys'
+import { userMovieCardTagStatsQueryKey, myCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
 import {
   DEFAULT_RATED_CARDS_QUERY,
   type RatedCardsListQuery,
@@ -70,9 +71,19 @@ type ProfileRatedCardsFiltersProps = {
   profileUserId: string
   cardsQuery: RatedCardsListQuery
   onChange: (next: RatedCardsListQuery) => void
+  /**
+   * При `true`: показывает фильтр по полкам и грузит `GET /api/me/card-categories`
+   * (имеет смысл только если список — ваш профиль; иначе id полок недоступны).
+   */
+  enableCategoryFilter?: boolean
 }
 
-export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }: ProfileRatedCardsFiltersProps) {
+export function ProfileRatedCardsFilters({
+  profileUserId,
+  cardsQuery,
+  onChange,
+  enableCategoryFilter = false,
+}: ProfileRatedCardsFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const tagsQuery = useQuery<MyMovieCardTagStatsResponse>({
@@ -88,6 +99,21 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
     placeholderData: (): MyMovieCardTagStatsResponse | undefined =>
       readCachedUserMovieCardTagStats(profileUserId) ?? undefined,
   })
+
+  const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
+    queryKey: myCardCategoriesQueryKey(),
+    queryFn: getMyCardCategories,
+    enabled: enableCategoryFilter,
+    staleTime: 60_000,
+    gcTime: 30 * 60_000,
+  })
+
+  const shelfItems = shelvesQuery.data?.items ?? []
+  const shelvesErr: string | null = enableCategoryFilter && shelvesQuery.isError
+    ? shelvesQuery.error instanceof ApiError
+      ? formatApiDetail(shelvesQuery.error.detail)
+      : 'Не удалось загрузить полки'
+    : null
 
   const tagItems: MyMovieCardTagStatItem[] = tagsQuery.data?.items ?? []
   const tagsErr: string | null = tagsQuery.isError
@@ -187,6 +213,30 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
               ))}
             </select>
           </label>
+
+          {enableCategoryFilter ? (
+            <label className="block text-xs font-medium text-(--tgui--hint_color)">
+              Полка
+              <select
+                className={`${SELECT_CLASS} mt-1`}
+                value={cardsQuery.categoryId}
+                onChange={(e) => onChange({ ...cardsQuery, categoryId: e.currentTarget.value })}
+                aria-label="Фильтр: полка"
+              >
+                <option value="">Все полки</option>
+                {shelfItems.map((row) => (
+                  <option key={row.id} value={String(row.id)}>
+                    {row.name}
+                  </option>
+                ))}
+              </select>
+              {shelvesErr != null ? (
+                <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{shelvesErr}</p>
+              ) : shelvesQuery.isLoading && shelfItems.length === 0 ? (
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка полок…</p>
+              ) : null}
+            </label>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-2">
             <label className="text-xs font-medium text-(--tgui--hint_color)">

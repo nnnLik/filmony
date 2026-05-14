@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.feed_post import FeedPost
 from models.film import Film
-from models.movie_card import MovieCard
 from models.user import User
+from models.user_card import UserCard
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.cards.list_movie_card_feed import (
     FeedPostFeedItem,
@@ -98,14 +98,14 @@ class ListUserFeedPostsService:
             return UserFeedPostsPage(items=[], next_cursor=None)
 
         ref_cids = [
-            int(fp.referenced_movie_card_id) for fp, _ in slice_rows if fp.referenced_movie_card_id
+            int(fp.referenced_card_id) for fp, _ in slice_rows if fp.referenced_card_id
         ]
-        ref_by_cid: dict[int, tuple[MovieCard, Film]] = {}
+        ref_by_cid: dict[int, tuple[UserCard, Film]] = {}
         if ref_cids:
             rq = (
-                select(MovieCard, Film)
-                .join(Film, Film.id == MovieCard.film_id)
-                .where(MovieCard.id.in_(ref_cids))
+                select(UserCard, Film)
+                .join(Film, Film.id == UserCard.film_id)
+                .where(UserCard.id.in_(ref_cids))
             )
             for card, film in (await self._session.execute(rq)).all():
                 ref_by_cid[int(card.id)] = (card, film)
@@ -113,7 +113,7 @@ class ListUserFeedPostsService:
         items: list[FeedPostFeedItem] = []
         for fp, author_user in slice_rows:
             ref_snippet: FeedPostReferencedCardSnippet | None = None
-            rid = fp.referenced_movie_card_id
+            rid = fp.referenced_card_id
             if rid is not None and int(rid) in ref_by_cid:
                 mc, fl = ref_by_cid[int(rid)]
                 ref_snippet = FeedPostReferencedCardSnippet(

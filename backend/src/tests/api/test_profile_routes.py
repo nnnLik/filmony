@@ -6,10 +6,12 @@ from httpx import AsyncClient
 
 from conf import settings
 from core.database import get_session_factory
+from models.card_tag import CardTag
+from models.catalog_item import CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
+from models.user_card import UserCard
 from tests.auth.telegram_init_data import build_init_data
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, object]:
@@ -42,9 +44,13 @@ async def _seed_movie_card(
         )
         session.add(film)
         await session.flush()
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(kinopoisk_id),
             rating=rating,
             company=company,
             mood_before=mood_before,
@@ -53,7 +59,7 @@ async def _seed_movie_card(
         session.add(card)
         await session.flush()
         for tag in tags:
-            session.add(MovieCardTag(movie_card_id=card.id, tag=tag))
+            session.add(CardTag(card_id=card.id, tag=tag))
         await session.commit()
         return card.id
 
@@ -717,3 +723,65 @@ async def test_list_user_cards_rating_pagination_cursor(async_client: AsyncClien
     ids_page1 = {x['id'] for x in body1['items']}
     ids_page2 = {x['id'] for x in second.json()['items']}
     assert ids_page1.isdisjoint(ids_page2)
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_filter_by_category_id(async_client: AsyncClient) -> None:
+    from tests.api.test_cards_routes import _create_film as create_film
+
+    me = await _login(async_client, telegram_user_id=5209)
+    new_cat = await async_client.post('/api/me/card-categories', json={'name': 'ShelfAnime'})
+    assert new_cat.status_code == 200
+    anime_id = new_cat.json()['id']
+
+    f1 = await create_film(kinopoisk_id=5209001)
+    f2 = await create_film(kinopoisk_id=5209002)
+    r1 = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': f1.id,
+            'kinopoisk_id': f1.kinopoisk_id,
+            'genres': [],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r1.status_code == 200
+    r2 = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': f2.id,
+            'kinopoisk_id': f2.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'category_id': anime_id,
+        },
+    )
+    assert r2.status_code == 200
+
+    all_cards = await async_client.get(f'/api/users/{me["id"]}/cards', params={'limit': 50})
+    assert all_cards.status_code == 200
+    assert len(all_cards.json()['items']) == 2
+
+    filtered = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'category_id': anime_id, 'limit': 50},
+    )
+    assert filtered.status_code == 200
+    items = filtered.json()['items']
+    assert len(items) == 1
+    assert items[0]['id'] == r2.json()['id']
+    assert items[0]['category']['id'] == anime_id
+
+    bad = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'category_id': 9_999_888, 'limit': 10},
+    )
+    assert bad.status_code == 422

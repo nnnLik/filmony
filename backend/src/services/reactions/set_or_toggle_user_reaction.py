@@ -9,12 +9,12 @@ from uuid import UUID
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.card_comment import CardComment
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
 from models.reaction_target_kind import ReactionTargetKind
 from models.reaction_type import ReactionType
+from models.user_card import UserCard
 from models.user_reaction import UserReaction
 
 from .get_reaction_summaries_for_targets import GetReactionSummariesForTargetsService
@@ -72,10 +72,10 @@ class SetOrToggleUserReactionService:
     def _owner_id_select(self, payload: SetUserReactionInput) -> Select[Any]:
         tid = payload.target_id
         kind = payload.target_kind
-        if kind == ReactionTargetKind.MOVIE_CARD:
-            return select(MovieCard.user_id).where(MovieCard.id == tid)
-        if kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
-            return select(MovieCardComment.user_id).where(MovieCardComment.id == tid)
+        if kind == ReactionTargetKind.CARD:
+            return select(UserCard.user_id).where(UserCard.id == tid)
+        if kind == ReactionTargetKind.CARD_COMMENT:
+            return select(CardComment.user_id).where(CardComment.id == tid)
         if kind == ReactionTargetKind.FEED_POST_COMMENT:
             return select(FeedPostComment.user_id).where(FeedPostComment.id == tid)
         if kind == ReactionTargetKind.FEED_POST:
@@ -126,9 +126,9 @@ class SetOrToggleUserReactionService:
         feed_post_comments: list[int] = []
         feed_posts: list[int] = []
         tid = payload.target_id
-        if payload.target_kind == ReactionTargetKind.MOVIE_CARD:
+        if payload.target_kind == ReactionTargetKind.CARD:
             cards = [tid]
-        elif payload.target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+        elif payload.target_kind == ReactionTargetKind.CARD_COMMENT:
             comments = [tid]
         elif payload.target_kind == ReactionTargetKind.FEED_POST_COMMENT:
             feed_post_comments = [tid]

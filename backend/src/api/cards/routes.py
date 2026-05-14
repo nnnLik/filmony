@@ -30,6 +30,7 @@ from api.cards.schemas import (
     MovieCardFeedPageResponse,
     ShareCardRequest,
     ShareCardResponse,
+    UserCardCategorySnippet,
     WatchedInlinePickerListResponse,
     WatchedInlinePickerRowResponse,
 )
@@ -39,10 +40,11 @@ from celery_app import app as celery_application
 from const.feed import FeedMode
 from core.database import get_db
 from deps.auth import CurrentUser
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
-from models.movie_card_tag import MovieCardTag
+from models.card_comment import CardComment
+from models.card_tag import CardTag
 from models.user import User
+from models.user_card import UserCard
+from models.user_card_category import UserCardCategory
 from services.cards.create_movie_card import (
     CatalogItemNotFoundError,
     CreateMovieCardInput,
@@ -123,18 +125,33 @@ from services.reactions import GetReactionSummariesForTargetsService
 router = APIRouter(prefix='/cards', tags=['cards'])
 
 
-def _card_response_from_movie_card(card: MovieCard, tags: list[str]) -> CardResponse:
+async def _card_response_from_movie_card(
+    db: AsyncSession, card: UserCard, tags: list[str]
+) -> CardResponse:
     title = (card.display_title or '').strip() or 'Untitled'
+    cat = (
+        (
+            await db.execute(
+                select(UserCardCategory).where(UserCardCategory.id == card.category_id)
+            )
+        )
+        .scalar_one_or_none()
+    )
+    if cat is None:
+        raise RuntimeError('card category missing')
     return CardResponse(
         id=card.id,
         film_id=card.film_id,
         catalog_item_id=card.catalog_item_id,
+        provider=card.provider,
+        external_id=card.external_id,
         display_title=title,
         rating=float(card.rating),
         company=card.company,
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=list(tags),
+        category=UserCardCategorySnippet(id=cat.id, name=cat.name),
         is_favorite=bool(card.is_favorite),
     )
 
@@ -214,9 +231,9 @@ async def _load_comment_response(
 ) -> MovieCardCommentResponse:
     row = (
         await db.execute(
-            select(MovieCardComment, User)
-            .join(User, User.id == MovieCardComment.user_id)
-            .where(MovieCardComment.id == comment_id)
+            select(CardComment, User)
+            .join(User, User.id == CardComment.user_id)
+            .where(CardComment.id == comment_id)
         )
     ).one()
     comment, author = row
@@ -231,7 +248,7 @@ async def _load_comment_response(
     (mens,) = await batch_resolve_inline_mentions(db, [comment.text or ''])
     return MovieCardCommentResponse(
         id=comment.id,
-        movie_card_id=comment.movie_card_id,
+        movie_card_id=comment.card_id,
         parent_comment_id=comment.parent_comment_id,
         text=comment.text,
         image_url=comment.image_url,
@@ -291,6 +308,8 @@ async def create_card(
                 film_id=body.film_id,
                 kinopoisk_id=body.kinopoisk_id,
                 catalog_item_id=body.catalog_item_id,
+                provider=body.provider,
+                external_id=body.external_id,
                 genres=body.genres,
                 rating=body.rating,
                 company=body.company,
@@ -301,6 +320,7 @@ async def create_card(
                 display_title=(body.display_title or '').strip() or None,
                 display_cover_url=body.display_cover_url,
                 display_summary=body.display_summary,
+                category_id=body.category_id,
             ),
         )
     except FilmNotFoundError:
@@ -315,16 +335,16 @@ async def create_card(
     tags = (
         (
             await db.execute(
-                select(MovieCardTag.tag)
-                .where(MovieCardTag.movie_card_id == card.id)
-                .order_by(MovieCardTag.tag)
+                select(CardTag.tag)
+                .where(CardTag.card_id == card.id)
+                .order_by(CardTag.tag)
             )
         )
         .scalars()
         .all()
     )
     await bump_global_feed_head_version()
-    return _card_response_from_movie_card(card, list(tags))
+    return await _card_response_from_movie_card(db, card, list(tags))
 
 
 @router.get('/feed', response_model=MovieCardFeedPageResponse, summary='Лента карточек')
@@ -364,6 +384,8 @@ async def list_movie_card_feed(
                 film_year=item.film_year,
                 film_poster_url=item.film_poster_url,
                 catalog_item_id=item.catalog_item_id,
+                provider=item.provider,
+                external_id=item.external_id,
                 display_title=item.display_title,
                 display_cover_url=item.display_cover_url,
                 display_summary=item.display_summary,
@@ -373,6 +395,7 @@ async def list_movie_card_feed(
                 mood_after=item.mood_after,
                 custom_tags=item.custom_tags,
                 watch_note=item.watch_note,
+                category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
                 feed_source=item.feed_source,
                 reactions=reaction_target_summary_to_response(item.reactions),
                 comments_count=item.comments_count,
@@ -448,6 +471,8 @@ async def get_card(
         film_year=card.film_year,
         film_poster_url=card.film_poster_url,
         catalog_item_id=card.catalog_item_id,
+        provider=card.provider,
+        external_id=card.external_id,
         display_title=card.display_title,
         display_cover_url=card.display_cover_url,
         display_summary=card.display_summary,
@@ -459,6 +484,7 @@ async def get_card(
         mood_after=card.mood_after,
         custom_tags=card.custom_tags,
         watch_note=card.watch_note,
+        category=UserCardCategorySnippet(id=card.category_id, name=card.category_name),
         reactions=reaction_target_summary_to_response(card.reactions),
         is_favorite=card.is_favorite,
     )
@@ -487,6 +513,7 @@ async def patch_card(
                 custom_tags=body.custom_tags,
                 watch_note=body.watch_note,
                 is_favorite=body.is_favorite,
+                category_id=body.category_id,
             ),
         )
     except UpdateMovieCardNotFoundError:
@@ -499,15 +526,15 @@ async def patch_card(
     tags = (
         (
             await db.execute(
-                select(MovieCardTag.tag)
-                .where(MovieCardTag.movie_card_id == card.id)
-                .order_by(MovieCardTag.tag)
+                select(CardTag.tag)
+                .where(CardTag.card_id == card.id)
+                .order_by(CardTag.tag)
             )
         )
         .scalars()
         .all()
     )
-    return _card_response_from_movie_card(card, list(tags))
+    return await _card_response_from_movie_card(db, card, list(tags))
 
 
 @router.delete(
@@ -670,8 +697,8 @@ async def create_card_comment(
     if body.parent_comment_id is not None:
         parent_author_id = (
             await db.execute(
-                select(MovieCardComment.user_id).where(
-                    MovieCardComment.id == body.parent_comment_id
+                select(CardComment.user_id).where(
+                    CardComment.id == body.parent_comment_id
                 )
             )
         ).scalar_one_or_none()
@@ -679,7 +706,7 @@ async def create_card_comment(
             mention_recipients = [uid for uid in mention_recipients if uid != parent_author_id]
     else:
         card_owner_id = (
-            await db.execute(select(MovieCard.user_id).where(MovieCard.id == card_id))
+            await db.execute(select(UserCard.user_id).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card_owner_id is not None:
             mention_recipients = [uid for uid in mention_recipients if uid != card_owner_id]

@@ -31,7 +31,7 @@ class FeedPostResponse(BaseModel):
     user_id: UUID
     body: str
     image_url: str | None
-    referenced_movie_card_id: int | None
+    referenced_movie_card_id: int | None = Field(validation_alias='referenced_card_id')
     source_comment_id: int | None
     created_at: datetime
 

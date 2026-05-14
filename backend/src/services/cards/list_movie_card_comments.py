@@ -8,9 +8,9 @@ from sqlalchemy import Select, asc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
+from models.card_comment import CardComment
 from models.user import User
+from models.user_card import UserCard
 from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
 from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
@@ -73,7 +73,7 @@ class ListMovieCardCommentsService:
         flat: bool = False,
     ) -> MovieCardCommentPage:
         card_exists = (
-            await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
+            await self._session.execute(select(UserCard.id).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card_exists is None:
             raise MovieCardNotFoundError()
@@ -81,27 +81,27 @@ class ListMovieCardCommentsService:
         if parent_comment_id is not None:
             parent_card_id = (
                 await self._session.execute(
-                    select(MovieCardComment.movie_card_id).where(
-                        MovieCardComment.id == parent_comment_id
+                    select(CardComment.card_id).where(
+                        CardComment.id == parent_comment_id
                     )
                 )
             ).scalar_one_or_none()
             if parent_card_id is None or parent_card_id != card_id:
                 raise CommentNotFoundError()
 
-        query: Select[tuple[MovieCardComment, User]] = (
-            select(MovieCardComment, User)
-            .join(User, User.id == MovieCardComment.user_id)
-            .where(MovieCardComment.movie_card_id == card_id)
-            .order_by(asc(MovieCardComment.id))
+        query: Select[tuple[CardComment, User]] = (
+            select(CardComment, User)
+            .join(User, User.id == CardComment.user_id)
+            .where(CardComment.card_id == card_id)
+            .order_by(asc(CardComment.id))
             .limit(limit + 1)
         )
         if not flat and parent_comment_id is None:
-            query = query.where(MovieCardComment.parent_comment_id.is_(None))
+            query = query.where(CardComment.parent_comment_id.is_(None))
         elif parent_comment_id is not None:
-            query = query.where(MovieCardComment.parent_comment_id == parent_comment_id)
+            query = query.where(CardComment.parent_comment_id == parent_comment_id)
         if cursor is not None:
-            query = query.where(MovieCardComment.id > cursor)
+            query = query.where(CardComment.id > cursor)
 
         rows = (await self._session.execute(query)).all()
         has_more = len(rows) > limit
@@ -114,11 +114,11 @@ class ListMovieCardCommentsService:
             count_rows = (
                 await self._session.execute(
                     select(
-                        MovieCardComment.parent_comment_id,
-                        func.count(MovieCardComment.id),
+                        CardComment.parent_comment_id,
+                        func.count(CardComment.id),
                     )
-                    .where(MovieCardComment.parent_comment_id.in_(comment_ids))
-                    .group_by(MovieCardComment.parent_comment_id)
+                    .where(CardComment.parent_comment_id.in_(comment_ids))
+                    .group_by(CardComment.parent_comment_id)
                 )
             ).all()
             for parent_id, count in count_rows:
@@ -128,13 +128,13 @@ class ListMovieCardCommentsService:
 
             descendants_seed = (
                 select(
-                    MovieCardComment.id.label('root_id'),
-                    MovieCardComment.id.label('comment_id'),
+                    CardComment.id.label('root_id'),
+                    CardComment.id.label('comment_id'),
                 )
-                .where(MovieCardComment.id.in_(comment_ids))
+                .where(CardComment.id.in_(comment_ids))
                 .cte(name='descendants_seed', recursive=True)
             )
-            child_comment = aliased(MovieCardComment)
+            child_comment = aliased(CardComment)
             descendants_tree = descendants_seed.union_all(
                 select(
                     descendants_seed.c.root_id,
@@ -170,7 +170,7 @@ class ListMovieCardCommentsService:
         items = [
             MovieCardCommentItem(
                 id=comment.id,
-                movie_card_id=comment.movie_card_id,
+                movie_card_id=comment.card_id,
                 parent_comment_id=comment.parent_comment_id,
                 text=comment.text,
                 image_url=comment.image_url,

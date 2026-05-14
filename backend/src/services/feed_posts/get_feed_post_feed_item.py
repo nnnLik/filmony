@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.feed_post import FeedPost
 from models.film import Film
-from models.movie_card import MovieCard
 from models.user import User
+from models.user_card import UserCard
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.cards.list_movie_card_feed import (
     FeedPostFeedItem,
@@ -42,12 +42,12 @@ class GetFeedPostFeedItemService:
         fp, author_user = row
 
         ref_snippet: FeedPostReferencedCardSnippet | None = None
-        rid = fp.referenced_movie_card_id
+        rid = fp.referenced_card_id
         if rid is not None:
             rq = (
-                select(MovieCard, Film)
-                .join(Film, Film.id == MovieCard.film_id)
-                .where(MovieCard.id == int(rid))
+                select(UserCard, Film)
+                .join(Film, Film.id == UserCard.film_id)
+                .where(UserCard.id == int(rid))
             )
             ref_row = (await self._session.execute(rq)).one_or_none()
             if ref_row is not None:

@@ -17,12 +17,20 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy import (
+    Enum as SAEnum,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
+from .catalog_item import CatalogProvider
 
 
-class MovieCard(Base):
+class UserCard(Base):
+    """End-user-owned card (film/catalog/manual); persists in legacy `movie_card` table."""
+
+    __tablename__ = 'movie_card'
+
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey('user.id', ondelete='CASCADE'),
@@ -41,6 +49,19 @@ class MovieCard(Base):
         nullable=True,
         index=True,
     )
+    category_id: Mapped[int] = mapped_column(
+        'user_card_category_id',
+        Integer,
+        ForeignKey('user_card_category.id', ondelete='RESTRICT'),
+        nullable=False,
+        index=True,
+    )
+    provider: Mapped[CatalogProvider] = mapped_column(
+        SAEnum(CatalogProvider, native_enum=False, length=64),
+        nullable=False,
+        index=True,
+    )
+    external_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_cover_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     display_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -85,6 +106,14 @@ class MovieCard(Base):
             'film_id',
             unique=True,
             postgresql_where=text('film_id IS NOT NULL'),
+        ),
+        Index(
+            'uq_movie_card_user_provider_external_kinopoisk_partial',
+            'user_id',
+            'provider',
+            'external_id',
+            unique=True,
+            postgresql_where=text("provider = 'kinopoisk' AND external_id IS NOT NULL"),
         ),
         Index(
             'ix_movie_card_user_id_created_at_id',

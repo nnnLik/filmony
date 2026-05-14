@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 
 CARD_REF_TOKEN_RE = re.compile(r'⟦c(\d+)⟧')
 
@@ -55,7 +55,7 @@ async def validate_inline_movie_card_refs_for_author(
     if not ids:
         return
     rows = (
-        await session.execute(select(MovieCard.id, MovieCard.user_id).where(MovieCard.id.in_(ids)))
+        await session.execute(select(UserCard.id, UserCard.user_id).where(UserCard.id.in_(ids)))
     ).all()
     by_id: dict[int, UUID] = {int(r[0]): r[1] for r in rows}
     for cid in ids:
@@ -84,13 +84,13 @@ async def batch_resolve_inline_movie_card_refs(
     rows = (
         await session.execute(
             select(
-                MovieCard.id,
-                MovieCard.user_id,
-                func.coalesce(Film.title, MovieCard.display_title, ''),
+                UserCard.id,
+                UserCard.user_id,
+                func.coalesce(Film.title, UserCard.display_title, ''),
                 Film.year,
             )
-            .outerjoin(Film, Film.id == MovieCard.film_id)
-            .where(MovieCard.id.in_(all_ids))
+            .outerjoin(Film, Film.id == UserCard.film_id)
+            .where(UserCard.id.in_(all_ids))
         )
     ).all()
     by_id: dict[int, tuple[UUID, str, int | None]] = {

@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 
 
 class GetMyMovieCardIdForFilmService:
@@ -21,7 +21,7 @@ class GetMyMovieCardIdForFilmService:
 
     async def execute(self, user_id: UUID, film_id: int) -> int | None:
         q = await self._session.execute(
-            select(MovieCard.id).where(MovieCard.user_id == user_id, MovieCard.film_id == film_id)
+            select(UserCard.id).where(UserCard.user_id == user_id, UserCard.film_id == film_id)
         )
         return q.scalar_one_or_none()
 
@@ -30,9 +30,9 @@ class GetMyMovieCardIdForFilmService:
         if not film_ids:
             return {}
         q = await self._session.execute(
-            select(MovieCard.film_id, MovieCard.id).where(
-                MovieCard.user_id == user_id,
-                MovieCard.film_id.in_(film_ids),
+            select(UserCard.film_id, UserCard.id).where(
+                UserCard.user_id == user_id,
+                UserCard.film_id.in_(film_ids),
             )
         )
         return {int(fid): int(cid) for fid, cid in q.all()}

@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 
 
 class MovieCardNotFoundError(Exception):
@@ -22,7 +22,7 @@ class DeleteMovieCardService:
 
     async def execute(self, card_id: int, viewer_user_id: UUID) -> None:
         card = (
-            await self._session.execute(select(MovieCard).where(MovieCard.id == card_id))
+            await self._session.execute(select(UserCard).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card is None:
             raise MovieCardNotFoundError

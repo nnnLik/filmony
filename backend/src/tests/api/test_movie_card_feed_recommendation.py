@@ -7,11 +7,13 @@ from httpx import AsyncClient
 
 from conf import settings
 from core.database import get_session_factory
+from models.card_tag import CardTag
+from models.catalog_item import CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 from tests.auth.telegram_init_data import build_init_data
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, object]:
@@ -39,9 +41,13 @@ async def _seed_movie_card_for_user(
         )
         session.add(film)
         await session.flush()
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=8.0,
             company='alone',
             mood_before='relax',
@@ -50,7 +56,7 @@ async def _seed_movie_card_for_user(
         session.add(card)
         await session.flush()
         for t in tags or []:
-            session.add(MovieCardTag(movie_card_id=card.id, tag=t))
+            session.add(CardTag(card_id=card.id, tag=t))
         await session.commit()
         await session.refresh(card)
         return card.id

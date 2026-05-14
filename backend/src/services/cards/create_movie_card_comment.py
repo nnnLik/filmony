@@ -6,8 +6,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
+from models.card_comment import CardComment
+from models.user_card import UserCard
 from services.cards.comment_reaction_tokens import (
     CommentReactionTokenError,
     validate_comment_text_with_reaction_tokens,
@@ -40,7 +40,7 @@ class MovieCardCommentValidationError(Exception):
 
 @dataclass(frozen=True, slots=True)
 class CreateMovieCardCommentResult:
-    comment: MovieCardComment
+    comment: CardComment
     mentioned_user_ids: tuple[UUID, ...]
 
 
@@ -83,7 +83,7 @@ class CreateMovieCardCommentService:
             )
 
         card = (
-            await self._session.execute(select(MovieCard.id).where(MovieCard.id == card_id))
+            await self._session.execute(select(UserCard.id).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card is None:
             raise MovieCardNotFoundError()
@@ -91,8 +91,8 @@ class CreateMovieCardCommentService:
         if payload.parent_comment_id is not None:
             parent_movie_card_id = (
                 await self._session.execute(
-                    select(MovieCardComment.movie_card_id).where(
-                        MovieCardComment.id == payload.parent_comment_id
+                    select(CardComment.card_id).where(
+                        CardComment.id == payload.parent_comment_id
                     )
                 )
             ).scalar_one_or_none()
@@ -101,8 +101,8 @@ class CreateMovieCardCommentService:
             if parent_movie_card_id != card_id:
                 raise ParentCommentMismatchError()
 
-        comment = MovieCardComment(
-            movie_card_id=card_id,
+        comment = CardComment(
+            card_id=card_id,
             user_id=user_id,
             parent_comment_id=payload.parent_comment_id,
             text=text_final,

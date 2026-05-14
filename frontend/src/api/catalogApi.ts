@@ -1,10 +1,36 @@
 import { apiJson } from './client'
-import type { Film } from './profileTypes'
+import type { Film, UserCardProvider } from './profileTypes'
 
-/** POST /api/catalog/resolve — пара `{ provider, url }`; первый провайдер: `kinopoisk`. */
+/** GET /api/catalog/search — только провайдеры с поиском (без `no_provider`). */
+export type CatalogSearchProvider = Extract<UserCardProvider, 'kinopoisk' | 'rawg'>
+
+export type CatalogSearchHitKind = 'film' | 'game'
+
+export type CatalogSearchHitSource = 'local' | 'remote'
+
+export type CatalogSearchHit = {
+  provider: Extract<UserCardProvider, 'kinopoisk' | 'rawg'>
+  external_id: string
+  kind: CatalogSearchHitKind
+  title: string
+  subtitle: string | null
+  cover_url: string | null
+  catalog_item_id: number | null
+  source: CatalogSearchHitSource
+}
+
+export type CatalogSearchResponse = {
+  items: CatalogSearchHit[]
+  has_more: boolean
+}
+
+/** Разрешённые значения `provider` в теле POST /api/catalog/resolve (сервер отклоняет `no_provider`). */
+export type CatalogResolveRequestProvider = Extract<UserCardProvider, 'kinopoisk'>
+
+/** POST /api/catalog/resolve — пара `{ provider, url }`; с клиента передаём только `kinopoisk`. */
 export type CatalogResolveResponse = {
   catalog_item_id: number
-  provider: string
+  provider: UserCardProvider
   external_id: string
   title: string
   cover_url: string | null
@@ -13,7 +39,7 @@ export type CatalogResolveResponse = {
 }
 
 export async function resolveCatalogByProviderUrl(
-  provider: string,
+  provider: CatalogResolveRequestProvider,
   url: string,
 ): Promise<CatalogResolveResponse> {
   return apiJson<CatalogResolveResponse>('/api/catalog/resolve', {
@@ -23,8 +49,23 @@ export async function resolveCatalogByProviderUrl(
   })
 }
 
+/** GET /api/catalog/search — `q` на сервере после trim должна быть не короче 3 символов. */
+export async function searchCatalog(params: {
+  provider: CatalogSearchProvider
+  q: string
+  page?: number
+  limit?: number
+}): Promise<CatalogSearchResponse> {
+  const sp = new URLSearchParams()
+  sp.set('provider', params.provider)
+  sp.set('q', params.q.trim())
+  sp.set('page', String(params.page ?? 1))
+  sp.set('limit', String(params.limit ?? 15))
+  return apiJson<CatalogSearchResponse>(`/api/catalog/search?${sp.toString()}`)
+}
+
 /** Возвращает slug провайдера каталога для URL или `null` (клиент использует legacy `/api/films/resolve`). */
-export function inferCatalogProviderFromUrl(urlRaw: string): string | null {
+export function inferCatalogProviderFromUrl(urlRaw: string): CatalogResolveRequestProvider | null {
   const trimmed = urlRaw.trim()
   if (trimmed === '') return null
   try {

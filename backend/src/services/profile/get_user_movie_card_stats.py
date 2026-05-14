@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.card_tag import CardTag
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
+from models.user_card import UserCard
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,17 +67,17 @@ class GetUserMovieCardStatsService:
         card_rows = (
             await self._session.execute(
                 select(
-                    MovieCard.id,
-                    MovieCard.film_id,
-                    MovieCard.rating,
-                    MovieCard.company,
-                    MovieCard.mood_after,
+                    UserCard.id,
+                    UserCard.film_id,
+                    UserCard.rating,
+                    UserCard.company,
+                    UserCard.mood_after,
                     Film.title,
                     Film.year,
                     Film.poster_url,
                 )
-                .join(Film, Film.id == MovieCard.film_id)
-                .where(MovieCard.user_id == user_id)
+                .join(Film, Film.id == UserCard.film_id)
+                .where(UserCard.user_id == user_id)
             )
         ).all()
 
@@ -131,11 +131,11 @@ class GetUserMovieCardStatsService:
 
         tag_rows = (
             await self._session.execute(
-                select(MovieCardTag.tag, func.count(MovieCardTag.id))
-                .join(MovieCard, MovieCard.id == MovieCardTag.movie_card_id)
-                .where(MovieCard.user_id == user_id)
-                .group_by(MovieCardTag.tag)
-                .order_by(desc(func.count(MovieCardTag.id)), MovieCardTag.tag)
+                select(CardTag.tag, func.count(CardTag.id))
+                .join(UserCard, UserCard.id == CardTag.card_id)
+                .where(UserCard.user_id == user_id)
+                .group_by(CardTag.tag)
+                .order_by(desc(func.count(CardTag.id)), CardTag.tag)
                 .limit(10)
             )
         ).all()

@@ -25,7 +25,7 @@ from api.profile.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
-from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
+from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_movie_card_stats import GetUserMovieCardStatsService
@@ -165,6 +165,11 @@ async def list_user_cards(
     company: CardCompany | None = Query(default=None, description='С кем смотрел'),
     mood_before: CardMoodBefore | None = Query(default=None, description='Настроение до'),
     mood_after: CardMoodAfter | None = Query(default=None, description='Итог просмотра'),
+    category_id: int | None = Query(
+        default=None,
+        ge=1,
+        description='Фильтр по полке/категории карточек пользователя (id категории этого пользователя)',
+    ),
     film_title: str | None = Query(
         default=None,
         max_length=120,
@@ -195,9 +200,12 @@ async def list_user_cards(
             mood_before=mood_before_val,
             mood_after=mood_after_val,
             film_title_search=film_title,
+            category_id=category_id,
         )
     except ListUserMovieCardsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None
+    except ListUserMovieCardsService.InvalidCategoryFilter:
+        raise HTTPException(status_code=422, detail='invalid category for user') from None
     return build_movie_card_page_response(page)
 
 

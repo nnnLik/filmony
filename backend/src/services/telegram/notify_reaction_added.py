@@ -11,13 +11,13 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import disposable_async_session
+from models.card_comment import CardComment
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
 from models.reaction_target_kind import ReactionTargetKind
 from models.user import User
+from models.user_card import UserCard
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import (
     html_card_deep_link_block,
@@ -61,8 +61,8 @@ async def _load_reaction_dm_target_context(
     target_id: int,
 ) -> _ReactionDmTargetContext | None:
     ctx: _ReactionDmTargetContext | None = None
-    if target_kind == ReactionTargetKind.MOVIE_CARD:
-        card = await session.get(MovieCard, target_id)
+    if target_kind == ReactionTargetKind.CARD:
+        card = await session.get(UserCard, target_id)
         if card is not None:
             film_for_dm = await session.get(Film, card.film_id)
             ctx = _ReactionDmTargetContext(
@@ -72,12 +72,12 @@ async def _load_reaction_dm_target_context(
                 comment_text_for_dm=None,
                 film_for_dm=film_for_dm,
             )
-    elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
-        comment = await session.get(MovieCardComment, target_id)
+    elif target_kind == ReactionTargetKind.CARD_COMMENT:
+        comment = await session.get(CardComment, target_id)
         if comment is not None:
             ctx = _ReactionDmTargetContext(
                 owner_id=comment.user_id,
-                card_id_for_link=comment.movie_card_id,
+                card_id_for_link=comment.card_id,
                 feed_post_id_for_link=None,
                 comment_text_for_dm=comment.text,
                 film_for_dm=None,
@@ -147,7 +147,7 @@ class NotifyTelegramReactionAddedService:
                 else ''
             )
 
-            if target_kind == ReactionTargetKind.MOVIE_CARD:
+            if target_kind == ReactionTargetKind.CARD:
                 film_hint = (
                     _format_film_title_html(ctx.film_for_dm)
                     if ctx.film_for_dm is not None
@@ -158,7 +158,7 @@ class NotifyTelegramReactionAddedService:
                     '',
                     deep_link_card,
                 ]
-            elif target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT:
+            elif target_kind == ReactionTargetKind.CARD_COMMENT:
                 raw_snippet = (ctx.comment_text_for_dm or '').strip()
                 snippet = html.escape(raw_snippet[:100] if raw_snippet else '…')
                 body_lines = [

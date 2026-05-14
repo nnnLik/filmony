@@ -1,0 +1,8 @@
+# Action log — abstract-user-cards (code)
+
+- **Timestamp:** 2026-05-14T180000Z
+- **Feature slug:** abstract-user-cards
+- **Action type:** code
+- **Summary:** Backend user-owned card categories (shelves): `UserCardCategory` model, FK on `movie_card`, migration `a7b8c9d0e123` with backfill to default **`Фильмы`**, `/api/me/card-categories` list/create/rename, card `category` in responses and optional `category_id` on create/patch, profile cards filter by `category_id`.
+- **Files:** `backend/src/models/user_card_category.py`, `backend/src/models/user_card.py`, `backend/src/models/__init__.py`, `backend/src/migrations/versions/a7b8c9d0e123_user_card_category.py`, `backend/src/services/user_card_categories/*`, `backend/src/services/cards/create_movie_card.py`, `backend/src/services/cards/update_movie_card.py`, `backend/src/services/cards/get_movie_card_details.py`, `backend/src/services/cards/list_movie_card_feed.py`, `backend/src/services/profile/list_user_movie_cards.py`, `backend/src/api/cards/schemas.py`, `backend/src/api/cards/routes.py`, `backend/src/api/feed/routes.py`, `backend/src/api/profile/schemas.py`, `backend/src/api/profile/me_routes.py`, `backend/src/api/profile/users_routes.py`, `backend/src/tests/support/user_card_category.py`, multiple `backend/src/tests/api/*.py`, `backend/src/tests/models/test_movie_card_catalog_schema.py`, `.cursor/active/abstract-user-cards/progress.md`
+- **Verification:** Docker `pytest src/tests/api/test_cards_routes.py` (53), `pytest src/tests/api/test_profile_routes.py` (28), `pytest` on feed_posts, search, film_community, movie_card_feed_recommendation, following_ratings, me_cards_export_csv, test_movie_card_catalog_schema (64); `ruff check --fix` on `me_routes.py`, `user_card_category.py`.

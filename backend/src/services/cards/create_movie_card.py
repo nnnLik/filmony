@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite
 from uuid import UUID
 
@@ -9,12 +9,15 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.catalog_item import CatalogItem
+from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
+from models.card_tag import CardTag
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
-from models.movie_card_tag import MovieCardTag
+from models.user_card import UserCard
 from models.user_watchlist_film import UserWatchlistFilm
+from services.user_card_categories.resolve_user_card_category_id_for_owner import (
+    ResolveUserCardCategoryIdForOwnerService,
+)
 
 
 class FilmNotFoundError(Exception):
@@ -44,10 +47,13 @@ class CreateMovieCardInput:
     film_id: int | None = None
     kinopoisk_id: int | None = None
     catalog_item_id: int | None = None
+    provider: CatalogProvider | None = None
+    external_id: str | None = None
     genres: Sequence[str] = ()
     display_title: str | None = None
     display_cover_url: str | None = None
     display_summary: str | None = None
+    category_id: int | None = None
 
 
 def _normalize_rating(value: float) -> float:
@@ -106,6 +112,17 @@ def _normalize_genres(genres: Sequence[str]) -> list[str]:
     return normalized
 
 
+def _normalize_catalog_external_id(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    s = raw.strip()
+    if s == '':
+        return None
+    if len(s) > 255:
+        raise MovieCardValidationError('external_id max length is 255')
+    return s
+
+
 def _normalize_display_summary(raw: str | None) -> str | None:
     if raw is None:
         return None
@@ -126,7 +143,7 @@ def _normalize_optional_url(raw: str | None, *, field: str) -> str | None:
     return s
 
 
-def _apply_display_from_film(entity: MovieCard, film: Film) -> None:
+def _apply_display_from_film(entity: UserCard, film: Film) -> None:
     entity.display_title = film.title
     entity.display_cover_url = film.poster_url
     sd = film.short_description or film.description
@@ -137,35 +154,118 @@ class CreateMovieCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, user_id: UUID, payload: CreateMovieCardInput) -> MovieCard:
+    async def execute(self, user_id: UUID, payload: CreateMovieCardInput) -> UserCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
         watch_note = _normalize_watch_note(payload.watch_note)
         genres = _normalize_genres(payload.genres)
         cover_url = _normalize_optional_url(payload.display_cover_url, field='display_cover_url')
         summary = _normalize_display_summary(payload.display_summary)
+        try:
+            resolved_category_id = await ResolveUserCardCategoryIdForOwnerService.build(
+                self._session
+            ).execute(user_id, payload.category_id)
+        except ResolveUserCardCategoryIdForOwnerService.CategoryNotFoundForUserError as e:
+            raise MovieCardValidationError('category not found') from e
 
+        ext_norm = _normalize_catalog_external_id(payload.external_id)
         has_film = payload.film_id is not None
         has_catalog = payload.catalog_item_id is not None
         manual_title = (payload.display_title or '').strip()
 
-        is_manual = not has_film and not has_catalog and bool(manual_title)
-        modes = int(has_film) + int(has_catalog) + int(is_manual)
+        has_ke = payload.provider == CatalogProvider.kinopoisk and ext_norm is not None
+
+        if payload.provider == CatalogProvider.no_provider:
+            if ext_norm is not None:
+                raise MovieCardValidationError('external_id must not be set for no_provider')
+            if has_film or has_catalog or has_ke:
+                raise MovieCardValidationError(
+                    'no_provider cannot be combined with film_id, catalog_item_id, '
+                    'or kinopoisk external_id',
+                )
+            if not manual_title:
+                raise MovieCardValidationError('display_title is required for no_provider')
+
+        if payload.provider == CatalogProvider.kinopoisk and not has_ke and not has_film and not has_catalog:
+            raise MovieCardValidationError(
+                'provider kinopoisk requires external_id, '
+                'or omit provider and use film_id/catalog_item_id',
+            )
+
+        if ext_norm is not None:
+            if payload.provider not in (None, CatalogProvider.kinopoisk):
+                raise MovieCardValidationError('external_id is only valid with provider kinopoisk')
+            if payload.provider is None:
+                raise MovieCardValidationError('provider kinopoisk is required when external_id is set')
+
+        is_manual = not has_film and not has_catalog and not has_ke and bool(manual_title)
+
+        modes = int(has_film) + int(has_catalog) + int(has_ke) + int(is_manual)
         if modes != 1:
             raise MovieCardValidationError(
-                'exactly one of: film-backed (film_id), catalog_item_id, or display_title (manual)',
+                'exactly one of: film-backed (film_id), catalog_item_id, '
+                'kinopoisk external subject (provider kinopoisk + external_id), '
+                'or display_title (manual)',
             )
 
         if has_film:
             return await self._create_film_backed(
-                user_id, rating, custom_tags, watch_note, genres, payload, cover_url, summary
+                user_id,
+                resolved_category_id,
+                rating,
+                custom_tags,
+                watch_note,
+                genres,
+                payload,
+                cover_url,
+                summary,
             )
         if has_catalog:
             return await self._create_catalog_backed(
-                user_id, rating, custom_tags, watch_note, genres, payload, cover_url, summary
+                user_id,
+                resolved_category_id,
+                rating,
+                custom_tags,
+                watch_note,
+                genres,
+                payload,
+                cover_url,
+                summary,
+            )
+        if has_ke:
+            assert ext_norm is not None
+            ci = (
+                await self._session.execute(
+                    select(CatalogItem).where(
+                        CatalogItem.provider == CatalogProvider.kinopoisk,
+                        CatalogItem.external_id == ext_norm,
+                    )
+                )
+            ).scalar_one_or_none()
+            if ci is None:
+                raise CatalogItemNotFoundError
+            bridged = replace(
+                payload,
+                catalog_item_id=int(ci.id),
+                film_id=None,
+                kinopoisk_id=None,
+                provider=None,
+                external_id=None,
+            )
+            return await self._create_catalog_backed(
+                user_id,
+                resolved_category_id,
+                rating,
+                custom_tags,
+                watch_note,
+                genres,
+                bridged,
+                cover_url,
+                summary,
             )
         return await self._create_manual(
             user_id,
+            resolved_category_id,
             rating,
             custom_tags,
             watch_note,
@@ -180,6 +280,7 @@ class CreateMovieCardService:
     async def _create_film_backed(
         self,
         user_id: UUID,
+        category_id: int,
         rating: float,
         custom_tags: list[str],
         watch_note: str,
@@ -187,7 +288,7 @@ class CreateMovieCardService:
         payload: CreateMovieCardInput,
         display_cover_url: str | None,
         display_summary: str | None,
-    ) -> MovieCard:
+    ) -> UserCard:
         assert payload.film_id is not None
         if payload.kinopoisk_id is None:
             raise MovieCardValidationError('kinopoisk_id is required with film_id')
@@ -207,10 +308,13 @@ class CreateMovieCardService:
             )
         ).scalar_one_or_none()
 
-        entity = MovieCard(
+        entity = UserCard(
             user_id=user_id,
             film_id=payload.film_id,
             catalog_item_id=int(ci_id) if ci_id is not None else None,
+            category_id=category_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=rating,
             company=payload.company.value,
             mood_before=payload.mood_before.value,
@@ -240,7 +344,7 @@ class CreateMovieCardService:
 
         if custom_tags:
             self._session.add_all(
-                [MovieCardTag(movie_card_id=entity.id, tag=tag) for tag in custom_tags]
+                    [CardTag(card_id=entity.id, tag=tag) for tag in custom_tags]
             )
         await self._session.commit()
         await self._session.refresh(entity)
@@ -249,6 +353,7 @@ class CreateMovieCardService:
     async def _create_catalog_backed(
         self,
         user_id: UUID,
+        category_id: int,
         rating: float,
         custom_tags: list[str],
         watch_note: str,
@@ -256,7 +361,7 @@ class CreateMovieCardService:
         payload: CreateMovieCardInput,
         display_cover_url: str | None,
         display_summary: str | None,
-    ) -> MovieCard:
+    ) -> UserCard:
         assert payload.catalog_item_id is not None
         ci = (
             await self._session.execute(
@@ -276,10 +381,13 @@ class CreateMovieCardService:
             if genres != (film.genres or []):
                 film.genres = genres
 
-        entity = MovieCard(
+        entity = UserCard(
             user_id=user_id,
             film_id=ci.film_id,
             catalog_item_id=ci.id,
+            category_id=category_id,
+            provider=ci.provider,
+            external_id=ci.external_id,
             rating=rating,
             company=payload.company.value,
             mood_before=payload.mood_before.value,
@@ -322,7 +430,7 @@ class CreateMovieCardService:
 
         if custom_tags:
             self._session.add_all(
-                [MovieCardTag(movie_card_id=entity.id, tag=tag) for tag in custom_tags]
+                    [CardTag(card_id=entity.id, tag=tag) for tag in custom_tags]
             )
         await self._session.commit()
         await self._session.refresh(entity)
@@ -331,6 +439,7 @@ class CreateMovieCardService:
     async def _create_manual(
         self,
         user_id: UUID,
+        category_id: int,
         rating: float,
         custom_tags: list[str],
         watch_note: str,
@@ -340,14 +449,17 @@ class CreateMovieCardService:
         company: CardCompany,
         mood_before: CardMoodBefore,
         mood_after: CardMoodAfter,
-    ) -> MovieCard:
+    ) -> UserCard:
         if len(title) > 255:
             raise MovieCardValidationError('display_title max length is 255')
 
-        entity = MovieCard(
+        entity = UserCard(
             user_id=user_id,
             film_id=None,
             catalog_item_id=None,
+            category_id=category_id,
+            provider=CatalogProvider.no_provider,
+            external_id=None,
             rating=rating,
             company=company.value,
             mood_before=mood_before.value,
@@ -368,7 +480,7 @@ class CreateMovieCardService:
 
         if custom_tags:
             self._session.add_all(
-                [MovieCardTag(movie_card_id=entity.id, tag=tag) for tag in custom_tags]
+                    [CardTag(card_id=entity.id, tag=tag) for tag in custom_tags]
             )
         await self._session.commit()
         await self._session.refresh(entity)

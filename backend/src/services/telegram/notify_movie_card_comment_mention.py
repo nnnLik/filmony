@@ -10,7 +10,7 @@ from typing import Self
 from uuid import UUID
 
 from core.database import disposable_async_session
-from models.movie_card_comment import MovieCardComment
+from models.card_comment import CardComment
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import html_card_deep_link_block
@@ -51,11 +51,11 @@ class NotifyTelegramMovieCardCommentMentionService:
         recipient_user_id: UUID,
     ) -> None:
         async with disposable_async_session() as session:
-            comment = await session.get(MovieCardComment, comment_id)
+            comment = await session.get(CardComment, comment_id)
             if (
                 comment is None
                 or comment.user_id != actor_user_id
-                or comment.movie_card_id != card_id
+                or comment.card_id != card_id
             ):
                 return
 

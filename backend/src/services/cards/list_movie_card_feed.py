@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
 import datetime as dt
@@ -13,13 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import const.feed
 from const.feed import FeedMode
+from models.card_comment import CardComment
+from models.card_tag import CardTag
+from models.catalog_item import CatalogProvider
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
-from models.movie_card_tag import MovieCardTag
 from models.user import User
+from models.user_card import UserCard
+from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from models.user_subscription import UserSubscription
 from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
 from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
@@ -197,15 +200,15 @@ async def enrich_feed_posts_source_comments(
     if not wanted:
         return items
     stmt = (
-        select(MovieCardComment, User)
-        .join(User, User.id == MovieCardComment.user_id)
-        .where(MovieCardComment.id.in_(wanted))
+        select(CardComment, User)
+        .join(User, User.id == CardComment.user_id)
+        .where(CardComment.id.in_(wanted))
     )
     rows = (await session.execute(stmt)).all()
-    by_comment_id: dict[int, tuple[MovieCardComment, User]] = {int(c.id): (c, u) for c, u in rows}
+    by_comment_id: dict[int, tuple[CardComment, User]] = {int(c.id): (c, u) for c, u in rows}
 
     pairs: list[tuple[UUID, str]] = []
-    pair_meta: list[tuple[int, MovieCardComment, User]] = []
+    pair_meta: list[tuple[int, CardComment, User]] = []
     for sid in sorted(wanted):
         row = by_comment_id.get(sid)
         if row is None:
@@ -342,6 +345,8 @@ class MovieCardFeedItem:
     id: int
     user_id: UUID
     card_author: MovieCardCommentAuthor
+    provider: CatalogProvider
+    external_id: str | None
     film_id: int | None
     film_kinopoisk_id: int | None
     film_genres: list[str]
@@ -363,6 +368,8 @@ class MovieCardFeedItem:
     reactions: ReactionTargetSummary
     feed_source: const.feed.StreamName
     is_favorite: bool
+    category_id: int
+    category_name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -584,13 +591,21 @@ class ListMovieCardFeedService:
                 post_ids_order.append(item_id)
                 source_by_post[item_id] = src
 
-        visible_rows = await self._load_card_rows_ordered(card_ids_order)
-        card_items = await self._hydrate_feed_items(viewer_user_id, visible_rows, source_by_card)
-        card_by_id = {it.id: it for it in card_items}
-        post_items = await self._hydrate_feed_post_items(
-            viewer_user_id, post_ids_order, source_by_post
+        async def _cards_branch() -> list[MovieCardFeedItem]:
+            visible_rows = await self._load_card_rows_ordered(card_ids_order)
+            return await self._hydrate_feed_items(viewer_user_id, visible_rows, source_by_card)
+
+        async def _posts_branch() -> list[FeedPostFeedItem]:
+            raw = await self._hydrate_feed_post_items(
+                viewer_user_id, post_ids_order, source_by_post
+            )
+            return await enrich_feed_post_items_for_feed_paths(self._session, raw)
+
+        card_items, post_items = await asyncio.gather(
+            _cards_branch(),
+            _posts_branch(),
         )
-        post_items = await enrich_feed_post_items_for_feed_paths(self._session, post_items)
+        card_by_id = {it.id: it for it in card_items}
         post_by_id = {it.id: it for it in post_items}
 
         items: list[FeedPageEntry] = []
@@ -641,8 +656,8 @@ class ListMovieCardFeedService:
         genres_rows = (
             await self._session.execute(
                 select(Film.genres)
-                .join(MovieCard, MovieCard.film_id == Film.id)
-                .where(MovieCard.user_id == viewer_id)
+                .join(UserCard, UserCard.film_id == Film.id)
+                .where(UserCard.user_id == viewer_id)
             )
         ).all()
         gset: set[str] = set()
@@ -653,9 +668,9 @@ class ListMovieCardFeedService:
         tag_rows = (
             (
                 await self._session.execute(
-                    select(MovieCardTag.tag)
-                    .join(MovieCard, MovieCard.id == MovieCardTag.movie_card_id)
-                    .where(MovieCard.user_id == viewer_id)
+                    select(CardTag.tag)
+                    .join(UserCard, UserCard.id == CardTag.card_id)
+                    .where(UserCard.user_id == viewer_id)
                 )
             )
             .scalars()
@@ -703,9 +718,9 @@ class ListMovieCardFeedService:
     ) -> dict[const.feed.StreamName, list[tuple[int, UUID, int]]]:
         async def _ordered_cards(where_clause: Any) -> list[tuple[int, UUID, int]]:
             q = (
-                select(MovieCard.id, MovieCard.user_id, MovieCard.film_id)
+                select(UserCard.id, UserCard.user_id, UserCard.film_id)
                 .where(where_clause)
-                .order_by(MovieCard.created_at.desc(), MovieCard.id.desc())
+                .order_by(UserCard.created_at.desc(), UserCard.id.desc())
                 .limit(const.feed.STREAM_POOL_LIMIT)
             )
             rows = (await self._session.execute(q)).all()
@@ -717,16 +732,16 @@ class ListMovieCardFeedService:
             return out
 
         if following_ids:
-            sub_cards = await _ordered_cards(MovieCard.user_id.in_(following_ids))
+            sub_cards = await _ordered_cards(UserCard.user_id.in_(following_ids))
         else:
             sub_cards = []
 
         if follower_ids:
-            subr_cards = await _ordered_cards(MovieCard.user_id.in_(follower_ids))
+            subr_cards = await _ordered_cards(UserCard.user_id.in_(follower_ids))
         else:
             subr_cards = []
 
-        disc = await _ordered_cards(~MovieCard.user_id.in_(graph_user_ids))
+        disc = await _ordered_cards(~UserCard.user_id.in_(graph_user_ids))
 
         affinity = await self._build_affinity_stream(viewer_user_id, genre_profile, tag_profile)
 
@@ -737,7 +752,7 @@ class ListMovieCardFeedService:
             feed_mode=feed_mode,
         )
 
-        own_cards = await _ordered_cards(MovieCard.user_id == viewer_user_id)
+        own_cards = await _ordered_cards(UserCard.user_id == viewer_user_id)
 
         return {
             'subscriptions': sub_cards,
@@ -756,15 +771,15 @@ class ListMovieCardFeedService:
     ) -> list[tuple[int, UUID, int]]:
         q = (
             select(
-                MovieCard.id,
-                MovieCard.user_id,
-                MovieCard.film_id,
+                UserCard.id,
+                UserCard.user_id,
+                UserCard.film_id,
                 Film.genres,
-                MovieCard.created_at,
+                UserCard.created_at,
             )
-            .join(Film, Film.id == MovieCard.film_id)
-            .where(MovieCard.user_id != viewer_user_id)
-            .order_by(MovieCard.created_at.desc(), MovieCard.id.desc())
+            .join(Film, Film.id == UserCard.film_id)
+            .where(UserCard.user_id != viewer_user_id)
+            .order_by(UserCard.created_at.desc(), UserCard.id.desc())
             .limit(const.feed.AFFINITY_CANDIDATE_SCAN)
         )
         rows = (await self._session.execute(q)).all()
@@ -775,8 +790,8 @@ class ListMovieCardFeedService:
         tags_by_card: dict[int, list[str]] = {c: [] for c in card_ids}
         tr = (
             await self._session.execute(
-                select(MovieCardTag.movie_card_id, MovieCardTag.tag).where(
-                    MovieCardTag.movie_card_id.in_(card_ids)
+                select(CardTag.card_id, CardTag.tag).where(
+                    CardTag.card_id.in_(card_ids)
                 )
             )
         ).all()
@@ -904,14 +919,14 @@ class ListMovieCardFeedService:
 
     async def _load_card_rows_ordered(
         self, ordered_ids: list[int]
-    ) -> list[tuple[MovieCard, Film | None, User]]:
+    ) -> list[tuple[UserCard, Film | None, User]]:
         if not ordered_ids:
             return []
         q = (
-            select(MovieCard, Film, User)
-            .outerjoin(Film, Film.id == MovieCard.film_id)
-            .join(User, User.id == MovieCard.user_id)
-            .where(MovieCard.id.in_(ordered_ids))
+            select(UserCard, Film, User)
+            .outerjoin(Film, Film.id == UserCard.film_id)
+            .join(User, User.id == UserCard.user_id)
+            .where(UserCard.id.in_(ordered_ids))
         )
         rows = (await self._session.execute(q)).all()
         by_id = {row[0].id: row for row in rows}
@@ -920,18 +935,32 @@ class ListMovieCardFeedService:
     async def _hydrate_feed_items(
         self,
         viewer_user_id: UUID,
-        visible_rows: list[tuple[MovieCard, Film | None, User]],
+        visible_rows: list[tuple[UserCard, Film | None, User]],
         source_by_id: dict[int, const.feed.StreamName],
     ) -> list[MovieCardFeedItem]:
         card_ids = [card.id for card, _film, _author in visible_rows]
+
+        cat_ids = list({int(c.category_id) for c, _f, _a in visible_rows})
+        cat_names: dict[int, str] = {}
+        if cat_ids:
+            for crow in (
+                (
+                    await self._session.execute(
+                        select(UserCardCategory).where(UserCardCategory.id.in_(cat_ids))
+                    )
+                )
+                .scalars()
+                .all()
+            ):
+                cat_names[int(crow.id)] = crow.name
 
         tags_by_card: dict[int, list[str]] = {}
         if card_ids:
             tags_rows = (
                 await self._session.execute(
-                    select(MovieCardTag.movie_card_id, MovieCardTag.tag)
-                    .where(MovieCardTag.movie_card_id.in_(card_ids))
-                    .order_by(MovieCardTag.movie_card_id, MovieCardTag.tag)
+                    select(CardTag.card_id, CardTag.tag)
+                    .where(CardTag.card_id.in_(card_ids))
+                    .order_by(CardTag.card_id, CardTag.tag)
                 )
             ).all()
             for card_id_val, tag in tags_rows:
@@ -941,9 +970,9 @@ class ListMovieCardFeedService:
         if card_ids:
             count_rows = (
                 await self._session.execute(
-                    select(MovieCardComment.movie_card_id, func.count(MovieCardComment.id))
-                    .where(MovieCardComment.movie_card_id.in_(card_ids))
-                    .group_by(MovieCardComment.movie_card_id)
+                    select(CardComment.card_id, func.count(CardComment.id))
+                    .where(CardComment.card_id.in_(card_ids))
+                    .group_by(CardComment.card_id)
                 )
             ).all()
             for card_id_val, cnt in count_rows:
@@ -953,26 +982,26 @@ class ListMovieCardFeedService:
         if card_ids:
             ranked = (
                 select(
-                    MovieCardComment.id,
-                    MovieCardComment.movie_card_id,
-                    MovieCardComment.user_id,
-                    MovieCardComment.parent_comment_id,
-                    MovieCardComment.text,
-                    MovieCardComment.image_url,
-                    MovieCardComment.created_at,
+                    CardComment.id,
+                    CardComment.card_id,
+                    CardComment.user_id,
+                    CardComment.parent_comment_id,
+                    CardComment.text,
+                    CardComment.image_url,
+                    CardComment.created_at,
                     func.row_number()
                     .over(
-                        partition_by=MovieCardComment.movie_card_id,
-                        order_by=MovieCardComment.id.desc(),
+                        partition_by=CardComment.card_id,
+                        order_by=CardComment.id.desc(),
                     )
                     .label('rn'),
-                ).where(MovieCardComment.movie_card_id.in_(card_ids))
+                ).where(CardComment.card_id.in_(card_ids))
             ).subquery()
 
             preview_stmt = (
                 select(
                     ranked.c.id,
-                    ranked.c.movie_card_id,
+                    ranked.c.card_id,
                     ranked.c.parent_comment_id,
                     ranked.c.text,
                     ranked.c.image_url,
@@ -981,7 +1010,7 @@ class ListMovieCardFeedService:
                 )
                 .join(User, User.id == ranked.c.user_id)
                 .where(ranked.c.rn <= 3)
-                .order_by(ranked.c.movie_card_id.asc(), ranked.c.id.asc())
+                .order_by(ranked.c.card_id.asc(), ranked.c.id.asc())
             )
 
             preview_rows = (await self._session.execute(preview_stmt)).all()
@@ -1073,6 +1102,7 @@ class ListMovieCardFeedService:
             if not display_title:
                 display_title = 'Untitled'
             film_title_dep = film.title if film is not None else display_title
+            cid = int(card.category_id)
             items.append(
                 MovieCardFeedItem(
                     id=card.id,
@@ -1086,6 +1116,8 @@ class ListMovieCardFeedService:
                         photo_url=card_author_user.photo_url,
                         display_name=card_author_user.display_name,
                     ),
+                    provider=card.provider,
+                    external_id=card.external_id,
                     film_id=film.id if film is not None else None,
                     film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
                     film_genres=list(film.genres or []) if film is not None else [],
@@ -1107,6 +1139,8 @@ class ListMovieCardFeedService:
                     reactions=card_summaries[card.id],
                     feed_source=source_by_id[card.id],
                     is_favorite=bool(card.is_favorite),
+                    category_id=cid,
+                    category_name=cat_names.get(cid, DEFAULT_USER_CARD_CATEGORY_NAME),
                 )
             )
         return items
@@ -1139,16 +1173,16 @@ class ListMovieCardFeedService:
         )
 
         ref_cids = [
-            int(fp.referenced_movie_card_id)
+            int(fp.referenced_card_id)
             for fp, _ in by_id.values()
-            if fp.referenced_movie_card_id
+            if fp.referenced_card_id
         ]
-        ref_by_cid: dict[int, tuple[MovieCard, Film | None]] = {}
+        ref_by_cid: dict[int, tuple[UserCard, Film | None]] = {}
         if ref_cids:
             rq = (
-                select(MovieCard, Film)
-                .outerjoin(Film, Film.id == MovieCard.film_id)
-                .where(MovieCard.id.in_(ref_cids))
+                select(UserCard, Film)
+                .outerjoin(Film, Film.id == UserCard.film_id)
+                .where(UserCard.id.in_(ref_cids))
             )
             for card, film in (await self._session.execute(rq)).all():
                 ref_by_cid[int(card.id)] = (card, film)
@@ -1160,7 +1194,7 @@ class ListMovieCardFeedService:
                 continue
             fp, author_user = row
             ref_snippet: FeedPostReferencedCardSnippet | None = None
-            rid = fp.referenced_movie_card_id
+            rid = fp.referenced_card_id
             if rid is not None and int(rid) in ref_by_cid:
                 mc, fl = ref_by_cid[int(rid)]
                 ref_title = (

@@ -1,0 +1,31 @@
+---
+description: Backend service shape — dataclass, build/execute, typed errors, one entrypoint, events
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend service contracts
+
+## Shape (orchestrators under `**/services/**`)
+
+- **`@dataclass` service** with dependencies as fields (often `_leading_underscore` for collaborators).
+- **Wiring:** single `@classmethod def build(cls) -> Self` constructs DAOs/clients/nested services. Non-test call sites prefer `Service.build()`.
+- **Single public work method:** `def execute(self, ...) -> ...` — no extra public “do” methods on the same orchestrator.
+- **One concrete use-case per service** — if the class name is `CreateXService`, `execute` only creates `X` for that flow; split unrelated flows into separate services.
+
+## `execute` parameters
+
+- **No “request bag” DTO** that only bundles unrelated caller fields — unpack explicit arguments (`user_id`, enums, flags, ids). Callers (routes, other services) map their inputs into that signature.
+- **Rare exception:** a single typed integration document (whole external payload) may be one argument when the object is the natural atomic unit; document that in the class docstring.
+
+## Typed errors
+
+- Define **nested `Exception` subclasses** on the service for expected domain failures (`NotFound`, `Conflict`, etc.). Map them to HTTP or outer handling in routes/commands — do not swallow silently.
+
+**Good:** `raise CreateFooService.AlreadyExists` from `execute`; route maps to 409.
+
+**Bad:** `execute` returns `None` on error; generic `raise ValueError` without a stable type for the API layer.
+
+## Events and side effects
+
+- **Side effects that cross boundaries** (outbox, notifications, analytics) go through **dedicated ports/adapters or small event/helper services** invoked from the orchestrating service — not ad-hoc logic in routes and not duplicated across DAOs.

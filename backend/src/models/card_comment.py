@@ -8,8 +8,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .base import Base
 
 
-class MovieCardComment(Base):
-    movie_card_id: Mapped[int] = mapped_column(
+class CardComment(Base):
+    """Comment on a user card; persists in legacy `movie_card_comment` table."""
+
+    __tablename__ = 'movie_card_comment'
+
+    card_id: Mapped[int] = mapped_column(
+        'movie_card_id',
         ForeignKey('movie_card.id', ondelete='CASCADE'),
         nullable=False,
         index=True,

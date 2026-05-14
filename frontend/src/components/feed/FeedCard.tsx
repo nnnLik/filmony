@@ -22,6 +22,7 @@ import {
 import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { FilmGenreChips } from '../films/FilmGenreChips'
+import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
 import { FeedRatingRing } from './FeedRatingRing'
@@ -281,6 +282,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             Особая карточка
           </span>
         ) : null}
+        <CardCategoryChip category={card.category} className="max-w-[min(100%,10rem)] shrink-0" />
       </div>
       {/* Главная зона: постер отступает от краёв карточки, клик ведёт на страницу карточки */}
       <Link

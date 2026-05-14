@@ -15,12 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import literal
 
 from models.feed_post import FeedPost
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 from services.cards.list_movie_card_feed import (
     FeedPageEntry,
     ListMovieCardFeedService,
     MovieCardFeedPage,
-    enrich_feed_post_items_for_feed_paths,
 )
 
 GlobalFeedKind = Literal['all', 'posts', 'cards']
@@ -71,11 +70,11 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
     card_branch = select(
         literal('card', type_=String()).label('etype'),
         literal(0, type_=Integer()).label('kind_rank'),
-        MovieCard.id.label('eid'),
-        MovieCard.created_at.label('sort_at'),
-    ).select_from(MovieCard)
+        UserCard.id.label('eid'),
+        UserCard.created_at.label('sort_at'),
+    ).select_from(UserCard)
     if exclude_own:
-        card_branch = card_branch.where(MovieCard.user_id != viewer_user_id)
+        card_branch = card_branch.where(UserCard.user_id != viewer_user_id)
     post_branch = select(
         literal('post', type_=String()).label('etype'),
         literal(1, type_=Integer()).label('kind_rank'),
@@ -142,7 +141,6 @@ class ListGlobalFeedService:
         post_ids = [i for k, i in ordered if k == 'post']
         cards = await hydrator.hydrate_global_feed_movie_cards(viewer_user_id, card_ids)
         posts = await hydrator.hydrate_global_feed_posts(viewer_user_id, post_ids)
-        posts = await enrich_feed_post_items_for_feed_paths(self._session, posts)
         byc = {c.id: c for c in cards}
         byp = {p.id: p for p in posts}
 

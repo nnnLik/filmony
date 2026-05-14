@@ -3,14 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.catalog_item import CatalogItem
+from models.card_tag import CardTag
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
 from models.user import User
+from models.user_card import UserCard
+from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
@@ -21,6 +22,8 @@ class MovieCardDetails:
     id: int
     user_id: UUID
     card_author: MovieCardCommentAuthor
+    provider: CatalogProvider
+    external_id: str | None
     film_id: int | None
     film_kinopoisk_id: int | None
     film_genres: list[str]
@@ -39,6 +42,8 @@ class MovieCardDetails:
     mood_after: str
     watch_note: str
     custom_tags: list[str]
+    category_id: int
+    category_name: str
     reactions: ReactionTargetSummary
     is_favorite: bool
 
@@ -52,32 +57,24 @@ class GetMovieCardDetailsService:
         self._session = session
 
     async def execute(self, card_id: int, viewer_user_id: UUID) -> MovieCardDetails:
+        catalog_film_id = (
+            select(CatalogItem.film_id)
+            .where(CatalogItem.id == UserCard.catalog_item_id)
+            .limit(1)
+            .scalar_subquery()
+        )
+        film_pk = func.coalesce(UserCard.film_id, catalog_film_id)
         row = (
             await self._session.execute(
-                select(MovieCard, User)
-                .join(User, User.id == MovieCard.user_id)
-                .where(MovieCard.id == card_id)
+                select(UserCard, User, Film)
+                .join(User, User.id == UserCard.user_id)
+                .outerjoin(Film, Film.id == film_pk)
+                .where(UserCard.id == card_id)
             )
         ).one_or_none()
         if row is None:
             raise MovieCardNotFoundError()
-        card, author = row
-
-        film: Film | None = None
-        if card.film_id is not None:
-            film = (
-                await self._session.execute(select(Film).where(Film.id == card.film_id))
-            ).scalar_one_or_none()
-        elif card.catalog_item_id is not None:
-            ci = (
-                await self._session.execute(
-                    select(CatalogItem).where(CatalogItem.id == card.catalog_item_id)
-                )
-            ).scalar_one_or_none()
-            if ci is not None and ci.film_id is not None:
-                film = (
-                    await self._session.execute(select(Film).where(Film.id == ci.film_id))
-                ).scalar_one_or_none()
+        card, author, film = row
 
         display_title = (card.display_title or '').strip()
         if not display_title and film is not None:
@@ -90,13 +87,21 @@ class GetMovieCardDetailsService:
         tags = (
             (
                 await self._session.execute(
-                    select(MovieCardTag.tag)
-                    .where(MovieCardTag.movie_card_id == card.id)
-                    .order_by(MovieCardTag.tag)
+                    select(CardTag.tag)
+                    .where(CardTag.card_id == card.id)
+                    .order_by(CardTag.tag)
                 )
             )
             .scalars()
             .all()
+        )
+        cat_row = (
+            await self._session.execute(
+                select(UserCardCategory).where(UserCardCategory.id == card.category_id)
+            )
+        ).scalar_one_or_none()
+        category_name = (
+            cat_row.name if cat_row is not None else DEFAULT_USER_CARD_CATEGORY_NAME
         )
         summaries, _, _, _ = await GetReactionSummariesForTargetsService(self._session).execute(
             viewer_user_id=viewer_user_id,
@@ -117,6 +122,8 @@ class GetMovieCardDetailsService:
                 photo_url=author.photo_url,
                 display_name=author.display_name,
             ),
+            provider=card.provider,
+            external_id=card.external_id,
             film_id=film.id if film is not None else None,
             film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
             film_genres=list(film.genres or []) if film is not None else [],
@@ -135,6 +142,8 @@ class GetMovieCardDetailsService:
             mood_after=card.mood_after,
             watch_note=card.watch_note or '',
             custom_tags=list(tags),
+            category_id=int(card.category_id),
+            category_name=category_name,
             reactions=summaries[card.id],
             is_favorite=bool(card.is_favorite),
         )

@@ -645,6 +645,7 @@ export function PublicProfilePage() {
                     profileUserId={profile.id}
                     cardsQuery={ratedQuery}
                     onChange={setRatedQuery}
+                    enableCategoryFilter={isOwnPublicProfile}
                   />
                 </div>
                 {ratedCardsLoading ? (

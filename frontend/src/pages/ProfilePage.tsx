@@ -679,6 +679,7 @@ export function ProfilePage() {
                   profileUserId={profile.id}
                   cardsQuery={ratedQuery}
                   onChange={setRatedQuery}
+                  enableCategoryFilter
                 />
                 {ratedCardsLoading ? (
                   <p className="filmony-text-panel mb-2 text-center text-xs text-(--tgui--hint_color)">

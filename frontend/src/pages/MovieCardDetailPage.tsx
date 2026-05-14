@@ -66,7 +66,7 @@ import {
   movieCardPrimarySummary,
   movieCardPrimaryTitle,
 } from '../lib/movieCardDisplay'
-import { kinopoiskTitleUrl, openExternalUrl } from '../lib/openExternalUrl'
+import { kinopoiskTitleUrlFromCard, openExternalUrl } from '../lib/openExternalUrl'
 import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
@@ -75,6 +75,7 @@ import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInl
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
+import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
@@ -1017,6 +1018,7 @@ function MovieCardDetailLoadedBody({
                     <Title level="2" weight="2" className="text-[1.15rem]! leading-snug! sm:text-[1.2rem]!">
                       {primaryTitle}
                     </Title>
+                    <CardCategoryChip category={card.category} className="mt-2" />
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {detailCardAuthor != null ? <CardAuthorAvatarLink author={detailCardAuthor} /> : null}
                       <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
@@ -1038,10 +1040,12 @@ function MovieCardDetailLoadedBody({
                         mode="gray"
                         aria-label="Открыть страницу фильма на Кинопоиске"
                         onClick={() => {
-                          const kp = card.film_kinopoisk_id
-                          if (kp != null && kp > 0) {
-                            openExternalUrl(kinopoiskTitleUrl(kp))
-                          }
+                          const url = kinopoiskTitleUrlFromCard(
+                            card.film_kinopoisk_id,
+                            card.provider,
+                            card.external_id,
+                          )
+                          if (url != null) openExternalUrl(url)
                         }}
                       >
                         <span className="relative z-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] bg-[#ff6600] px-[3px] text-[8px] font-black leading-none tracking-tight text-white">

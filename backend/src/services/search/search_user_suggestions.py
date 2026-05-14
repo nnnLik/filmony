@@ -10,8 +10,8 @@ from sqlalchemy import func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from models.movie_card import MovieCard
 from models.user import User
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 
 
@@ -131,16 +131,16 @@ class SearchUserSuggestionsService:
         since = (dt.datetime.now(dt.UTC) - dt.timedelta(days=7)).replace(tzinfo=None)
 
         stmt = (
-            select(MovieCard.user_id, sa_func.count().label('cnt'))
-            .where(MovieCard.created_at >= since)
-            .where(MovieCard.user_id != viewer_user_id)
+            select(UserCard.user_id, sa_func.count().label('cnt'))
+            .where(UserCard.created_at >= since)
+            .where(UserCard.user_id != viewer_user_id)
         )
         if exclude_user_ids:
-            stmt = stmt.where(MovieCard.user_id.notin_(exclude_user_ids))
+            stmt = stmt.where(UserCard.user_id.notin_(exclude_user_ids))
 
         stmt = (
-            stmt.group_by(MovieCard.user_id)
-            .order_by(sa_func.count().desc(), MovieCard.user_id.asc())
+            stmt.group_by(UserCard.user_id)
+            .order_by(sa_func.count().desc(), UserCard.user_id.asc())
             .limit(limit)
         )
 
@@ -160,7 +160,7 @@ class SearchUserSuggestionsService:
         *,
         exclude_user_ids: set[UUID],
     ) -> list[SuggestedUserProfile]:
-        has_card = select(1).select_from(MovieCard).where(MovieCard.user_id == User.id).exists()
+        has_card = select(1).select_from(UserCard).where(UserCard.user_id == User.id).exists()
 
         stmt = select(User.id).where(has_card).where(User.id != viewer_user_id)
         if exclude_user_ids:
@@ -182,9 +182,9 @@ class SearchUserSuggestionsService:
         if not user_ids:
             return {}
         stmt = (
-            select(MovieCard.user_id, sa_func.count().label('cnt'), sa_func.avg(MovieCard.rating))
-            .where(MovieCard.user_id.in_(user_ids))
-            .group_by(MovieCard.user_id)
+            select(UserCard.user_id, sa_func.count().label('cnt'), sa_func.avg(UserCard.rating))
+            .where(UserCard.user_id.in_(user_ids))
+            .group_by(UserCard.user_id)
         )
         res = await self._session.execute(stmt)
         out: dict[UUID, tuple[int, float | None]] = {}

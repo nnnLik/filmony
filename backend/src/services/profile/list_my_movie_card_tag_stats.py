@@ -6,8 +6,8 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
+from models.card_tag import CardTag
+from models.user_card import UserCard
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,13 +25,13 @@ class ListMyMovieCardTagStatsService:
         self._session = session
 
     async def execute(self, user_id: UUID, *, limit: int) -> list[MovieCardTagStat]:
-        cnt = func.count(MovieCardTag.movie_card_id)
+        cnt = func.count(CardTag.card_id)
         stmt = (
-            select(MovieCardTag.tag, cnt)
-            .join(MovieCard, MovieCard.id == MovieCardTag.movie_card_id)
-            .where(MovieCard.user_id == user_id)
-            .group_by(MovieCardTag.tag)
-            .order_by(cnt.desc(), MovieCardTag.tag.asc())
+            select(CardTag.tag, cnt)
+            .join(UserCard, UserCard.id == CardTag.card_id)
+            .where(UserCard.user_id == user_id)
+            .group_by(CardTag.tag)
+            .order_by(cnt.desc(), CardTag.tag.asc())
             .limit(limit)
         )
         rows = (await self._session.execute(stmt)).all()

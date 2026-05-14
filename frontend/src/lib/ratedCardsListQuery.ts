@@ -10,6 +10,8 @@ export type RatedCardsListQuery = {
   company: CardCompany | ''
   moodBefore: CardMoodBefore | ''
   moodAfter: CardMoodAfter | ''
+  /** Пустая строка = все полки. */
+  categoryId: string
 }
 
 export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
@@ -21,6 +23,7 @@ export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   company: '',
   moodBefore: '',
   moodAfter: '',
+  categoryId: '',
 }
 
 export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
@@ -32,7 +35,8 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
     q.yearMax.trim() === '' &&
     q.company === '' &&
     q.moodBefore === '' &&
-    q.moodAfter === ''
+    q.moodAfter === '' &&
+    q.categoryId.trim() === ''
   )
 }
 
@@ -46,6 +50,7 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
     co: q.company,
     mb: q.moodBefore,
     ma: q.moodAfter,
+    shelf: q.categoryId.trim(),
   })
 }
 
@@ -58,6 +63,10 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<
   const yearMin = ymn === '' ? null : Number(ymn)
   const yearMax = ymx === '' ? null : Number(ymx)
   const ft = q.filmTitle.trim()
+  const cs = q.categoryId.trim()
+  const categoryNum = cs === '' ? null : Number(cs)
+  const categoryId =
+    categoryNum != null && Number.isInteger(categoryNum) && categoryNum >= 1 ? categoryNum : null
 
   return {
     sort: q.sort,
@@ -68,5 +77,6 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<
     company: q.company === '' ? null : q.company,
     moodBefore: q.moodBefore === '' ? null : q.moodBefore,
     moodAfter: q.moodAfter === '' ? null : q.moodAfter,
+    categoryId,
   }
 }

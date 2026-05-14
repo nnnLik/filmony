@@ -7,9 +7,11 @@ from httpx import AsyncClient
 
 from conf import settings
 from core.database import get_session_factory
+from models.catalog_item import CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 from tests.auth.telegram_init_data import build_init_data
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, object]:
@@ -54,18 +56,26 @@ async def test_film_community_cards_returns_ratings_and_notes(async_client: Asyn
         await session.flush()
         fid = film.id
 
-        card_a = MovieCard(
+        cat_a = await ensure_default_category(session, uid_a)
+        cat_b = await ensure_default_category(session, uid_b)
+        card_a = UserCard(
             user_id=uid_a,
             film_id=fid,
+            category_id=cat_a,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=8.0,
             company='alone',
             mood_before='relax',
             mood_after='enjoyed',
             watch_note='Заметка А',
         )
-        card_b = MovieCard(
+        card_b = UserCard(
             user_id=uid_b,
             film_id=fid,
+            category_id=cat_b,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=6.5,
             company='friends',
             mood_before='thrill',
@@ -110,10 +120,14 @@ async def test_film_community_cards_invalid_cursor(async_client: AsyncClient) ->
         session.add(film)
         await session.flush()
         fid = film.id
+        cat_id = await ensure_default_category(session, uid)
         session.add(
-            MovieCard(
+            UserCard(
                 user_id=uid,
                 film_id=fid,
+                category_id=cat_id,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
                 rating=7.0,
                 company='alone',
                 mood_before='relax',

@@ -1,14 +1,21 @@
 import { Button, Title } from '@telegram-apps/telegram-ui'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { inferCatalogProviderFromUrl, resolveCatalogByProviderUrl } from '../api/catalogApi'
+import type { CatalogSearchHit, CatalogSearchResponse } from '../api/catalogApi'
+import {
+  inferCatalogProviderFromUrl,
+  resolveCatalogByProviderUrl,
+  searchCatalog,
+} from '../api/catalogApi'
 import { createMovieCard, getFilmById, getMovieCardById, resolveFilmByKinopoiskUrl, shareMovieCardWithFollowers } from '../api/cardApi'
 import {
+  createMyCardCategory,
   getMyMovieCardTagStats,
   getMyProfile,
+  getMyCardCategories,
   getUserSubscriptions,
   postMyWatchlistFilm,
 } from '../api/profileApi'
@@ -28,6 +35,7 @@ import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import {
   globalFeedQueryRootKey,
+  myCardCategoriesQueryKey,
   myMovieCardTagStatsQueryKey,
   userMovieCardTagStatsQueryKey,
 } from '../feed/feedQueryKeys'
@@ -71,19 +79,29 @@ const CHIP_COLORS = [
   'bg-[#EC489933] text-[#F9A8D4]',
 ] as const
 
-type WizardStep = 1 | 2 | 3 | 4 | 5
-const TOTAL_STEPS = 5
+type WizardStep = 1 | 2 | 3 | 4
+const TOTAL_STEPS = 4
 const STEP_TITLES: Record<WizardStep, string> = {
-  1: 'Ссылка или название',
-  2: 'Подтверждение',
-  3: 'Оценка и контекст',
-  4: 'Ваши теги',
-  5: 'Поделиться',
+  1: 'Что добавляем',
+  2: 'Проверьте тайтл',
+  3: 'Оценка и полка',
+  4: 'Детали и отправка',
 }
+
+/** Экран 1 шага: выбор типа тайтла → поиск / ручное / ссылка. */
+type CardAddKind = null | 'film' | 'game' | 'manual'
 
 type CreationBinding =
   | { kind: 'film'; film: Film }
-  | { kind: 'catalog'; catalogItemId: number; film: Film }
+  | { kind: 'catalog_film'; catalogItemId: number; film: Film }
+  | {
+      kind: 'catalog_game'
+      catalogItemId: number
+      display_title: string
+      display_cover_url: string | null
+      display_summary: string | null
+      subtitle: string | null
+    }
   | {
       kind: 'manual'
       display_title: string
@@ -92,8 +110,22 @@ type CreationBinding =
     }
 
 function watchlistFilmId(binding: CreationBinding): number | null {
-  if (binding.kind === 'manual') return null
+  if (binding.kind === 'manual' || binding.kind === 'catalog_game') return null
+  if (binding.kind === 'catalog_film') return binding.film.id
   return binding.film.id
+}
+
+async function hydrateFilmFromKinopoiskNumericId(externalId: string): Promise<Film> {
+  const id = externalId.trim()
+  try {
+    return await resolveFilmByKinopoiskUrl(`https://www.kinopoisk.ru/film/${id}/`)
+  } catch (firstErr) {
+    try {
+      return await resolveFilmByKinopoiskUrl(`https://www.kinopoisk.ru/series/${id}/`)
+    } catch {
+      throw firstErr
+    }
+  }
 }
 
 const WIZARD_TEXT_FIELD_CLASS =
@@ -159,11 +191,23 @@ export function CreateCardPage() {
   const [fromCardPrefillDone, setFromCardPrefillDone] = useState(() => fromCardQuery == null || fromCardQuery === '')
   const [remixFromCard, setRemixFromCard] = useState(false)
   const [step, setStep] = useState<WizardStep>(1)
+  const [addKind, setAddKind] = useState<CardAddKind>(null)
+  /** Поиск в каталоге: не дергаем API, пока нормализованная строка короче 3 символов. */
+  const [catalogSearchDraft, setCatalogSearchDraft] = useState('')
+  const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState('')
+  const [urlShortcutOpen, setUrlShortcutOpen] = useState(false)
   const [kinopoiskUrl, setKinopoiskUrl] = useState('')
   const [loadingFilm, setLoadingFilm] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [watchlistBusy, setWatchlistBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resolveInlineError, setResolveInlineError] = useState<string | null>(null)
+  const [manualFieldError, setManualFieldError] = useState<string | null>(null)
+  const [shelfError, setShelfError] = useState<string | null>(null)
+  const [shelfCreateExpanded, setShelfCreateExpanded] = useState(false)
+  const [tagFieldError, setTagFieldError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [watchlistError, setWatchlistError] = useState<string | null>(null)
   const [creationBinding, setCreationBinding] = useState<CreationBinding | null>(null)
   const [manualTitle, setManualTitle] = useState('')
   const [manualCoverUrl, setManualCoverUrl] = useState('')
@@ -179,6 +223,10 @@ export function CreateCardPage() {
   const [shareFollowers, setShareFollowers] = useState<SubscriptionListItem[]>([])
   const [shareFollowersLoading, setShareFollowersLoading] = useState(false)
   const [shareSelected, setShareSelected] = useState<Set<string>>(() => new Set())
+  /** `null` — не передаём `category_id`, бэкенд подставляет полку по умолчанию. */
+  const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null)
+  const [newShelfDraft, setNewShelfDraft] = useState('')
+  const [createShelfBusy, setCreateShelfBusy] = useState(false)
   const fromCardBootstrapSeq = useRef(0)
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
 
@@ -217,6 +265,81 @@ export function CreateCardPage() {
     gcTime: 60 * 60_000,
     placeholderData: () => readCachedMyMovieCardTagStats() ?? undefined,
   })
+
+  const shelvesQuery = useQuery({
+    queryKey: myCardCategoriesQueryKey(),
+    queryFn: getMyCardCategories,
+    enabled: auth.kind === 'ready',
+    staleTime: 60_000,
+    gcTime: 30 * 60_000,
+  })
+
+  useEffect(() => {
+    if (catalogSearchDraft.trim().length < 3) {
+      const t = window.setTimeout(() => setDebouncedCatalogSearch(''))
+      return () => window.clearTimeout(t)
+    }
+    const t = window.setTimeout(() => setDebouncedCatalogSearch(catalogSearchDraft.trim()), 450)
+    return () => window.clearTimeout(t)
+  }, [catalogSearchDraft])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCatalogSearchDraft('')
+      setDebouncedCatalogSearch('')
+      setUrlShortcutOpen(false)
+    })
+  }, [addKind])
+
+  const catalogSearchProvider = addKind === 'film' ? 'kinopoisk' : addKind === 'game' ? 'rawg' : null
+
+  type CatalogSearchQueryKey = readonly ['catalogSearch', 'kinopoisk' | 'rawg' | 'idle', string]
+
+  const catalogSearchQueryKey: CatalogSearchQueryKey = [
+    'catalogSearch',
+    catalogSearchProvider ?? 'idle',
+    debouncedCatalogSearch,
+  ]
+
+  const catalogSearchQuery = useInfiniteQuery<
+    CatalogSearchResponse,
+    Error,
+    InfiniteData<CatalogSearchResponse>,
+    CatalogSearchQueryKey,
+    number
+  >({
+    queryKey: catalogSearchQueryKey,
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      searchCatalog({
+        provider: catalogSearchProvider!,
+        q: debouncedCatalogSearch,
+        page: pageParam,
+        limit: 15,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam): number | undefined => {
+      if (!lastPage.has_more) return undefined
+      const prev = typeof lastPageParam === 'number' ? lastPageParam : 1
+      return prev + 1
+    },
+    enabled:
+      auth.kind === 'ready' &&
+      fromCardPrefillDone &&
+      step === 1 &&
+      catalogSearchProvider != null &&
+      debouncedCatalogSearch.length >= 3,
+  })
+
+  const catalogSearchHits: CatalogSearchHit[] = useMemo(() => {
+    const raw = catalogSearchQuery.data?.pages
+    if (raw == null) return []
+    const out: CatalogSearchHit[] = []
+    for (const page of raw) {
+      const items = page.items
+      out.push(...items)
+    }
+    return out
+  }, [catalogSearchQuery.data])
 
   const myTagStats: MyMovieCardTagStatItem[] = useMemo(
     () => tagStatsQuery.data?.items ?? [],
@@ -328,7 +451,7 @@ export function CreateCardPage() {
   }, [navigate, searchParams])
 
   useEffect(() => {
-    if (step !== 5 || auth.kind !== 'ready') {
+    if (step !== 4 || auth.kind !== 'ready') {
       return
     }
     let alive = true
@@ -380,7 +503,7 @@ export function CreateCardPage() {
 
   const tagInputTooLong = tagInput.trim().length > MAX_CUSTOM_TAG_LEN
   const watchNoteTooLong = watchNote.length > MAX_WATCH_NOTE_LEN
-  const canProceedFromTags = !tagInputTooLong && !watchNoteTooLong
+  const canSubmitFinal = !tagInputTooLong && !watchNoteTooLong && creationBinding != null
 
   const confirmPreview = useMemo(() => {
     const b = creationBinding
@@ -390,6 +513,18 @@ export function CreateCardPage() {
         posterUrl: b.display_cover_url,
         title: b.display_title,
         yearLabel: '—',
+        genres: [] as string[],
+        showDupWarning: false,
+        myCardId: null as number | null,
+        showWatchlist: false,
+      }
+    }
+    if (b.kind === 'catalog_game') {
+      const sub = (b.subtitle ?? '').trim()
+      return {
+        posterUrl: b.display_cover_url,
+        title: b.display_title,
+        yearLabel: sub !== '' ? sub : 'Игра',
         genres: [] as string[],
         showDupWarning: false,
         myCardId: null as number | null,
@@ -419,20 +554,73 @@ export function CreateCardPage() {
     })
   }
 
+  async function handleSelectKinopoiskSearchHit(hit: CatalogSearchHit) {
+    if (hit.catalog_item_id == null || hit.kind !== 'film') {
+      setResolveInlineError('У результата нет привязки к каталогу — попробуйте другой или введите ссылку.')
+      return
+    }
+    setLoadingFilm(true)
+    setResolveInlineError(null)
+    try {
+      const film = await hydrateFilmFromKinopoiskNumericId(hit.external_id)
+      setCreationBinding({
+        kind: 'catalog_film',
+        catalogItemId: hit.catalog_item_id,
+        film,
+      })
+      setStep(2)
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setResolveInlineError(mapResolveError(formatApiDetail(e.detail)))
+      } else {
+        setResolveInlineError('Не удалось подтянуть карточку фильма — попробуйте по ссылке на Кинопоиск.')
+      }
+    } finally {
+      setLoadingFilm(false)
+    }
+  }
+
+  function handleSelectRawgSearchHit(hit: CatalogSearchHit) {
+    if (hit.catalog_item_id == null || hit.kind !== 'game') {
+      setResolveInlineError('У результата нет привязки к каталогу — попробуйте другой или создайте тайтл вручную.')
+      return
+    }
+    const title = hit.title.trim()
+    if (title === '') {
+      setResolveInlineError('У записи пустое название.')
+      return
+    }
+    setResolveInlineError(null)
+    const sub = hit.subtitle
+    setCreationBinding({
+      kind: 'catalog_game',
+      catalogItemId: hit.catalog_item_id,
+      display_title: title,
+      display_cover_url: hit.cover_url,
+      display_summary: sub != null && sub.trim() !== '' ? sub : null,
+      subtitle: hit.subtitle,
+    })
+    setStep(2)
+  }
+
   async function handleResolveFilm() {
     if (kinopoiskUrl.trim() === '') {
-      setError('Вставьте ссылку на Кинопоиск')
+      setResolveInlineError('Вставьте ссылку на страницу тайтла (Кинопоиск или поддерживаемый каталог).')
       return
     }
     const trimmedUrl = kinopoiskUrl.trim()
     setLoadingFilm(true)
-    setError(null)
+    setResolveInlineError(null)
     try {
       const provider = inferCatalogProviderFromUrl(trimmedUrl)
       if (provider != null) {
         try {
           const resolved = await resolveCatalogByProviderUrl(provider, trimmedUrl)
-          setCreationBinding({ kind: 'catalog', catalogItemId: resolved.catalog_item_id, film: resolved.film })
+          setCreationBinding({
+            kind: 'catalog_film',
+            catalogItemId: resolved.catalog_item_id,
+            film: resolved.film,
+          })
           setStep(2)
           return
         } catch (e) {
@@ -446,9 +634,9 @@ export function CreateCardPage() {
       setStep(2)
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(mapResolveError(formatApiDetail(e.detail)))
+        setResolveInlineError(mapResolveError(formatApiDetail(e.detail)))
       } else {
-        setError('Не удалось получить данные по ссылке. Проверьте её и попробуйте снова.')
+        setResolveInlineError('Не удалось получить данные по ссылке. Проверьте адрес или создайте тайтл вручную.')
       }
     } finally {
       setLoadingFilm(false)
@@ -458,10 +646,11 @@ export function CreateCardPage() {
   function handleManualContinue() {
     const title = manualTitle.trim()
     if (title === '') {
-      setError('Введите название тайтла')
+      setManualFieldError('Введите название тайтла')
       return
     }
-    setError(null)
+    setManualFieldError(null)
+    setResolveInlineError(null)
     const cover = manualCoverUrl.trim()
     const sum = manualSummary.trim()
     setCreationBinding({
@@ -473,6 +662,32 @@ export function CreateCardPage() {
     setStep(2)
   }
 
+  async function submitNewShelf() {
+    const name = newShelfDraft.trim()
+    if (name === '') {
+      setShelfError('Введите название полки')
+      return
+    }
+    setCreateShelfBusy(true)
+    setShelfError(null)
+    try {
+      const row = await createMyCardCategory({ name })
+      setNewShelfDraft('')
+      setSelectedShelfId(row.id)
+      setShelfCreateExpanded(false)
+      void queryClient.invalidateQueries({ queryKey: myCardCategoriesQueryKey() })
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setShelfError(formatApiDetail(e.detail))
+      } else {
+        setShelfError('Не удалось создать полку')
+      }
+    } finally {
+      setCreateShelfBusy(false)
+    }
+  }
+
   async function handleAddToWatchlist() {
     if (creationBinding == null || creationBinding.kind === 'manual') {
       return
@@ -482,7 +697,7 @@ export function CreateCardPage() {
       return
     }
     setWatchlistBusy(true)
-    setError(null)
+    setWatchlistError(null)
     try {
       await postMyWatchlistFilm(fid)
       clearMyProfileBundleCache()
@@ -491,17 +706,17 @@ export function CreateCardPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 409) {
-          setError('Эта запись уже в списке «к просмотру».')
+          setWatchlistError('Эта запись уже в списке «к просмотру».')
           return
         }
         const msg = formatApiDetail(e.detail).toLowerCase()
         if (msg.includes('movie card already exists')) {
-          setError('У вас уже есть оценённая карточка для этого тайтла.')
+          setWatchlistError('У вас уже есть оценённая карточка для этого тайтла.')
           return
         }
-        setError(formatApiDetail(e.detail))
+        setWatchlistError(formatApiDetail(e.detail))
       } else {
-        setError('Не удалось добавить в список')
+        setWatchlistError('Не удалось добавить в список')
       }
     } finally {
       setWatchlistBusy(false)
@@ -514,7 +729,7 @@ export function CreateCardPage() {
       return
     }
     if (trimmed.length > MAX_CUSTOM_TAG_LEN) {
-      setError(`Тег не длиннее ${MAX_CUSTOM_TAG_LEN} символов`)
+      setTagFieldError(`Тег не длиннее ${MAX_CUSTOM_TAG_LEN} символов`)
       return
     }
     const lowered = trimmed.toLowerCase()
@@ -523,12 +738,12 @@ export function CreateCardPage() {
       return
     }
     if (customTags.length >= 5) {
-      setError('Можно добавить не больше 5 тегов')
+      setTagFieldError('Можно добавить не больше 5 тегов')
       return
     }
     setCustomTags((prev) => [...prev, trimmed])
     setTagInput('')
-    setError(null)
+    setTagFieldError(null)
   }
 
   function addTagFromSuggestion(label: string) {
@@ -537,12 +752,12 @@ export function CreateCardPage() {
     const lowered = trimmed.toLowerCase()
     if (customTags.some((tag) => tag.toLowerCase() === lowered)) return
     if (customTags.length >= 5) {
-      setError('Можно добавить не больше 5 тегов')
+      setTagFieldError('Можно добавить не больше 5 тегов')
       return
     }
     setCustomTags((prev) => [...prev, trimmed])
     setTagInput('')
-    setError(null)
+    setTagFieldError(null)
   }
 
   function removeTag(tag: string) {
@@ -551,14 +766,26 @@ export function CreateCardPage() {
 
   function goBack() {
     if (step === 1) {
+      if (addKind != null) {
+        setAddKind(null)
+        setResolveInlineError(null)
+        setManualFieldError(null)
+        setKinopoiskUrl('')
+        return
+      }
       void navigate('/')
       return
     }
     setError(null)
+    setSubmitError(null)
     setStep((prev) => {
       const next = (prev - 1) as WizardStep
       if (next === 1) {
         setCreationBinding(null)
+        setAddKind(null)
+        setResolveInlineError(null)
+        setManualFieldError(null)
+        setKinopoiskUrl('')
       }
       return next
     })
@@ -595,14 +822,21 @@ export function CreateCardPage() {
 
   async function handleSubmit() {
     if (creationBinding == null) {
-      setError('Сначала выберите тайтл')
+      setSubmitError('Сначала выберите тайтл')
+      return
+    }
+    if (!canSubmitFinal) {
       return
     }
     setSubmitLoading(true)
-    setError(null)
+    setSubmitError(null)
     try {
       const watchNotePayload = watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN)
       const ratingPayload = normalizeRating(rating)
+      const shelfOpt =
+        selectedShelfId != null && Number.isFinite(selectedShelfId) && selectedShelfId >= 1
+          ? { category_id: selectedShelfId }
+          : {}
       let newCard: MovieCard
       if (creationBinding.kind === 'film') {
         const f = creationBinding.film
@@ -616,10 +850,28 @@ export function CreateCardPage() {
           mood_after: moodAfter,
           custom_tags: customTags,
           watch_note: watchNotePayload,
+          ...shelfOpt,
         })
-      } else if (creationBinding.kind === 'catalog') {
+      } else if (creationBinding.kind === 'catalog_film') {
+        const f = creationBinding.film
         newCard = await createMovieCard({
           catalog_item_id: creationBinding.catalogItemId,
+          genres: f.genres ?? [],
+          rating: ratingPayload,
+          company,
+          mood_before: moodBefore,
+          mood_after: moodAfter,
+          custom_tags: customTags,
+          watch_note: watchNotePayload,
+          ...shelfOpt,
+        })
+      } else if (creationBinding.kind === 'catalog_game') {
+        const g = creationBinding
+        newCard = await createMovieCard({
+          catalog_item_id: g.catalogItemId,
+          display_title: g.display_title.trim(),
+          display_cover_url: g.display_cover_url ?? undefined,
+          display_summary: g.display_summary ?? undefined,
           genres: [],
           rating: ratingPayload,
           company,
@@ -627,10 +879,12 @@ export function CreateCardPage() {
           mood_after: moodAfter,
           custom_tags: customTags,
           watch_note: watchNotePayload,
+          ...shelfOpt,
         })
       } else {
         const m = creationBinding
         newCard = await createMovieCard({
+          provider: 'no_provider',
           display_title: m.display_title.trim(),
           display_cover_url: m.display_cover_url ?? undefined,
           display_summary: m.display_summary ?? undefined,
@@ -641,6 +895,7 @@ export function CreateCardPage() {
           mood_after: moodAfter,
           custom_tags: customTags,
           watch_note: watchNotePayload,
+          ...shelfOpt,
         })
       }
       const bundleUid = readMyProfileBundleCache()?.profile.id
@@ -676,9 +931,9 @@ export function CreateCardPage() {
       }
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(formatApiDetail(e.detail))
+        setSubmitError(formatApiDetail(e.detail))
       } else {
-        setError('Не удалось создать карточку')
+        setSubmitError('Не удалось создать карточку')
       }
     } finally {
       setSubmitLoading(false)
@@ -717,6 +972,12 @@ export function CreateCardPage() {
       </header>
 
       <main className="space-y-4 px-4 py-6">
+        {error != null ? (
+          <div className="rounded-2xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_10%,transparent)] px-3 py-2">
+            <p className="text-sm text-(--tgui--destructive_text_color)">{error}</p>
+          </div>
+        ) : null}
+
         {!fromCardPrefillDone ? (
           <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
             Загружаем данные из карточки…
@@ -724,122 +985,356 @@ export function CreateCardPage() {
         ) : null}
 
         {fromCardPrefillDone && step === 1 ? (
-          <WizardStepPanel title="1. Ссылка или своё название">
+          <WizardStepPanel title="1. Что добавляем?">
             <div className="filmony-text-panel flex flex-col gap-4">
-              <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
-                <p className="text-sm font-medium text-(--tgui--text_color)">Откуда взять ссылку</p>
-                <ol className="mt-2 list-decimal space-y-2 pl-4 text-sm leading-snug text-(--tgui--hint_color)">
-                  <li>Откройте на Кинопоиске страницу того, что смотрели (фильм или сериал).</li>
-                  <li>
-                    Скопируйте <span className="font-medium text-(--tgui--text_color)">весь адрес</span> из строки
-                    браузера и вставьте ниже.
-                  </li>
-                </ol>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="create-card-kinopoisk-url" className="text-xs font-medium text-(--tgui--hint_color)">
-                  Адрес страницы
-                </label>
-                <input
-                  id="create-card-kinopoisk-url"
-                  type="url"
-                  inputMode="url"
-                  autoComplete="url"
-                  enterKeyHint="go"
-                  placeholder="https://www.kinopoisk.ru/…"
-                  value={kinopoiskUrl}
-                  onChange={(e) => setKinopoiskUrl(e.currentTarget.value)}
-                  className={WIZARD_TEXT_FIELD_CLASS}
-                />
-              </div>
-              <Button stretched disabled={loadingFilm} onClick={() => void handleResolveFilm()}>
-                {loadingFilm ? 'Загружаем...' : 'Далее по ссылке'}
-              </Button>
+              {addKind === null ? (
+                <>
+                  <p className="text-sm leading-snug text-(--tgui--hint_color)">
+                    Сначала выберите тип: фильм или сериал, игра или тайтл без каталога. Игры ищутся в RAWG, фильмы — в
+                    базе приложения и на Кинопоиске.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      stretched
+                      onClick={() => {
+                        setAddKind('film')
+                        setResolveInlineError(null)
+                      }}
+                    >
+                      Фильм или сериал
+                    </Button>
+                    <Button
+                      mode="gray"
+                      stretched
+                      onClick={() => {
+                        setAddKind('game')
+                        setResolveInlineError(null)
+                      }}
+                    >
+                      Игра
+                    </Button>
+                    <Button
+                      mode="gray"
+                      stretched
+                      onClick={() => {
+                        setAddKind('manual')
+                        setManualFieldError(null)
+                        setResolveInlineError(null)
+                      }}
+                    >
+                      Без каталога
+                    </Button>
+                  </div>
+                </>
+              ) : null}
 
-              <div className="relative flex items-center gap-3 py-1">
-                <div className="h-px flex-1 bg-(--tgui--divider_color)" />
-                <span className="text-[11px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">или</span>
-                <div className="h-px flex-1 bg-(--tgui--divider_color)" />
-              </div>
+              {addKind === 'film' || addKind === 'game' ? (
+                <>
+                  <button
+                    type="button"
+                    className="self-start text-sm font-medium text-(--tgui--link_color) active:opacity-80"
+                    onClick={() => {
+                      setAddKind(null)
+                      setResolveInlineError(null)
+                      setKinopoiskUrl('')
+                      setUrlShortcutOpen(false)
+                    }}
+                  >
+                    ← Другой тип
+                  </button>
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="create-card-catalog-search"
+                      className="text-xs font-medium text-(--tgui--hint_color)"
+                    >
+                      {addKind === 'film' ? 'Поиск (Кинопоиск)' : 'Поиск игр (RAWG)'}
+                    </label>
+                    <input
+                      id="create-card-catalog-search"
+                      type="search"
+                      autoComplete="off"
+                      enterKeyHint="search"
+                      placeholder="Минимум 3 символа…"
+                      value={catalogSearchDraft}
+                      onChange={(e) => {
+                        setCatalogSearchDraft(e.currentTarget.value)
+                        setResolveInlineError(null)
+                      }}
+                      className={WIZARD_TEXT_FIELD_CLASS}
+                    />
+                  </div>
+                  {catalogSearchDraft.trim().length > 0 && catalogSearchDraft.trim().length < 3 ? (
+                    <p className="text-xs text-(--tgui--hint_color)">Для запроса нужно не меньше 3 символов.</p>
+                  ) : null}
+                  {catalogSearchQuery.isFetching && debouncedCatalogSearch.length >= 3 ? (
+                    <p className="text-sm text-(--tgui--hint_color)">Ищем…</p>
+                  ) : null}
+                  {catalogSearchQuery.isError ? (
+                    <p className="text-sm text-(--tgui--destructive_text_color)">
+                      {catalogSearchQuery.error.message || 'Не удалось выполнить поиск'}
+                    </p>
+                  ) : null}
+                  {resolveInlineError != null && (addKind === 'film' || addKind === 'game') ? (
+                    <div className="rounded-xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_8%,transparent)] px-3 py-2.5">
+                      <p className="text-sm text-(--tgui--destructive_text_color)">{resolveInlineError}</p>
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          mode="gray"
+                          size="s"
+                          stretched
+                          type="button"
+                          onClick={() => {
+                            setResolveInlineError(null)
+                            setAddKind('manual')
+                            setManualFieldError(null)
+                          }}
+                        >
+                          Создать вручную
+                        </Button>
+                        {addKind === 'film' && kinopoiskUrl.trim() !== '' ? (
+                          <Button
+                            mode="gray"
+                            size="s"
+                            stretched
+                            type="button"
+                            onClick={() => void handleResolveFilm()}
+                            disabled={loadingFilm}
+                          >
+                            Повторить по ссылке
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                  <Button
+                    mode="gray"
+                    stretched
+                    type="button"
+                    onClick={() => {
+                      setResolveInlineError(null)
+                      setAddKind('manual')
+                      setManualFieldError(null)
+                    }}
+                  >
+                    Создать вручную
+                  </Button>
+                  {catalogSearchHits.length > 0 ? (
+                    <ul className="mt-1 flex max-h-80 flex-col gap-2 overflow-y-auto [-webkit-overflow-scrolling:touch]">
+                      {catalogSearchHits.map((hit, idx) => {
+                        const selectable = hit.catalog_item_id != null && !loadingFilm
+                        const rowKey = `${hit.provider}-${hit.external_id}-${hit.catalog_item_id ?? 'pending'}-${idx}`
+                        const onActivate = (): void => {
+                          if (!selectable || hit.catalog_item_id == null) return
+                          if (addKind === 'film') void handleSelectKinopoiskSearchHit(hit)
+                          else handleSelectRawgSearchHit(hit)
+                        }
+                        return (
+                          <li key={rowKey}>
+                            <button
+                              type="button"
+                              disabled={!selectable}
+                              onClick={onActivate}
+                              className="flex w-full gap-3 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md bg-(--tgui--secondary_bg_color)">
+                                {hit.cover_url ? (
+                                  <img src={hit.cover_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-[10px] text-(--tgui--hint_color)">
+                                    —
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-(--tgui--text_color)">{hit.title}</p>
+                                {hit.subtitle ? (
+                                  <p className="mt-0.5 line-clamp-2 text-xs text-(--tgui--hint_color)">
+                                    {hit.subtitle}
+                                  </p>
+                                ) : null}
+                                <p className="mt-1 text-[10px] uppercase tracking-wide text-(--tgui--hint_color)">
+                                  {hit.source === 'local' ? 'в каталоге' : 'онлайн'}
+                                  {hit.catalog_item_id == null ? ' · нет catalog_item_id' : null}
+                                </p>
+                              </div>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : null}
+                  {catalogSearchQuery.isSuccess &&
+                  debouncedCatalogSearch.length >= 3 &&
+                  catalogSearchHits.length === 0 &&
+                  !catalogSearchQuery.isFetching ? (
+                    <p className="text-sm text-(--tgui--hint_color)">
+                      Ничего не нашли — уточните запрос, создайте вручную или попробуйте ссылку (для фильма).
+                    </p>
+                  ) : null}
+                  {catalogSearchQuery.hasNextPage ? (
+                    <Button
+                      mode="gray"
+                      stretched
+                      type="button"
+                      disabled={catalogSearchQuery.isFetchingNextPage || loadingFilm}
+                      onClick={() => void catalogSearchQuery.fetchNextPage()}
+                    >
+                      {catalogSearchQuery.isFetchingNextPage ? 'Загружаем…' : 'Показать ещё'}
+                    </Button>
+                  ) : null}
+                  {addKind === 'film' ? (
+                    <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2">
+                      <button
+                        type="button"
+                        className="text-sm font-medium text-(--tgui--link_color) active:opacity-80"
+                        onClick={() => setUrlShortcutOpen((v) => !v)}
+                      >
+                        {urlShortcutOpen ? 'Скрыть ввод по ссылке' : 'Или ссылка с Кинопоиска…'}
+                      </button>
+                      {urlShortcutOpen ? (
+                        <div className="filmony-text-panel mt-3 border-t border-(--tgui--divider_color) pt-3">
+                          <p className="text-xs leading-snug text-(--tgui--hint_color)">
+                            Альтернатива поиску: вставьте полный адрес страницы фильма или сериала на Kinopoisk.
+                          </p>
+                          <label
+                            htmlFor="create-card-kinopoisk-url"
+                            className="mt-2 block text-xs font-medium text-(--tgui--hint_color)"
+                          >
+                            Адрес страницы
+                          </label>
+                          <input
+                            id="create-card-kinopoisk-url"
+                            type="url"
+                            inputMode="url"
+                            autoComplete="url"
+                            enterKeyHint="go"
+                            placeholder="https://www.kinopoisk.ru/…"
+                            value={kinopoiskUrl}
+                            onChange={(e) => {
+                              setKinopoiskUrl(e.currentTarget.value)
+                              setResolveInlineError(null)
+                            }}
+                            className={`mt-2 ${WIZARD_TEXT_FIELD_CLASS}`}
+                          />
+                          <div className="mt-3">
+                            <Button stretched disabled={loadingFilm} onClick={() => void handleResolveFilm()}>
+                              {loadingFilm ? 'Подтягиваем данные…' : 'Найти по ссылке и продолжить'}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
 
-              <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
-                <p className="text-sm font-medium text-(--tgui--text_color)">Без Кинопоиска</p>
-                <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
-                  Укажите название вручную — например сериал с другого сервиса или спектакль.
-                </p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="create-card-manual-title" className="text-xs font-medium text-(--tgui--hint_color)">
-                  Название
-                </label>
-                <input
-                  id="create-card-manual-title"
-                  type="text"
-                  autoComplete="off"
-                  placeholder="Например: Название тайтла"
-                  value={manualTitle}
-                  onChange={(e) => setManualTitle(e.currentTarget.value)}
-                  className={WIZARD_TEXT_FIELD_CLASS}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="create-card-manual-cover" className="text-xs font-medium text-(--tgui--hint_color)">
-                  Обложка (необязательно)
-                </label>
-                <input
-                  id="create-card-manual-cover"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://…"
-                  value={manualCoverUrl}
-                  onChange={(e) => setManualCoverUrl(e.currentTarget.value)}
-                  className={WIZARD_TEXT_FIELD_CLASS}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="create-card-manual-summary" className="text-xs font-medium text-(--tgui--hint_color)">
-                  Коротко о чём (необязательно)
-                </label>
-                <textarea
-                  id="create-card-manual-summary"
-                  rows={3}
-                  placeholder="Одно-два предложения"
-                  value={manualSummary}
-                  onChange={(e) => setManualSummary(e.currentTarget.value)}
-                  className={`${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
-                />
-              </div>
-              <Button stretched disabled={loadingFilm} onClick={() => handleManualContinue()}>
-                Далее без ссылки
-              </Button>
+              {addKind === 'manual' ? (
+                <>
+                  <button
+                    type="button"
+                    className="self-start text-sm font-medium text-(--tgui--link_color) active:opacity-80"
+                    onClick={() => {
+                      setAddKind(null)
+                      setManualFieldError(null)
+                    }}
+                  >
+                    ← Другой тип
+                  </button>
+                  <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
+                    <p className="text-sm font-medium text-(--tgui--text_color)">Свой тайтл</p>
+                    <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
+                      Если каталог не подошёл или это спектакль, подкаст и т.п. — укажите название и при желании обложку.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="create-card-manual-title" className="text-xs font-medium text-(--tgui--hint_color)">
+                      Название
+                    </label>
+                    <input
+                      id="create-card-manual-title"
+                      type="text"
+                      autoComplete="off"
+                      placeholder="Например: Название тайтла"
+                      value={manualTitle}
+                      onChange={(e) => {
+                        setManualTitle(e.currentTarget.value)
+                        setManualFieldError(null)
+                      }}
+                      className={WIZARD_TEXT_FIELD_CLASS}
+                    />
+                    {manualFieldError != null ? (
+                      <p className="text-xs text-(--tgui--destructive_text_color)">{manualFieldError}</p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="create-card-manual-cover" className="text-xs font-medium text-(--tgui--hint_color)">
+                      Обложка (необязательно)
+                    </label>
+                    <input
+                      id="create-card-manual-cover"
+                      type="url"
+                      inputMode="url"
+                      placeholder="https://…"
+                      value={manualCoverUrl}
+                      onChange={(e) => setManualCoverUrl(e.currentTarget.value)}
+                      className={WIZARD_TEXT_FIELD_CLASS}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="create-card-manual-summary" className="text-xs font-medium text-(--tgui--hint_color)">
+                      Коротко о чём (необязательно)
+                    </label>
+                    <textarea
+                      id="create-card-manual-summary"
+                      rows={3}
+                      placeholder="Одно-два предложения"
+                      value={manualSummary}
+                      onChange={(e) => setManualSummary(e.currentTarget.value)}
+                      className={`${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
+                    />
+                  </div>
+                  <Button stretched disabled={loadingFilm} onClick={() => handleManualContinue()}>
+                    Дальше с этим названием
+                  </Button>
+                </>
+              ) : null}
             </div>
           </WizardStepPanel>
         ) : null}
 
         {fromCardPrefillDone && step === 2 ? (
-          <WizardStepPanel title="2. Подтверждение">
+          <WizardStepPanel title="2. Это нужный тайтл?">
             {confirmPreview != null ? (
               <div className="filmony-text-panel">
                 {confirmPreview.showDupWarning ? (
                   <p className="filmony-text-panel mb-3 text-sm text-(--tgui--text_color)">
                     У вас уже есть карточка на этот тайтл в профиле.
                   </p>
-                ) : remixFromCard ? (
+                ) : (
+                  <p className="filmony-text-panel mb-3 text-sm leading-snug text-(--tgui--hint_color)">
+                    Проверьте обложку и название. Дальше вы поставите оценку и сможете добавить теги и заметку.
+                  </p>
+                )}
+                {remixFromCard && !confirmPreview.showDupWarning ? (
                   <p className="filmony-text-panel mb-3 text-xs text-(--tgui--hint_color)">
-                    Своя оценка и теги — отдельная карточка у вас в профиле.
+                    По мотивам чужой карточки — у вас будет отдельная запись со своей оценкой.
                   </p>
                 ) : null}
-                <div className="filmony-text-panel flex gap-3">
-                  <div className="h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-(--tgui--secondary_bg_color)">
+                <div className="filmony-text-panel flex gap-3 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3">
+                  <div className="h-28 w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-(--tgui--secondary_bg_color)">
                     {confirmPreview.posterUrl ? (
                       <img
                         src={confirmPreview.posterUrl}
                         alt={confirmPreview.title}
                         className="h-full w-full object-cover"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] text-(--tgui--hint_color)">
+                        Нет обложки
+                      </div>
+                    )}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <Title level="3" weight="2">
                       {confirmPreview.title}
                     </Title>
@@ -847,6 +1342,9 @@ export function CreateCardPage() {
                     <FilmGenreChips genres={confirmPreview.genres} size="md" maxVisible={6} className="mt-2" />
                   </div>
                 </div>
+                {watchlistError != null ? (
+                  <p className="mt-3 text-sm text-(--tgui--destructive_text_color)">{watchlistError}</p>
+                ) : null}
                 <div className="mt-5 flex flex-col gap-2">
                   {confirmPreview.showDupWarning ? (
                     <>
@@ -856,7 +1354,7 @@ export function CreateCardPage() {
                           void navigate(`/cards/${Number(confirmPreview.myCardId)}`)
                         }}
                       >
-                        Открыть карточку
+                        Открыть мою карточку
                       </Button>
                       <Button
                         mode="gray"
@@ -865,7 +1363,7 @@ export function CreateCardPage() {
                           void navigate(`/cards/${Number(confirmPreview.myCardId)}/edit`)
                         }}
                       >
-                        Редактировать
+                        Редактировать карточку
                       </Button>
                       <Button
                         mode="gray"
@@ -873,20 +1371,22 @@ export function CreateCardPage() {
                         onClick={() => {
                           setCreationBinding(null)
                           setRemixFromCard(false)
-                          setError(null)
+                          setWatchlistError(null)
                           setManualTitle('')
                           setManualCoverUrl('')
                           setManualSummary('')
+                          setKinopoiskUrl('')
+                          setAddKind(null)
                           setStep(1)
                         }}
                       >
-                        Ввести другую ссылку
+                        Выбрать другой тайтл
                       </Button>
                     </>
                   ) : (
                     <>
                       <Button stretched onClick={() => setStep(3)}>
-                        Оценить просмотр
+                        Всё верно, дальше
                       </Button>
                       {confirmPreview.showWatchlist ? (
                         <Button
@@ -895,7 +1395,7 @@ export function CreateCardPage() {
                           disabled={watchlistBusy}
                           onClick={() => void handleAddToWatchlist()}
                         >
-                          {watchlistBusy ? 'Добавляем…' : 'К просмотру'}
+                          {watchlistBusy ? 'Добавляем…' : 'Только в «К просмотру»'}
                         </Button>
                       ) : null}
                       <Button
@@ -904,14 +1404,16 @@ export function CreateCardPage() {
                         onClick={() => {
                           setCreationBinding(null)
                           setRemixFromCard(false)
-                          setError(null)
+                          setWatchlistError(null)
                           setManualTitle('')
                           setManualCoverUrl('')
                           setManualSummary('')
+                          setKinopoiskUrl('')
+                          setAddKind(null)
                           setStep(1)
                         }}
                       >
-                        Начать заново
+                        Изменить источник
                       </Button>
                     </>
                   )}
@@ -920,11 +1422,17 @@ export function CreateCardPage() {
             ) : (
               <div className="filmony-text-panel">
                 <p className="text-sm text-(--tgui--hint_color)">
-                  Запись не найдена. Вернитесь к шагу 1 и введите ссылку снова.
+                  Запись не найдена. Вернитесь к первому шагу и попробуйте снова.
                 </p>
                 <div className="mt-3">
-                  <Button stretched onClick={() => setStep(1)}>
-                    К шагу 1
+                  <Button
+                    stretched
+                    onClick={() => {
+                      setAddKind(null)
+                      setStep(1)
+                    }}
+                  >
+                    К выбору источника
                   </Button>
                 </div>
               </div>
@@ -933,14 +1441,15 @@ export function CreateCardPage() {
         ) : null}
 
         {fromCardPrefillDone && step === 3 ? (
-          <WizardStepPanel title="3. Оценка и теги">
+          <WizardStepPanel title="3. Оценка, настроение и полка">
             <div className="filmony-text-panel">
               <div className="filmony-text-panel text-center">
-                <p className="text-sm text-(--tgui--hint_color)">Оценка</p>
-                <p className="mt-1 text-4xl font-bold text-(--tgui--text_color)">{formatRating(rating)}</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">Ваша оценка</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">Шкала с шагом 0,5, максимум 10.</p>
+                <p className="mt-2 text-4xl font-bold tabular-nums text-(--tgui--text_color)">{formatRating(rating)}</p>
                 <div className="mt-3 flex justify-center gap-2">
                   <Button mode="gray" size="s" onClick={() => setRating((v) => normalizeRating(v - 0.5))}>
-                    -0.5
+                    −0.5
                   </Button>
                   <Button mode="gray" size="s" onClick={() => setRating((v) => normalizeRating(v + 0.5))}>
                     +0.5
@@ -948,24 +1457,116 @@ export function CreateCardPage() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">С кем смотрели:</p>
+              <div className="mt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">С кем смотрели</p>
                 {renderChoiceChips(COMPANY_OPTIONS, company, setCompany)}
               </div>
 
               <div className="mt-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">До просмотра:</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">До просмотра</p>
                 {renderChoiceChips(MOOD_BEFORE_OPTIONS, moodBefore, setMoodBefore)}
               </div>
 
               <div className="mt-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">После просмотра:</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">После просмотра</p>
                 {renderChoiceChips(MOOD_AFTER_OPTIONS, moodAfter, setMoodAfter)}
               </div>
 
+              <div className="mt-5 border-t border-(--tgui--divider_color) pt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Полка в коллекции</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  Можно оставить автоматическую полку или выбрать свою. Новую полку создайте ниже — сообщения об
+                  ошибке показываются только здесь.
+                </p>
+                {shelvesQuery.isLoading ? (
+                  <p className="mt-2 text-xs text-(--tgui--hint_color)">Загрузка полок…</p>
+                ) : shelvesQuery.isError ? (
+                  <p className="filmony-text-panel mt-2 text-xs text-(--tgui--hint_color)">
+                    Полки временно недоступны — можно продолжить: сервер подставит полку по умолчанию (без{' '}
+                    <span className="font-mono text-[11px]">category_id</span>).
+                  </p>
+                ) : (
+                  <>
+                    <label htmlFor="create-card-shelf" className="sr-only">
+                      Полка коллекции
+                    </label>
+                    <select
+                      id="create-card-shelf"
+                      className={`mt-3 ${WIZARD_TEXT_FIELD_CLASS}`}
+                      value={selectedShelfId === null ? '' : String(selectedShelfId)}
+                      onChange={(e) => {
+                        const raw = e.currentTarget.value
+                        setSelectedShelfId(raw === '' ? null : Number(raw))
+                        setShelfError(null)
+                      }}
+                    >
+                      <option value="">Авто (полка по умолчанию)</option>
+                      {(shelvesQuery.data?.items ?? []).map((row) => (
+                        <option key={row.id} value={String(row.id)}>
+                          {row.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        className="text-sm font-medium text-(--tgui--link_color) active:opacity-80"
+                        onClick={() => {
+                          setShelfCreateExpanded((v) => !v)
+                          setShelfError(null)
+                        }}
+                      >
+                        {shelfCreateExpanded ? 'Скрыть создание полки' : '+ Новая полка'}
+                      </button>
+                      {shelfCreateExpanded ? (
+                        <div className="mt-2 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3">
+                          <p className="text-xs text-(--tgui--hint_color)">Имя новой полки</p>
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                            <input
+                              type="text"
+                              maxLength={120}
+                              placeholder="Например: Триллеры 2025"
+                              autoComplete="off"
+                              value={newShelfDraft}
+                              onChange={(e) => {
+                                setNewShelfDraft(e.currentTarget.value)
+                                setShelfError(null)
+                              }}
+                              className={`min-w-0 flex-1 ${WIZARD_TEXT_FIELD_CLASS}`}
+                            />
+                            <Button
+                              mode="gray"
+                              className="shrink-0 sm:self-stretch"
+                              disabled={createShelfBusy}
+                              type="button"
+                              onClick={() => void submitNewShelf()}
+                            >
+                              {createShelfBusy ? '…' : 'Создать'}
+                            </Button>
+                          </div>
+                          {shelfError != null ? (
+                            <p className="mt-2 text-xs text-(--tgui--destructive_text_color)">{shelfError}</p>
+                          ) : (
+                            <p className="mt-2 text-xs text-(--tgui--hint_color)">
+                              После создания она сразу станет выбранной для этой карточки.
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="mt-5">
-                <Button stretched onClick={() => setStep(4)}>
-                  Далее
+                <Button
+                  stretched
+                  onClick={() => {
+                    setSubmitError(null)
+                    setStep(4)
+                  }}
+                >
+                  Дальше к тегам и заметке
                 </Button>
               </div>
             </div>
@@ -973,11 +1574,15 @@ export function CreateCardPage() {
         ) : null}
 
         {fromCardPrefillDone && step === 4 ? (
-          <WizardStepPanel title="4. Ваши теги (до 5)">
+          <WizardStepPanel title="4. Теги, заметка и публикация">
             <div className="filmony-text-panel">
+              <div>
+                <p className="text-sm font-medium text-(--tgui--text_color)">Свои теги (до 5)</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">Короткие пометки об впечатлении — по желанию.</p>
+              </div>
               {popularTagSuggestions.length > 0 ? (
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-(--tgui--hint_color)">Частые теги</p>
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-(--tgui--hint_color)">Часто у вас</p>
                   <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                     {popularTagSuggestions.map((row) => (
                       <button
@@ -993,7 +1598,7 @@ export function CreateCardPage() {
                   </div>
                 </div>
               ) : null}
-              <div className="flex flex-wrap items-stretch gap-2">
+              <div className="mt-3 flex flex-wrap items-stretch gap-2">
                 <input
                   type="text"
                   placeholder="Добавить тег"
@@ -1001,7 +1606,7 @@ export function CreateCardPage() {
                   maxLength={MAX_CUSTOM_TAG_LEN + 8}
                   onChange={(e) => {
                     setTagInput(e.currentTarget.value)
-                    setError(null)
+                    setTagFieldError(null)
                   }}
                   className={`min-w-0 flex-1 ${WIZARD_TEXT_FIELD_CLASS}`}
                 />
@@ -1014,9 +1619,12 @@ export function CreateCardPage() {
                   Добавить
                 </Button>
               </div>
-              {tagInputTooLong ? (
+              {tagFieldError != null ? (
+                <p className="mt-1.5 text-xs text-(--tgui--destructive_text_color)">{tagFieldError}</p>
+              ) : tagInputTooLong ? (
                 <p className="mt-1.5 text-xs text-(--tgui--destructive_text_color)">
-                  Не больше {MAX_CUSTOM_TAG_LEN} символов в одном теге ({tagInput.trim().length}/{MAX_CUSTOM_TAG_LEN})
+                  Не больше {MAX_CUSTOM_TAG_LEN} символов в одном теге ({tagInput.trim().length}/
+                  {MAX_CUSTOM_TAG_LEN})
                 </p>
               ) : (
                 <p className="mt-1.5 text-xs text-(--tgui--hint_color)">До {MAX_CUSTOM_TAG_LEN} символов в теге.</p>
@@ -1056,12 +1664,13 @@ export function CreateCardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">Добавьте пару слов о впечатлении.</p>
+                <p className="mt-3 text-sm text-(--tgui--hint_color)">Теги необязательны — можно оставить пустыми.</p>
               )}
-              <div className="mt-5">
+
+              <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">
                 <p className="text-sm font-medium text-(--tgui--text_color)">Заметка о просмотре</p>
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                  По желанию: пару предложений о фильме. До {MAX_WATCH_NOTE_LEN} символов.
+                  По желанию — до {MAX_WATCH_NOTE_LEN} символов. Реакции можно вставить кнопкой справа.
                 </p>
                 <div className="mt-2 flex gap-2">
                   <CommentDraftMultiline
@@ -1069,7 +1678,7 @@ export function CreateCardPage() {
                     value={watchNote}
                     onChange={(v) => {
                       setWatchNote(v)
-                      setError(null)
+                      setSubmitError(null)
                     }}
                     placeholder="Например: неожиданно тихий финал…"
                     ariaLabel="Заметка о просмотре"
@@ -1094,65 +1703,60 @@ export function CreateCardPage() {
                   </p>
                 )}
               </div>
-              <div className="mt-5">
-                <Button stretched disabled={!canProceedFromTags} onClick={() => setStep(5)}>
-                  Далее
-                </Button>
-              </div>
-            </div>
-          </WizardStepPanel>
-        ) : null}
 
-        {fromCardPrefillDone && step === 5 ? (
-          <WizardStepPanel title="5. Поделиться карточкой">
-            <div className="filmony-text-panel">
-              {sharePreview != null ? (
-                <ShareFollowersPicker
-                  preview={{
-                    posterUrl: sharePreview.posterUrl,
-                    title: sharePreview.title,
-                    yearLabel: sharePreview.yearLabel,
-                  }}
-                  followers={shareFollowers}
-                  loading={shareFollowersLoading}
-                  selected={shareSelected}
-                  onToggle={toggleShareRecipient}
-                />
-              ) : null}
-              <div className="mt-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">Комментарий к отправке</p>
+              <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Отправить подписчикам (по желанию)</p>
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                  Попадёт в уведомление Telegram у выбранных подписчиков. До {MAX_WATCH_NOTE_LEN} символов.
+                  Карточка создастся в любом случае; ниже можно сразу уведомить выбранных людей.
                 </p>
-                <textarea
-                  value={shareComment}
-                  maxLength={MAX_WATCH_NOTE_LEN}
-                  onChange={(e) => setShareComment(e.currentTarget.value)}
-                  placeholder="Например: загляните в мини-апп — там детали"
-                  rows={3}
-                  className={`mt-2 ${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
-                />
-                <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                  {shareComment.length}/{MAX_WATCH_NOTE_LEN}
-                </p>
+                {sharePreview != null ? (
+                  <div className="mt-3">
+                    <ShareFollowersPicker
+                      preview={{
+                        posterUrl: sharePreview.posterUrl,
+                        title: sharePreview.title,
+                        yearLabel: sharePreview.yearLabel,
+                      }}
+                      followers={shareFollowers}
+                      loading={shareFollowersLoading}
+                      selected={shareSelected}
+                      onToggle={toggleShareRecipient}
+                    />
+                  </div>
+                ) : null}
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-(--tgui--text_color)">Комментарий к уведомлению</p>
+                  <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                    Текст для Telegram у выбранных подписчиков. До {MAX_WATCH_NOTE_LEN} символов.
+                  </p>
+                  <textarea
+                    value={shareComment}
+                    maxLength={MAX_WATCH_NOTE_LEN}
+                    onChange={(e) => setShareComment(e.currentTarget.value)}
+                    placeholder="Например: загляните в мини-апп — там детали"
+                    rows={3}
+                    className={`mt-2 ${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
+                  />
+                  <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                    {shareComment.length}/{MAX_WATCH_NOTE_LEN}
+                  </p>
+                </div>
               </div>
+
+              {submitError != null ? (
+                <p className="mt-5 text-sm text-(--tgui--destructive_text_color)">{submitError}</p>
+              ) : null}
               <div className="mt-5">
                 <Button
                   stretched
-                  disabled={creationBinding == null || submitLoading}
+                  disabled={!canSubmitFinal || submitLoading}
                   onClick={() => void handleSubmit()}
                 >
-                  {submitLoading ? 'Создаем...' : 'Готово'}
+                  {submitLoading ? 'Создаём карточку…' : 'Создать карточку'}
                 </Button>
               </div>
             </div>
           </WizardStepPanel>
-        ) : null}
-
-        {error != null ? (
-          <div className="mt-4 rounded-2xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_10%,transparent)] px-3 py-2">
-            <p className="text-sm text-(--tgui--destructive_text_color)">{error}</p>
-          </div>
         ) : null}
       </main>
     </div>

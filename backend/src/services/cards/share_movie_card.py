@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 
 
@@ -58,7 +58,7 @@ class ShareMovieCardService:
         if len(unique) > _MAX_RECIPIENTS:
             raise ShareRecipientsTooManyError
 
-        card = await self._session.get(MovieCard, card_id)
+        card = await self._session.get(UserCard, card_id)
         if card is None:
             raise MovieCardNotFoundForShareError()
         if card.user_id != actor_user_id:

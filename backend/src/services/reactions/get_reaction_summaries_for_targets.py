@@ -28,14 +28,14 @@ def _scope_conditions_for_ids(
     if movie_card_ids:
         scope_conds.append(
             and_(
-                UserReaction.target_kind == ReactionTargetKind.MOVIE_CARD.value,
+                UserReaction.target_kind == ReactionTargetKind.CARD.value,
                 UserReaction.target_id.in_(movie_card_ids),
             )
         )
     if comment_ids:
         scope_conds.append(
             and_(
-                UserReaction.target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value,
+                UserReaction.target_kind == ReactionTargetKind.CARD_COMMENT.value,
                 UserReaction.target_id.in_(comment_ids),
             )
         )
@@ -63,8 +63,6 @@ def _actor_tuple_map_from_rows(
     for row in actor_rows:
         kind, tid, rtid, uid, slug, dname, uname, fn, ln, photo = row
         key = (str(kind), int(tid), int(rtid))
-        if len(actors_lists[key]) >= REACTION_REACTORS_EMBED_CAP:
-            continue
         actors_lists[key].append(
             ReactionActorEntry(
                 id=uid,
@@ -88,12 +86,12 @@ def _set_summary_counts_if_member(
     feed_post_comment_out: dict[int, ReactionTargetSummary],
     feed_post_out: dict[int, ReactionTargetSummary],
 ) -> None:
-    if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
+    if kind == ReactionTargetKind.CARD.value and tid in card_out:
         prev = card_out[tid]
         card_out[tid] = ReactionTargetSummary(
             counts=ordered, my_reaction_type_ids=prev.my_reaction_type_ids
         )
-    elif kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value and tid in comment_out:
+    elif kind == ReactionTargetKind.CARD_COMMENT.value and tid in comment_out:
         prev = comment_out[tid]
         comment_out[tid] = ReactionTargetSummary(
             counts=ordered, my_reaction_type_ids=prev.my_reaction_type_ids
@@ -119,10 +117,10 @@ def _set_summary_mine_if_member(
     feed_post_comment_out: dict[int, ReactionTargetSummary],
     feed_post_out: dict[int, ReactionTargetSummary],
 ) -> None:
-    if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
+    if kind == ReactionTargetKind.CARD.value and tid in card_out:
         s = card_out[tid]
         card_out[tid] = ReactionTargetSummary(counts=s.counts, my_reaction_type_ids=unique_ids)
-    elif kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value and tid in comment_out:
+    elif kind == ReactionTargetKind.CARD_COMMENT.value and tid in comment_out:
         s = comment_out[tid]
         comment_out[tid] = ReactionTargetSummary(counts=s.counts, my_reaction_type_ids=unique_ids)
     elif kind == ReactionTargetKind.FEED_POST_COMMENT.value and tid in feed_post_comment_out:
@@ -176,11 +174,28 @@ class GetReactionSummariesForTargetsService:
 
         scope = or_(*scope_conds)
 
+        rx = UserReaction
+        ranked = (
+            select(
+                rx.target_kind,
+                rx.target_id,
+                rx.reaction_type_id,
+                rx.user_id,
+                func.row_number()
+                .over(
+                    partition_by=(rx.target_kind, rx.target_id, rx.reaction_type_id),
+                    order_by=rx.id.desc(),
+                )
+                .label('rn'),
+            )
+            .where(scope)
+        ).subquery()
+
         actors_stmt = (
             select(
-                UserReaction.target_kind,
-                UserReaction.target_id,
-                UserReaction.reaction_type_id,
+                ranked.c.target_kind,
+                ranked.c.target_id,
+                ranked.c.reaction_type_id,
                 User.id,
                 User.profile_slug,
                 User.display_name,
@@ -189,9 +204,14 @@ class GetReactionSummariesForTargetsService:
                 User.last_name,
                 User.photo_url,
             )
-            .join(User, User.id == UserReaction.user_id)
-            .where(scope)
-            .order_by(UserReaction.id.desc())
+            .join(User, User.id == ranked.c.user_id)
+            .where(ranked.c.rn <= REACTION_REACTORS_EMBED_CAP)
+            .order_by(
+                ranked.c.target_kind,
+                ranked.c.target_id,
+                ranked.c.reaction_type_id,
+                ranked.c.rn,
+            )
         )
         actor_rows = (await self._session.execute(actors_stmt)).all()
         actors_tuple_map = _actor_tuple_map_from_rows(actor_rows)

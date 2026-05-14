@@ -12,8 +12,8 @@ from sqlalchemy import select
 
 from core.database import disposable_async_session
 from models.film import Film
-from models.movie_card import MovieCard
 from models.user import User
+from models.user_card import UserCard
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import html_card_deep_link_block
 
@@ -44,9 +44,9 @@ class NotifyTelegramMovieCardRootCommentService:
         async with disposable_async_session() as session:
             row = (
                 await session.execute(
-                    select(MovieCard, Film)
-                    .join(Film, Film.id == MovieCard.film_id)
-                    .where(MovieCard.id == card_id)
+                    select(UserCard, Film)
+                    .join(Film, Film.id == UserCard.film_id)
+                    .where(UserCard.id == card_id)
                 )
             ).one_or_none()
             if row is None:

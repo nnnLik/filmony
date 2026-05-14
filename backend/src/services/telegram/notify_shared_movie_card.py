@@ -11,11 +11,11 @@ from uuid import UUID
 from sqlalchemy import select
 
 from core.database import disposable_async_session
+from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
+from models.card_tag import CardTag
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
-from models.movie_card_tag import MovieCardTag
 from models.user import User
+from models.user_card import UserCard
 from services.telegram.mini_app_link import html_card_deep_link_block
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 from utils.http_url import normalize_absolute_http_url
@@ -133,9 +133,9 @@ class DeliverSharedMovieCardTelegramService:
 
             row = (
                 await session.execute(
-                    select(MovieCard, Film)
-                    .join(Film, Film.id == MovieCard.film_id)
-                    .where(MovieCard.id == card_id, MovieCard.user_id == actor_user_id)
+                    select(UserCard, Film)
+                    .join(Film, Film.id == UserCard.film_id)
+                    .where(UserCard.id == card_id, UserCard.user_id == actor_user_id)
                 )
             ).one_or_none()
             if row is None:
@@ -145,9 +145,9 @@ class DeliverSharedMovieCardTelegramService:
             tags = (
                 (
                     await session.execute(
-                        select(MovieCardTag.tag)
-                        .where(MovieCardTag.movie_card_id == card.id)
-                        .order_by(MovieCardTag.tag)
+                        select(CardTag.tag)
+                        .where(CardTag.card_id == card.id)
+                        .order_by(CardTag.tag)
                     )
                 )
                 .scalars()

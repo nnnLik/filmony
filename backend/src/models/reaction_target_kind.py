@@ -4,9 +4,12 @@ from enum import StrEnum
 
 
 class ReactionTargetKind(StrEnum):
-    """Значения `user_reaction.target_kind`; совпадают с API."""
+    """Values for `user_reaction.target_kind` and public API payloads.
 
-    MOVIE_CARD = 'movie_card'
-    MOVIE_CARD_COMMENT = 'movie_card_comment'
+    Member names describe the domain (`card`=user card).
+    Stored / wire values stay `movie_card*` for DB and client compatibility."""
+
+    CARD = 'movie_card'
+    CARD_COMMENT = 'movie_card_comment'
     FEED_POST_COMMENT = 'feed_post_comment'
     FEED_POST = 'feed_post'

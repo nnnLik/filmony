@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from api.cards.schemas import UserCardCategorySnippet
+from models.catalog_item import CatalogProvider
 from models.user import User
 from services.profile.get_user_movie_card_stats import UserMovieCardStats
 from services.profile.get_user_profile_counts import UserProfileCounts
@@ -12,6 +15,32 @@ from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
 )
 from services.watchlist.list_user_watchlist_films import WatchlistFilmPage
+
+
+class MyUserCardCategoryResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MyUserCardCategoryListResponse(BaseModel):
+    items: list[MyUserCardCategoryResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MyUserCardCategoryCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MyUserCardCategoryRenameRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+
+    model_config = ConfigDict(extra='forbid')
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -87,6 +116,8 @@ class MovieCardItemResponse(BaseModel):
     film_year: int | None
     film_poster_url: str | None
     catalog_item_id: int | None = None
+    provider: CatalogProvider
+    external_id: str | None = None
     display_title: str
     display_cover_url: str | None = None
     rating: float
@@ -95,6 +126,7 @@ class MovieCardItemResponse(BaseModel):
     mood_after: str
     custom_tags: list[str] = Field(default_factory=list)
     watch_note: str = ''
+    category: UserCardCategorySnippet
     is_favorite: bool = False
 
 
@@ -234,6 +266,8 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
             film_year=item.film_year,
             film_poster_url=item.film_poster_url,
             catalog_item_id=item.catalog_item_id,
+            provider=item.provider,
+            external_id=item.external_id,
             display_title=item.display_title,
             display_cover_url=item.display_cover_url,
             rating=item.rating,
@@ -242,6 +276,7 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
             mood_after=item.mood_after,
             custom_tags=item.custom_tags,
             watch_note=item.watch_note,
+            category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
             is_favorite=item.is_favorite,
         )
         for item in page.items

@@ -9,9 +9,12 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
-from models.movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
-from models.movie_card_tag import MovieCardTag
+from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
+from models.card_tag import CardTag
+from models.user_card import UserCard
+from services.user_card_categories.resolve_user_card_category_id_for_owner import (
+    ResolveUserCardCategoryIdForOwnerService,
+)
 
 
 class MovieCardNotFoundError(Exception):
@@ -35,6 +38,7 @@ class UpdateMovieCardInput:
     custom_tags: Sequence[str] | None = None
     watch_note: str | None = None
     is_favorite: bool | None = None
+    category_id: int | None = None
 
 
 def _normalize_rating(value: float) -> float:
@@ -80,9 +84,9 @@ class UpdateMovieCardService:
 
     async def execute(
         self, card_id: int, viewer_user_id: UUID, payload: UpdateMovieCardInput
-    ) -> MovieCard:
+    ) -> UserCard:
         card = (
-            await self._session.execute(select(MovieCard).where(MovieCard.id == card_id))
+            await self._session.execute(select(UserCard).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card is None:
             raise MovieCardNotFoundError
@@ -96,8 +100,17 @@ class UpdateMovieCardService:
             and payload.custom_tags is None
             and payload.watch_note is None
             and payload.is_favorite is None
+            and payload.category_id is None
         ):
             raise MovieCardValidationError('at least one field must be provided')
+
+        if payload.category_id is not None:
+            try:
+                card.category_id = await ResolveUserCardCategoryIdForOwnerService.build(
+                    self._session
+                ).execute(viewer_user_id, payload.category_id)
+            except ResolveUserCardCategoryIdForOwnerService.CategoryNotFoundForUserError as e:
+                raise MovieCardValidationError('category not found') from e
 
         if payload.is_favorite is not None:
             if payload.is_favorite:
@@ -119,11 +132,11 @@ class UpdateMovieCardService:
         if payload.custom_tags is not None:
             tags = _normalize_tags(payload.custom_tags)
             await self._session.execute(
-                delete(MovieCardTag).where(MovieCardTag.movie_card_id == card.id)
+                delete(CardTag).where(CardTag.card_id == card.id)
             )
             if tags:
                 self._session.add_all(
-                    [MovieCardTag(movie_card_id=card.id, tag=tag) for tag in tags]
+                    [CardTag(card_id=card.id, tag=tag) for tag in tags]
                 )
 
         if payload.watch_note is not None:

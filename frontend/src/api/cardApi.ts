@@ -14,6 +14,7 @@ import type {
   MovieCard,
   MovieCardComment,
   MovieCardCommentPage,
+  UserCardProvider,
 } from './profileTypes'
 import type { FeedMovieCardPage, FeedPageItem } from './feedListPageTypes'
 import type { FeedPostInFeed } from './feedInFeedTypes'
@@ -32,10 +33,15 @@ export type CreateMovieCardFilmPayload = {
   mood_after: CardMoodAfter
   custom_tags: string[]
   watch_note?: string
+  category_id?: number
 }
 
 export type CreateMovieCardCatalogPayload = {
   catalog_item_id: number
+  /** Обязательно для каталога без `film` (например RAWG): бэкенд требует display-поля. */
+  display_title?: string | null
+  display_cover_url?: string | null
+  display_summary?: string | null
   genres?: string[]
   rating: number
   company: CardCompany
@@ -43,9 +49,25 @@ export type CreateMovieCardCatalogPayload = {
   mood_after: CardMoodAfter
   custom_tags: string[]
   watch_note?: string
+  category_id?: number
+}
+
+/** POST /api/cards — только Kinopoisk external id (альтернатива `film_id` / `catalog_item_id`). */
+export type CreateMovieCardKinopoiskPayload = {
+  provider: Extract<UserCardProvider, 'kinopoisk'>
+  external_id: string
+  genres?: string[]
+  rating: number
+  company: CardCompany
+  mood_before: CardMoodBefore
+  mood_after: CardMoodAfter
+  custom_tags: string[]
+  watch_note?: string
+  category_id?: number
 }
 
 export type CreateMovieCardManualPayload = {
+  provider: Extract<UserCardProvider, 'no_provider'>
   display_title: string
   display_cover_url?: string | null
   display_summary?: string | null
@@ -56,11 +78,13 @@ export type CreateMovieCardManualPayload = {
   mood_after: CardMoodAfter
   custom_tags: string[]
   watch_note?: string
+  category_id?: number
 }
 
 export type CreateMovieCardPayload =
   | CreateMovieCardFilmPayload
   | CreateMovieCardCatalogPayload
+  | CreateMovieCardKinopoiskPayload
   | CreateMovieCardManualPayload
 
 export type UpdateMovieCardPayload = {
@@ -71,6 +95,7 @@ export type UpdateMovieCardPayload = {
   custom_tags?: string[]
   watch_note?: string
   is_favorite?: boolean
+  category_id?: number
 }
 
 export async function createMovieCard(body: CreateMovieCardPayload): Promise<MovieCard> {

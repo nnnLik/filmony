@@ -17,6 +17,7 @@ from api.cards.schemas import (
     MovieCardCommentResponse,
     MovieCardFeedItemResponse,
     MovieCardFeedPageResponse,
+    UserCardCategorySnippet,
 )
 from api.reactions.schemas import reaction_target_summary_to_response
 from core.database import get_db
@@ -88,6 +89,8 @@ def _global_feed_domain_to_response(
                 film_year=item.film_year,
                 film_poster_url=item.film_poster_url,
                 catalog_item_id=item.catalog_item_id,
+                provider=item.provider,
+                external_id=item.external_id,
                 display_title=item.display_title,
                 display_cover_url=item.display_cover_url,
                 display_summary=item.display_summary,
@@ -97,6 +100,7 @@ def _global_feed_domain_to_response(
                 mood_after=item.mood_after,
                 custom_tags=item.custom_tags,
                 watch_note=item.watch_note,
+                category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
                 feed_source=item.feed_source,
                 reactions=reaction_target_summary_to_response(item.reactions),
                 comments_count=item.comments_count,

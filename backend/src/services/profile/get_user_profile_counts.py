@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 from models.user_watchlist_film import UserWatchlistFilm
 
@@ -29,11 +29,11 @@ class GetUserProfileCountsService:
 
     async def execute(self, user_id: UUID) -> UserProfileCounts:
         movie_cards = (
-            select(func.count(MovieCard.id)).where(MovieCard.user_id == user_id).scalar_subquery()
+            select(func.count(UserCard.id)).where(UserCard.user_id == user_id).scalar_subquery()
         )
         favorites = (
-            select(func.count(MovieCard.id))
-            .where(MovieCard.user_id == user_id, MovieCard.is_favorite.is_(True))
+            select(func.count(UserCard.id))
+            .where(UserCard.user_id == user_id, UserCard.is_favorite.is_(True))
             .scalar_subquery()
         )
         watchlist_films = (

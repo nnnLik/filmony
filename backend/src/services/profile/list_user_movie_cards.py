@@ -9,9 +9,11 @@ from sqlalchemy import Select, and_, asc, desc, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select as SASelect
 
+from models.card_tag import CardTag
+from models.catalog_item import CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
+from models.user_card import UserCard
+from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 
 _FAV_CURSOR_PREFIX = 'fav1'
 _RATING_DESC_PREFIX = 'rtd'
@@ -79,6 +81,8 @@ def _decode_rating_cursor(cursor: str, *, desc: bool) -> tuple[float, int] | Non
 @dataclass(frozen=True, slots=True)
 class MovieCardListItem:
     id: int
+    provider: CatalogProvider
+    external_id: str | None
     film_id: int | None
     film_kinopoisk_id: int | None
     film_genres: list[str]
@@ -96,6 +100,8 @@ class MovieCardListItem:
     custom_tags: list[str]
     updated_at: dt.datetime
     is_favorite: bool
+    category_id: int
+    category_name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,8 +111,9 @@ class MovieCardPage:
 
 
 def _rows_to_items(
-    visible_rows: list[tuple[MovieCard, Film | None]],
+    visible_rows: list[tuple[UserCard, Film | None]],
     tags_by_card: dict[int, list[str]],
+    category_name_by_id: dict[int, str],
 ) -> list[MovieCardListItem]:
     items: list[MovieCardListItem] = []
     for card, film in visible_rows:
@@ -115,9 +122,12 @@ def _rows_to_items(
         if not display_title:
             display_title = film_title
         poster = film.poster_url if film is not None else card.display_cover_url
+        cid = int(card.category_id)
         items.append(
             MovieCardListItem(
                 id=card.id,
+                provider=card.provider,
+                external_id=card.external_id,
                 film_id=film.id if film is not None else None,
                 film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
                 film_genres=list(film.genres or []) if film is not None else [],
@@ -135,6 +145,8 @@ def _rows_to_items(
                 custom_tags=tags_by_card.get(card.id, []),
                 updated_at=card.updated_at,
                 is_favorite=bool(card.is_favorite),
+                category_id=cid,
+                category_name=category_name_by_id.get(cid, DEFAULT_USER_CARD_CATEGORY_NAME),
             )
         )
     return items
@@ -145,6 +157,9 @@ class ListUserMovieCardsService:
 
     class InvalidCursor(Exception):
         """Cursor does not match the requested sort mode or is malformed."""
+
+    class InvalidCategoryFilter(Exception):
+        """category_id does not belong to the profile user."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -164,9 +179,21 @@ class ListUserMovieCardsService:
         mood_before: str | None = None,
         mood_after: str | None = None,
         film_title_search: str | None = None,
+        category_id: int | None = None,
     ) -> MovieCardPage:
         tags = list(tags_all or [])
         title_q = _normalize_film_title_search(film_title_search)
+        if category_id is not None:
+            owns = (
+                await self._session.execute(
+                    select(UserCardCategory.id).where(
+                        UserCardCategory.id == category_id,
+                        UserCardCategory.user_id == user_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if owns is None:
+                raise self.InvalidCategoryFilter
         if favorites_only:
             return await self._execute_favorites(
                 user_id,
@@ -180,6 +207,7 @@ class ListUserMovieCardsService:
                 mood_before=mood_before,
                 mood_after=mood_after,
                 film_title_search=title_q,
+                category_id=category_id,
             )
         return await self._execute_default(
             user_id,
@@ -193,11 +221,12 @@ class ListUserMovieCardsService:
             mood_before=mood_before,
             mood_after=mood_after,
             film_title_search=title_q,
+            category_id=category_id,
         )
 
     def _apply_filters(
         self,
-        query: SASelect[tuple[MovieCard, Film | None]],
+        query: SASelect[tuple[UserCard, Film | None]],
         *,
         tags_all: list[str],
         year_min: int | None,
@@ -206,13 +235,14 @@ class ListUserMovieCardsService:
         mood_before: str | None,
         mood_after: str | None,
         film_title_search: str | None,
-    ) -> SASelect[tuple[MovieCard, Film | None]]:
+        category_id: int | None,
+    ) -> SASelect[tuple[UserCard, Film | None]]:
         for tag in tags_all:
             query = query.where(
                 exists(
                     select(1).where(
-                        MovieCardTag.movie_card_id == MovieCard.id,
-                        MovieCardTag.tag == tag,
+                        CardTag.card_id == UserCard.id,
+                        CardTag.tag == tag,
                     )
                 )
             )
@@ -223,19 +253,21 @@ class ListUserMovieCardsService:
             if year_max is not None:
                 query = query.where(Film.year <= year_max)
         if company is not None:
-            query = query.where(MovieCard.company == company)
+            query = query.where(UserCard.company == company)
         if mood_before is not None:
-            query = query.where(MovieCard.mood_before == mood_before)
+            query = query.where(UserCard.mood_before == mood_before)
         if mood_after is not None:
-            query = query.where(MovieCard.mood_after == mood_after)
+            query = query.where(UserCard.mood_after == mood_after)
         if film_title_search is not None:
             pattern = _film_title_ilike_pattern(film_title_search)
             query = query.where(
                 or_(
                     Film.title.ilike(pattern, escape='\\'),
-                    MovieCard.display_title.ilike(pattern, escape='\\'),
+                    UserCard.display_title.ilike(pattern, escape='\\'),
                 )
             )
+        if category_id is not None:
+            query = query.where(UserCard.category_id == category_id)
         return query
 
     async def _execute_default(
@@ -252,11 +284,12 @@ class ListUserMovieCardsService:
         mood_before: str | None,
         mood_after: str | None,
         film_title_search: str | None,
+        category_id: int | None,
     ) -> MovieCardPage:
-        query: Select[tuple[MovieCard, Film | None]] = (
-            select(MovieCard, Film)
-            .outerjoin(Film, Film.id == MovieCard.film_id)
-            .where(MovieCard.user_id == user_id)
+        query: Select[tuple[UserCard, Film | None]] = (
+            select(UserCard, Film)
+            .outerjoin(Film, Film.id == UserCard.film_id)
+            .where(UserCard.user_id == user_id)
         )
         query = self._apply_filters(
             query,
@@ -267,18 +300,19 @@ class ListUserMovieCardsService:
             mood_before=mood_before,
             mood_after=mood_after,
             film_title_search=film_title_search,
+            category_id=category_id,
         )
 
         if sort == 'recent':
-            query = query.order_by(desc(MovieCard.id)).limit(limit + 1)
+            query = query.order_by(desc(UserCard.id)).limit(limit + 1)
             if cursor is not None and cursor != '':
                 try:
                     cid = int(cursor, 10)
                 except ValueError as e:
                     raise self.InvalidCursor from e
-                query = query.where(MovieCard.id < cid)
+                query = query.where(UserCard.id < cid)
         elif sort == 'rating_desc':
-            query = query.order_by(desc(MovieCard.rating), desc(MovieCard.id)).limit(limit + 1)
+            query = query.order_by(desc(UserCard.rating), desc(UserCard.id)).limit(limit + 1)
             if cursor is not None and cursor != '':
                 decoded = _decode_rating_cursor(cursor, desc=True)
                 if decoded is None:
@@ -286,12 +320,12 @@ class ListUserMovieCardsService:
                 r, cid = decoded
                 query = query.where(
                     or_(
-                        MovieCard.rating < r,
-                        and_(MovieCard.rating == r, MovieCard.id < cid),
+                        UserCard.rating < r,
+                        and_(UserCard.rating == r, UserCard.id < cid),
                     )
                 )
         elif sort == 'rating_asc':
-            query = query.order_by(asc(MovieCard.rating), asc(MovieCard.id)).limit(limit + 1)
+            query = query.order_by(asc(UserCard.rating), asc(UserCard.id)).limit(limit + 1)
             if cursor is not None and cursor != '':
                 decoded = _decode_rating_cursor(cursor, desc=False)
                 if decoded is None:
@@ -299,8 +333,8 @@ class ListUserMovieCardsService:
                 r, cid = decoded
                 query = query.where(
                     or_(
-                        MovieCard.rating > r,
-                        and_(MovieCard.rating == r, MovieCard.id > cid),
+                        UserCard.rating > r,
+                        and_(UserCard.rating == r, UserCard.id > cid),
                     )
                 )
         else:
@@ -312,7 +346,10 @@ class ListUserMovieCardsService:
         card_ids = [card.id for card, _film in visible_rows]
 
         tags_by_card = await self._load_tags(card_ids)
-        items = _rows_to_items(visible_rows, tags_by_card)
+        cat_names = await self._load_category_names(
+            list({int(c.category_id) for c, _ in visible_rows})
+        )
+        items = _rows_to_items(visible_rows, tags_by_card, cat_names)
 
         next_cursor: str | None = None
         if has_more and visible_rows:
@@ -339,14 +376,15 @@ class ListUserMovieCardsService:
         mood_before: str | None,
         mood_after: str | None,
         film_title_search: str | None,
+        category_id: int | None,
     ) -> MovieCardPage:
-        query: Select[tuple[MovieCard, Film | None]] = (
-            select(MovieCard, Film)
-            .outerjoin(Film, Film.id == MovieCard.film_id)
+        query: Select[tuple[UserCard, Film | None]] = (
+            select(UserCard, Film)
+            .outerjoin(Film, Film.id == UserCard.film_id)
             .where(
-                MovieCard.user_id == user_id,
-                MovieCard.is_favorite.is_(True),
-                MovieCard.favorite_marked_at.is_not(None),
+                UserCard.user_id == user_id,
+                UserCard.is_favorite.is_(True),
+                UserCard.favorite_marked_at.is_not(None),
             )
         )
         query = self._apply_filters(
@@ -358,10 +396,11 @@ class ListUserMovieCardsService:
             mood_before=mood_before,
             mood_after=mood_after,
             film_title_search=film_title_search,
+            category_id=category_id,
         )
 
         if sort == 'rating_desc':
-            query = query.order_by(desc(MovieCard.rating), desc(MovieCard.id)).limit(limit + 1)
+            query = query.order_by(desc(UserCard.rating), desc(UserCard.id)).limit(limit + 1)
             if cursor is not None and cursor != '':
                 decoded = _decode_rating_cursor(cursor, desc=True)
                 if decoded is None:
@@ -369,12 +408,12 @@ class ListUserMovieCardsService:
                 r, cid = decoded
                 query = query.where(
                     or_(
-                        MovieCard.rating < r,
-                        and_(MovieCard.rating == r, MovieCard.id < cid),
+                        UserCard.rating < r,
+                        and_(UserCard.rating == r, UserCard.id < cid),
                     )
                 )
         elif sort == 'rating_asc':
-            query = query.order_by(asc(MovieCard.rating), asc(MovieCard.id)).limit(limit + 1)
+            query = query.order_by(asc(UserCard.rating), asc(UserCard.id)).limit(limit + 1)
             if cursor is not None and cursor != '':
                 decoded = _decode_rating_cursor(cursor, desc=False)
                 if decoded is None:
@@ -382,12 +421,12 @@ class ListUserMovieCardsService:
                 r, cid = decoded
                 query = query.where(
                     or_(
-                        MovieCard.rating > r,
-                        and_(MovieCard.rating == r, MovieCard.id > cid),
+                        UserCard.rating > r,
+                        and_(UserCard.rating == r, UserCard.id > cid),
                     )
                 )
         else:
-            query = query.order_by(desc(MovieCard.favorite_marked_at), desc(MovieCard.id)).limit(
+            query = query.order_by(desc(UserCard.favorite_marked_at), desc(UserCard.id)).limit(
                 limit + 1
             )
             if cursor is not None and cursor != '':
@@ -397,10 +436,10 @@ class ListUserMovieCardsService:
                 cursor_dt, cursor_id = decoded
                 query = query.where(
                     or_(
-                        MovieCard.favorite_marked_at < cursor_dt,
+                        UserCard.favorite_marked_at < cursor_dt,
                         and_(
-                            MovieCard.favorite_marked_at == cursor_dt,
-                            MovieCard.id < cursor_id,
+                            UserCard.favorite_marked_at == cursor_dt,
+                            UserCard.id < cursor_id,
                         ),
                     )
                 )
@@ -411,7 +450,10 @@ class ListUserMovieCardsService:
         card_ids = [card.id for card, _f in visible_rows]
 
         tags_by_card = await self._load_tags(card_ids)
-        items = _rows_to_items(visible_rows, tags_by_card)
+        cat_names = await self._load_category_names(
+            list({int(c.category_id) for c, _ in visible_rows})
+        )
+        items = _rows_to_items(visible_rows, tags_by_card, cat_names)
 
         next_cursor: str | None = None
         if has_more and visible_rows:
@@ -432,24 +474,45 @@ class ListUserMovieCardsService:
             return tags_by_card
         tags_rows = (
             await self._session.execute(
-                select(MovieCardTag.movie_card_id, MovieCardTag.tag)
-                .where(MovieCardTag.movie_card_id.in_(card_ids))
-                .order_by(MovieCardTag.movie_card_id, MovieCardTag.tag)
+                select(CardTag.card_id, CardTag.tag)
+                .where(CardTag.card_id.in_(card_ids))
+                .order_by(CardTag.card_id, CardTag.tag)
             )
         ).all()
         for cid, tag in tags_rows:
             tags_by_card.setdefault(cid, []).append(tag)
         return tags_by_card
 
+    async def _load_category_names(self, category_ids: list[int]) -> dict[int, str]:
+        names: dict[int, str] = {}
+        if not category_ids:
+            return names
+        cat_rows = (
+            (
+                await self._session.execute(
+                    select(UserCardCategory.id, UserCardCategory.name).where(
+                        UserCardCategory.id.in_(category_ids)
+                    )
+                )
+            )
+            .all()
+        )
+        for cid, name in cat_rows:
+            names[int(cid)] = str(name)
+        return names
+
     async def list_all_for_user(self, user_id: UUID) -> list[MovieCardListItem]:
-        query: Select[tuple[MovieCard, Film | None]] = (
-            select(MovieCard, Film)
-            .outerjoin(Film, Film.id == MovieCard.film_id)
-            .where(MovieCard.user_id == user_id)
-            .order_by(desc(MovieCard.id))
+        query: Select[tuple[UserCard, Film | None]] = (
+            select(UserCard, Film)
+            .outerjoin(Film, Film.id == UserCard.film_id)
+            .where(UserCard.user_id == user_id)
+            .order_by(desc(UserCard.id))
         )
         rows = (await self._session.execute(query)).all()
         card_ids = [card.id for card, _film in rows]
 
         tags_by_card = await self._load_tags(card_ids)
-        return _rows_to_items(rows, tags_by_card)
+        cat_names = await self._load_category_names(
+            list({int(c.category_id) for c, _film in rows})
+        )
+        return _rows_to_items(rows, tags_by_card, cat_names)

@@ -11,6 +11,10 @@ from api.profile.schemas import (
     MyMovieCardTagStatItem,
     MyMovieCardTagStatsResponse,
     MyProfileResponse,
+    MyUserCardCategoryCreateRequest,
+    MyUserCardCategoryListResponse,
+    MyUserCardCategoryRenameRequest,
+    MyUserCardCategoryResponse,
     ProfileUpdateRequest,
     WatchlistFilmAddRequest,
     WatchlistFilmItemResponse,
@@ -25,11 +29,81 @@ from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_my_movie_card_tag_stats import ListMyMovieCardTagStatsService
 from services.profile.update_my_profile import UpdateMyProfileService
 from services.telegram.send_bot_message import SendTelegramBotMessageService
+from services.user_card_categories.create_user_card_category import (
+    CreateUserCardCategoryService,
+)
+from services.user_card_categories.list_my_user_card_categories import (
+    ListMyUserCardCategoriesService,
+)
+from services.user_card_categories.rename_user_card_category import (
+    RenameUserCardCategoryService,
+)
 from services.watchlist.add_user_watchlist_film import AddUserWatchlistFilmService
 from services.watchlist.get_my_watchlist_film_presence import GetMyWatchlistFilmPresenceService
 from services.watchlist.remove_user_watchlist_film import RemoveUserWatchlistFilmService
 
 router = APIRouter(prefix='/me', tags=['profile'])
+
+
+@router.get(
+    '/card-categories',
+    response_model=MyUserCardCategoryListResponse,
+    summary='Мои категории/полки для карточек',
+)
+async def list_my_card_categories(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MyUserCardCategoryListResponse:
+    rows = await ListMyUserCardCategoriesService.build(db).execute(user.id)
+    return MyUserCardCategoryListResponse(
+        items=[
+            MyUserCardCategoryResponse(id=r.id, name=r.name, created_at=r.created_at)
+            for r in rows
+        ]
+    )
+
+
+@router.post(
+    '/card-categories',
+    response_model=MyUserCardCategoryResponse,
+    summary='Создать категорию карточек',
+)
+async def create_my_card_category(
+    body: MyUserCardCategoryCreateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MyUserCardCategoryResponse:
+    try:
+        row = await CreateUserCardCategoryService.build(db).execute(user.id, body.name)
+    except CreateUserCardCategoryService.CategoryValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except CreateUserCardCategoryService.DuplicateCategoryNameError:
+        raise HTTPException(status_code=409, detail='category already exists') from None
+    return MyUserCardCategoryResponse(id=row.id, name=row.name, created_at=row.created_at)
+
+
+@router.patch(
+    '/card-categories/{category_id}',
+    response_model=MyUserCardCategoryResponse,
+    summary='Переименовать категорию карточек',
+)
+async def rename_my_card_category(
+    category_id: int,
+    body: MyUserCardCategoryRenameRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MyUserCardCategoryResponse:
+    try:
+        row = await RenameUserCardCategoryService.build(db).execute(
+            user.id, category_id, body.name
+        )
+    except RenameUserCardCategoryService.CategoryNotFoundError:
+        raise HTTPException(status_code=404, detail='category not found') from None
+    except RenameUserCardCategoryService.CategoryValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except RenameUserCardCategoryService.DuplicateCategoryNameError:
+        raise HTTPException(status_code=409, detail='category name already exists') from None
+    return MyUserCardCategoryResponse(id=row.id, name=row.name, created_at=row.created_at)
 
 
 @router.get(

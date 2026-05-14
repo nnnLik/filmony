@@ -8,9 +8,9 @@ from uuid import UUID
 from sqlalchemy import and_, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.movie_card import MovieCard
-from models.movie_card_tag import MovieCardTag
+from models.card_tag import CardTag
 from models.user import User
+from models.user_card import UserCard
 
 _CURSOR_PREFIX = 'fc1'
 
@@ -92,18 +92,18 @@ class ListFilmCommunityCardsService:
             cursor_ts, cursor_id = decoded
 
         q = (
-            select(MovieCard, User)
-            .join(User, User.id == MovieCard.user_id)
-            .where(MovieCard.film_id == film_id)
+            select(UserCard, User)
+            .join(User, User.id == UserCard.user_id)
+            .where(UserCard.film_id == film_id)
         )
         if cursor_ts is not None and cursor_id is not None:
             q = q.where(
                 or_(
-                    MovieCard.updated_at < cursor_ts,
-                    and_(MovieCard.updated_at == cursor_ts, MovieCard.id < cursor_id),
+                    UserCard.updated_at < cursor_ts,
+                    and_(UserCard.updated_at == cursor_ts, UserCard.id < cursor_id),
                 )
             )
-        q = q.order_by(desc(MovieCard.updated_at), desc(MovieCard.id)).limit(cap + 1)
+        q = q.order_by(desc(UserCard.updated_at), desc(UserCard.id)).limit(cap + 1)
         rows = (await self._session.execute(q)).all()
         if len(rows) <= cap:
             page_rows = rows
@@ -118,9 +118,9 @@ class ListFilmCommunityCardsService:
         if card_ids:
             tag_rows = (
                 await self._session.execute(
-                    select(MovieCardTag.movie_card_id, MovieCardTag.tag)
-                    .where(MovieCardTag.movie_card_id.in_(card_ids))
-                    .order_by(MovieCardTag.movie_card_id, MovieCardTag.tag)
+                    select(CardTag.card_id, CardTag.tag)
+                    .where(CardTag.card_id.in_(card_ids))
+                    .order_by(CardTag.card_id, CardTag.tag)
                 )
             ).all()
             for cid, tag in tag_rows:
