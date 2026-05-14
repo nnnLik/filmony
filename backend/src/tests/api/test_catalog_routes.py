@@ -216,7 +216,9 @@ async def test_catalog_search_rawg_remote_persists_via_transport(
     }
     dto = RawgGamesListResponseDTO.from_document(list_doc)
 
-    async def fake_search(_self: RawgProviderTransport, params: RawgGamesListQueryParams) -> RawgGamesListResponseDTO:
+    async def fake_search(
+        _self: RawgProviderTransport, params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
         assert params.search == 'cryoremoteqwerty'
         return dto
 
@@ -278,7 +280,9 @@ async def test_catalog_search_kinopoisk_local_only_empty_remote(
         )
         await session.commit()
 
-    r = await async_client.get('/api/catalog/search', params={'provider': 'kinopoisk', 'q': 'CryoApiKp', 'limit': 10})
+    r = await async_client.get(
+        '/api/catalog/search', params={'provider': 'kinopoisk', 'q': 'CryoApiKp', 'limit': 10}
+    )
     assert r.status_code == 200
     body = r.json()
     assert len(body['items']) >= 1
@@ -371,7 +375,10 @@ async def test_catalog_search_rawg_query_three_chars_returns_422(async_client: A
     )
     assert r.status_code == 422
     body = r.json()
-    assert body.get('detail') == 'Query must contain at least 4 non-whitespace characters for RAWG search'
+    assert (
+        body.get('detail')
+        == 'Query must contain at least 4 non-whitespace characters for RAWG search'
+    )
 
 
 @pytest.mark.asyncio

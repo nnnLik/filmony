@@ -186,7 +186,12 @@ class CreateMovieCardService:
             if not manual_title:
                 raise MovieCardValidationError('display_title is required for no_provider')
 
-        if payload.provider == CatalogProvider.kinopoisk and not has_ke and not has_film and not has_catalog:
+        if (
+            payload.provider == CatalogProvider.kinopoisk
+            and not has_ke
+            and not has_film
+            and not has_catalog
+        ):
             raise MovieCardValidationError(
                 'provider kinopoisk requires external_id, '
                 'or omit provider and use film_id/catalog_item_id',
@@ -196,7 +201,9 @@ class CreateMovieCardService:
             if payload.provider not in (None, CatalogProvider.kinopoisk):
                 raise MovieCardValidationError('external_id is only valid with provider kinopoisk')
             if payload.provider is None:
-                raise MovieCardValidationError('provider kinopoisk is required when external_id is set')
+                raise MovieCardValidationError(
+                    'provider kinopoisk is required when external_id is set'
+                )
 
         is_manual = not has_film and not has_catalog and not has_ke and bool(manual_title)
 
@@ -343,9 +350,7 @@ class CreateMovieCardService:
         )
 
         if custom_tags:
-            self._session.add_all(
-                    [CardTag(card_id=entity.id, tag=tag) for tag in custom_tags]
-            )
+            self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
         await self._session.commit()
         await self._session.refresh(entity)
         return entity
@@ -429,9 +434,7 @@ class CreateMovieCardService:
             )
 
         if custom_tags:
-            self._session.add_all(
-                    [CardTag(card_id=entity.id, tag=tag) for tag in custom_tags]
-            )
+            self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
         await self._session.commit()
         await self._session.refresh(entity)
         return entity
@@ -479,9 +482,7 @@ class CreateMovieCardService:
             raise MovieCardAlreadyExistsError from exc
 
         if custom_tags:
-            self._session.add_all(
-                    [CardTag(card_id=entity.id, tag=tag) for tag in custom_tags]
-            )
+            self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
         await self._session.commit()
         await self._session.refresh(entity)
         return entity

@@ -120,6 +120,8 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
                 movie_card_id=ref.movie_card_id,
                 film_title=ref.film_title,
                 film_year=ref.film_year,
+                release_year=ref.release_year,
+                release_date=ref.release_date,
                 film_poster_url=ref.film_poster_url,
                 rating=ref.rating,
             )

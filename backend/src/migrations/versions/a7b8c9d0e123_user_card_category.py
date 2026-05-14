@@ -29,7 +29,9 @@ def upgrade() -> None:
             server_default=sa.text('now()'),
             nullable=False,
         ),
-        sa.Column('user_id', sa.Uuid(), sa.ForeignKey('user.id', ondelete='CASCADE'), nullable=False),
+        sa.Column(
+            'user_id', sa.Uuid(), sa.ForeignKey('user.id', ondelete='CASCADE'), nullable=False
+        ),
         sa.Column('name', sa.String(length=120), nullable=False),
         sa.UniqueConstraint('user_id', 'name', name='uq_user_card_category_user_name'),
     )

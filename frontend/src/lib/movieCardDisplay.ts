@@ -20,6 +20,42 @@ export function movieCardPrimaryPoster(card: Pick<MovieCard, 'display_cover_url'
   return card.film_poster_url ?? null
 }
 
+type ReleasePick = Pick<MovieCard, 'release_year' | 'release_date' | 'film_year'>
+
+/** Detail / profile: localized date when ``release_date`` is set, else calendar year, else unknown. */
+export function movieCardReleasePrimaryLabel(card: ReleasePick, unknownLabel = 'Год неизвестен'): string {
+  const rdRaw = card.release_date
+  if (typeof rdRaw === 'string') {
+    const rd = rdRaw.trim()
+    if (rd !== '') {
+      const d = new Date(`${rd}T12:00:00`)
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
+      }
+    }
+  }
+  const y = card.release_year ?? card.film_year
+  if (y != null) return String(y)
+  return unknownLabel
+}
+
+/** Feed overlays: short suffix (numeric date or year); omit when unknown. */
+export function movieCardReleaseCompactSuffix(card: ReleasePick): string | null {
+  const rdRaw = card.release_date
+  if (typeof rdRaw === 'string') {
+    const rd = rdRaw.trim()
+    if (rd !== '') {
+      const d = new Date(`${rd}T12:00:00`)
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString('ru-RU')
+      }
+    }
+  }
+  const y = card.release_year ?? card.film_year
+  if (y != null) return String(y)
+  return null
+}
+
 /** Synopsis / summary for detail: display summary first, then film text fields. */
 export function movieCardPrimarySummary(
   card: Pick<MovieCard, 'display_summary' | 'film_short_description' | 'film_description'>,

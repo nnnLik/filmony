@@ -52,11 +52,7 @@ class NotifyTelegramMovieCardCommentMentionService:
     ) -> None:
         async with disposable_async_session() as session:
             comment = await session.get(CardComment, comment_id)
-            if (
-                comment is None
-                or comment.user_id != actor_user_id
-                or comment.card_id != card_id
-            ):
+            if comment is None or comment.user_id != actor_user_id or comment.card_id != card_id:
                 return
 
             actor = await session.get(User, actor_user_id)

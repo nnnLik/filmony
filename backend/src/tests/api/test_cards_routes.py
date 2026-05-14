@@ -12,6 +12,7 @@ from conf import settings
 from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from models.game import Game
 from models.reaction_type import ReactionType
 from models.user import User
 from models.user_card import UserCard
@@ -81,9 +82,7 @@ async def _catalog_item_id_for_film_id(film_id: int) -> int:
     session_factory = get_session_factory()
     async with session_factory() as session:
         existing = (
-            await session.execute(
-                select(CatalogItem.id).where(CatalogItem.film_id == film_id)
-            )
+            await session.execute(select(CatalogItem.id).where(CatalogItem.film_id == film_id))
         ).scalar_one_or_none()
         if existing is not None:
             return int(existing)
@@ -97,6 +96,57 @@ async def _catalog_item_id_for_film_id(film_id: int) -> int:
         await session.commit()
         await session.refresh(ci)
         return int(ci.id)
+
+
+async def _create_rawg_catalog_item_with_game(
+    *,
+    rawg_numeric_id: int,
+    released: str = '2015-05-18',
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        game = Game(rawg_id=rawg_numeric_id, released=released)
+        session.add(game)
+        await session.commit()
+        await session.refresh(game)
+        ci = CatalogItem(
+            provider=CatalogProvider.rawg,
+            external_id=str(rawg_numeric_id),
+            game_id=int(game.id),
+            film_id=None,
+        )
+        session.add(ci)
+        await session.commit()
+        await session.refresh(ci)
+        return int(ci.id)
+
+
+@pytest.mark.asyncio
+async def test_get_rawg_game_card_detail_has_release_fields(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=760050)
+    cat_id = await _create_rawg_catalog_item_with_game(rawg_numeric_id=7600501)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'catalog_item_id': cat_id,
+            'display_title': 'The Witcher 3',
+            'genres': [],
+            'rating': 9.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    cid = int(created.json()['id'])
+    detail = await async_client.get(f'/api/cards/{cid}')
+    assert detail.status_code == 200
+    d = detail.json()
+    assert d['film_id'] is None
+    assert d['film_year'] is None
+    assert d['release_year'] == 2015
+    assert d['release_date'] == '2015-05-18'
 
 
 @pytest.mark.asyncio
@@ -126,7 +176,9 @@ async def test_create_card_via_kinopoisk_provider_external_id(async_client: Asyn
 
 
 @pytest.mark.asyncio
-async def test_create_card_kinopoisk_external_duplicate_returns_409(async_client: AsyncClient) -> None:
+async def test_create_card_kinopoisk_external_duplicate_returns_409(
+    async_client: AsyncClient,
+) -> None:
     await _login(async_client, telegram_user_id=761022)
     film = await _create_film(kinopoisk_id=761023)
     await _catalog_item_id_for_film_id(film.id)
@@ -284,7 +336,9 @@ async def test_get_manual_movie_card_detail_includes_display_and_legacy_fields(
 
 
 @pytest.mark.asyncio
-async def test_create_card_by_catalog_item_id_duplicate_returns_409(async_client: AsyncClient) -> None:
+async def test_create_card_by_catalog_item_id_duplicate_returns_409(
+    async_client: AsyncClient,
+) -> None:
     await _login(async_client, telegram_user_id=760012)
     film = await _create_film(kinopoisk_id=770012)
     cat_id = await _catalog_item_id_for_film_id(film.id)

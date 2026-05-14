@@ -91,9 +91,7 @@ class CreateMovieCardCommentService:
         if payload.parent_comment_id is not None:
             parent_movie_card_id = (
                 await self._session.execute(
-                    select(CardComment.card_id).where(
-                        CardComment.id == payload.parent_comment_id
-                    )
+                    select(CardComment.card_id).where(CardComment.id == payload.parent_comment_id)
                 )
             ).scalar_one_or_none()
             if parent_movie_card_id is None:

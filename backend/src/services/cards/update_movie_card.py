@@ -131,13 +131,9 @@ class UpdateMovieCardService:
 
         if payload.custom_tags is not None:
             tags = _normalize_tags(payload.custom_tags)
-            await self._session.execute(
-                delete(CardTag).where(CardTag.card_id == card.id)
-            )
+            await self._session.execute(delete(CardTag).where(CardTag.card_id == card.id))
             if tags:
-                self._session.add_all(
-                    [CardTag(card_id=card.id, tag=tag) for tag in tags]
-                )
+                self._session.add_all([CardTag(card_id=card.id, tag=tag) for tag in tags])
 
         if payload.watch_note is not None:
             card.watch_note = _normalize_watch_note(payload.watch_note)

@@ -5,15 +5,17 @@ from dataclasses import dataclass
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import Select, and_, asc, desc, exists, or_, select
+from sqlalchemy import Select, and_, asc, desc, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select as SASelect
 
 from models.card_tag import CardTag
-from models.catalog_item import CatalogProvider
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from models.game import Game
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
+from services.cards.card_catalog_release_fields import universal_release_year_date
 
 _FAV_CURSOR_PREFIX = 'fav1'
 _RATING_DESC_PREFIX = 'rtd'
@@ -88,6 +90,8 @@ class MovieCardListItem:
     film_genres: list[str]
     film_title: str
     film_year: int | None
+    release_year: int | None
+    release_date: str | None
     film_poster_url: str | None
     catalog_item_id: int | None
     display_title: str
@@ -111,18 +115,23 @@ class MovieCardPage:
 
 
 def _rows_to_items(
-    visible_rows: list[tuple[UserCard, Film | None]],
+    visible_rows: list[tuple[UserCard, Film | None, Game | None]],
     tags_by_card: dict[int, list[str]],
     category_name_by_id: dict[int, str],
 ) -> list[MovieCardListItem]:
     items: list[MovieCardListItem] = []
-    for card, film in visible_rows:
+    for card, film, game in visible_rows:
         display_title = (card.display_title or '').strip()
         film_title = film.title if film is not None else (display_title or 'Untitled')
         if not display_title:
             display_title = film_title
         poster = film.poster_url if film is not None else card.display_cover_url
         cid = int(card.category_id)
+        film_year_val = film.year if film is not None else None
+        release_year, release_date = universal_release_year_date(
+            film_year=film_year_val,
+            game_released=game.released if game is not None else None,
+        )
         items.append(
             MovieCardListItem(
                 id=card.id,
@@ -132,7 +141,9 @@ def _rows_to_items(
                 film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
                 film_genres=list(film.genres or []) if film is not None else [],
                 film_title=film_title,
-                film_year=film.year if film is not None else None,
+                film_year=film_year_val,
+                release_year=release_year,
+                release_date=release_date,
                 film_poster_url=poster,
                 catalog_item_id=card.catalog_item_id,
                 display_title=display_title,
@@ -226,7 +237,7 @@ class ListUserMovieCardsService:
 
     def _apply_filters(
         self,
-        query: SASelect[tuple[UserCard, Film | None]],
+        query: SASelect[tuple[UserCard, Film | None, Game | None]],
         *,
         tags_all: list[str],
         year_min: int | None,
@@ -236,7 +247,7 @@ class ListUserMovieCardsService:
         mood_after: str | None,
         film_title_search: str | None,
         category_id: int | None,
-    ) -> SASelect[tuple[UserCard, Film | None]]:
+    ) -> SASelect[tuple[UserCard, Film | None, Game | None]]:
         for tag in tags_all:
             query = query.where(
                 exists(
@@ -286,9 +297,12 @@ class ListUserMovieCardsService:
         film_title_search: str | None,
         category_id: int | None,
     ) -> MovieCardPage:
-        query: Select[tuple[UserCard, Film | None]] = (
-            select(UserCard, Film)
-            .outerjoin(Film, Film.id == UserCard.film_id)
+        query: Select[tuple[UserCard, Film | None, Game | None]] = (
+            select(UserCard, Film, Game)
+            .select_from(UserCard)
+            .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+            .outerjoin(Film, Film.id == func.coalesce(UserCard.film_id, CatalogItem.film_id))
+            .outerjoin(Game, Game.id == CatalogItem.game_id)
             .where(UserCard.user_id == user_id)
         )
         query = self._apply_filters(
@@ -343,11 +357,11 @@ class ListUserMovieCardsService:
         rows = (await self._session.execute(query)).all()
         has_more = len(rows) > limit
         visible_rows = rows[:limit]
-        card_ids = [card.id for card, _film in visible_rows]
+        card_ids = [card.id for card, _film, _game in visible_rows]
 
         tags_by_card = await self._load_tags(card_ids)
         cat_names = await self._load_category_names(
-            list({int(c.category_id) for c, _ in visible_rows})
+            list({int(c.category_id) for c, _, _ in visible_rows})
         )
         items = _rows_to_items(visible_rows, tags_by_card, cat_names)
 
@@ -378,9 +392,12 @@ class ListUserMovieCardsService:
         film_title_search: str | None,
         category_id: int | None,
     ) -> MovieCardPage:
-        query: Select[tuple[UserCard, Film | None]] = (
-            select(UserCard, Film)
-            .outerjoin(Film, Film.id == UserCard.film_id)
+        query: Select[tuple[UserCard, Film | None, Game | None]] = (
+            select(UserCard, Film, Game)
+            .select_from(UserCard)
+            .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+            .outerjoin(Film, Film.id == func.coalesce(UserCard.film_id, CatalogItem.film_id))
+            .outerjoin(Game, Game.id == CatalogItem.game_id)
             .where(
                 UserCard.user_id == user_id,
                 UserCard.is_favorite.is_(True),
@@ -447,11 +464,11 @@ class ListUserMovieCardsService:
         rows = (await self._session.execute(query)).all()
         has_more = len(rows) > limit
         visible_rows = rows[:limit]
-        card_ids = [card.id for card, _f in visible_rows]
+        card_ids = [card.id for card, _film, _game in visible_rows]
 
         tags_by_card = await self._load_tags(card_ids)
         cat_names = await self._load_category_names(
-            list({int(c.category_id) for c, _ in visible_rows})
+            list({int(c.category_id) for c, _, _ in visible_rows})
         )
         items = _rows_to_items(visible_rows, tags_by_card, cat_names)
 
@@ -488,31 +505,29 @@ class ListUserMovieCardsService:
         if not category_ids:
             return names
         cat_rows = (
-            (
-                await self._session.execute(
-                    select(UserCardCategory.id, UserCardCategory.name).where(
-                        UserCardCategory.id.in_(category_ids)
-                    )
+            await self._session.execute(
+                select(UserCardCategory.id, UserCardCategory.name).where(
+                    UserCardCategory.id.in_(category_ids)
                 )
             )
-            .all()
-        )
+        ).all()
         for cid, name in cat_rows:
             names[int(cid)] = str(name)
         return names
 
     async def list_all_for_user(self, user_id: UUID) -> list[MovieCardListItem]:
-        query: Select[tuple[UserCard, Film | None]] = (
-            select(UserCard, Film)
-            .outerjoin(Film, Film.id == UserCard.film_id)
+        query: Select[tuple[UserCard, Film | None, Game | None]] = (
+            select(UserCard, Film, Game)
+            .select_from(UserCard)
+            .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+            .outerjoin(Film, Film.id == func.coalesce(UserCard.film_id, CatalogItem.film_id))
+            .outerjoin(Game, Game.id == CatalogItem.game_id)
             .where(UserCard.user_id == user_id)
             .order_by(desc(UserCard.id))
         )
         rows = (await self._session.execute(query)).all()
-        card_ids = [card.id for card, _film in rows]
+        card_ids = [card.id for card, _film, _game in rows]
 
         tags_by_card = await self._load_tags(card_ids)
-        cat_names = await self._load_category_names(
-            list({int(c.category_id) for c, _film in rows})
-        )
+        cat_names = await self._load_category_names(list({int(c.category_id) for c, _, _ in rows}))
         return _rows_to_items(rows, tags_by_card, cat_names)

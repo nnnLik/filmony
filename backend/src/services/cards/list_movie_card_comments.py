@@ -81,9 +81,7 @@ class ListMovieCardCommentsService:
         if parent_comment_id is not None:
             parent_card_id = (
                 await self._session.execute(
-                    select(CardComment.card_id).where(
-                        CardComment.id == parent_comment_id
-                    )
+                    select(CardComment.card_id).where(CardComment.id == parent_comment_id)
                 )
             ).scalar_one_or_none()
             if parent_card_id is None or parent_card_id != card_id:

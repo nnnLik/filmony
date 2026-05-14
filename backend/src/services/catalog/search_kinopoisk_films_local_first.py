@@ -203,7 +203,9 @@ class SearchKinopoiskFilmsLocalFirstService:
         catalog_item: CatalogItem,
     ) -> CatalogFilmSearchHitDTO:
         title = item.display_title() or film.title
-        summary = item.description.strip() if item.description and item.description.strip() else None
+        summary = (
+            item.description.strip() if item.description and item.description.strip() else None
+        )
         return CatalogFilmSearchHitDTO(
             provider=CatalogProvider.kinopoisk,
             external_id=str(film.kinopoisk_id),
@@ -258,7 +260,9 @@ class SearchKinopoiskFilmsLocalFirstService:
         year = item.year_as_int()
         poster = item.poster_url_normalized()
         genres = genres_for_film_model(item)
-        summary_text = item.description.strip() if item.description and item.description.strip() else None
+        summary_text = (
+            item.description.strip() if item.description and item.description.strip() else None
+        )
 
         if existing is not None:
             existing.title = title

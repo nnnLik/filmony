@@ -95,7 +95,9 @@ async def test_search_rawg_catalog_remote_persists_and_links_catalog_item(
     }
     dto = RawgGamesListResponseDTO.from_document(list_doc)
 
-    async def fake_search(self: RawgProviderTransport, params: RawgGamesListQueryParams) -> RawgGamesListResponseDTO:
+    async def fake_search(
+        self: RawgProviderTransport, params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
         assert params.search == 'kappamix'
         return dto
 
@@ -103,18 +105,16 @@ async def test_search_rawg_catalog_remote_persists_and_links_catalog_item(
 
     sf = get_session_factory()
     async with sf() as session:
-        result = await SearchRawgCatalogGamesService.build(session, RawgProviderTransport()).execute(
-            'KappaMix', 5, allow_remote=True
-        )
+        result = await SearchRawgCatalogGamesService.build(
+            session, RawgProviderTransport()
+        ).execute('KappaMix', 5, allow_remote=True)
     hits = result.hits
     assert len(hits) == 2
     assert {h.external_id for h in hits} == {'900020', '900021'}
     assert all(h.source == 'remote' for h in hits)
 
     async with sf() as session:
-        g1 = (
-            await session.scalars(select(Game).where(Game.rawg_id == 900020))
-        ).one()
+        g1 = (await session.scalars(select(Game).where(Game.rawg_id == 900020))).one()
         assert g1.name == 'Alpha K'
         ci1 = (
             await session.scalars(
@@ -181,7 +181,9 @@ async def test_search_rawg_catalog_dedupes_remote_against_local(
     }
     dto = RawgGamesListResponseDTO.from_document(list_doc)
 
-    async def fake_search(self: RawgProviderTransport, _params: RawgGamesListQueryParams) -> RawgGamesListResponseDTO:
+    async def fake_search(
+        self: RawgProviderTransport, _params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
         return dto
 
     monkeypatch.setattr(RawgProviderTransport, 'search_games', fake_search)
@@ -192,9 +194,9 @@ async def test_search_rawg_catalog_dedupes_remote_against_local(
         await session.commit()
 
     async with sf() as session:
-        result = await SearchRawgCatalogGamesService.build(session, RawgProviderTransport()).execute(
-            'Overlap', 5, allow_remote=True
-        )
+        result = await SearchRawgCatalogGamesService.build(
+            session, RawgProviderTransport()
+        ).execute('Overlap', 5, allow_remote=True)
         hits = result.hits
 
     ids = {(h.external_id, h.source) for h in hits}

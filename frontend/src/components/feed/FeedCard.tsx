@@ -5,7 +5,11 @@ import { Link } from 'react-router-dom'
 import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
-import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../../lib/movieCardDisplay'
+import {
+  movieCardPrimaryPoster,
+  movieCardPrimaryTitle,
+  movieCardReleaseCompactSuffix,
+} from '../../lib/movieCardDisplay'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
@@ -92,6 +96,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const name = authorLabel(card)
   const primaryTitle = movieCardPrimaryTitle(card)
   const primaryPoster = movieCardPrimaryPoster(card)
+  const releaseSuffix = movieCardReleaseCompactSuffix(card)
   useEffect(() => {
     let cancelled = false
     if (!commentsPreviewOpen || card.comments_count === 0) {
@@ -310,8 +315,8 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               className="line-clamp-2 text-[16px]! leading-tight text-white drop-shadow-sm"
             >
               {primaryTitle}
-              {card.film_year != null ? (
-                <span className="font-normal text-white/72"> · {card.film_year}</span>
+              {releaseSuffix != null ? (
+                <span className="font-normal text-white/72"> · {releaseSuffix}</span>
               ) : null}
             </Title>
           </div>

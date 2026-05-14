@@ -65,6 +65,7 @@ import {
   movieCardPrimaryPoster,
   movieCardPrimarySummary,
   movieCardPrimaryTitle,
+  movieCardReleasePrimaryLabel,
 } from '../lib/movieCardDisplay'
 import { kinopoiskTitleUrlFromCard, openExternalUrl } from '../lib/openExternalUrl'
 import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
@@ -1022,7 +1023,7 @@ function MovieCardDetailLoadedBody({
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {detailCardAuthor != null ? <CardAuthorAvatarLink author={detailCardAuthor} /> : null}
                       <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
-                        {card.film_year ?? 'Год неизвестен'}
+                        {movieCardReleasePrimaryLabel(card)}
                       </p>
                     </div>
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />

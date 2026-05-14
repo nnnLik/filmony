@@ -57,8 +57,7 @@ async def list_my_card_categories(
     rows = await ListMyUserCardCategoriesService.build(db).execute(user.id)
     return MyUserCardCategoryListResponse(
         items=[
-            MyUserCardCategoryResponse(id=r.id, name=r.name, created_at=r.created_at)
-            for r in rows
+            MyUserCardCategoryResponse(id=r.id, name=r.name, created_at=r.created_at) for r in rows
         ]
     )
 
@@ -94,9 +93,7 @@ async def rename_my_card_category(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MyUserCardCategoryResponse:
     try:
-        row = await RenameUserCardCategoryService.build(db).execute(
-            user.id, category_id, body.name
-        )
+        row = await RenameUserCardCategoryService.build(db).execute(user.id, category_id, body.name)
     except RenameUserCardCategoryService.CategoryNotFoundError:
         raise HTTPException(status_code=404, detail='category not found') from None
     except RenameUserCardCategoryService.CategoryValidationError as e:

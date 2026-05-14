@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from models.game import Game
 from models.user import User
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
+from services.cards.card_catalog_release_fields import universal_release_year_date
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
@@ -37,6 +39,8 @@ class MovieCardDetails:
     display_title: str
     display_cover_url: str | None
     display_summary: str | None
+    release_year: int | None
+    release_date: str | None
     rating: float
     company: str
     mood_before: str
@@ -58,24 +62,20 @@ class GetMovieCardDetailsService:
         self._session = session
 
     async def execute(self, card_id: int, viewer_user_id: UUID) -> MovieCardDetails:
-        catalog_film_id = (
-            select(CatalogItem.film_id)
-            .where(CatalogItem.id == UserCard.catalog_item_id)
-            .limit(1)
-            .scalar_subquery()
-        )
-        film_pk = func.coalesce(UserCard.film_id, catalog_film_id)
+        film_pk = func.coalesce(UserCard.film_id, CatalogItem.film_id)
         row = (
             await self._session.execute(
-                select(UserCard, User, Film)
+                select(UserCard, User, Film, Game)
                 .join(User, User.id == UserCard.user_id)
+                .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
                 .outerjoin(Film, Film.id == film_pk)
+                .outerjoin(Game, Game.id == CatalogItem.game_id)
                 .where(UserCard.id == card_id)
             )
         ).one_or_none()
         if row is None:
             raise MovieCardNotFoundError()
-        card, author, film = row
+        card, author, film, game = row
 
         display_title = (card.display_title or '').strip()
         if not display_title and film is not None:
@@ -87,9 +87,7 @@ class GetMovieCardDetailsService:
 
         tags_result, cat_row_result, summaries_bundle = await asyncio.gather(
             self._session.execute(
-                select(CardTag.tag)
-                .where(CardTag.card_id == card.id)
-                .order_by(CardTag.tag),
+                select(CardTag.tag).where(CardTag.card_id == card.id).order_by(CardTag.tag),
             ),
             self._session.execute(
                 select(UserCardCategory).where(UserCardCategory.id == card.category_id),
@@ -104,10 +102,13 @@ class GetMovieCardDetailsService:
         )
         tags = tags_result.scalars().all()
         cat_row = cat_row_result.scalar_one_or_none()
-        category_name = (
-            cat_row.name if cat_row is not None else DEFAULT_USER_CARD_CATEGORY_NAME
-        )
+        category_name = cat_row.name if cat_row is not None else DEFAULT_USER_CARD_CATEGORY_NAME
         summaries, _, _, _ = summaries_bundle
+        film_year_val = film.year if film is not None else None
+        release_year, release_date = universal_release_year_date(
+            film_year=film_year_val,
+            game_released=game.released if game is not None else None,
+        )
         return MovieCardDetails(
             id=card.id,
             user_id=card.user_id,
@@ -126,7 +127,7 @@ class GetMovieCardDetailsService:
             film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
             film_genres=list(film.genres or []) if film is not None else [],
             film_title=film_title_deprecated,
-            film_year=film.year if film is not None else None,
+            film_year=film_year_val,
             film_poster_url=film.poster_url if film is not None else None,
             film_short_description=film.short_description if film is not None else None,
             film_description=film.description if film is not None else None,
@@ -134,6 +135,8 @@ class GetMovieCardDetailsService:
             display_title=display_title,
             display_cover_url=card.display_cover_url,
             display_summary=card.display_summary,
+            release_year=release_year,
+            release_date=release_date,
             rating=float(card.rating),
             company=card.company,
             mood_before=card.mood_before,

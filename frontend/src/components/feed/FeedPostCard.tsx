@@ -8,6 +8,7 @@ import type { FeedPostInFeed } from '../../api/feedInFeedTypes'
 import {
   feedPostReferencedCardPoster,
   feedPostReferencedCardTitle,
+  movieCardReleaseCompactSuffix,
 } from '../../lib/movieCardDisplay'
 import { createFeedPostComment, listAllFeedPostComments } from '../../api/feedPostApi'
 import type { FeedPostComment, ReactionSummary, ReferencedMentionSnippet } from '../../api/profileTypes'
@@ -203,7 +204,8 @@ export function FeedPostCard({
     referenced_card != null ? feedPostReferencedCardPoster(referenced_card) : null
   const referencedCardTitle =
     referenced_card != null ? feedPostReferencedCardTitle(referenced_card) : ''
-
+  const referencedReleaseSuffix =
+    referenced_card != null ? movieCardReleaseCompactSuffix(referenced_card) : null
   const name = useMemo(() => displayNameFromAuthorFields(author), [author])
   const postHref = `/feed-posts/${id}`
   const bodyInlineRefMap = useMemo(
@@ -780,10 +782,10 @@ export function FeedPostCard({
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <p className="line-clamp-2 min-w-0 flex-1 text-[13px] font-semibold leading-snug text-(--tgui--text_color)">
                     {referencedCardTitle}
-                    {referenced_card.film_year != null ? (
+                    {referencedReleaseSuffix != null ? (
                       <span className="font-normal text-(--tgui--hint_color)">
                         {' '}
-                        · {referenced_card.film_year}
+                        · {referencedReleaseSuffix}
                       </span>
                     ) : null}
                   </p>

@@ -17,7 +17,9 @@ from services.catalog.search_kinopoisk_films_local_first import (
 
 
 class ExplodingKinopoiskTransport:
-    async def search_films_by_keyword(self, keyword: str, page: int = 1) -> KinopoiskFilmSearchResponseDTO:
+    async def search_films_by_keyword(
+        self, keyword: str, page: int = 1
+    ) -> KinopoiskFilmSearchResponseDTO:
         _ = (keyword, page)
         raise AssertionError('Kinopoisk search API must not be called')
 
@@ -90,9 +92,7 @@ async def test_remote_fallback_persists_film_and_catalog_item(
         assert hit.catalog_item_id is not None
 
     async with session_factory() as session:
-        film = (
-            await session.execute(select(Film).where(Film.kinopoisk_id == 263531))
-        ).scalar_one()
+        film = (await session.execute(select(Film).where(Film.kinopoisk_id == 263531))).scalar_one()
         assert film.title == 'Мстители'
         row = (
             await session.execute(

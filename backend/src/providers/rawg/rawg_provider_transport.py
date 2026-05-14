@@ -99,7 +99,9 @@ class RawgProviderTransport(BaseProviderHttpTransport):
     async def get_game(self, game_id: str) -> RawgGameSingleDTO:
         gid = game_id.strip()
         if not gid:
-            raise self.RawgProviderTransportError(msg=f'{self._GAME_DETAIL_OPERATION}: game id is empty')
+            raise self.RawgProviderTransportError(
+                msg=f'{self._GAME_DETAIL_OPERATION}: game id is empty'
+            )
         return await self._fetch_json_then_parse_document(
             operation=self._GAME_DETAIL_OPERATION,
             parse_response_label='game',

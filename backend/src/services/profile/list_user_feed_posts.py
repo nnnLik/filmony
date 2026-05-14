@@ -4,13 +4,16 @@ import datetime as dt
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.catalog_item import CatalogItem
 from models.feed_post import FeedPost
 from models.film import Film
+from models.game import Game
 from models.user import User
 from models.user_card import UserCard
+from services.cards.card_catalog_release_fields import universal_release_year_date
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor
 from services.cards.list_movie_card_feed import (
     FeedPostFeedItem,
@@ -97,30 +100,44 @@ class ListUserFeedPostsService:
         if not slice_rows:
             return UserFeedPostsPage(items=[], next_cursor=None)
 
-        ref_cids = [
-            int(fp.referenced_card_id) for fp, _ in slice_rows if fp.referenced_card_id
-        ]
-        ref_by_cid: dict[int, tuple[UserCard, Film]] = {}
+        ref_cids = [int(fp.referenced_card_id) for fp, _ in slice_rows if fp.referenced_card_id]
+        ref_by_cid: dict[int, tuple[UserCard, Film | None, Game | None]] = {}
         if ref_cids:
+            film_pk = func.coalesce(UserCard.film_id, CatalogItem.film_id)
             rq = (
-                select(UserCard, Film)
-                .join(Film, Film.id == UserCard.film_id)
+                select(UserCard, Film, Game)
+                .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+                .outerjoin(Film, Film.id == film_pk)
+                .outerjoin(Game, Game.id == CatalogItem.game_id)
                 .where(UserCard.id.in_(ref_cids))
             )
-            for card, film in (await self._session.execute(rq)).all():
-                ref_by_cid[int(card.id)] = (card, film)
+            for card, film, game in (await self._session.execute(rq)).all():
+                ref_by_cid[int(card.id)] = (card, film, game)
 
         items: list[FeedPostFeedItem] = []
         for fp, author_user in slice_rows:
             ref_snippet: FeedPostReferencedCardSnippet | None = None
             rid = fp.referenced_card_id
             if rid is not None and int(rid) in ref_by_cid:
-                mc, fl = ref_by_cid[int(rid)]
+                mc, fl, gm = ref_by_cid[int(rid)]
+                ref_title = (
+                    str(fl.title)
+                    if fl is not None
+                    else ((mc.display_title or '').strip() or 'Untitled')
+                )
+                fy = fl.year if fl is not None else None
+                release_year, release_date = universal_release_year_date(
+                    film_year=fy,
+                    game_released=gm.released if gm is not None else None,
+                )
+                ref_poster = fl.poster_url if fl is not None else mc.display_cover_url
                 ref_snippet = FeedPostReferencedCardSnippet(
                     movie_card_id=int(mc.id),
-                    film_title=str(fl.title),
-                    film_year=fl.year,
-                    film_poster_url=fl.poster_url,
+                    film_title=ref_title,
+                    film_year=fy,
+                    release_year=release_year,
+                    release_date=release_date,
+                    film_poster_url=ref_poster,
                     rating=float(mc.rating),
                 )
             author = MovieCardCommentAuthor(

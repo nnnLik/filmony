@@ -16,15 +16,17 @@ import const.feed
 from const.feed import FeedMode
 from models.card_comment import CardComment
 from models.card_tag import CardTag
-from models.catalog_item import CatalogProvider
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.film import Film
+from models.game import Game
 from models.user import User
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from models.user_subscription import UserSubscription
 from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
+from services.cards.card_catalog_release_fields import universal_release_year_date
 from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
 from services.cards.list_movie_card_comments import MovieCardCommentAuthor, MovieCardCommentItem
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
@@ -352,6 +354,8 @@ class MovieCardFeedItem:
     film_genres: list[str]
     film_title: str
     film_year: int | None
+    release_year: int | None
+    release_date: str | None
     film_poster_url: str | None
     catalog_item_id: int | None
     display_title: str
@@ -377,6 +381,8 @@ class FeedPostReferencedCardSnippet:
     movie_card_id: int
     film_title: str
     film_year: int | None
+    release_year: int | None
+    release_date: str | None
     film_poster_url: str | None
     rating: float
 
@@ -790,9 +796,7 @@ class ListMovieCardFeedService:
         tags_by_card: dict[int, list[str]] = {c: [] for c in card_ids}
         tr = (
             await self._session.execute(
-                select(CardTag.card_id, CardTag.tag).where(
-                    CardTag.card_id.in_(card_ids)
-                )
+                select(CardTag.card_id, CardTag.tag).where(CardTag.card_id.in_(card_ids))
             )
         ).all()
         for cid, tag in tr:
@@ -919,13 +923,16 @@ class ListMovieCardFeedService:
 
     async def _load_card_rows_ordered(
         self, ordered_ids: list[int]
-    ) -> list[tuple[UserCard, Film | None, User]]:
+    ) -> list[tuple[UserCard, Film | None, Game | None, User]]:
         if not ordered_ids:
             return []
+        film_pk = func.coalesce(UserCard.film_id, CatalogItem.film_id)
         q = (
-            select(UserCard, Film, User)
-            .outerjoin(Film, Film.id == UserCard.film_id)
+            select(UserCard, Film, Game, User)
             .join(User, User.id == UserCard.user_id)
+            .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+            .outerjoin(Film, Film.id == film_pk)
+            .outerjoin(Game, Game.id == CatalogItem.game_id)
             .where(UserCard.id.in_(ordered_ids))
         )
         rows = (await self._session.execute(q)).all()
@@ -935,12 +942,12 @@ class ListMovieCardFeedService:
     async def _hydrate_feed_items(
         self,
         viewer_user_id: UUID,
-        visible_rows: list[tuple[UserCard, Film | None, User]],
+        visible_rows: list[tuple[UserCard, Film | None, Game | None, User]],
         source_by_id: dict[int, const.feed.StreamName],
     ) -> list[MovieCardFeedItem]:
-        card_ids = [card.id for card, _film, _author in visible_rows]
+        card_ids = [card.id for card, _film, _game, _author in visible_rows]
 
-        cat_ids = list({int(c.category_id) for c, _f, _a in visible_rows})
+        cat_ids = list({int(c.category_id) for c, _f, _g, _a in visible_rows})
         cat_names: dict[int, str] = {}
         if cat_ids:
             for crow in (
@@ -1063,7 +1070,7 @@ class ListMovieCardFeedService:
 
         flat_tmps: list[MovieCardCommentItem] = []
         flat_card_ids: list[int] = []
-        for card, _film, _card_author_user in visible_rows:
+        for card, _film, _game, _card_author_user in visible_rows:
             for p in previews_by_card.get(card.id, []):
                 flat_tmps.append(
                     MovieCardCommentItem(
@@ -1094,7 +1101,7 @@ class ListMovieCardFeedService:
             previews_resolved[cid].append(enriched_flat[i])
 
         items: list[MovieCardFeedItem] = []
-        for card, film, card_author_user in visible_rows:
+        for card, film, game, card_author_user in visible_rows:
             preview_with_rx = previews_resolved.get(card.id, [])
             display_title = (card.display_title or '').strip()
             if not display_title and film is not None:
@@ -1103,6 +1110,11 @@ class ListMovieCardFeedService:
                 display_title = 'Untitled'
             film_title_dep = film.title if film is not None else display_title
             cid = int(card.category_id)
+            film_year_val = film.year if film is not None else None
+            release_year, release_date = universal_release_year_date(
+                film_year=film_year_val,
+                game_released=game.released if game is not None else None,
+            )
             items.append(
                 MovieCardFeedItem(
                     id=card.id,
@@ -1122,7 +1134,9 @@ class ListMovieCardFeedService:
                     film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
                     film_genres=list(film.genres or []) if film is not None else [],
                     film_title=film_title_dep,
-                    film_year=film.year if film is not None else None,
+                    film_year=film_year_val,
+                    release_year=release_year,
+                    release_date=release_date,
                     film_poster_url=film.poster_url if film is not None else None,
                     catalog_item_id=card.catalog_item_id,
                     display_title=display_title,
@@ -1172,20 +1186,19 @@ class ListMovieCardFeedService:
             fp_reactions=fp_rx,
         )
 
-        ref_cids = [
-            int(fp.referenced_card_id)
-            for fp, _ in by_id.values()
-            if fp.referenced_card_id
-        ]
-        ref_by_cid: dict[int, tuple[UserCard, Film | None]] = {}
+        ref_cids = [int(fp.referenced_card_id) for fp, _ in by_id.values() if fp.referenced_card_id]
+        ref_by_cid: dict[int, tuple[UserCard, Film | None, Game | None]] = {}
         if ref_cids:
+            film_pk = func.coalesce(UserCard.film_id, CatalogItem.film_id)
             rq = (
-                select(UserCard, Film)
-                .outerjoin(Film, Film.id == UserCard.film_id)
+                select(UserCard, Film, Game)
+                .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+                .outerjoin(Film, Film.id == film_pk)
+                .outerjoin(Game, Game.id == CatalogItem.game_id)
                 .where(UserCard.id.in_(ref_cids))
             )
-            for card, film in (await self._session.execute(rq)).all():
-                ref_by_cid[int(card.id)] = (card, film)
+            for card, film, game in (await self._session.execute(rq)).all():
+                ref_by_cid[int(card.id)] = (card, film, game)
 
         items: list[FeedPostFeedItem] = []
         for pid in ordered_post_ids:
@@ -1196,17 +1209,25 @@ class ListMovieCardFeedService:
             ref_snippet: FeedPostReferencedCardSnippet | None = None
             rid = fp.referenced_card_id
             if rid is not None and int(rid) in ref_by_cid:
-                mc, fl = ref_by_cid[int(rid)]
+                mc, fl, gm = ref_by_cid[int(rid)]
                 ref_title = (
                     str(fl.title)
                     if fl is not None
                     else ((mc.display_title or '').strip() or 'Untitled')
                 )
+                fy = fl.year if fl is not None else None
+                release_year, release_date = universal_release_year_date(
+                    film_year=fy,
+                    game_released=gm.released if gm is not None else None,
+                )
+                ref_poster = fl.poster_url if fl is not None else mc.display_cover_url
                 ref_snippet = FeedPostReferencedCardSnippet(
                     movie_card_id=int(mc.id),
                     film_title=ref_title,
-                    film_year=fl.year if fl is not None else None,
-                    film_poster_url=fl.poster_url if fl is not None else None,
+                    film_year=fy,
+                    release_year=release_year,
+                    release_date=release_date,
+                    film_poster_url=ref_poster,
                     rating=float(mc.rating),
                 )
             author = MovieCardCommentAuthor(

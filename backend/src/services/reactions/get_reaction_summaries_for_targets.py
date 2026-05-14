@@ -187,8 +187,7 @@ class GetReactionSummariesForTargetsService:
                     order_by=rx.id.desc(),
                 )
                 .label('rn'),
-            )
-            .where(scope)
+            ).where(scope)
         ).subquery()
 
         actors_stmt = (

@@ -168,6 +168,10 @@ export type MovieCard = {
   film_genres: string[]
   film_title: string
   film_year: number | null
+  /** Kinopoisk: mirrors ``film_year``. RAWG: from ``Game.released``. */
+  release_year?: number | null
+  /** ISO ``YYYY-MM-DD`` when known (typically RAWG). */
+  release_date?: string | null
   film_poster_url: string | null
   /** Связка с каталогом (универсальные карточки). */
   catalog_item_id?: number | null

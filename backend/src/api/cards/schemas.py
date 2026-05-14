@@ -156,6 +156,11 @@ class CardDetailResponse(BaseModel):
     film_genres: list[str] = Field(default_factory=list)
     film_title: str
     film_year: int | None
+    release_year: int | None = None
+    release_date: str | None = Field(
+        default=None,
+        description='ISO date YYYY-MM-DD when known (typically RAWG games)',
+    )
     film_poster_url: str | None
     catalog_item_id: int | None = None
     provider: CatalogProvider
@@ -264,6 +269,8 @@ class FeedPostReferencedCardResponse(BaseModel):
     movie_card_id: int
     film_title: str
     film_year: int | None
+    release_year: int | None = None
+    release_date: str | None = None
     film_poster_url: str | None
     rating: float
 

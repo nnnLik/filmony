@@ -1,0 +1,106 @@
+/* Step 1 — source selection: compact option cards with icons + progressive disclosure */
+
+.create-card-source-lead {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.create-card-source-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.create-card-source-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  text-align: left;
+  border-radius: 0.875rem;
+  border: 1px solid var(--tgui--divider_color);
+  background: var(--tgui--bg_color);
+  color: var(--tgui--text_color);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.08s ease;
+}
+
+.create-card-source-option:active {
+  transform: scale(0.992);
+}
+
+.create-card-source-option:focus-visible {
+  outline: none;
+  border-color: var(--tgui--link_color);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tgui--link_color) 28%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--tgui--link_color) 18%, transparent);
+}
+
+.create-card-source-option-primary {
+  border-color: color-mix(in srgb, var(--tgui--link_color) 35%, var(--tgui--divider_color));
+  background: color-mix(in srgb, var(--tgui--link_color) 8%, var(--tgui--bg_color));
+}
+
+.create-card-source-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--tgui--link_color) 14%, var(--tgui--secondary_bg_color));
+  color: var(--tgui--link_color);
+}
+
+.create-card-source-option-primary .create-card-source-option-icon {
+  background: color-mix(in srgb, var(--tgui--link_color) 22%, var(--tgui--bg_color));
+}
+
+.create-card-source-option-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.create-card-source-option-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.create-card-source-reveal {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--tgui--link_color) 22%, var(--tgui--divider_color));
+  background: color-mix(in srgb, var(--tgui--link_color) 6%, var(--tgui--bg_color));
+}
+
+.create-card-source-reveal-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--tgui--link_color);
+  line-height: 1.2;
+}
+
+.create-card-source-reveal-body {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--tgui--hint_color);
+}

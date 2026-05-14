@@ -114,6 +114,8 @@ class MovieCardItemResponse(BaseModel):
     film_genres: list[str] = Field(default_factory=list)
     film_title: str
     film_year: int | None
+    release_year: int | None = None
+    release_date: str | None = None
     film_poster_url: str | None
     catalog_item_id: int | None = None
     provider: CatalogProvider
@@ -264,6 +266,8 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
             film_genres=item.film_genres,
             film_title=item.film_title,
             film_year=item.film_year,
+            release_year=item.release_year,
+            release_date=item.release_date,
             film_poster_url=item.film_poster_url,
             catalog_item_id=item.catalog_item_id,
             provider=item.provider,

@@ -17,7 +17,6 @@ class KinopoiskEndpointEnum(StrEnum):
 
 
 class KinopoiskProviderTransport(BaseProviderHttpTransport):
-
     class KinopoiskProviderTransportError(Exception):
         pass
 

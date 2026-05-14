@@ -1,4 +1,5 @@
 import { Button, Title } from '@telegram-apps/telegram-ui'
+import { Clapperboard, Gamepad2, PenLine } from 'lucide-react'
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -49,6 +50,8 @@ import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../lib/movieCardD
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { safeHapticSuccess } from '../lib/safeHaptic'
+
+import './CreateCardPage.css'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -608,13 +611,12 @@ export function CreateCardPage() {
       return
     }
     setResolveInlineError(null)
-    const sub = hit.subtitle
     setCreationBinding({
       kind: 'catalog_game',
       catalogItemId: hit.catalog_item_id,
       display_title: title,
       display_cover_url: hit.cover_url,
-      display_summary: sub != null && sub.trim() !== '' ? sub : null,
+      display_summary: null,
       subtitle: hit.subtitle,
     })
     setStep(2)
@@ -1006,42 +1008,59 @@ export function CreateCardPage() {
             <div className="filmony-text-panel flex flex-col gap-4">
               {addKind === null ? (
                 <>
-                  <p className="text-sm leading-snug text-(--tgui--hint_color)">
-                    Выберите источник: каталог Кинопоиска, каталог RAWG (игры) или карточка без привязки к каталогу. Для
-                    RAWG нужно не меньше 4 символов в запросе (с короткой паузой после ввода), для Кинопоиска — от 3
-                    символов; часть совпадений уже есть в локальном каталоге приложения.
+                  <p className="create-card-source-lead text-sm text-(--tgui--text_color)">
+                    Выберите тип темы
                   </p>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      stretched
+                  <div className="create-card-source-stack">
+                    <button
+                      type="button"
+                      className="create-card-source-option create-card-source-option-primary"
+                      aria-label="Фильм или сериал: поиск по каталогу Кинопоиска для фильмов и сериалов"
                       onClick={() => {
                         setAddKind('film')
                         setResolveInlineError(null)
                       }}
                     >
-                      Каталог Кинопоиска
-                    </Button>
-                    <Button
-                      mode="gray"
-                      stretched
+                      <span className="create-card-source-option-icon" aria-hidden="true">
+                        <Clapperboard className="block" size={22} strokeWidth={1.75} />
+                      </span>
+                      <span className="create-card-source-option-text">
+                        <span className="create-card-source-option-title">Фильм или сериал</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="create-card-source-option"
+                      aria-label="Игра: поиск в каталоге RAWG"
                       onClick={() => {
                         setAddKind('game')
                         setResolveInlineError(null)
                       }}
                     >
-                      Каталог RAWG (игры)
-                    </Button>
-                    <Button
-                      mode="gray"
-                      stretched
+                      <span className="create-card-source-option-icon" aria-hidden="true">
+                        <Gamepad2 className="block" size={22} strokeWidth={1.75} />
+                      </span>
+                      <span className="create-card-source-option-text">
+                        <span className="create-card-source-option-title">Игра</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="create-card-source-option"
+                      aria-label="Вручную: своё название и обложка, если темы нет в каталогах"
                       onClick={() => {
                         setAddKind('manual')
                         setManualFieldError(null)
                         setResolveInlineError(null)
                       }}
                     >
-                      Без каталога
-                    </Button>
+                      <span className="create-card-source-option-icon" aria-hidden="true">
+                        <PenLine className="block" size={22} strokeWidth={1.75} />
+                      </span>
+                      <span className="create-card-source-option-text">
+                        <span className="create-card-source-option-title">Вручную</span>
+                      </span>
+                    </button>
                   </div>
                 </>
               ) : null}
@@ -1060,12 +1079,35 @@ export function CreateCardPage() {
                   >
                     ← Другой тип
                   </button>
+                  <div
+                    className="create-card-source-reveal"
+                    role="region"
+                    aria-label={addKind === 'film' ? 'Поиск фильма или сериала' : 'Поиск игры'}
+                  >
+                    {addKind === 'film' ? (
+                      <>
+                        <p className="create-card-source-reveal-title">Кинопоиск</p>
+                        <p className="create-card-source-reveal-body">
+                          Поиск по названию (от 3 символов). Ниже также можно открыть ввод по ссылке на страницу
+                          на Кинопоиске.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="create-card-source-reveal-title">RAWG</p>
+                        <p className="create-card-source-reveal-body">
+                          Большая база игр с обложками. Для поиска нужно не меньше 4 символов. Если записи нет — можно
+                          перейти к ручному вводу.
+                        </p>
+                      </>
+                    )}
+                  </div>
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="create-card-catalog-search"
                       className="text-xs font-medium text-(--tgui--hint_color)"
                     >
-                      {addKind === 'film' ? 'Поиск в каталоге (Кинопоиск)' : 'Поиск в каталоге (RAWG)'}
+                      {addKind === 'film' ? 'Название фильма или сериала' : 'Название игры'}
                     </label>
                     <input
                       id="create-card-catalog-search"
@@ -1262,9 +1304,13 @@ export function CreateCardPage() {
                   >
                     ← Другой тип
                   </button>
-                  <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
-                    <p className="text-sm font-medium text-(--tgui--text_color)">Своя тема</p>
-                    <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
+                  <div
+                    className="create-card-source-reveal"
+                    role="region"
+                    aria-label="Ручной ввод темы"
+                  >
+                    <p className="create-card-source-reveal-title">Своя тема</p>
+                    <p className="create-card-source-reveal-body">
                       Если каталог не подошёл или это спектакль, подкаст и т.п. — укажите название и при желании обложку.
                     </p>
                   </div>

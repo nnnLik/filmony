@@ -118,7 +118,9 @@ def downgrade() -> None:
 
     op.create_unique_constraint('uq_movie_card_user_film', 'movie_card', ['user_id', 'film_id'])
 
-    op.drop_constraint('fk_movie_card_catalog_item_id_catalog_item', 'movie_card', type_='foreignkey')
+    op.drop_constraint(
+        'fk_movie_card_catalog_item_id_catalog_item', 'movie_card', type_='foreignkey'
+    )
     op.drop_index(op.f('ix_movie_card_catalog_item_id'), table_name='movie_card')
     op.drop_column('movie_card', 'catalog_item_id')
 

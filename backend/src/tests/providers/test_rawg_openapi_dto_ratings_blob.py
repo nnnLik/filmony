@@ -126,4 +126,6 @@ def test_rawg_games_list_response_parses_when_results_have_list_ratings() -> Non
     assert len(parsed.results) == 1
     blob = rawg_open_blob_to_plain_json(parsed.results[0].ratings)
     assert blob == []
-    assert rawg_open_blob_to_plain_json(parsed.results[0].added_by_status) == [{'title': 'owned', 'yesterday': 1}]
+    assert rawg_open_blob_to_plain_json(parsed.results[0].added_by_status) == [
+        {'title': 'owned', 'yesterday': 1}
+    ]

@@ -130,13 +130,8 @@ async def _card_response_from_movie_card(
 ) -> CardResponse:
     title = (card.display_title or '').strip() or 'Untitled'
     cat = (
-        (
-            await db.execute(
-                select(UserCardCategory).where(UserCardCategory.id == card.category_id)
-            )
-        )
-        .scalar_one_or_none()
-    )
+        await db.execute(select(UserCardCategory).where(UserCardCategory.id == card.category_id))
+    ).scalar_one_or_none()
     if cat is None:
         raise RuntimeError('card category missing')
     return CardResponse(
@@ -335,9 +330,7 @@ async def create_card(
     tags = (
         (
             await db.execute(
-                select(CardTag.tag)
-                .where(CardTag.card_id == card.id)
-                .order_by(CardTag.tag)
+                select(CardTag.tag).where(CardTag.card_id == card.id).order_by(CardTag.tag)
             )
         )
         .scalars()
@@ -382,6 +375,8 @@ async def list_movie_card_feed(
                 film_genres=item.film_genres,
                 film_title=item.film_title,
                 film_year=item.film_year,
+                release_year=item.release_year,
+                release_date=item.release_date,
                 film_poster_url=item.film_poster_url,
                 catalog_item_id=item.catalog_item_id,
                 provider=item.provider,
@@ -469,6 +464,8 @@ async def get_card(
         film_genres=card.film_genres,
         film_title=card.film_title,
         film_year=card.film_year,
+        release_year=card.release_year,
+        release_date=card.release_date,
         film_poster_url=card.film_poster_url,
         catalog_item_id=card.catalog_item_id,
         provider=card.provider,
@@ -526,9 +523,7 @@ async def patch_card(
     tags = (
         (
             await db.execute(
-                select(CardTag.tag)
-                .where(CardTag.card_id == card.id)
-                .order_by(CardTag.tag)
+                select(CardTag.tag).where(CardTag.card_id == card.id).order_by(CardTag.tag)
             )
         )
         .scalars()
@@ -697,9 +692,7 @@ async def create_card_comment(
     if body.parent_comment_id is not None:
         parent_author_id = (
             await db.execute(
-                select(CardComment.user_id).where(
-                    CardComment.id == body.parent_comment_id
-                )
+                select(CardComment.user_id).where(CardComment.id == body.parent_comment_id)
             )
         ).scalar_one_or_none()
         if parent_author_id is not None:

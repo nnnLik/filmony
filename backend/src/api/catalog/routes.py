@@ -62,7 +62,9 @@ def _game_search_hit(hit: RawgCatalogSearchHitDTO) -> CatalogSearchHitResponse:
     )
 
 
-@router.get('/search', response_model=CatalogSearchResponse, summary='Поиск в каталоге (Kinopoisk / RAWG)')
+@router.get(
+    '/search', response_model=CatalogSearchResponse, summary='Поиск в каталоге (Kinopoisk / RAWG)'
+)
 async def search_catalog(
     *,
     provider: Annotated[CatalogSearchProvider, Query()],
@@ -87,13 +89,17 @@ async def search_catalog(
                 detail='Query must contain at least 3 non-whitespace characters',
             )
         try:
-            result = await SearchKinopoiskFilmsLocalFirstService.build(db).execute(keyword=keyword, page=page)
+            result = await SearchKinopoiskFilmsLocalFirstService.build(db).execute(
+                keyword=keyword, page=page
+            )
         except KinopoiskProviderTransport.KinopoiskProviderTransportError as e:
             raise HTTPException(status_code=502, detail=str(e)) from e
 
         sliced = tuple(result.hits[:limit])
         has_more = result.has_more or len(result.hits) > limit
-        return CatalogSearchResponse(items=[_film_search_hit(hit) for hit in sliced], has_more=has_more)
+        return CatalogSearchResponse(
+            items=[_film_search_hit(hit) for hit in sliced], has_more=has_more
+        )
 
     if len(keyword) < 4:
         raise HTTPException(
@@ -102,7 +108,9 @@ async def search_catalog(
         )
 
     try:
-        raw_result = await SearchRawgCatalogGamesService.build(db).execute(keyword, limit, page=page)
+        raw_result = await SearchRawgCatalogGamesService.build(db).execute(
+            keyword, limit, page=page
+        )
     except RawgProviderTransport.RawgProviderTransportError as e:
         logger.error(
             'RAWG catalog search failed',
@@ -118,7 +126,11 @@ async def search_catalog(
     )
 
 
-@router.post('/resolve', response_model=CatalogResolveResponse, summary='Резолв элемента каталога по URL провайдера')
+@router.post(
+    '/resolve',
+    response_model=CatalogResolveResponse,
+    summary='Резолв элемента каталога по URL провайдера',
+)
 async def resolve_catalog_item(
     body: CatalogResolveRequest,
     viewer: CurrentUser,

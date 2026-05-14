@@ -145,9 +145,7 @@ class DeliverSharedMovieCardTelegramService:
             tags = (
                 (
                     await session.execute(
-                        select(CardTag.tag)
-                        .where(CardTag.card_id == card.id)
-                        .order_by(CardTag.tag)
+                        select(CardTag.tag).where(CardTag.card_id == card.id).order_by(CardTag.tag)
                     )
                 )
                 .scalars()

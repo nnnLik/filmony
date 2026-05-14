@@ -165,7 +165,9 @@ class RawgGamePlatformItemDTO:
         return cls(
             platform=RawgGamePlatformRefDTO.from_optional_dict(row.get('platform')),
             released_at=_optional_str(row, 'released_at'),
-            requirements=RawgGamePlatformRequirementsDTO.from_optional_dict(row.get('requirements')),
+            requirements=RawgGamePlatformRequirementsDTO.from_optional_dict(
+                row.get('requirements')
+            ),
         )
 
 

@@ -212,4 +212,3 @@ def merge_detail_dto_into_game(game: Game, dto: RawgGameSingleDTO, *, synced_at:
 
     game.raw_detail_snapshot = rawg_game_single_snapshot(dto)
     game.detail_synced_at = synced_at
-
