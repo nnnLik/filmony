@@ -86,7 +86,7 @@ export function MovieCardInlinePickerButton({
         />
         <div
           role="dialog"
-          aria-label="Выбор карточки фильма"
+          aria-label="Выбор своей карточки для вставки"
           className={`max-h-[min(70vh,22rem)] overflow-hidden rounded-xl border shadow-[0_16px_48px_rgba(0,0,0,0.55)] border ${PICK_BORDER} ${PICK_BG}`}
           style={{
             ...popoverStyle,
@@ -99,7 +99,7 @@ export function MovieCardInlinePickerButton({
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Название фильма…"
+              placeholder="Название темы…"
               className="w-full rounded-lg border border-[#2c2c2e] bg-[#1c1c1f] px-2 py-1.5 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-[color-mix(in_srgb,var(--tgui--link_color)_65%,#2c2c2e)]"
               autoFocus
             />
@@ -151,7 +151,7 @@ export function MovieCardInlinePickerButton({
           setOpen((v) => !v)
         }}
         aria-expanded={open}
-        aria-label="Вставить ссылку на свою карточку фильма"
+        aria-label="Вставить ссылку на свою карточку"
         className="relative z-0 box-border! flex! h-8! w-8! min-h-8! min-w-8! shrink-0 items-center! justify-center! rounded-full p-0! leading-none! text-(--tgui--hint_color)"
       >
         <Clapperboard className="relative z-1 block size-[18px] shrink-0" strokeWidth={1.75} aria-hidden />

@@ -217,7 +217,7 @@ async def test_catalog_search_rawg_remote_persists_via_transport(
     dto = RawgGamesListResponseDTO.from_document(list_doc)
 
     async def fake_search(_self: RawgProviderTransport, params: RawgGamesListQueryParams) -> RawgGamesListResponseDTO:
-        assert params.search == 'CryoRemoteQwerty'
+        assert params.search == 'cryoremoteqwerty'
         return dto
 
     monkeypatch.setattr(RawgProviderTransport, 'search_games', fake_search)
@@ -255,7 +255,7 @@ async def test_catalog_search_kinopoisk_local_only_empty_remote(
 
     async def fake_empty(self: KinopoiskProviderTransport, keyword: str, page: int = 1):
         return KinopoiskFilmSearchResponseDTO(
-            keyword=keyword.strip(),
+            keyword=keyword,
             pages_count=1,
             search_films_count_result=0,
             films=(),
@@ -314,7 +314,7 @@ async def test_catalog_search_kinopoisk_remote_persists_via_transport(
 
     async def fake_search(self: KinopoiskProviderTransport, keyword: str, page: int = 1):
         _ = (self, page)
-        assert 'CryoKpRemote' in keyword or keyword.strip().lower().startswith('cryo')
+        assert keyword == 'cryokpremote xyz'
         return remote
 
     monkeypatch.setattr(KinopoiskProviderTransport, 'search_films_by_keyword', fake_search)
@@ -372,3 +372,58 @@ async def test_catalog_search_rawg_query_three_chars_returns_422(async_client: A
     assert r.status_code == 422
     body = r.json()
     assert body.get('detail') == 'Query must contain at least 4 non-whitespace characters for RAWG search'
+
+
+@pytest.mark.asyncio
+async def test_catalog_search_rawg_passes_normalized_lowercase_to_transport(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=71320)
+
+    seen: list[str] = []
+
+    async def fake_search(
+        _self: RawgProviderTransport, params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
+        seen.append(params.search or '')
+        return RawgGamesListResponseDTO.from_document(
+            {'count': 0, 'next': None, 'previous': None, 'results': []},
+        )
+
+    monkeypatch.setattr(RawgProviderTransport, 'search_games', fake_search)
+
+    r = await async_client.get(
+        '/api/catalog/search',
+        params={'provider': 'rawg', 'q': '  AbCdEfGh  ', 'limit': 5},
+    )
+    assert r.status_code == 200
+    assert r.json()['items'] == []
+    assert seen == ['abcdefgh']
+
+
+@pytest.mark.asyncio
+async def test_catalog_search_kinopoisk_passes_normalized_lowercase_to_transport(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=71321)
+
+    seen: list[str] = []
+
+    async def fake_search(self: KinopoiskProviderTransport, keyword: str, page: int = 1):
+        _ = (self, page)
+        seen.append(keyword)
+        return KinopoiskFilmSearchResponseDTO(
+            keyword=keyword,
+            pages_count=1,
+            search_films_count_result=0,
+            films=(),
+        )
+
+    monkeypatch.setattr(KinopoiskProviderTransport, 'search_films_by_keyword', fake_search)
+
+    r = await async_client.get(
+        '/api/catalog/search',
+        params={'provider': 'kinopoisk', 'q': '  XyZ   AbC ', 'limit': 5},
+    )
+    assert r.status_code == 200
+    assert seen == ['xyz abc']

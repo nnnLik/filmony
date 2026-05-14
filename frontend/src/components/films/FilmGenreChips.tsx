@@ -13,7 +13,7 @@ const CHIP_MD =
   'shrink-0 rounded-lg border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_38%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_12%,transparent)] px-2 py-0.5 text-[11px] font-medium leading-tight text-(--tgui--text_color)'
 
 /**
- * Жанры фильма из каталога (Кинопоиск): чипы в общей стилистике ленты (mint).
+ * Жанры из записи каталога (часто Кинопоиск): чипы в общей стилистике ленты (mint).
  */
 export function FilmGenreChips({
   genres,
@@ -37,7 +37,7 @@ export function FilmGenreChips({
     <div
       className={`flex max-w-full flex-wrap items-center gap-0.5 ${className}`.trim()}
       role="list"
-      aria-label="Жанры фильма"
+      aria-label="Жанры из каталога"
     >
       {shown.map((g, i) => (
         <span key={`${g}-${i}`} role="listitem" className={chipClass} title={g}>

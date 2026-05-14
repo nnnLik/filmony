@@ -1,5 +1,13 @@
 # catalog-search-providers — progress
 
+## 2026-05-14 — Catalog search query normalization (lower + whitespace)
+
+- **Single rule:** `normalize_catalog_search_query` — trim, collapse internal whitespace, `.lower()` — used for API `q`, React Query key, debounced value, Redis cache logical keys (via services), RAWG/Kinopoisk provider calls.
+- **Backend:** `backend/src/services/catalog/catalog_search_query_normalize.py`; `GET /api/catalog/search` normalizes `q` before length checks and service calls; `SearchKinopoiskFilmsLocalFirstService` / `SearchRawgCatalogGamesService` normalize defensively at entry.
+- **Frontend:** `frontend/src/lib/normalizeCatalogSearchQuery.ts`; `CreateCardPage` debounces **normalized** string and uses `[addKind, catalogSearchNormalized]` so case-only / whitespace-only edits do not reset debounce or change query key; input display unchanged; `searchCatalog` sends normalized `q`.
+- **Tests:** `test_catalog_search_*_passes_normalized_lowercase_to_transport`, `test_catalog_search_query_normalize.py`, updated provider asserts; **Verification:** `pytest` (catalog routes + RAWG/Kinopoisk search services + normalize unit) **22 passed**; `ruff` on touched paths — pass; `cd frontend && npm run lint && npm run build` — pass.
+- **Log:** `.cursor/memory/logs/2026-05-14T235500Z-catalog-search-providers-code.md`
+
 ## 2026-05-14
 
 ### Schema / foundation (earlier)

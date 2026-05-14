@@ -36,7 +36,7 @@ export type FeedPostCardProps = {
   viewerUserId?: string | null
   /** Если true (по умолчанию), клик по карточке открывает страницу поста */
   linkToDetail?: boolean
-  /** Как у карточки фильма в ленте: раскрывающиеся комментарии и поле ввода. На странице поста выключите. */
+  /** Как карточка в ленте: раскрывающиеся комментарии и поле ввода. На странице поста выключите. */
   inlineComments?: boolean
   onCommentsState?: (
     postId: number,
@@ -675,7 +675,7 @@ export function FeedPostCard({
           {source_comment_id != null ? (
             <span
               className="shrink-0 rounded-md border border-(--tgui--divider_color) bg-(--tgui--section_bg_color) px-1.5 py-0.5 text-[10px] font-medium text-(--tgui--hint_color)"
-              title="Пост создан из вашего комментария к карточке фильма"
+              title="Пост создан из вашего комментария к карточке"
             >
               Из комментария
             </span>

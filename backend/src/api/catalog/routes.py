@@ -19,6 +19,7 @@ from deps.auth import CurrentUser
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from services.cards.get_my_movie_card_id_for_film import GetMyMovieCardIdForFilmService
+from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
 from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
 from services.catalog.search_kinopoisk_films_local_first import (
@@ -72,13 +73,13 @@ async def search_catalog(
         Query(
             min_length=1,
             alias='q',
-            description='Поисковая строка: после trim ≥ 3 для kinopoisk, ≥ 4 для rawg',
+            description='Поисковая строка: после нормализации (trim, пробелы, lower) ≥ 3 для kinopoisk, ≥ 4 для rawg',
         ),
     ],
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=40)] = 15,
 ) -> CatalogSearchResponse:
-    keyword = q.strip()
+    keyword = normalize_catalog_search_query(q)
     if provider == CatalogSearchProvider.kinopoisk:
         if len(keyword) < 3:
             raise HTTPException(

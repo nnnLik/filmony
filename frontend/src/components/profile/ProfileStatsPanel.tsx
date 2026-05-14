@@ -61,25 +61,25 @@ function ColumnChart({
   )
 }
 
-function MovieList({ items }: { items: ProfileStatsMovieItem[] }) {
+function StatsRatedCardRows({ items }: { items: ProfileStatsMovieItem[] }) {
   if (items.length === 0) {
     return <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
   }
   return (
     <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <ul className="divide-y divide-(--tgui--divider_color)">
-        {items.map((movie) => (
-          <li key={movie.card_id}>
+        {items.map((entry) => (
+          <li key={entry.card_id}>
             <Link
-              to={`/cards/${movie.card_id}`}
+              to={`/cards/${entry.card_id}`}
               className="flex items-center justify-between gap-3 px-3 py-3 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color)"
             >
               <div className="min-w-0">
-                <p className="truncate text-(--tgui--text_color)">{profileStatsMoviePrimaryTitle(movie)}</p>
-                <p className="text-xs text-(--tgui--hint_color)">{movie.film_year ?? 'Год неизвестен'}</p>
+                <p className="truncate text-(--tgui--text_color)">{profileStatsMoviePrimaryTitle(entry)}</p>
+                <p className="text-xs text-(--tgui--hint_color)">{entry.film_year ?? 'Год неизвестен'}</p>
               </div>
               <span className="shrink-0 text-lg font-semibold tabular-nums text-(--tgui--link_color)">
-                {formatRating(movie.rating)}
+                {formatRating(entry.rating)}
               </span>
             </Link>
           </li>
@@ -186,7 +186,7 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
       </section>
 
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">По годам выпуска</p>
+        <p className="text-sm font-medium">По годам темы</p>
         <div className="mt-3">
           {stats.year_distribution.length > 0 ? (
             <ColumnChart
@@ -278,7 +278,7 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
       </section>
 
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">Настроение после просмотра</p>
+        <p className="text-sm font-medium">Настроение после</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {stats.mood_after_distribution.length > 0 ? (
             stats.mood_after_distribution.map((item) => (
@@ -297,12 +297,12 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
 
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
         <p className="mb-3 text-sm font-medium">Топ по оценке</p>
-        <MovieList items={stats.top_movies} />
+        <StatsRatedCardRows items={stats.top_movies} />
       </section>
 
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
         <p className="mb-3 text-sm font-medium">Самые низкие оценки</p>
-        <MovieList items={stats.worst_movies} />
+        <StatsRatedCardRows items={stats.worst_movies} />
       </section>
     </div>
   )

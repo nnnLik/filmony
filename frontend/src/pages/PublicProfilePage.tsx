@@ -151,7 +151,7 @@ export function PublicProfilePage() {
             return
           }
           setWatchlist(null)
-          setWatchlistError('Не удалось загрузить список «к просмотру»')
+          setWatchlistError('Не удалось загрузить список «Позже»')
         }
       } catch (e) {
         if (!alive) {
@@ -554,7 +554,7 @@ export function PublicProfilePage() {
           </div>
           <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
             <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.watchlist_count)}</span>
-            <span className="text-[11px] text-(--tgui--hint_color)">к просмотру</span>
+              <span className="text-[11px] text-(--tgui--hint_color)">позже</span>
           </div>
           <div className="col-span-2 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
             <span className="block text-xl font-semibold tabular-nums">{shownCount(profile.favorites_count)}</span>
@@ -633,7 +633,7 @@ export function PublicProfilePage() {
                 }`}
                 onClick={() => setMoviesSegment('watchlist')}
               >
-                К просмотру
+                Позже
               </button>
             </div>
 
@@ -690,7 +690,7 @@ export function PublicProfilePage() {
                 ) : null}
                 {watchlist != null && watchlist.items.length === 0 ? (
                   <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                    В «К просмотру» пока пусто.
+                    В списке «Позже» пока пусто.
                   </p>
                 ) : null}
                 {watchlist != null && watchlist.items.length > 0 ? (

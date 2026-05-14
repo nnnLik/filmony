@@ -63,7 +63,7 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter | ''; label: string }> = 
 const SELECT_CLASS =
   'w-full rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-2 text-sm text-(--tgui--text_color) outline-none ring-(--tgui--link_color) focus-visible:ring-2'
 
-function filmTitleSearchValue(q: RatedCardsListQuery): string {
+function ratedListTitleInputValue(q: RatedCardsListQuery): string {
   return q.filmTitle
 }
 
@@ -135,7 +135,7 @@ export function ProfileRatedCardsFilters({
       <div className="border-b border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] px-2.5 pt-2.5 pb-2">
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-(--tgui--hint_color)">Поиск по названию</span>
-          <span className="sr-only">Среди оценённых фильмов этого профиля</span>
+          <span className="sr-only">Среди оценённых карточек этого профиля</span>
           <div className="relative">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 block size-4 -translate-y-1/2 text-(--tgui--hint_color)"
@@ -147,11 +147,11 @@ export function ProfileRatedCardsFilters({
               enterKeyHint="search"
               maxLength={120}
               placeholder="Например, матрица…"
-              value={filmTitleSearchValue(cardsQuery)}
+              value={ratedListTitleInputValue(cardsQuery)}
               onChange={(e) => onChange({ ...cardsQuery, filmTitle: e.currentTarget.value })}
               className={`${SELECT_CLASS} pl-9`}
               autoComplete="off"
-              aria-label="Поиск карточек по названию фильма"
+              aria-label="Поиск карточек по названию темы"
             />
           </div>
         </label>
@@ -250,7 +250,7 @@ export function ProfileRatedCardsFilters({
                 onChange={(e) => onChange({ ...cardsQuery, yearMin: e.currentTarget.value })}
                 min={1874}
                 max={2100}
-                aria-label="Минимальный год фильма"
+                aria-label="Минимальный год (тема)"
               />
             </label>
             <label className="text-xs font-medium text-(--tgui--hint_color)">
@@ -264,13 +264,13 @@ export function ProfileRatedCardsFilters({
                 onChange={(e) => onChange({ ...cardsQuery, yearMax: e.currentTarget.value })}
                 min={1874}
                 max={2100}
-                aria-label="Максимальный год фильма"
+                aria-label="Максимальный год (тема)"
               />
             </label>
           </div>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            С кем смотрел
+            С кем делились впечатлением
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.company}
@@ -286,7 +286,7 @@ export function ProfileRatedCardsFilters({
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            Хотел до просмотра
+            Настроение до
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.moodBefore}
@@ -302,7 +302,7 @@ export function ProfileRatedCardsFilters({
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            Итог просмотра
+            Итог / настроение после
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.moodAfter}

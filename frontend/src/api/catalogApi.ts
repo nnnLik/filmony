@@ -1,3 +1,4 @@
+import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { apiJson } from './client'
 import type { Film, UserCardProvider } from './profileTypes'
 
@@ -50,7 +51,7 @@ export async function resolveCatalogByProviderUrl(
 }
 
 /**
- * GET /api/catalog/search — после trim: фильмы (kinopoisk) ≥ 3 символов, игры (rawg) ≥ 4.
+ * GET /api/catalog/search — после нормализации (trim, пробелы, lower): kinopoisk ≥ 3, rawg ≥ 4.
  * Передайте `signal`, чтобы отменять запрос при смене строки или размонтировании (React Query).
  */
 export async function searchCatalog(params: {
@@ -62,7 +63,7 @@ export async function searchCatalog(params: {
 }): Promise<CatalogSearchResponse> {
   const sp = new URLSearchParams()
   sp.set('provider', params.provider)
-  sp.set('q', params.q.trim())
+  sp.set('q', normalizeCatalogSearchQuery(params.q))
   sp.set('page', String(params.page ?? 1))
   sp.set('limit', String(params.limit ?? 15))
   return apiJson<CatalogSearchResponse>(`/api/catalog/search?${sp.toString()}`, {

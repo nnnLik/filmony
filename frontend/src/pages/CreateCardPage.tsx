@@ -47,6 +47,7 @@ import {
 } from '../lib/movieCardTagStatsStorage'
 import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../lib/movieCardDisplay'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -86,12 +87,12 @@ type WizardStep = 1 | 2 | 3 | 4
 const TOTAL_STEPS = 4
 const STEP_TITLES: Record<WizardStep, string> = {
   1: 'Что добавляем',
-  2: 'Проверьте тайтл',
+  2: 'Проверьте тему',
   3: 'Оценка и полка',
   4: 'Детали и отправка',
 }
 
-/** Экран 1 шага: выбор типа тайтла → поиск / ручное / ссылка. */
+/** Экран шага 1: источник темы (каталог или вручную) → поиск / ссылка. */
 type CardAddKind = null | 'film' | 'game' | 'manual'
 
 type CreationBinding =
@@ -112,13 +113,14 @@ type CreationBinding =
       display_summary: string | null
     }
 
-function watchlistFilmId(binding: CreationBinding): number | null {
+/** Kinopoisk-backed каталог: id `Film` для legacy watchlist API. */
+function watchlistKinopoiskFilmId(binding: CreationBinding): number | null {
   if (binding.kind === 'manual' || binding.kind === 'catalog_game') return null
   if (binding.kind === 'catalog_film') return binding.film.id
   return binding.film.id
 }
 
-async function hydrateFilmFromKinopoiskNumericId(externalId: string): Promise<Film> {
+async function hydrateKinopoiskCatalogFilm(externalId: string): Promise<Film> {
   const id = externalId.trim()
   try {
     return await resolveFilmByKinopoiskUrl(`https://www.kinopoisk.ru/film/${id}/`)
@@ -143,7 +145,7 @@ function cardsNewPathPreserveReturnTo(returnTo: string | null): string {
   return returnTo === 'feed' ? '/cards/new?returnTo=feed' : '/cards/new'
 }
 
-function filmHasMyCard(f: Film): boolean {
+function kinopoiskCatalogRowHasMyCard(f: Film): boolean {
   return f.my_card_id != null && f.my_card_id > 0
 }
 
@@ -170,7 +172,7 @@ function formatRating(value: number): string {
 function mapResolveError(detail: string): string {
   const normalized = detail.toLowerCase()
   if (normalized.includes('empty url')) {
-    return 'Вставьте ссылку со страницы тайтла на Кинопоиске.'
+    return 'Вставьте ссылку на страницу записи каталога на Кинопоиске.'
   }
   if (normalized.includes('url must be from kinopoisk.ru')) {
     return 'Нужна ссылка с домена kinopoisk.ru.'
@@ -179,7 +181,7 @@ function mapResolveError(detail: string): string {
     normalized.includes('kinopoisk id was not found in url') ||
     normalized.includes('film id was not found in url')
   ) {
-    return 'Не получилось прочитать номер из ссылки. Скопируйте полный адрес со страницы фильма или сериала на Кинопоиске (из строки браузера).'
+    return 'Не получилось прочитать номер из ссылки. Скопируйте полный адрес страницы на Кинопоиске (из строки браузера).'
   }
   return detail
 }
@@ -195,12 +197,12 @@ export function CreateCardPage() {
   const [remixFromCard, setRemixFromCard] = useState(false)
   const [step, setStep] = useState<WizardStep>(1)
   const [addKind, setAddKind] = useState<CardAddKind>(null)
-  /** Поиск в каталоге: порог длины зависит от провайдера (фильм ≥3, RAWG ≥4), плюс debounce. */
+  /** Поиск в каталоге: порог длины зависит от провайдера (Кинопоиск ≥3, RAWG ≥4), плюс debounce. */
   const [catalogSearchDraft, setCatalogSearchDraft] = useState('')
   const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState('')
   const [urlShortcutOpen, setUrlShortcutOpen] = useState(false)
   const [kinopoiskUrl, setKinopoiskUrl] = useState('')
-  const [loadingFilm, setLoadingFilm] = useState(false)
+  const [resolutionBusy, setResolutionBusy] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [watchlistBusy, setWatchlistBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -277,19 +279,23 @@ export function CreateCardPage() {
     gcTime: 30 * 60_000,
   })
 
+  const catalogSearchNormalized = useMemo(
+    () => normalizeCatalogSearchQuery(catalogSearchDraft),
+    [catalogSearchDraft],
+  )
+
   useEffect(() => {
     if (addKind !== 'film' && addKind !== 'game') {
       return
     }
     const minLen = addKind === 'game' ? 4 : 3
-    const trimmed = catalogSearchDraft.trim()
-    if (trimmed.length < minLen) {
+    if (catalogSearchNormalized.length < minLen) {
       const t = window.setTimeout(() => setDebouncedCatalogSearch(''))
       return () => window.clearTimeout(t)
     }
-    const t = window.setTimeout(() => setDebouncedCatalogSearch(trimmed), CATALOG_SEARCH_DEBOUNCE_MS)
+    const t = window.setTimeout(() => setDebouncedCatalogSearch(catalogSearchNormalized), CATALOG_SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(t)
-  }, [addKind, catalogSearchDraft])
+  }, [addKind, catalogSearchNormalized])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -357,13 +363,13 @@ export function CreateCardPage() {
     [tagStatsQuery.data],
   )
 
-  const skipFilmIdBootstrap = useMemo(() => {
+  const skipCatalogFilmIdBootstrap = useMemo(() => {
     const raw = fromCardQuery
     return raw != null && raw !== ''
   }, [fromCardQuery])
 
   useEffect(() => {
-    if (skipFilmIdBootstrap) {
+    if (skipCatalogFilmIdBootstrap) {
       return
     }
     if (initialFilmId == null || initialFilmId === '') {
@@ -374,7 +380,7 @@ export function CreateCardPage() {
       return
     }
     void (async () => {
-      setLoadingFilm(true)
+      setResolutionBusy(true)
       try {
         const item = await getFilmById(filmId)
         setCreationBinding({ kind: 'film', film: item })
@@ -386,10 +392,10 @@ export function CreateCardPage() {
           setError('Не удалось загрузить данные из каталога')
         }
       } finally {
-        setLoadingFilm(false)
+        setResolutionBusy(false)
       }
     })()
-  }, [initialFilmId, skipFilmIdBootstrap])
+  }, [initialFilmId, skipCatalogFilmIdBootstrap])
 
   useEffect(() => {
     const returnToParam = searchParams.get('returnTo')
@@ -415,13 +421,13 @@ export function CreateCardPage() {
     const seq = ++fromCardBootstrapSeq.current
     let alive = true
     void (async () => {
-      setLoadingFilm(true)
+      setResolutionBusy(true)
       setError(null)
       try {
         const [card, me] = await Promise.all([getMovieCardById(cardId), getMyProfile()])
         if (!alive || seq !== fromCardBootstrapSeq.current) return
         if (card.user_id != null && card.user_id === me.id) {
-          setError('Свою карточку нельзя взять за основу — отредактируйте её или создайте новую по ссылке на Кинопоиск.')
+          setError('Свою карточку нельзя взять за основу — отредактируйте её или создайте новую из каталога по ссылке.')
           void navigate(cleanCreatePath, { replace: true })
           return
         }
@@ -450,7 +456,7 @@ export function CreateCardPage() {
         }
         void navigate(cleanCreatePath, { replace: true })
       } finally {
-        setLoadingFilm(false)
+        setResolutionBusy(false)
         if (alive && seq === fromCardBootstrapSeq.current) {
           setFromCardPrefillDone(true)
         }
@@ -535,7 +541,7 @@ export function CreateCardPage() {
       return {
         posterUrl: b.display_cover_url,
         title: b.display_title,
-        yearLabel: sub !== '' ? sub : 'Игра',
+        yearLabel: sub !== '' ? sub : 'Каталог RAWG',
         genres: [] as string[],
         showDupWarning: false,
         myCardId: null as number | null,
@@ -548,7 +554,7 @@ export function CreateCardPage() {
       title: f.title,
       yearLabel: f.year != null ? String(f.year) : 'Год неизвестен',
       genres: f.genres ?? [],
-      showDupWarning: filmHasMyCard(f),
+      showDupWarning: kinopoiskCatalogRowHasMyCard(f),
       myCardId: f.my_card_id ?? null,
       showWatchlist: true,
     }
@@ -567,33 +573,33 @@ export function CreateCardPage() {
 
   async function handleSelectKinopoiskSearchHit(hit: CatalogSearchHit) {
     if (hit.catalog_item_id == null || hit.kind !== 'film') {
-      setResolveInlineError('У результата нет привязки к каталогу — попробуйте другой или введите ссылку.')
+      setResolveInlineError('У результата нет привязки к каталогу — попробуйте другой вариант или введите ссылку.')
       return
     }
-    setLoadingFilm(true)
+    setResolutionBusy(true)
     setResolveInlineError(null)
     try {
-      const film = await hydrateFilmFromKinopoiskNumericId(hit.external_id)
+      const catalogFilm = await hydrateKinopoiskCatalogFilm(hit.external_id)
       setCreationBinding({
         kind: 'catalog_film',
         catalogItemId: hit.catalog_item_id,
-        film,
+        film: catalogFilm,
       })
       setStep(2)
     } catch (e) {
       if (e instanceof ApiError) {
         setResolveInlineError(mapResolveError(formatApiDetail(e.detail)))
       } else {
-        setResolveInlineError('Не удалось подтянуть карточку фильма — попробуйте по ссылке на Кинопоиск.')
+        setResolveInlineError('Не удалось подтянуть запись из каталога — попробуйте ссылку на Кинопоиск.')
       }
     } finally {
-      setLoadingFilm(false)
+      setResolutionBusy(false)
     }
   }
 
   function handleSelectRawgSearchHit(hit: CatalogSearchHit) {
     if (hit.catalog_item_id == null || hit.kind !== 'game') {
-      setResolveInlineError('У результата нет привязки к каталогу — попробуйте другой или создайте тайтл вручную.')
+      setResolveInlineError('У результата нет привязки к каталогу — попробуйте другой вариант или создайте карточку вручную.')
       return
     }
     const title = hit.title.trim()
@@ -614,13 +620,13 @@ export function CreateCardPage() {
     setStep(2)
   }
 
-  async function handleResolveFilm() {
+  async function handleResolveCatalogUrl() {
     if (kinopoiskUrl.trim() === '') {
-      setResolveInlineError('Вставьте ссылку на страницу тайтла (Кинопоиск или поддерживаемый каталог).')
+      setResolveInlineError('Вставьте ссылку на страницу в поддерживаемом каталоге (например Кинопоиск).')
       return
     }
     const trimmedUrl = kinopoiskUrl.trim()
-    setLoadingFilm(true)
+    setResolutionBusy(true)
     setResolveInlineError(null)
     try {
       const provider = inferCatalogProviderFromUrl(trimmedUrl)
@@ -647,17 +653,17 @@ export function CreateCardPage() {
       if (e instanceof ApiError) {
         setResolveInlineError(mapResolveError(formatApiDetail(e.detail)))
       } else {
-        setResolveInlineError('Не удалось получить данные по ссылке. Проверьте адрес или создайте тайтл вручную.')
+        setResolveInlineError('Не удалось получить данные по ссылке. Проверьте адрес или создайте карточку вручную.')
       }
     } finally {
-      setLoadingFilm(false)
+      setResolutionBusy(false)
     }
   }
 
   function handleManualContinue() {
     const title = manualTitle.trim()
     if (title === '') {
-      setManualFieldError('Введите название тайтла')
+      setManualFieldError('Введите название темы')
       return
     }
     setManualFieldError(null)
@@ -703,7 +709,7 @@ export function CreateCardPage() {
     if (creationBinding == null || creationBinding.kind === 'manual') {
       return
     }
-    const fid = watchlistFilmId(creationBinding)
+    const fid = watchlistKinopoiskFilmId(creationBinding)
     if (fid == null || fid <= 0) {
       return
     }
@@ -717,12 +723,12 @@ export function CreateCardPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 409) {
-          setWatchlistError('Эта запись уже в списке «к просмотру».')
+          setWatchlistError('Эта тема уже в списке «Позже».')
           return
         }
         const msg = formatApiDetail(e.detail).toLowerCase()
         if (msg.includes('movie card already exists')) {
-          setWatchlistError('У вас уже есть оценённая карточка для этого тайтла.')
+          setWatchlistError('У вас уже есть оценённая карточка для этой темы.')
           return
         }
         setWatchlistError(formatApiDetail(e.detail))
@@ -833,7 +839,7 @@ export function CreateCardPage() {
 
   async function handleSubmit() {
     if (creationBinding == null) {
-      setSubmitError('Сначала выберите тайтл')
+      setSubmitError('Сначала выберите тему или источник')
       return
     }
     if (!canSubmitFinal) {
@@ -1001,8 +1007,9 @@ export function CreateCardPage() {
               {addKind === null ? (
                 <>
                   <p className="text-sm leading-snug text-(--tgui--hint_color)">
-                    Сначала выберите тип: фильм или сериал, игра или тайтл без каталога. Игры ищутся в RAWG (запрос от 4
-                    символов, с короткой паузой после ввода), фильмы — в базе приложения и на Кинопоиске (от 3 символов).
+                    Выберите источник: каталог Кинопоиска, каталог RAWG (игры) или карточка без привязки к каталогу. Для
+                    RAWG нужно не меньше 4 символов в запросе (с короткой паузой после ввода), для Кинопоиска — от 3
+                    символов; часть совпадений уже есть в локальном каталоге приложения.
                   </p>
                   <div className="flex flex-col gap-2">
                     <Button
@@ -1012,7 +1019,7 @@ export function CreateCardPage() {
                         setResolveInlineError(null)
                       }}
                     >
-                      Фильм или сериал
+                      Каталог Кинопоиска
                     </Button>
                     <Button
                       mode="gray"
@@ -1022,7 +1029,7 @@ export function CreateCardPage() {
                         setResolveInlineError(null)
                       }}
                     >
-                      Игра
+                      Каталог RAWG (игры)
                     </Button>
                     <Button
                       mode="gray"
@@ -1058,7 +1065,7 @@ export function CreateCardPage() {
                       htmlFor="create-card-catalog-search"
                       className="text-xs font-medium text-(--tgui--hint_color)"
                     >
-                      {addKind === 'film' ? 'Поиск (Кинопоиск)' : 'Поиск игр (RAWG)'}
+                      {addKind === 'film' ? 'Поиск в каталоге (Кинопоиск)' : 'Поиск в каталоге (RAWG)'}
                     </label>
                     <input
                       id="create-card-catalog-search"
@@ -1074,11 +1081,11 @@ export function CreateCardPage() {
                       className={WIZARD_TEXT_FIELD_CLASS}
                     />
                   </div>
-                  {catalogSearchDraft.trim().length > 0 && catalogSearchDraft.trim().length < catalogSearchMinLen ? (
+                  {catalogSearchNormalized.length > 0 && catalogSearchNormalized.length < catalogSearchMinLen ? (
                     <p className="text-xs text-(--tgui--hint_color)">
                       {catalogSearchMinLen === 4
-                        ? 'Для поиска игр введите не меньше 4 символов.'
-                        : 'Для запроса нужно не меньше 3 символов.'}
+                        ? 'Для поиска в RAWG введите не меньше 4 символов.'
+                        : 'Для запроса в Кинопоиске нужно не меньше 3 символов.'}
                     </p>
                   ) : null}
                   {catalogSearchQuery.isFetching && debouncedCatalogSearch.length >= catalogSearchMinLen ? (
@@ -1112,8 +1119,8 @@ export function CreateCardPage() {
                             size="s"
                             stretched
                             type="button"
-                            onClick={() => void handleResolveFilm()}
-                            disabled={loadingFilm}
+                            onClick={() => void handleResolveCatalogUrl()}
+                            disabled={resolutionBusy}
                           >
                             Повторить по ссылке
                           </Button>
@@ -1136,7 +1143,7 @@ export function CreateCardPage() {
                   {catalogSearchHits.length > 0 ? (
                     <ul className="mt-1 flex max-h-80 flex-col gap-2 overflow-y-auto [-webkit-overflow-scrolling:touch]">
                       {catalogSearchHits.map((hit, idx) => {
-                        const selectable = hit.catalog_item_id != null && !loadingFilm
+                        const selectable = hit.catalog_item_id != null && !resolutionBusy
                         const rowKey = `${hit.provider}-${hit.external_id}-${hit.catalog_item_id ?? 'pending'}-${idx}`
                         const onActivate = (): void => {
                           if (!selectable || hit.catalog_item_id == null) return
@@ -1183,7 +1190,7 @@ export function CreateCardPage() {
                   catalogSearchHits.length === 0 &&
                   !catalogSearchQuery.isFetching ? (
                     <p className="text-sm text-(--tgui--hint_color)">
-                      Ничего не нашли — уточните запрос, создайте вручную или попробуйте ссылку (для фильма).
+                      Ничего не нашли — уточните запрос, создайте вручную или откройте ввод по ссылке (Кинопоиск).
                     </p>
                   ) : null}
                   {catalogSearchQuery.hasNextPage ? (
@@ -1191,7 +1198,7 @@ export function CreateCardPage() {
                       mode="gray"
                       stretched
                       type="button"
-                      disabled={catalogSearchQuery.isFetchingNextPage || loadingFilm}
+                      disabled={catalogSearchQuery.isFetchingNextPage || resolutionBusy}
                       onClick={() => void catalogSearchQuery.fetchNextPage()}
                     >
                       {catalogSearchQuery.isFetchingNextPage ? 'Загружаем…' : 'Показать ещё'}
@@ -1209,7 +1216,7 @@ export function CreateCardPage() {
                       {urlShortcutOpen ? (
                         <div className="filmony-text-panel mt-3 border-t border-(--tgui--divider_color) pt-3">
                           <p className="text-xs leading-snug text-(--tgui--hint_color)">
-                            Альтернатива поиску: вставьте полный адрес страницы фильма или сериала на Kinopoisk.
+                            Альтернатива поиску: вставьте полный URL страницы записи на Kinopoisk.
                           </p>
                           <label
                             htmlFor="create-card-kinopoisk-url"
@@ -1232,8 +1239,8 @@ export function CreateCardPage() {
                             className={`mt-2 ${WIZARD_TEXT_FIELD_CLASS}`}
                           />
                           <div className="mt-3">
-                            <Button stretched disabled={loadingFilm} onClick={() => void handleResolveFilm()}>
-                              {loadingFilm ? 'Подтягиваем данные…' : 'Найти по ссылке и продолжить'}
+                            <Button stretched disabled={resolutionBusy} onClick={() => void handleResolveCatalogUrl()}>
+                              {resolutionBusy ? 'Подтягиваем данные…' : 'Найти по ссылке и продолжить'}
                             </Button>
                           </div>
                         </div>
@@ -1256,7 +1263,7 @@ export function CreateCardPage() {
                     ← Другой тип
                   </button>
                   <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-3">
-                    <p className="text-sm font-medium text-(--tgui--text_color)">Свой тайтл</p>
+                    <p className="text-sm font-medium text-(--tgui--text_color)">Своя тема</p>
                     <p className="mt-1 text-xs leading-snug text-(--tgui--hint_color)">
                       Если каталог не подошёл или это спектакль, подкаст и т.п. — укажите название и при желании обложку.
                     </p>
@@ -1269,7 +1276,7 @@ export function CreateCardPage() {
                       id="create-card-manual-title"
                       type="text"
                       autoComplete="off"
-                      placeholder="Например: Название тайтла"
+                      placeholder="Например: название темы"
                       value={manualTitle}
                       onChange={(e) => {
                         setManualTitle(e.currentTarget.value)
@@ -1308,7 +1315,7 @@ export function CreateCardPage() {
                       className={`${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
                     />
                   </div>
-                  <Button stretched disabled={loadingFilm} onClick={() => handleManualContinue()}>
+                  <Button stretched disabled={resolutionBusy} onClick={() => handleManualContinue()}>
                     Дальше с этим названием
                   </Button>
                 </>
@@ -1318,12 +1325,12 @@ export function CreateCardPage() {
         ) : null}
 
         {fromCardPrefillDone && step === 2 ? (
-          <WizardStepPanel title="2. Это нужный тайтл?">
+          <WizardStepPanel title="2. Это нужная тема?">
             {confirmPreview != null ? (
               <div className="filmony-text-panel">
                 {confirmPreview.showDupWarning ? (
                   <p className="filmony-text-panel mb-3 text-sm text-(--tgui--text_color)">
-                    У вас уже есть карточка на этот тайтл в профиле.
+                    У вас уже есть карточка на эту тему в профиле.
                   </p>
                 ) : (
                   <p className="filmony-text-panel mb-3 text-sm leading-snug text-(--tgui--hint_color)">
@@ -1395,7 +1402,7 @@ export function CreateCardPage() {
                           setStep(1)
                         }}
                       >
-                        Выбрать другой тайтл
+                        Выбрать другую тему
                       </Button>
                     </>
                   ) : (
@@ -1410,7 +1417,7 @@ export function CreateCardPage() {
                           disabled={watchlistBusy}
                           onClick={() => void handleAddToWatchlist()}
                         >
-                          {watchlistBusy ? 'Добавляем…' : 'Только в «К просмотру»'}
+                          {watchlistBusy ? 'Добавляем…' : 'Только в список «Позже»'}
                         </Button>
                       ) : null}
                       <Button
@@ -1473,17 +1480,17 @@ export function CreateCardPage() {
               </div>
 
               <div className="mt-5">
-                <p className="text-sm font-medium text-(--tgui--text_color)">С кем смотрели</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">С кем делились впечатлением</p>
                 {renderChoiceChips(COMPANY_OPTIONS, company, setCompany)}
               </div>
 
               <div className="mt-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">До просмотра</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">Настроение до</p>
                 {renderChoiceChips(MOOD_BEFORE_OPTIONS, moodBefore, setMoodBefore)}
               </div>
 
               <div className="mt-4">
-                <p className="text-sm font-medium text-(--tgui--text_color)">После просмотра</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">Настроение после</p>
                 {renderChoiceChips(MOOD_AFTER_OPTIONS, moodAfter, setMoodAfter)}
               </div>
 
@@ -1683,7 +1690,7 @@ export function CreateCardPage() {
               )}
 
               <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">
-                <p className="text-sm font-medium text-(--tgui--text_color)">Заметка о просмотре</p>
+                <p className="text-sm font-medium text-(--tgui--text_color)">Заметка к карточке</p>
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">
                   По желанию — до {MAX_WATCH_NOTE_LEN} символов. Реакции можно вставить кнопкой справа.
                 </p>
@@ -1696,7 +1703,7 @@ export function CreateCardPage() {
                       setSubmitError(null)
                     }}
                     placeholder="Например: неожиданно тихий финал…"
-                    ariaLabel="Заметка о просмотре"
+                    ariaLabel="Заметка к карточке"
                     maxLength={MAX_WATCH_NOTE_LEN}
                     rows={4}
                     wrapperClassName="min-h-24 flex-1 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) outline-none transition-[border-color,box-shadow] focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"

@@ -96,7 +96,7 @@ async def test_search_rawg_catalog_remote_persists_and_links_catalog_item(
     dto = RawgGamesListResponseDTO.from_document(list_doc)
 
     async def fake_search(self: RawgProviderTransport, params: RawgGamesListQueryParams) -> RawgGamesListResponseDTO:
-        assert params.search == 'KappaMix'
+        assert params.search == 'kappamix'
         return dto
 
     monkeypatch.setattr(RawgProviderTransport, 'search_games', fake_search)

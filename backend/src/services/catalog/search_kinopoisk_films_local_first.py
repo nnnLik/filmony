@@ -15,13 +15,14 @@ from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     genres_for_film_model,
 )
+from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
 from services.catalog.redis_catalog_cache import redis_catalog_cached_fetch
 
 PAGE_SIZE: int = 20
 
 
 def _normalize_keyword(keyword: str) -> str:
-    return ' '.join(keyword.strip().split())
+    return normalize_catalog_search_query(keyword)
 
 
 def _ilike_pattern(keyword: str) -> str:

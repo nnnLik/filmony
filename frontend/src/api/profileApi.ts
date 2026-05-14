@@ -33,7 +33,7 @@ export type GetUserCardsParams = {
   company?: CardCompany | null
   moodBefore?: CardMoodBefore | null
   moodAfter?: CardMoodAfter | null
-  /** Подстрока в названии фильма (карточки пользователя). */
+  /** Подстрока в отображаемом названии темы карточки пользователя. */
   filmTitle?: string | null
   /** Полка владельца списка; несовпадение id и владельца даёт 422 на бэкенде. */
   categoryId?: number | null

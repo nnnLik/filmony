@@ -1038,7 +1038,7 @@ function MovieCardDetailLoadedBody({
                         type="button"
                         size="s"
                         mode="gray"
-                        aria-label="Открыть страницу фильма на Кинопоиске"
+                        aria-label="Открыть страницу темы на Кинопоиске"
                         onClick={() => {
                           const url = kinopoiskTitleUrlFromCard(
                             card.film_kinopoisk_id,
@@ -1099,7 +1099,7 @@ function MovieCardDetailLoadedBody({
                         type="button"
                         size="s"
                         mode="gray"
-                        aria-label="Взять за основу — создать свою карточку с этим тайтлом"
+                        aria-label="Взять за основу — создать свою карточку с этой же темой"
                         onClick={() => {
                           const qs = new URLSearchParams({ fromCard: String(card.id) })
                           if (fromFeed) qs.set('returnTo', 'feed')
@@ -1158,7 +1158,7 @@ function MovieCardDetailLoadedBody({
               </div>
               {showWatchNote ? (
                 <>
-                  <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка о просмотре</p>
+                  <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка к карточке</p>
                   <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--tgui--text_color)">
                     <CommentBodyWithReactionTokens text={watchNoteText} />
                   </p>

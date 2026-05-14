@@ -16,7 +16,7 @@
 
 ## Changed files (primary)
 
-- Backend: `backend/src/models/game.py`, `catalog_item.py`, `__init__.py`; `migrations/versions/p3q4r5s6t890_*`; `api/catalog/routes.py`, `schemas.py`; `providers/rawg/*`, `providers/kinopoisk/*`; `services/catalog/*` (search, ensure, upsert, cache, resolve); `conf/settings.py` (`RawgSettings` / `RAWG_API_KEY`); tests under `src/tests/api/test_catalog_routes.py`, `src/tests/services/catalog/`, `src/tests/services/test_search_rawg_catalog_games_service.py`, `src/tests/models/test_game_catalog_schema.py`.
+- Backend: `backend/src/models/game.py`, `catalog_item.py`, `__init__.py`; `migrations/versions/p3q4r5s6t890_*`; `api/catalog/routes.py`, `schemas.py`; `providers/rawg/*`, `providers/kinopoisk/*`; `services/catalog/*` (search, ensure, upsert, cache, resolve); `conf/settings.py` (`RawgSettings` / `RAWG_API_KEY`); tests under `src/tests/api/test_catalog_routes.py`, `src/tests/providers/test_rawg_openapi_dto_ratings_blob.py`, `src/tests/services/catalog/`, `src/tests/services/test_search_rawg_catalog_games_service.py`, `src/tests/models/test_game_catalog_schema.py`.
 - Frontend: `frontend/src/pages/CreateCardPage.tsx`, `api/catalogApi.ts`, `components/cards/CardCategoryChip.tsx`, `lib/openExternalUrl.ts` (and related profile/card API touches on branch).
 - Config: `vars/.env.example` (`RAWG_API_KEY`, `RAWG_API_BASE_URL`).
 

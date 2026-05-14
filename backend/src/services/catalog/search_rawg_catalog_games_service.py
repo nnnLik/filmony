@@ -13,6 +13,7 @@ from models.game import Game
 from providers.rawg import RawgGamesListQueryParams, RawgProviderTransport
 from services.search.ilike_escape import escape_ilike_pattern
 
+from .catalog_search_query_normalize import normalize_catalog_search_query
 from .ensure_rawg_catalog_item_service import EnsureRawgCatalogItemService
 from .rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from .redis_catalog_cache import redis_catalog_cached_fetch
@@ -46,7 +47,7 @@ class SearchRawgCatalogGamesService:
         page: int = 1,
         allow_remote: bool = True,
     ) -> SearchRawgCatalogGamesResult:
-        q = query_text.strip()
+        q = normalize_catalog_search_query(query_text)
         if not q:
             return SearchRawgCatalogGamesResult((), False)
 

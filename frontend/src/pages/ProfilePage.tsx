@@ -580,7 +580,7 @@ export function ProfilePage() {
             </div>
             <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
               <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.watchlist_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">к просмотру</span>
+              <span className="text-[11px] text-(--tgui--hint_color)">позже</span>
             </div>
             <div className="col-span-2 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
               <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.favorites_count)}</span>
@@ -689,7 +689,7 @@ export function ProfilePage() {
                 }`}
                 onClick={() => setMoviesSegment('watchlist')}
               >
-                К просмотру
+                Позже
               </button>
             </div>
 
@@ -751,7 +751,7 @@ export function ProfilePage() {
                 ) : null}
                 {!watchlistLoading && myWatchlist != null && myWatchlist.items.length === 0 ? (
                   <div className="filmony-text-panel flex flex-col items-center gap-4 py-8 text-center">
-                    <p className="text-sm text-(--tgui--hint_color)">В «К просмотру» пока пусто</p>
+                    <p className="text-sm text-(--tgui--hint_color)">В списке «Позже» пока пусто</p>
                     <Link to="/cards/new" className="w-full max-w-xs no-underline">
                       <Button stretched>Добавить в список</Button>
                     </Link>

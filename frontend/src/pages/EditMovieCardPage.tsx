@@ -335,13 +335,13 @@ export function EditMovieCardPage() {
               </div>
             </Section>
 
-            <Section header="Контекст просмотра">
+            <Section header="Контекст карточки">
               <div className="px-3 py-3">
                 <p className="text-sm font-medium text-(--tgui--text_color)">С кем смотрели:</p>
                 {renderChoiceChips(COMPANY_OPTIONS, company, setCompany)}
-                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">До просмотра:</p>
+                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Настроение до:</p>
                 {renderChoiceChips(MOOD_BEFORE_OPTIONS, moodBefore, setMoodBefore)}
-                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">После просмотра:</p>
+                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Настроение после:</p>
                 {renderChoiceChips(MOOD_AFTER_OPTIONS, moodAfter, setMoodAfter)}
               </div>
             </Section>
@@ -422,7 +422,7 @@ export function EditMovieCardPage() {
               </div>
             </Section>
 
-            <Section header="Заметка о просмотре">
+            <Section header="Заметка к карточке">
               <div className="px-3 py-3">
                 <p className="text-xs text-(--tgui--hint_color)">До {MAX_WATCH_NOTE_LEN} символов.</p>
                 <div className="mt-2 flex gap-2">
@@ -431,7 +431,7 @@ export function EditMovieCardPage() {
                     value={watchNote}
                     onChange={setWatchNote}
                     placeholder="Коротко о впечатлении…"
-                    ariaLabel="Заметка о просмотре"
+                    ariaLabel="Заметка к карточке"
                     disabled={saving}
                     maxLength={MAX_WATCH_NOTE_LEN}
                     rows={5}
