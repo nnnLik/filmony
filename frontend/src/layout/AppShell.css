@@ -1,0 +1,148 @@
+/* Desktop-only decorative rails — hidden on touch-first / narrow viewports */
+
+.app-shell__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-shell__side {
+  display: none;
+}
+
+.app-shell__main {
+  min-width: 0;
+}
+
+.app-shell__side-text {
+  margin: 0;
+}
+
+@media (min-width: 1200px) and (pointer: fine) {
+  .app-shell__body {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .app-shell__side {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .app-shell__side-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: min(16rem, max(0px, calc((100vw - 28rem) / 2 - 1.5rem)));
+    max-width: 16rem;
+    box-sizing: border-box;
+  }
+
+  /* Center each rail in its gutter; fixed to viewport so feed scroll does not move them */
+  .app-shell__side--left .app-shell__side-stack {
+    position: fixed;
+    z-index: 0;
+    top: 50%;
+    left: calc((100vw - 28rem) / 4);
+    transform: translate(-50%, -50%);
+  }
+
+  .app-shell__side--right .app-shell__side-stack {
+    position: fixed;
+    z-index: 0;
+    top: 50%;
+    left: calc(100vw - (100vw - 28rem) / 4);
+    transform: translate(-50%, -50%);
+  }
+
+  .app-shell__side-ad-gif {
+    display: block;
+    flex-shrink: 0;
+    width: auto;
+    max-width: min(11rem, 100%);
+    height: auto;
+    max-height: 10rem;
+    border-radius: 0.625rem;
+    object-fit: contain;
+  }
+
+  .app-shell__main {
+    flex: 0 1 28rem;
+    max-width: 28rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-shell__side-text {
+    position: relative;
+    z-index: 1;
+    max-width: 16rem;
+    padding: 1.375rem 1rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--filmony-muted) 78%, var(--filmony-mint));
+    border: 1px solid color-mix(in srgb, var(--filmony-mint) 32%, transparent);
+    border-radius: 0.875rem;
+    background: color-mix(in srgb, var(--filmony-surface) 50%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--filmony-mint) 8%, transparent),
+      0 0 22px color-mix(in srgb, var(--filmony-mint) 12%, transparent);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .app-shell__side-text::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 300%;
+    height: 100%;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 38%,
+      color-mix(in srgb, var(--filmony-mint) 24%, transparent) 47%,
+      color-mix(in srgb, var(--filmony-surface) 35%, transparent) 50%,
+      color-mix(in srgb, var(--filmony-mint) 24%, transparent) 53%,
+      transparent 62%,
+      transparent 100%
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0.82;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-shell__side-text::after {
+      animation: app-shell-side-shimmer 3.6s linear infinite;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-shell__side-text::after {
+      animation: none;
+      transform: none;
+      opacity: 0;
+    }
+  }
+}
+
+@keyframes app-shell-side-shimmer {
+  from {
+    transform: translateX(calc(-100% / 3));
+  }
+
+  to {
+    transform: translateX(calc(100% / 3));
+  }
+}

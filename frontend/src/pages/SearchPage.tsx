@@ -1,4 +1,4 @@
-import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -16,6 +16,9 @@ import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChi
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 import { profileInitials } from '../lib/profileDisplay'
+import { ensurePepeDancingGifPreloaded, PEPE_DANCING_GIF_URL } from '../lib/pepeGif'
+
+import './SearchPage.css'
 
 function posterSrc(url: string | null): string | undefined {
   if (!url?.trim()) return undefined
@@ -118,6 +121,25 @@ function FilmResultRow({ film }: { film: SearchFilmItem }) {
   )
 }
 
+function SearchTitleRow() {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+        Поиск
+      </h1>
+      <img
+        className="search-page__title-pepe"
+        src={PEPE_DANCING_GIF_URL}
+        alt=""
+        width={28}
+        height={28}
+        decoding="async"
+        aria-hidden
+      />
+    </div>
+  )
+}
+
 function ResultsSection({
   title,
   subtitle,
@@ -142,6 +164,10 @@ export function SearchPage() {
   const auth = useAuthStatus()
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+
+  useEffect(() => {
+    void ensurePepeDancingGifPreloaded()
+  }, [])
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 320)
@@ -187,8 +213,10 @@ export function SearchPage() {
   if (auth.kind === 'loading') {
     return (
       <div className="min-h-full">
-        <header className="border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_92%,transparent)] px-4 py-3 backdrop-blur-md">
-          <Title level="2">Поиск</Title>
+        <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
+          <div className="px-4 py-3">
+            <SearchTitleRow />
+          </div>
         </header>
         <main className="px-4 pt-4">
           <p className="text-sm text-(--tgui--hint_color)">Вход…</p>
@@ -200,8 +228,10 @@ export function SearchPage() {
   if (auth.kind !== 'ready') {
     return (
       <div className="min-h-full">
-        <header className="border-b border-(--tgui--divider_color) px-4 py-3">
-          <Title level="2">Поиск</Title>
+        <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
+          <div className="px-4 py-3">
+            <SearchTitleRow />
+          </div>
         </header>
         <main className="px-4 pt-4">
           <p className="text-sm text-(--tgui--hint_color)">Войдите в приложение, чтобы пользоваться поиском.</p>
@@ -214,9 +244,7 @@ export function SearchPage() {
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="px-4 py-3">
-          <h1 className="bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-            Поиск
-          </h1>
+          <SearchTitleRow />
           <p className="mt-1 text-[13px] leading-snug text-(--tgui--hint_color)">
             Кого посмотреть и что найти в каталоге Filmony
           </p>

@@ -36,6 +36,9 @@ import {
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
+import { ensurePepeDancingGifPreloaded, PEPE_DANCING_GIF_URL } from '../lib/pepeGif'
+
+import './ProfilePage.css'
 
 type ProfileMainTab = 'movies' | 'posts' | 'stats'
 
@@ -109,6 +112,10 @@ export function ProfilePage() {
     if (favoriteStripForUserId !== profile.id) return []
     return favoriteStripFetched
   }, [profile, favoriteStripFetched, favoriteStripForUserId])
+
+  useEffect(() => {
+    void ensurePepeDancingGifPreloaded()
+  }, [])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -502,8 +509,21 @@ export function ProfilePage() {
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold tracking-tight text-(--tgui--text_color)">Профиль</h1>
-          <div className="flex items-center gap-0.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
+            <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+              Профиль
+            </h1>
+            <img
+              className="profile-page__title-pepe"
+              src={PEPE_DANCING_GIF_URL}
+              alt=""
+              width={28}
+              height={28}
+              decoding="async"
+              aria-hidden
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
             <IconButton
               type="button"
               size="s"

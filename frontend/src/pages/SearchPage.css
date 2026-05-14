@@ -1,0 +1,13 @@
+.search-page__title-pepe {
+  flex-shrink: 0;
+  display: block;
+  width: auto;
+  height: 28px;
+  object-fit: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-page__title-pepe {
+    display: none;
+  }
+}
