@@ -1,5 +1,14 @@
 # catalog-search-providers — progress
 
+## 2026-05-15 — Universal release fields (films vs RAWG games)
+
+- **Problem:** Game cards showed «Год неизвестен» from legacy `film_year` while RAWG subtitle/date appeared only in `display_summary`.
+- **Backend:** `card_catalog_release_fields.universal_release_year_date` — films: `Film.year`; games: `Game.released` (ISO). Responses add optional `release_year`, `release_date` (`CardDetailResponse`, profile `MovieCardItemResponse`, feed referenced card). Loads join `CatalogItem` + `Film` on `coalesce(user_card.film_id, catalog_item.film_id)` and `Game` on `catalog_item.game_id`; removed scalar subqueries that broke SQLAlchemy correlation.
+- **Frontend:** `movieCardReleasePrimaryLabel` / `movieCardReleaseCompactSuffix` in `movieCardDisplay.ts`; detail + feed + referenced post cards use these; `MovieCard` / `FeedPostReferencedCard` types extended.
+- **Create flow:** RAWG hit selection no longer copies `subtitle` into `display_summary` (summary stays for real description text).
+- **Tests:** `test_card_catalog_release_fields.py`, `test_get_rawg_game_card_detail_has_release_fields`; verification: focused pytest, ruff, `npm run lint && npm run build`.
+- **Log:** `.cursor/memory/logs/2026-05-15T100000Z-catalog-search-providers-code.md`
+
 ## 2026-05-14 — Catalog search query normalization (lower + whitespace)
 
 - **Single rule:** `normalize_catalog_search_query` — trim, collapse internal whitespace, `.lower()` — used for API `q`, React Query key, debounced value, Redis cache logical keys (via services), RAWG/Kinopoisk provider calls.
