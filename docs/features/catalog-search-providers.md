@@ -73,4 +73,5 @@ GET /api/catalog/search?provider=rawg&q=<query>&page=<n>&limit=<m>
 - `.cursor/features/catalog-search-providers/feature.md`
 - `.cursor/active/catalog-search-providers/plan.md`
 - Read-only blueprint: `.cursor/plans/catalog-search-providers_4b034044.plan.md` (do not edit for progress logging)
+- **v2 / legacy naming cleanup roadmap:** [`docs/features/catalog-search-providers-compat-cleanup-map.md`](catalog-search-providers-compat-cleanup-map.md)
 - Universal cards: [`docs/features/abstract-user-cards.md`](abstract-user-cards.md)

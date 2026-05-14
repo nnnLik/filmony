@@ -34,7 +34,7 @@
 
 ## Known limitations and next steps
 
-- **Legacy naming (intentional):** DB tables/constraints (`movie_card`, `movie_card_comment`), polymorphic reaction/export identifiers (`movie_card`, `movie_card_comment`), several HTTP JSON keys (`movie_card_id`, `film_*`, `referenced_movie_cards`), media subdirectory `movie_card_comments`, RAWG OpenAPI `movies_count`, and Celery task registry names (`tasks.telegram_engagement.notify_movie_card_*`, `deliver_shared_movie_card`) remain for persistence and client/worker compatibility; internals use card-first symbols where refactored.
+- **Legacy naming (intentional):** DB tables/constraints (`movie_card`, `movie_card_comment`), polymorphic reaction/export identifiers (`movie_card`, `movie_card_comment`), several HTTP JSON keys (`movie_card_id`, `film_*`, `referenced_movie_cards`), media subdirectory `movie_card_comments`, RAWG OpenAPI `movies_count`, and Celery task registry names (`tasks.telegram_engagement.notify_movie_card_*`, `deliver_shared_movie_card`) remain for persistence and client/worker compatibility; internals use card-first symbols where refactored. **Actionable v2 migration map:** [`docs/features/catalog-search-providers-compat-cleanup-map.md`](../../../docs/features/catalog-search-providers-compat-cleanup-map.md) (phases, gates, telemetry, rollback).
 
 - **`POST /api/catalog/resolve` (Kinopoisk URL)** kept for legacy / paste flows; search-first is the primary create path for films.
 - **No dedicated public game detail page** in-app; games are discoverable via search and card UX.
