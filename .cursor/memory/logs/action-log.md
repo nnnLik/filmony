@@ -17,6 +17,9 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-14T180000Z-catalog-search-providers-refactor.md`
+- `2026-05-15T071500Z-catalog-search-providers-test.md`
+- `2026-05-15T062000Z-catalog-search-providers-code.md`
 - `2026-05-15T050000Z-backend-performance-optimizations-code.md`
 - `2026-05-14T233000Z-backend-performance-optimizations-code.md`
 - `2026-05-15T042000Z-catalog-search-providers-test.md`

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+from http import HTTPStatus
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -9,6 +12,7 @@ from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
+from providers.base_provider_http_transport import BaseProviderHttpTransport
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
@@ -141,6 +145,39 @@ async def test_catalog_search_rawg_local_only_no_remote_transport(
     assert item['title'] == 'CryoApiRawg TokenOne'
     assert item['source'] == 'local'
     assert item['catalog_item_id'] >= 1
+
+
+@pytest.mark.asyncio
+async def test_catalog_search_rawg_transport_failure_502_non_empty_detail(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    await _login(async_client, telegram_user_id=71307)
+
+    inner = BaseProviderHttpTransport.ProviderUnexpectedStatusError(
+        msg='unexpected status 401',
+        status_code=HTTPStatus.UNAUTHORIZED,
+    )
+
+    async def failing_search(_self: RawgProviderTransport, _params: RawgGamesListQueryParams):
+        raise RawgProviderTransport.RawgProviderTransportError(
+            msg='RAWG games search: unexpected status 401',
+        ) from inner
+
+    monkeypatch.setattr(RawgProviderTransport, 'search_games', failing_search)
+
+    with caplog.at_level(logging.ERROR):
+        r = await async_client.get(
+            '/api/catalog/search',
+            params={'provider': 'rawg', 'q': 'CryoRawgFail', 'limit': 5},
+        )
+    assert r.status_code == 502
+    body = r.json()
+    assert isinstance(body.get('detail'), str)
+    assert body['detail'].strip() == 'RAWG games search: unexpected status 401'
+
+    assert any(rec.msg == 'RAWG catalog search failed' for rec in caplog.records)
+    assert 'RawgProviderTransportError: RAWG games search: unexpected status 401' in caplog.text
+    assert 'ProviderUnexpectedStatusError' in caplog.text
 
 
 @pytest.mark.asyncio

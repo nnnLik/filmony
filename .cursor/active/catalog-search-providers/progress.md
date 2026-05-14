@@ -64,11 +64,32 @@ docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backe
 - **`UserCardProvider`:** добавлен `rawg`; см. также `frontend/src/lib/openExternalUrl.ts` для сигнатур KP-хелперов.
 - **Проверка:** `cd frontend && npm run lint && npm run build` — успех.
 
+## 2026-05-15 — RAWG catalog 502 observability
+
+- **Transport:** `RawgProviderTransportError` exposes **`msg`** (dataclass Exception); HTTP failures map to safe strings (`unexpected status N`, invalid JSON/root, or `upstream request failed (ProviderHttpError)` without echoing raw httpx text that might contain URLs). Parse failures include `failed to parse RAWG games search response` / game detail variant.
+- **Route:** `GET /catalog/search` (rawg branch) logs `logger.error(..., exc_info=True, extra={catalog_provider, error_message})` before HTTP 502.
+- **Tests:** `test_catalog_search_rawg_transport_failure_502_non_empty_detail` — asserts non-empty `detail` and log excerpt includes transport + cause types.
+- **Verification:** `ruff check` on touched paths; `pytest src/tests/api/test_catalog_routes.py` and `pytest src/tests/services/test_search_rawg_catalog_games_service.py` with `RAWG_API_KEY=test`.
+- **Log fragment:** `.cursor/memory/logs/2026-05-15T062000Z-catalog-search-providers-code.md`
+
+### RAWG transport refactor (2026-05-14)
+
+- **`RawgProviderTransportError`:** `@dataclass(slots=True, frozen=True)` with `msg`; `str(e)` non-empty via `__str__`.
+- **No `staticmethod`:** `_safe_http_failure_message` is an instance method; shared `_fetch_json_then_parse_document` handles HTTP and DTO-parse errors for search + detail (same user-visible strings as before; no API key in messages).
+- **Verification:** `make backend-lint`; `pytest src/tests/api/test_catalog_routes.py src/tests/services/test_search_rawg_catalog_games_service.py` with `RAWG_API_KEY=test` — 15 passed.
+- **Log fragment:** `.cursor/memory/logs/2026-05-14T180000Z-catalog-search-providers-refactor.md`.
+
 ## 2026-05-15 — Final verification (merge-ready check)
 
 - **Backend (Docker):** `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest` — **247 passed** (~45s). Catalog-focused slice (catalog routes + catalog services + RAWG search service + game schema): **22 passed**.
 - **Frontend:** `cd frontend && npm run lint && npm run build` — **pass**.
-- **Ruff:** `make backend-lint` — **pass** after unused-local cleanup in `test_cards_routes.py` (see Lint cleanup below).
+- **Ruff:** `make backend-lint` — **pass** after migration `bd8f039d04fe_card.py` style fixes (see Migration lint-only) and unused-local cleanup in `test_cards_routes.py` (Lint cleanup below).
+
+### Migration lint-only (2026-05-15)
+
+- **`bd8f039d04fe_card.py`:** Ruff-only fixes (`collections.abc.Sequence`, PEP 604 union types on revision metadata, sorted imports); removed stray unused `typing.Union` after auto-fix — **no SQL / Alembic behavior change**.
+- **Verification:** `make backend-lint` → **All checks passed**.
+- **Log fragment:** `.cursor/memory/logs/2026-05-15T071500Z-catalog-search-providers-test.md`.
 
 ### Lint cleanup (2026-05-15)
 

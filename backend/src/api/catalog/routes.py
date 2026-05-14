@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -31,6 +32,7 @@ from services.kinopoisk.resolve_kinopoisk_film import (
 )
 
 router = APIRouter(prefix='/catalog', tags=['catalog'])
+logger = logging.getLogger(__name__)
 
 
 def _film_search_hit(hit: CatalogFilmSearchHitDTO) -> CatalogSearchHitResponse:
@@ -89,7 +91,13 @@ async def search_catalog(
     try:
         raw_result = await SearchRawgCatalogGamesService.build(db).execute(keyword, limit, page=page)
     except RawgProviderTransport.RawgProviderTransportError as e:
-        raise HTTPException(status_code=502, detail=str(e)) from e
+        logger.error(
+            'RAWG catalog search failed',
+            exc_info=True,
+            extra={'catalog_provider': 'rawg', 'error_message': str(e)},
+        )
+        detail = str(e).strip() or 'RAWG catalog search failed'
+        raise HTTPException(status_code=502, detail=detail) from e
 
     return CatalogSearchResponse(
         items=[_game_search_hit(h) for h in raw_result.hits],
