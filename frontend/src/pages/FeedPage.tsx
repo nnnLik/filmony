@@ -34,7 +34,7 @@ import {
   isGlobalFeedPostDetailOpened,
 } from '../lib/globalFeedViewedIds'
 import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
-import { ensurePepeDancingGifPreloaded, PEPE_DANCING_GIF_URL } from '../lib/pepeGif'
+import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
 
 import './FeedPage.css'
 
@@ -45,6 +45,7 @@ const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
 ]
 
 export function FeedPage() {
+  const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -72,7 +73,7 @@ export function FeedPage() {
   const [ackHeadVersion, setAckHeadVersion] = useState(0)
 
   useEffect(() => {
-    void ensurePepeDancingGifPreloaded()
+    void ensureHeaderPepeGifsPreloaded()
   }, [])
 
   useEffect(() => {
@@ -336,7 +337,7 @@ export function FeedPage() {
               </h1>
               <img
                 className="feed-page__title-pepe"
-                src={PEPE_DANCING_GIF_URL}
+                src={headerPepeSrc}
                 alt=""
                 width={28}
                 height={28}

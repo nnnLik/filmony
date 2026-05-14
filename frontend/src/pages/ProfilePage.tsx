@@ -36,7 +36,7 @@ import {
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
-import { ensurePepeDancingGifPreloaded, PEPE_DANCING_GIF_URL } from '../lib/pepeGif'
+import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
 
 import './ProfilePage.css'
 
@@ -66,6 +66,7 @@ function toPublicShape(p: MyProfile): PublicProfile {
 }
 
 export function ProfilePage() {
+  const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const navigate = useNavigate()
   const location = useLocation()
@@ -114,7 +115,7 @@ export function ProfilePage() {
   }, [profile, favoriteStripFetched, favoriteStripForUserId])
 
   useEffect(() => {
-    void ensurePepeDancingGifPreloaded()
+    void ensureHeaderPepeGifsPreloaded()
   }, [])
 
   useEffect(() => {
@@ -515,7 +516,7 @@ export function ProfilePage() {
             </h1>
             <img
               className="profile-page__title-pepe"
-              src={PEPE_DANCING_GIF_URL}
+              src={headerPepeSrc}
               alt=""
               width={28}
               height={28}

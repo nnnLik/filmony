@@ -16,7 +16,7 @@ import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChi
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 import { profileInitials } from '../lib/profileDisplay'
-import { ensurePepeDancingGifPreloaded, PEPE_DANCING_GIF_URL } from '../lib/pepeGif'
+import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
 
 import './SearchPage.css'
 
@@ -122,6 +122,7 @@ function FilmResultRow({ film }: { film: SearchFilmItem }) {
 }
 
 function SearchTitleRow() {
+  const headerPepeSrc = useHeaderPepeGifSrc()
   return (
     <div className="flex min-w-0 items-center gap-1.5">
       <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
@@ -129,7 +130,7 @@ function SearchTitleRow() {
       </h1>
       <img
         className="search-page__title-pepe"
-        src={PEPE_DANCING_GIF_URL}
+        src={headerPepeSrc}
         alt=""
         width={28}
         height={28}
@@ -166,7 +167,7 @@ export function SearchPage() {
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
   useEffect(() => {
-    void ensurePepeDancingGifPreloaded()
+    void ensureHeaderPepeGifsPreloaded()
   }, [])
 
   useEffect(() => {
