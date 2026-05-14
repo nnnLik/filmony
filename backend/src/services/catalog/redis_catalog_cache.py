@@ -6,15 +6,13 @@ import asyncio
 import hashlib
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any, TypeVar
+from typing import Any
 
 from redis.asyncio import Redis
 
 from conf.settings import settings
 
 logger = logging.getLogger(__name__)
-
-T = TypeVar('T')
 
 _PREFIX = 'filmony:catalog:v1'
 
@@ -74,7 +72,7 @@ def bounded_cache_key(segment: str, logical_key: str) -> str:
     return f'{_PREFIX}:{segment}:{digest}'
 
 
-async def _run_factory_store(
+async def _run_factory_store[T](
     *,
     client: Redis,
     redis_key: str,
@@ -96,7 +94,7 @@ async def _run_factory_store(
             _inflight.pop(redis_key, None)
 
 
-async def redis_catalog_cached_fetch(
+async def redis_catalog_cached_fetch[T](
     *,
     segment: str,
     logical_key: str,
@@ -130,25 +128,18 @@ async def redis_catalog_cached_fetch(
 
     _catalog_cache_misses += 1
 
-    async with _inflight_lock:
-        hit = None
-        try:
-            raw_retry = await client.get(redis_key)
-            if raw_retry is not None:
-                hit = (
-                    raw_retry
-                    if isinstance(raw_retry, (bytes, bytearray))
-                    else bytes(raw_retry)
-                )
-        except Exception:
-            logger.warning('catalog_cache double-get failed segment=%s', segment, exc_info=True)
-            _catalog_cache_errors += 1
-
-        if hit is not None:
+    try:
+        raw_retry = await client.get(redis_key)
+        if raw_retry is not None:
             _catalog_cache_hits += 1
             _catalog_cache_misses -= 1
-            return loads(hit)
+            blob = raw_retry if isinstance(raw_retry, (bytes, bytearray)) else bytes(raw_retry)
+            return loads(blob)
+    except Exception:
+        logger.warning('catalog_cache retry-get failed segment=%s', segment, exc_info=True)
+        _catalog_cache_errors += 1
 
+    async with _inflight_lock:
         if redis_key not in _inflight:
             _inflight[redis_key] = asyncio.create_task(
                 _run_factory_store(

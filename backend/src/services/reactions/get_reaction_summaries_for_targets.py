@@ -224,6 +224,7 @@ class GetReactionSummariesForTargetsService:
                 UserReaction.target_id,
                 UserReaction.reaction_type_id,
                 func.count(UserReaction.id).label('cnt'),
+                func.bool_or(UserReaction.user_id == viewer_user_id).label('viewer_has'),
                 ReactionType.asset_key,
                 ReactionType.image_url,
             )
@@ -240,8 +241,9 @@ class GetReactionSummariesForTargetsService:
         count_rows = (await self._session.execute(count_stmt)).all()
 
         buckets: dict[tuple[str, int], list[ReactionCountEntry]] = defaultdict(list)
+        mines_acc: defaultdict[tuple[str, int], list[int]] = defaultdict(list)
         for row in count_rows:
-            kind, tid, rtid, cnt, asset_key, url = row
+            kind, tid, rtid, cnt, viewer_has, asset_key, url = row
             resolved_url = resolve_reaction_media_url(
                 asset_key=asset_key,
                 image_url_fallback=str(url),
@@ -257,6 +259,8 @@ class GetReactionSummariesForTargetsService:
                     reactors=actors_tuple_map.get(rkey, ()),
                 )
             )
+            if viewer_has:
+                mines_acc[(str(kind), int(tid))].append(int(rtid))
 
         for key, entries in buckets.items():
             kind, tid = key
@@ -265,15 +269,7 @@ class GetReactionSummariesForTargetsService:
                 kind, tid, ordered, card_out, comment_out, feed_post_comment_out, feed_post_out
             )
 
-        mines: defaultdict[tuple[str, int], list[int]] = defaultdict(list)
-        mine_stmt = select(
-            UserReaction.target_kind, UserReaction.target_id, UserReaction.reaction_type_id
-        ).where(UserReaction.user_id == viewer_user_id, scope)
-        mine_rows = (await self._session.execute(mine_stmt)).all()
-        for kind, tid, rtid in mine_rows:
-            mines[(kind, int(tid))].append(int(rtid))
-
-        for (kind, tid), rtids in mines.items():
+        for (kind, tid), rtids in mines_acc.items():
             unique_ids = tuple(dict.fromkeys(rtids))
             _set_summary_mine_if_member(
                 kind, tid, unique_ids, card_out, comment_out, feed_post_comment_out, feed_post_out

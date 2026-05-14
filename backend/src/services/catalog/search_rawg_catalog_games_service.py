@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Self
 
+import orjson
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf.settings import settings
 from models.catalog_item import CatalogProvider
 from models.game import Game
 from providers.rawg import RawgGamesListQueryParams, RawgProviderTransport
@@ -13,7 +15,7 @@ from services.search.ilike_escape import escape_ilike_pattern
 
 from .ensure_rawg_catalog_item_service import EnsureRawgCatalogItemService
 from .rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
-from .ttl_coalescing_cache import RAWG_GAME_SEARCH_CACHE
+from .redis_catalog_cache import redis_catalog_cached_fetch
 from .upsert_rawg_game_from_list_dto_service import UpsertRawgGameFromListDtoService
 
 
@@ -50,9 +52,17 @@ class SearchRawgCatalogGamesService:
 
         clipped = max(1, min(limit, 40))
         page = max(1, page)
-        return await RAWG_GAME_SEARCH_CACHE.get_or_fetch(
-            f'rawg:game_search:{q}:{clipped}:{page}:{allow_remote}',
-            lambda: self._execute_impl(q, clipped, page, allow_remote),
+
+        async def _factory() -> SearchRawgCatalogGamesResult:
+            return await self._execute_impl(q, clipped, page, allow_remote)
+
+        return await redis_catalog_cached_fetch(
+            segment='rawg_game_search',
+            logical_key=f'{q}:{clipped}:{page}:{allow_remote}',
+            ttl_seconds=settings.catalog_cache.search_ttl_seconds,
+            factory=_factory,
+            dumps=_rawg_search_result_dumps,
+            loads=_rawg_search_result_loads,
         )
 
     async def _execute_impl(
@@ -161,6 +171,44 @@ class SearchRawgCatalogGamesService:
             source=source,
             catalog_item_id=catalog_item_id,
         )
+
+
+def _rawg_hit_json(h: RawgCatalogSearchHitDTO) -> dict:
+    return {
+        'provider': h.provider.value,
+        'external_id': h.external_id,
+        'kind': h.kind,
+        'title': h.title,
+        'subtitle': h.subtitle,
+        'cover': h.cover,
+        'source': h.source,
+        'catalog_item_id': h.catalog_item_id,
+    }
+
+
+def _rawg_hit_from_json(row: dict) -> RawgCatalogSearchHitDTO:
+    return RawgCatalogSearchHitDTO(
+        provider=CatalogProvider(row['provider']),
+        external_id=str(row['external_id']),
+        kind='game',
+        title=str(row['title']),
+        subtitle=row.get('subtitle'),
+        cover=row.get('cover'),
+        source=row['source'],
+        catalog_item_id=int(row['catalog_item_id']),
+    )
+
+
+def _rawg_search_result_dumps(result: SearchRawgCatalogGamesResult) -> bytes:
+    return orjson.dumps(
+        {'hits': [_rawg_hit_json(h) for h in result.hits], 'has_more': result.has_more},
+    )
+
+
+def _rawg_search_result_loads(raw: bytes) -> SearchRawgCatalogGamesResult:
+    row = orjson.loads(raw)
+    hits = tuple(_rawg_hit_from_json(x) for x in row['hits'])
+    return SearchRawgCatalogGamesResult(hits=hits, has_more=bool(row['has_more']))
 
 
 __all__ = ('SearchRawgCatalogGamesResult', 'SearchRawgCatalogGamesService')

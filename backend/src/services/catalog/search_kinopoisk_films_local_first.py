@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Self
 
+import orjson
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf.settings import settings
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
@@ -13,7 +15,7 @@ from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     genres_for_film_model,
 )
-from services.catalog.ttl_coalescing_cache import KINOPOISK_FILM_SEARCH_CACHE
+from services.catalog.redis_catalog_cache import redis_catalog_cached_fetch
 
 PAGE_SIZE: int = 20
 
@@ -105,9 +107,17 @@ class SearchKinopoiskFilmsLocalFirstService:
             )
 
         page = max(1, page)
-        return await KINOPOISK_FILM_SEARCH_CACHE.get_or_fetch(
-            f'kinopoisk:film_search:{norm}:{page}',
-            lambda: self._execute_impl(norm, page),
+
+        async def _factory() -> SearchKinopoiskFilmsResult:
+            return await self._execute_impl(norm, page)
+
+        return await redis_catalog_cached_fetch(
+            segment='kp_film_search',
+            logical_key=f'{norm}:{page}',
+            ttl_seconds=settings.catalog_cache.search_ttl_seconds,
+            factory=_factory,
+            dumps=_kinopoisk_search_result_dumps,
+            loads=_kinopoisk_search_result_loads,
         )
 
     async def _execute_impl(self, norm: str, page: int) -> SearchKinopoiskFilmsResult:
@@ -273,6 +283,63 @@ class SearchKinopoiskFilmsLocalFirstService:
 
         cat = await self._ensure_kinopoisk_catalog_item(existing)
         return existing, cat
+
+
+def _kinopoisk_hit_json(h: CatalogFilmSearchHitDTO) -> dict:
+    return {
+        'provider': h.provider.value,
+        'external_id': h.external_id,
+        'kinopoisk_id': h.kinopoisk_id,
+        'title': h.title,
+        'subtitle': h.subtitle,
+        'cover_url': h.cover_url,
+        'summary': h.summary,
+        'film_id': h.film_id,
+        'catalog_item_id': h.catalog_item_id,
+        'source': h.source,
+    }
+
+
+def _kinopoisk_hit_from_json(row: dict) -> CatalogFilmSearchHitDTO:
+    return CatalogFilmSearchHitDTO(
+        provider=CatalogProvider(row['provider']),
+        external_id=str(row['external_id']),
+        kinopoisk_id=int(row['kinopoisk_id']),
+        title=str(row['title']),
+        subtitle=row.get('subtitle'),
+        cover_url=row.get('cover_url'),
+        summary=row.get('summary'),
+        film_id=int(row['film_id']),
+        catalog_item_id=(
+            int(row['catalog_item_id']) if row.get('catalog_item_id') is not None else None
+        ),
+        source=row['source'],
+    )
+
+
+def _kinopoisk_search_result_dumps(result: SearchKinopoiskFilmsResult) -> bytes:
+    payload = {
+        'keyword': result.keyword,
+        'page': result.page,
+        'pages_count': result.pages_count,
+        'total_remote': result.total_remote,
+        'hits': [_kinopoisk_hit_json(h) for h in result.hits],
+        'has_more': result.has_more,
+    }
+    return orjson.dumps(payload)
+
+
+def _kinopoisk_search_result_loads(raw: bytes) -> SearchKinopoiskFilmsResult:
+    row = orjson.loads(raw)
+    hits = tuple(_kinopoisk_hit_from_json(x) for x in row['hits'])
+    return SearchKinopoiskFilmsResult(
+        keyword=str(row['keyword']),
+        page=int(row['page']),
+        pages_count=int(row['pages_count']),
+        total_remote=int(row['total_remote']),
+        hits=hits,
+        has_more=bool(row['has_more']),
+    )
 
 
 __all__ = (

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -84,32 +85,29 @@ class GetMovieCardDetailsService:
 
         film_title_deprecated = film.title if film is not None else display_title
 
-        tags = (
-            (
-                await self._session.execute(
-                    select(CardTag.tag)
-                    .where(CardTag.card_id == card.id)
-                    .order_by(CardTag.tag)
-                )
-            )
-            .scalars()
-            .all()
+        tags_result, cat_row_result, summaries_bundle = await asyncio.gather(
+            self._session.execute(
+                select(CardTag.tag)
+                .where(CardTag.card_id == card.id)
+                .order_by(CardTag.tag),
+            ),
+            self._session.execute(
+                select(UserCardCategory).where(UserCardCategory.id == card.category_id),
+            ),
+            GetReactionSummariesForTargetsService(self._session).execute(
+                viewer_user_id=viewer_user_id,
+                movie_card_ids=[card.id],
+                comment_ids=[],
+                feed_post_comment_ids=[],
+                feed_post_ids=[],
+            ),
         )
-        cat_row = (
-            await self._session.execute(
-                select(UserCardCategory).where(UserCardCategory.id == card.category_id)
-            )
-        ).scalar_one_or_none()
+        tags = tags_result.scalars().all()
+        cat_row = cat_row_result.scalar_one_or_none()
         category_name = (
             cat_row.name if cat_row is not None else DEFAULT_USER_CARD_CATEGORY_NAME
         )
-        summaries, _, _, _ = await GetReactionSummariesForTargetsService(self._session).execute(
-            viewer_user_id=viewer_user_id,
-            movie_card_ids=[card.id],
-            comment_ids=[],
-            feed_post_comment_ids=[],
-            feed_post_ids=[],
-        )
+        summaries, _, _, _ = summaries_bundle
         return MovieCardDetails(
             id=card.id,
             user_id=card.user_id,

@@ -3,13 +3,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Self
 
+import orjson
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf.settings import settings
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
-from services.catalog.ttl_coalescing_cache import CATALOG_RESOLVE_IDS_CACHE
+from services.catalog.redis_catalog_cache import redis_catalog_cached_fetch
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
+
+
+def _resolve_pair_dumps(pair: tuple[int, int]) -> bytes:
+    return orjson.dumps({'catalog_item_id': pair[0], 'film_id': pair[1]})
+
+
+def _resolve_pair_loads(raw: bytes) -> tuple[int, int]:
+    row = orjson.loads(raw)
+    return int(row['catalog_item_id']), int(row['film_id'])
 
 
 @dataclass
@@ -44,10 +55,16 @@ class ResolveCatalogItemService:
         if provider is not CatalogProvider.kinopoisk:
             raise self.UnsupportedCatalogProviderError
 
-        key = f'catalog:resolve:{provider.value}:{url.strip()}'
-        c_id, f_id = await CATALOG_RESOLVE_IDS_CACHE.get_or_fetch(
-            key,
-            lambda: self._catalog_pair_ids(url=url),
+        async def _factory() -> tuple[int, int]:
+            return await self._catalog_pair_ids(url=url)
+
+        c_id, f_id = await redis_catalog_cached_fetch(
+            segment='kp_resolve_ids',
+            logical_key=f'{provider.value}:{url.strip()}',
+            ttl_seconds=settings.catalog_cache.resolve_ttl_seconds,
+            factory=_factory,
+            dumps=_resolve_pair_dumps,
+            loads=_resolve_pair_loads,
         )
         item = await self._session.get(CatalogItem, c_id)
         film = await self._session.get(Film, f_id)

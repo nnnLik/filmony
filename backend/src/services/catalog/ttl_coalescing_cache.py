@@ -12,19 +12,19 @@ from typing import TypeVar
 
 from conf import settings
 
-T_co = TypeVar('T_co')
+T = TypeVar('T')
 
 
-class TtlCoalescingCache[T_co]:
+class TtlCoalescingCache[T]:
     """One key → single shared awaitable while loading; entries expire after ``ttl_seconds``."""
 
     def __init__(self, ttl_seconds: float) -> None:
         self._ttl = ttl_seconds
         self._data: dict[str, tuple[float, T]] = {}
-        self._inflight: dict[str, asyncio.Task[T_co]] = {}
+        self._inflight: dict[str, asyncio.Task[T]] = {}
         self._lock = asyncio.Lock()
 
-    async def get_or_fetch(self, key: str, factory: Callable[[], Awaitable[T_co]]) -> T_co:
+    async def get_or_fetch(self, key: str, factory: Callable[[], Awaitable[T]]) -> T:
         if settings.app.is_test:
             return await factory()
 
@@ -43,7 +43,7 @@ class TtlCoalescingCache[T_co]:
 
         return await task
 
-    async def _run_factory(self, key: str, factory: Callable[[], Awaitable[T_co]]) -> T_co:
+    async def _run_factory(self, key: str, factory: Callable[[], Awaitable[T]]) -> T:
         try:
             val = await factory()
             async with self._lock:
@@ -52,3 +52,12 @@ class TtlCoalescingCache[T_co]:
         finally:
             async with self._lock:
                 self._inflight.pop(key, None)
+
+
+KINOPOISK_FILM_SEARCH_CACHE = TtlCoalescingCache(
+    ttl_seconds=float(settings.catalog_cache.search_ttl_seconds),
+)
+
+CATALOG_RESOLVE_IDS_CACHE = TtlCoalescingCache(
+    ttl_seconds=float(settings.catalog_cache.resolve_ttl_seconds),
+)
