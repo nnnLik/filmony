@@ -79,6 +79,9 @@ const CHIP_COLORS = [
   'bg-[#EC489933] text-[#F9A8D4]',
 ] as const
 
+/** Дольше 450 ms — меньше промежуточных запросов при наборе; React Query отменяет in-flight через AbortSignal. */
+const CATALOG_SEARCH_DEBOUNCE_MS = 800
+
 type WizardStep = 1 | 2 | 3 | 4
 const TOTAL_STEPS = 4
 const STEP_TITLES: Record<WizardStep, string> = {
@@ -192,7 +195,7 @@ export function CreateCardPage() {
   const [remixFromCard, setRemixFromCard] = useState(false)
   const [step, setStep] = useState<WizardStep>(1)
   const [addKind, setAddKind] = useState<CardAddKind>(null)
-  /** Поиск в каталоге: не дергаем API, пока нормализованная строка короче 3 символов. */
+  /** Поиск в каталоге: порог длины зависит от провайдера (фильм ≥3, RAWG ≥4), плюс debounce. */
   const [catalogSearchDraft, setCatalogSearchDraft] = useState('')
   const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState('')
   const [urlShortcutOpen, setUrlShortcutOpen] = useState(false)
@@ -275,13 +278,18 @@ export function CreateCardPage() {
   })
 
   useEffect(() => {
-    if (catalogSearchDraft.trim().length < 3) {
+    if (addKind !== 'film' && addKind !== 'game') {
+      return
+    }
+    const minLen = addKind === 'game' ? 4 : 3
+    const trimmed = catalogSearchDraft.trim()
+    if (trimmed.length < minLen) {
       const t = window.setTimeout(() => setDebouncedCatalogSearch(''))
       return () => window.clearTimeout(t)
     }
-    const t = window.setTimeout(() => setDebouncedCatalogSearch(catalogSearchDraft.trim()), 450)
+    const t = window.setTimeout(() => setDebouncedCatalogSearch(trimmed), CATALOG_SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(t)
-  }, [catalogSearchDraft])
+  }, [addKind, catalogSearchDraft])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -292,6 +300,8 @@ export function CreateCardPage() {
   }, [addKind])
 
   const catalogSearchProvider = addKind === 'film' ? 'kinopoisk' : addKind === 'game' ? 'rawg' : null
+
+  const catalogSearchMinLen = catalogSearchProvider === 'rawg' ? 4 : 3
 
   type CatalogSearchQueryKey = readonly ['catalogSearch', 'kinopoisk' | 'rawg' | 'idle', string]
 
@@ -309,12 +319,13 @@ export function CreateCardPage() {
     number
   >({
     queryKey: catalogSearchQueryKey,
-    queryFn: ({ pageParam }: { pageParam: number }) =>
+    queryFn: ({ pageParam, signal }: { pageParam: number; signal: AbortSignal }) =>
       searchCatalog({
         provider: catalogSearchProvider!,
         q: debouncedCatalogSearch,
         page: pageParam,
         limit: 15,
+        signal,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, _pages, lastPageParam): number | undefined => {
@@ -327,7 +338,7 @@ export function CreateCardPage() {
       fromCardPrefillDone &&
       step === 1 &&
       catalogSearchProvider != null &&
-      debouncedCatalogSearch.length >= 3,
+      debouncedCatalogSearch.length >= catalogSearchMinLen,
   })
 
   const catalogSearchHits: CatalogSearchHit[] = useMemo(() => {
@@ -990,8 +1001,8 @@ export function CreateCardPage() {
               {addKind === null ? (
                 <>
                   <p className="text-sm leading-snug text-(--tgui--hint_color)">
-                    Сначала выберите тип: фильм или сериал, игра или тайтл без каталога. Игры ищутся в RAWG, фильмы — в
-                    базе приложения и на Кинопоиске.
+                    Сначала выберите тип: фильм или сериал, игра или тайтл без каталога. Игры ищутся в RAWG (запрос от 4
+                    символов, с короткой паузой после ввода), фильмы — в базе приложения и на Кинопоиске (от 3 символов).
                   </p>
                   <div className="flex flex-col gap-2">
                     <Button
@@ -1054,7 +1065,7 @@ export function CreateCardPage() {
                       type="search"
                       autoComplete="off"
                       enterKeyHint="search"
-                      placeholder="Минимум 3 символа…"
+                      placeholder={addKind === 'game' ? 'Минимум 4 символа…' : 'Минимум 3 символа…'}
                       value={catalogSearchDraft}
                       onChange={(e) => {
                         setCatalogSearchDraft(e.currentTarget.value)
@@ -1063,10 +1074,14 @@ export function CreateCardPage() {
                       className={WIZARD_TEXT_FIELD_CLASS}
                     />
                   </div>
-                  {catalogSearchDraft.trim().length > 0 && catalogSearchDraft.trim().length < 3 ? (
-                    <p className="text-xs text-(--tgui--hint_color)">Для запроса нужно не меньше 3 символов.</p>
+                  {catalogSearchDraft.trim().length > 0 && catalogSearchDraft.trim().length < catalogSearchMinLen ? (
+                    <p className="text-xs text-(--tgui--hint_color)">
+                      {catalogSearchMinLen === 4
+                        ? 'Для поиска игр введите не меньше 4 символов.'
+                        : 'Для запроса нужно не меньше 3 символов.'}
+                    </p>
                   ) : null}
-                  {catalogSearchQuery.isFetching && debouncedCatalogSearch.length >= 3 ? (
+                  {catalogSearchQuery.isFetching && debouncedCatalogSearch.length >= catalogSearchMinLen ? (
                     <p className="text-sm text-(--tgui--hint_color)">Ищем…</p>
                   ) : null}
                   {catalogSearchQuery.isError ? (
@@ -1164,7 +1179,7 @@ export function CreateCardPage() {
                     </ul>
                   ) : null}
                   {catalogSearchQuery.isSuccess &&
-                  debouncedCatalogSearch.length >= 3 &&
+                  debouncedCatalogSearch.length >= catalogSearchMinLen &&
                   catalogSearchHits.length === 0 &&
                   !catalogSearchQuery.isFetching ? (
                     <p className="text-sm text-(--tgui--hint_color)">

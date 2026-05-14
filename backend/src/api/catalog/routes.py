@@ -67,18 +67,24 @@ async def search_catalog(
     provider: Annotated[CatalogSearchProvider, Query()],
     db: Annotated[AsyncSession, Depends(get_db)],
     _viewer: CurrentUser,
-    q: Annotated[str, Query(min_length=1, alias='q', description='Поисковая строка (после trim ≥ 3 символов)')],
+    q: Annotated[
+        str,
+        Query(
+            min_length=1,
+            alias='q',
+            description='Поисковая строка: после trim ≥ 3 для kinopoisk, ≥ 4 для rawg',
+        ),
+    ],
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=40)] = 15,
 ) -> CatalogSearchResponse:
     keyword = q.strip()
-    if len(keyword) < 3:
-        raise HTTPException(
-            status_code=422,
-            detail='Query must contain at least 3 non-whitespace characters',
-        )
-
     if provider == CatalogSearchProvider.kinopoisk:
+        if len(keyword) < 3:
+            raise HTTPException(
+                status_code=422,
+                detail='Query must contain at least 3 non-whitespace characters',
+            )
         try:
             result = await SearchKinopoiskFilmsLocalFirstService.build(db).execute(keyword=keyword, page=page)
         except KinopoiskProviderTransport.KinopoiskProviderTransportError as e:
@@ -87,6 +93,12 @@ async def search_catalog(
         sliced = tuple(result.hits[:limit])
         has_more = result.has_more or len(result.hits) > limit
         return CatalogSearchResponse(items=[_film_search_hit(hit) for hit in sliced], has_more=has_more)
+
+    if len(keyword) < 4:
+        raise HTTPException(
+            status_code=422,
+            detail='Query must contain at least 4 non-whitespace characters for RAWG search',
+        )
 
     try:
         raw_result = await SearchRawgCatalogGamesService.build(db).execute(keyword, limit, page=page)

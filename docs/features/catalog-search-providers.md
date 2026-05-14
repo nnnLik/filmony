@@ -2,7 +2,7 @@
 
 ## Summary
 
-**Shipped:** Search-first, **local-first** catalog for **films (Kinopoisk)** and **games (RAWG)**. Users query by title (minimum length enforced client- and server-side) before creating a user card. Matching prefers rows already persisted as `Film` / `Game`; gaps are filled via provider list APIs with controlled outbound traffic (debounced UI, server-side **in-process TTL coalescing** for list queries ~45s per key).
+**Shipped:** Search-first, **local-first** catalog for **films (Kinopoisk)** and **games (RAWG)**. Users query by title (minimum length enforced client- and server-side, **provider-specific**) before creating a user card. Matching prefers rows already persisted as `Film` / `Game`; gaps are filled via provider list APIs with controlled outbound traffic (**~800 ms** debounced UI, **`AbortSignal`** cancellation for superseded queries, server-side **in-process TTL coalescing** for list queries ~45s per key).
 
 ## Status
 
@@ -17,7 +17,7 @@
 
 ### Services
 
-- **RAWG:** `SearchRawgCatalogGamesService` — local ILIKE on `Game`, then RAWG `search_games` when needed; upserts from list/detail DTOs; `EnsureRawgCatalogItemService` links `CatalogItem` idempotently.
+- **RAWG:** `SearchRawgCatalogGamesService` — local ILIKE on `Game`, then RAWG `search_games` when needed; upserts from list/detail DTOs; `EnsureRawgCatalogItemService` links `CatalogItem` idempotently. **Live RAWG JSON** may return list-shaped blobs for fields such as **`ratings`**, `added_by_status`, and `reactions`; the OpenAPI DTO layer accepts object-or-array shapes so parsing does not fail when the API returns arrays.
 - **Kinopoisk:** `SearchKinopoiskFilmsLocalFirstService` — local `Film` ILIKE on first page; optional `search_films_by_keyword` merge; upserts `Film` + `CatalogItem`.
 - **Resolve:** `ResolveCatalogItemService` / `POST /api/catalog/resolve` unchanged in role: **Kinopoisk URL → film catalog item** (still supported).
 
@@ -29,7 +29,7 @@ GET /api/catalog/search?provider=rawg&q=<query>&page=<n>&limit=<m>
 ```
 
 - **Auth:** required (`CurrentUser`).
-- **`q`:** trimmed; fewer than **3** characters → **422** with a clear message.
+- **`q`:** trimmed; minimum length depends on **`provider`**: **Kinopoisk ≥ 3** characters, **RAWG ≥ 4** → otherwise **422** with a clear message.
 - **`page`:** ≥ 1; **`limit`:** 1–40, default **15** (response may slice Kinopoisk hits to `limit`).
 - **Response:** `{ "items": [ { "provider", "external_id", "kind": "film"|"game", "title", "subtitle", "cover_url", "catalog_item_id", "source": "local"|"remote" } ], "has_more": bool }`. Kinopoisk provider-sourced hits use `source="remote"` (mapped from internal provider source).
 - **Errors:** provider transport failures → **502**.
@@ -38,11 +38,12 @@ GET /api/catalog/search?provider=rawg&q=<query>&page=<n>&limit=<m>
 
 ### Frontend
 
-- **`CreateCardPage`:** Choose **film / game / manual** → film and game paths call **`GET /api/catalog/search`** via `catalogApi` (debounce ~450ms, query only if normalized length ≥ 3; infinite scroll / “load more” where implemented). Optional **Kinopoisk URL** block for film mode. Manual path keeps `no_provider` authoring.
+- **`CreateCardPage`:** Choose **film / game / manual** → film and game paths call **`GET /api/catalog/search`** via `catalogApi` with **~800 ms** debounce, **per-provider** minimum length before issuing a request (**≥ 3** film, **≥ 4** game), and **`AbortSignal`** support so in-flight requests are cancelled when the query changes. Infinite scroll / “load more” where implemented. Optional **Kinopoisk URL** block for film mode. Manual path keeps `no_provider` authoring.
 
 ## Tests
 
-- **API:** `backend/src/tests/api/test_catalog_routes.py` — resolve + search (local-only, remote monkeypatched, validation, `no_provider` rejected on search).
+- **API:** `backend/src/tests/api/test_catalog_routes.py` — resolve + search (local-only, remote monkeypatched, validation, `no_provider` rejected on search, RAWG short-query 422).
+- **Providers / DTO:** `backend/src/tests/providers/test_rawg_openapi_dto_ratings_blob.py` — list-shaped `ratings` / related fields on list and detail payloads.
 - **Services:** `backend/src/tests/services/test_search_rawg_catalog_games_service.py`, `backend/src/tests/services/catalog/test_search_kinopoisk_films_local_first.py`, `backend/src/tests/services/catalog/test_ttl_coalescing_cache.py`.
 - **Models:** `backend/src/tests/models/test_game_catalog_schema.py`.
 

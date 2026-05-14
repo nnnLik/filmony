@@ -71,14 +71,28 @@ def _optional_uri(d: dict[str, Any], key: str) -> str | None:
     return normalize_absolute_http_url(s)
 
 
-def _object_mapping(d: dict[str, Any], key: str) -> Mapping[str, Any]:
-    """OpenAPI ``type: object`` без детальной схемы — неизменяемое поверхностное отображение."""
+type RawgOpenObjectOrArray = Mapping[str, Any] | tuple[Any, ...]
+
+
+def _open_object_or_array(d: dict[str, Any], key: str) -> RawgOpenObjectOrArray:
+    """OpenAPI ``object``, но в живом API часто массив (напр. ``ratings`` — список агрегатов по звёздам)."""
+
     raw = d.get(key)
     if raw is None:
         return MappingProxyType({})
-    if not isinstance(raw, dict):
-        raise RawgGameDtoParseError(f'field {key} must be an object')
-    return MappingProxyType(dict(raw))
+    if isinstance(raw, dict):
+        return MappingProxyType(dict(raw))
+    if isinstance(raw, list):
+        return tuple(raw)
+    raise RawgGameDtoParseError(f'field {key} must be an object or array')
+
+
+def rawg_open_blob_to_plain_json(blob: RawgOpenObjectOrArray) -> dict[str, Any] | list[Any]:
+    """Снимок/JSON‑колонки: вернуть обычный ``dict`` или ``list`` (элементы не копируем глубоко)."""
+
+    if isinstance(blob, Mapping):
+        return dict(blob)
+    return list(blob)
 
 
 @dataclass(frozen=True, slots=True)
@@ -214,11 +228,11 @@ class RawgGameDTO:
     background_image: str | None
     rating: float
     rating_top: int | None
-    ratings: Mapping[str, Any]
+    ratings: RawgOpenObjectOrArray
     ratings_count: int | None
     reviews_text_count: str | None
     added: int | None
-    added_by_status: Mapping[str, Any]
+    added_by_status: RawgOpenObjectOrArray
     metacritic: int | None
     playtime: int | None
     suggestions_count: int | None
@@ -237,11 +251,11 @@ class RawgGameDTO:
             background_image=_optional_uri(d, 'background_image'),
             rating=_require_number(d, 'rating'),
             rating_top=_optional_int(d, 'rating_top'),
-            ratings=_object_mapping(d, 'ratings'),
+            ratings=_open_object_or_array(d, 'ratings'),
             ratings_count=_optional_int(d, 'ratings_count'),
             reviews_text_count=_optional_str(d, 'reviews_text_count'),
             added=_optional_int(d, 'added'),
-            added_by_status=_object_mapping(d, 'added_by_status'),
+            added_by_status=_open_object_or_array(d, 'added_by_status'),
             metacritic=_optional_int(d, 'metacritic'),
             playtime=_optional_int(d, 'playtime'),
             suggestions_count=_optional_int(d, 'suggestions_count'),
@@ -270,10 +284,10 @@ class RawgGameSingleDTO:
     website: str | None
     rating: float
     rating_top: int | None
-    ratings: Mapping[str, Any]
-    reactions: Mapping[str, Any]
+    ratings: RawgOpenObjectOrArray
+    reactions: RawgOpenObjectOrArray
     added: int | None
-    added_by_status: Mapping[str, Any]
+    added_by_status: RawgOpenObjectOrArray
     playtime: int | None
     screenshots_count: int | None
     movies_count: int | None
@@ -316,10 +330,10 @@ class RawgGameSingleDTO:
             website=_optional_uri(d, 'website'),
             rating=_require_number(d, 'rating'),
             rating_top=_optional_int(d, 'rating_top'),
-            ratings=_object_mapping(d, 'ratings'),
-            reactions=_object_mapping(d, 'reactions'),
+            ratings=_open_object_or_array(d, 'ratings'),
+            reactions=_open_object_or_array(d, 'reactions'),
             added=_optional_int(d, 'added'),
-            added_by_status=_object_mapping(d, 'added_by_status'),
+            added_by_status=_open_object_or_array(d, 'added_by_status'),
             playtime=_optional_int(d, 'playtime'),
             screenshots_count=_optional_int(d, 'screenshots_count'),
             movies_count=_optional_int(d, 'movies_count'),

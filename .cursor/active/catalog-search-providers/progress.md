@@ -42,7 +42,7 @@ docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backe
 ### Catalog search API `GET /api/catalog/search` (2026-05-14)
 
 - **`CatalogSearchProvider`**: `kinopoisk` \| `rawg` only (`no_provider` rejected by schema).
-- **Query**: `q` trim then **≥ 3** chars (HTTP 422 if shorter); **`page`** ≥ 1, **`limit`** 1–40 default **15**.
+- **Query**: `q` trim — **≥ 3** для kinopoisk, **≥ 4** для rawg (HTTP 422 если короче); **`page`** ≥ 1, **`limit`** 1–40 default **15**.
 - **`SearchRawgCatalogGamesService`**: returns `SearchRawgCatalogGamesResult` (`hits`, `has_more`); supports **`page` > 1** (remote-only slice); existing local-first semantics on page 1.
 - **`GET /catalog/search`** (router prefix `/catalog`): authenticated; maps Kinopoisk `source=provider` → response `remote`; RAWG preserves `local`/`remote`; 502 on provider transport failures.
 - **Tests**: extended `backend/src/tests/api/test_catalog_routes.py` — local-first + monkeypatched remote for RAWG and Kinopoisk, `no_provider`, short query.
@@ -58,11 +58,17 @@ docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backe
 ### Frontend: create-card search-first (2026-05-15)
 
 - **Шаг 1:** «Что добавляем?» — фильм/сериал (поиск Kinopoisk), игра (поиск RAWG), без каталога (ручной режим сохранён).
-- **Клиент каталога:** `searchCatalog` + типы попадания в `frontend/src/api/catalogApi.ts`; debounce 450 ms; запросы только если нормализованный запрос ≥ 3 символов; `useInfiniteQuery` + «Показать ещё».
+- **Клиент каталога:** `searchCatalog` + типы попадания в `frontend/src/api/catalogApi.ts`; debounce **800 ms**; запросы при **≥ 3** символов (фильм) / **≥ 4** (игра); `AbortSignal` для отмены; `useInfiniteQuery` + «Показать ещё».
 - **Привязка:** результат фильма → `catalog_film` (резолв `Film` по внешнему id KP для превью/дублей/«к просмотру»); игра → `catalog_game`, submit с `catalog_item_id` и `display_title` / `display_cover_url` / `display_summary`.
 - **Kinopo по ссылке:** опционально, только для режима фильма (раскрываемый блок).
 - **`UserCardProvider`:** добавлен `rawg`; см. также `frontend/src/lib/openExternalUrl.ts` для сигнатур KP-хелперов.
 - **Проверка:** `cd frontend && npm run lint && npm run build` — успех.
+
+### Frontend: throttling + RAWG min length (2026-05-14)
+
+- Debounce **800 ms**; игры **≥ 4** символов, фильмы **≥ 3**; `searchCatalog(..., signal)` + отмена в React Query.
+- API: `provider=rawg` → trim **≥ 4** (иначе 422); kinopoisk **≥ 3**.
+- **Тест:** `test_catalog_search_rawg_query_three_chars_returns_422`; лог `.cursor/memory/logs/2026-05-14T200500Z-catalog-search-providers-code.md`.
 
 ## 2026-05-15 — RAWG catalog 502 observability
 
@@ -78,6 +84,14 @@ docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backe
 - **No `staticmethod`:** `_safe_http_failure_message` is an instance method; shared `_fetch_json_then_parse_document` handles HTTP and DTO-parse errors for search + detail (same user-visible strings as before; no API key in messages).
 - **Verification:** `make backend-lint`; `pytest src/tests/api/test_catalog_routes.py src/tests/services/test_search_rawg_catalog_games_service.py` with `RAWG_API_KEY=test` — 15 passed.
 - **Log fragment:** `.cursor/memory/logs/2026-05-14T180000Z-catalog-search-providers-refactor.md`.
+
+## 2026-05-14 — RAWG DTO: `ratings` / loose object fields as arrays
+
+- **Issue:** Live RAWG search returns `ratings` (and sometimes related keys) as JSON **arrays**; strict `_object_mapping` raised `RawgGameDtoParseError`, surfacing as **502** on `GET /api/catalog/search?provider=rawg&…`.
+- **Change:** `ratings`, `added_by_status`, and `reactions` use `_open_object_or_array` → `RawgOpenObjectOrArray` (`Mapping` proxy or `tuple` from list). `rawg_open_blob_to_plain_json` converts to plain `dict`/`list` for `rawg_game_snapshot_utils` and JSON columns.
+- **Tests:** `backend/src/tests/providers/test_rawg_openapi_dto_ratings_blob.py` (empty list, aggregate list, full list response with list `added_by_status`, `GameSingle` list `reactions`).
+- **Verification:** `ruff` on touched paths; `pytest` on new file + `test_search_rawg_catalog_games_service.py` + `test_catalog_routes.py` — **20 passed**.
+- **Log:** `.cursor/memory/logs/2026-05-14T230000Z-catalog-search-providers-code.md`
 
 ## 2026-05-15 — Final verification (merge-ready check)
 
@@ -97,3 +111,14 @@ docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backe
 - **Verification:** `make backend-lint` → **All checks passed**. `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest src/tests/api/test_cards_routes.py -q` → **53 passed** (~11s).
 - **Env note:** `RawgSettings` requires `RAWG_API_KEY` at app import; use `RAWG_API_KEY` in `vars/.env.development` / `.env.example` (tests: pass `RAWG_API_KEY=test` on `docker compose exec` if the file omits it).
 - **Plan steps 1–8:** Done; step 8 (docs/logs) closed with this update + `docs/features/catalog-search-providers.md` + action-log fragments.
+
+## 2026-05-15 — RAWG live payload + search throttling (final pass)
+
+- **RAWG API shape:** list/search payloads may expose `ratings`, `added_by_status`, `reactions` as JSON **arrays**; OpenAPI DTO layer accepts object-or-array via `_open_object_or_array` / `RawgOpenObjectOrArray`, then `rawg_open_blob_to_plain_json` for snapshots (`rawg_game_snapshot_utils`). Prevents parse failures that surfaced as **502** on `GET /api/catalog/search?provider=rawg`.
+- **Throttling / guardrails:** UI **800 ms** debounce; **≥ 4** trimmed chars before RAWG catalog calls (**≥ 3** for Kinopoisk); `searchCatalog(..., signal)` + React Query **`AbortSignal`** cancellation; backend **`provider=rawg`** rejects shorter `q` with **422** (`test_catalog_search_rawg_query_three_chars_returns_422`).
+- **Host caches (backend/src only):** `find backend/src -type d -name __pycache__ -exec rm -rf {} +` (plus `.pytest_cache` / `.ruff_cache` if present).
+- **Verification**
+  - `make backend-lint` → pass.
+  - `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest src/tests/providers/test_rawg_openapi_dto_ratings_blob.py src/tests/api/test_catalog_routes.py src/tests/services/test_search_rawg_catalog_games_service.py -v` → **20 passed** (~4s).
+  - `cd frontend && npm run lint && npm run build` → pass.
+- **Logs:** `.cursor/memory/logs/2026-05-15T090000Z-catalog-search-providers-test.md`, `.cursor/memory/logs/2026-05-15T090100Z-catalog-search-providers-docs.md`.

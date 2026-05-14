@@ -360,3 +360,15 @@ async def test_catalog_search_query_too_short_after_trim(async_client: AsyncClie
         params={'provider': 'rawg', 'q': '  xx  '},
     )
     assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_catalog_search_rawg_query_three_chars_returns_422(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=71309)
+    r = await async_client.get(
+        '/api/catalog/search',
+        params={'provider': 'rawg', 'q': 'abc'},
+    )
+    assert r.status_code == 422
+    body = r.json()
+    assert body.get('detail') == 'Query must contain at least 4 non-whitespace characters for RAWG search'

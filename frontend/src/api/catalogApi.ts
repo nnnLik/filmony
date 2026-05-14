@@ -49,19 +49,25 @@ export async function resolveCatalogByProviderUrl(
   })
 }
 
-/** GET /api/catalog/search — `q` на сервере после trim должна быть не короче 3 символов. */
+/**
+ * GET /api/catalog/search — после trim: фильмы (kinopoisk) ≥ 3 символов, игры (rawg) ≥ 4.
+ * Передайте `signal`, чтобы отменять запрос при смене строки или размонтировании (React Query).
+ */
 export async function searchCatalog(params: {
   provider: CatalogSearchProvider
   q: string
   page?: number
   limit?: number
+  signal?: AbortSignal
 }): Promise<CatalogSearchResponse> {
   const sp = new URLSearchParams()
   sp.set('provider', params.provider)
   sp.set('q', params.q.trim())
   sp.set('page', String(params.page ?? 1))
   sp.set('limit', String(params.limit ?? 15))
-  return apiJson<CatalogSearchResponse>(`/api/catalog/search?${sp.toString()}`)
+  return apiJson<CatalogSearchResponse>(`/api/catalog/search?${sp.toString()}`, {
+    signal: params.signal,
+  })
 }
 
 /** Возвращает slug провайдера каталога для URL или `null` (клиент использует legacy `/api/films/resolve`). */

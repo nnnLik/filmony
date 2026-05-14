@@ -12,6 +12,7 @@ from providers.rawg.rawg_openapi_dto import (
     RawgGamePlatformItemDTO,
     RawgGamePlatformMetacriticDTO,
     RawgGameSingleDTO,
+    rawg_open_blob_to_plain_json,
 )
 
 
@@ -44,8 +45,8 @@ def serialize_platform_items(items: tuple[RawgGamePlatformItemDTO, ...]) -> list
 def rawg_game_dto_list_snapshot(dto: RawgGameDTO) -> dict[str, Any]:
     """JSON snapshot compatible with RAWG ``Game`` definition (list/search)."""
 
-    ratings = dict[str, Any](dto.ratings)
-    added_by_status = dict[str, Any](dto.added_by_status)
+    ratings: dict[str, Any] | list[Any] = rawg_open_blob_to_plain_json(dto.ratings)
+    added_by_status: dict[str, Any] | list[Any] = rawg_open_blob_to_plain_json(dto.added_by_status)
     return {
         'id': dto.id,
         'slug': dto.slug,
@@ -72,9 +73,9 @@ def rawg_game_dto_list_snapshot(dto: RawgGameDTO) -> dict[str, Any]:
 def rawg_game_single_snapshot(dto: RawgGameSingleDTO) -> dict[str, Any]:
     """Rich JSON snapshot for RAWG ``GameSingle``."""
 
-    reactions = dict[str, Any](dto.reactions)
-    ratings = dict[str, Any](dto.ratings)
-    added_by_status = dict[str, Any](dto.added_by_status)
+    reactions: dict[str, Any] | list[Any] = rawg_open_blob_to_plain_json(dto.reactions)
+    ratings: dict[str, Any] | list[Any] = rawg_open_blob_to_plain_json(dto.ratings)
+    added_by_status: dict[str, Any] | list[Any] = rawg_open_blob_to_plain_json(dto.added_by_status)
     mplat: list[dict[str, Any]] = [
         {'metascore': m.metascore, 'url': m.url} for m in dto.metacritic_platforms
     ]
@@ -139,8 +140,8 @@ def merge_list_dto_into_game(game: Game, dto: RawgGameDTO, *, synced_at: datetim
     if dto.metacritic is not None:
         game.metacritic = dto.metacritic
 
-    game.ratings_json = dict[str, Any](dto.ratings)
-    game.added_by_status_json = dict[str, Any](dto.added_by_status)
+    game.ratings_json = rawg_open_blob_to_plain_json(dto.ratings)
+    game.added_by_status_json = rawg_open_blob_to_plain_json(dto.added_by_status)
 
     plat = serialize_platform_items(dto.platforms)
     if plat:
@@ -188,9 +189,9 @@ def merge_detail_dto_into_game(game: Game, dto: RawgGameSingleDTO, *, synced_at:
     if dto.tba is not None:
         game.tba = dto.tba
 
-    game.ratings_json = dict[str, Any](dto.ratings)
-    game.reactions_json = dict[str, Any](dto.reactions)
-    game.added_by_status_json = dict[str, Any](dto.added_by_status)
+    game.ratings_json = rawg_open_blob_to_plain_json(dto.ratings)
+    game.reactions_json = rawg_open_blob_to_plain_json(dto.reactions)
+    game.added_by_status_json = rawg_open_blob_to_plain_json(dto.added_by_status)
 
     mplat_rows: list[dict[str, Any]] = [
         {'metascore': m.metascore, 'url': m.url} for m in dto.metacritic_platforms
