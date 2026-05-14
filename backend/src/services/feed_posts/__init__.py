@@ -3,7 +3,7 @@ from .create_feed_post import (
     CreateFeedPostResult,
     CreateFeedPostService,
     FeedPostValidationError,
-    ReferencedMovieCardNotFoundError,
+    ReferencedUserCardNotFoundError,
     SourceCommentForbiddenError,
     SourceCommentNotFoundError,
 )
@@ -25,7 +25,7 @@ __all__ = (
     'FeedPostNotFoundError',
     'FeedPostValidationError',
     'GetFeedPostByIdService',
-    'ReferencedMovieCardNotFoundError',
+    'ReferencedUserCardNotFoundError',
     'SourceCommentForbiddenError',
     'SourceCommentNotFoundError',
     'UploadFeedPostImageService',

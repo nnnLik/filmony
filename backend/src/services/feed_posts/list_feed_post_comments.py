@@ -12,8 +12,8 @@ from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
 from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
-from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
-from services.cards.list_movie_card_comments import MovieCardCommentAuthor
+from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardSnippet
+from services.cards.list_user_card_comments import UserCardCommentAuthor
 from services.feed_posts.get_feed_post_by_id import FeedPostNotFoundError
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
@@ -29,9 +29,9 @@ class FeedPostCommentItem:
     created_at: dt.datetime
     replies_count: int
     total_descendants_count: int
-    author: MovieCardCommentAuthor
+    author: UserCardCommentAuthor
     reactions: ReactionTargetSummary
-    referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    referenced_inline_user_cards: tuple[ReferencedInlineUserCardSnippet, ...] = ()
     referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
 
 
@@ -151,7 +151,7 @@ class ListFeedPostCommentsService:
 
         _, _, fpc_summaries, _ = await GetReactionSummariesForTargetsService(self._session).execute(
             viewer_user_id=viewer_user_id,
-            movie_card_ids=[],
+            user_card_ids=[],
             comment_ids=[],
             feed_post_comment_ids=comment_ids,
             feed_post_ids=[],
@@ -166,7 +166,7 @@ class ListFeedPostCommentsService:
                 created_at=comment.created_at,
                 replies_count=replies_count_by_comment.get(comment.id, 0),
                 total_descendants_count=descendants_count_by_comment.get(comment.id, 0),
-                author=MovieCardCommentAuthor(
+                author=UserCardCommentAuthor(
                     id=user.id,
                     profile_slug=user.profile_slug,
                     username=user.username,
@@ -192,7 +192,7 @@ class ListFeedPostCommentsService:
                 total_descendants_count=it.total_descendants_count,
                 author=it.author,
                 reactions=it.reactions,
-                referenced_movie_cards=ref_lists[i],
+                referenced_inline_user_cards=ref_lists[i],
                 referenced_mentions=men_lists[i],
             )
             for i, it in enumerate(items)

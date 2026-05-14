@@ -15,16 +15,16 @@ from models.user import User
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from services.cards.card_catalog_release_fields import universal_release_year_date
-from services.cards.list_movie_card_comments import MovieCardCommentAuthor
+from services.cards.list_user_card_comments import UserCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardDetails:
+class UserCardDetails:
     id: int
     user_id: UUID
-    card_author: MovieCardCommentAuthor
+    card_author: UserCardCommentAuthor
     provider: CatalogProvider
     external_id: str | None
     film_id: int | None
@@ -53,15 +53,15 @@ class MovieCardDetails:
     is_favorite: bool
 
 
-class MovieCardNotFoundError(Exception):
+class UserCardNotFoundError(Exception):
     pass
 
 
-class GetMovieCardDetailsService:
+class GetUserCardDetailsService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, card_id: int, viewer_user_id: UUID) -> MovieCardDetails:
+    async def execute(self, card_id: int, viewer_user_id: UUID) -> UserCardDetails:
         film_pk = func.coalesce(UserCard.film_id, CatalogItem.film_id)
         row = (
             await self._session.execute(
@@ -74,7 +74,7 @@ class GetMovieCardDetailsService:
             )
         ).one_or_none()
         if row is None:
-            raise MovieCardNotFoundError()
+            raise UserCardNotFoundError()
         card, author, film, game = row
 
         display_title = (card.display_title or '').strip()
@@ -94,7 +94,7 @@ class GetMovieCardDetailsService:
             ),
             GetReactionSummariesForTargetsService(self._session).execute(
                 viewer_user_id=viewer_user_id,
-                movie_card_ids=[card.id],
+                user_card_ids=[card.id],
                 comment_ids=[],
                 feed_post_comment_ids=[],
                 feed_post_ids=[],
@@ -109,10 +109,10 @@ class GetMovieCardDetailsService:
             film_year=film_year_val,
             game_released=game.released if game is not None else None,
         )
-        return MovieCardDetails(
+        return UserCardDetails(
             id=card.id,
             user_id=card.user_id,
-            card_author=MovieCardCommentAuthor(
+            card_author=UserCardCommentAuthor(
                 id=author.id,
                 profile_slug=author.profile_slug,
                 username=author.username,

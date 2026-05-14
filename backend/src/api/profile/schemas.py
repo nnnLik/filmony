@@ -8,9 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from api.cards.schemas import UserCardCategorySnippet
 from models.catalog_item import CatalogProvider
 from models.user import User
-from services.profile.get_user_movie_card_stats import UserMovieCardStats
+from services.profile.get_user_card_stats import UserCardStats
 from services.profile.get_user_profile_counts import UserProfileCounts
-from services.profile.list_user_movie_cards import MovieCardPage
+from services.profile.list_user_cards import UserCardListPage
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
 )
@@ -71,19 +71,19 @@ class MyProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class MovieCardsExportCsvResponse(BaseModel):
+class UserCardsExportCsvResponse(BaseModel):
     status: str = Field(examples=['sent'])
 
 
-class MyMovieCardTagStatItem(BaseModel):
+class MyUserCardTagStatItem(BaseModel):
     tag: str
     use_count: int = Field(..., ge=1)
 
     model_config = ConfigDict(extra='forbid')
 
 
-class MyMovieCardTagStatsResponse(BaseModel):
-    items: list[MyMovieCardTagStatItem] = Field(default_factory=list)
+class MyUserCardTagStatsResponse(BaseModel):
+    items: list[MyUserCardTagStatItem] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -107,7 +107,7 @@ class PublicProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class MovieCardItemResponse(BaseModel):
+class UserCardItemResponse(BaseModel):
     id: int
     film_id: int | None = None
     film_kinopoisk_id: int | None = None
@@ -132,8 +132,8 @@ class MovieCardItemResponse(BaseModel):
     is_favorite: bool = False
 
 
-class MovieCardPageResponse(BaseModel):
-    items: list[MovieCardItemResponse] = Field(default_factory=list)
+class UserCardPageResponse(BaseModel):
+    items: list[UserCardItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
 
 
@@ -205,7 +205,7 @@ class ProfileStatsMovieItemResponse(BaseModel):
     rating: float
 
 
-class UserMovieCardStatsResponse(BaseModel):
+class UserCardStatsApiResponse(BaseModel):
     total_movies: int
     average_rating: float
     rating_distribution: list[RatingDistributionItemResponse] = Field(default_factory=list)
@@ -257,9 +257,9 @@ def build_public_profile_response(user: User, counts: UserProfileCounts) -> Publ
     )
 
 
-def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse:
+def build_user_card_page_response(page: UserCardListPage) -> UserCardPageResponse:
     items = [
-        MovieCardItemResponse(
+        UserCardItemResponse(
             id=item.id,
             film_id=item.film_id,
             film_kinopoisk_id=item.film_kinopoisk_id,
@@ -285,7 +285,7 @@ def build_movie_card_page_response(page: MovieCardPage) -> MovieCardPageResponse
         )
         for item in page.items
     ]
-    return MovieCardPageResponse(items=items, next_cursor=page.next_cursor)
+    return UserCardPageResponse(items=items, next_cursor=page.next_cursor)
 
 
 def build_watchlist_film_page_response(page: WatchlistFilmPage) -> WatchlistFilmPageResponse:
@@ -321,8 +321,8 @@ def build_subscription_list_response(items: list[SubscriptionListItem]) -> Subsc
     )
 
 
-def build_user_movie_card_stats_response(stats: UserMovieCardStats) -> UserMovieCardStatsResponse:
-    return UserMovieCardStatsResponse(
+def build_user_card_stats_response(stats: UserCardStats) -> UserCardStatsApiResponse:
+    return UserCardStatsApiResponse(
         total_movies=stats.total_movies,
         average_rating=stats.average_rating,
         rating_distribution=[

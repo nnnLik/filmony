@@ -22,7 +22,7 @@ class CreateFeedPostInput:
 
     body: str
     image_url: str | None
-    referenced_movie_card_id: int | None
+    referenced_user_card_id: int | None
     source_comment_id: int | None
 
 
@@ -36,7 +36,7 @@ class FeedPostValidationError(Exception):
     """Общая ошибка валидации (пустой контент, несогласованные ссылки)."""
 
 
-class ReferencedMovieCardNotFoundError(Exception):
+class ReferencedUserCardNotFoundError(Exception):
     pass
 
 
@@ -76,7 +76,7 @@ class CreateFeedPostService:
 
     async def execute(self, user_id: UUID, payload: CreateFeedPostInput) -> CreateFeedPostResult:
         body_raw = payload.body.strip() if payload.body else ''
-        ref_card_id = payload.referenced_movie_card_id
+        ref_card_id = payload.referenced_user_card_id
         source_comment_id = payload.source_comment_id
 
         if source_comment_id is not None:
@@ -91,7 +91,7 @@ class CreateFeedPostService:
                 raise SourceCommentForbiddenError
             if ref_card_id is not None and ref_card_id != comment.card_id:
                 raise FeedPostValidationError(
-                    'referenced_movie_card_id does not match comment card'
+                    'referenced user card id does not match comment card'
                 )
             ref_card_id = comment.card_id
             # Одна картинка на пост: при конвертации из комментария берём изображение комментария.
@@ -104,7 +104,7 @@ class CreateFeedPostService:
                 await self._session.execute(select(UserCard.id).where(UserCard.id == ref_card_id))
             ).scalar_one_or_none()
             if exists is None:
-                raise ReferencedMovieCardNotFoundError
+                raise ReferencedUserCardNotFoundError
 
         if body_raw == '' and image_url is None:
             raise FeedPostValidationError('body or image_url is required')

@@ -28,16 +28,16 @@ class CatalogItemNotFoundError(Exception):
     pass
 
 
-class MovieCardAlreadyExistsError(Exception):
+class UserCardAlreadyExistsError(Exception):
     pass
 
 
-class MovieCardValidationError(Exception):
+class UserCardValidationError(Exception):
     pass
 
 
 @dataclass(frozen=True, slots=True)
-class CreateMovieCardInput:
+class CreateUserCardInput:
     rating: float
     company: CardCompany
     mood_before: CardMoodBefore
@@ -58,12 +58,12 @@ class CreateMovieCardInput:
 
 def _normalize_rating(value: float) -> float:
     if not isfinite(value):
-        raise MovieCardValidationError('rating must be finite')
+        raise UserCardValidationError('rating must be finite')
     snapped = round(value * 2) / 2
     if abs(snapped - value) > 1e-8:
-        raise MovieCardValidationError('rating must have 0.5 step')
+        raise UserCardValidationError('rating must have 0.5 step')
     if snapped < 1 or snapped > 10:
-        raise MovieCardValidationError('rating must be in [1, 10]')
+        raise UserCardValidationError('rating must be in [1, 10]')
     return snapped
 
 
@@ -75,21 +75,21 @@ def _normalize_tags(tags: Sequence[str]) -> list[str]:
         if tag == '':
             continue
         if len(tag) > 40:
-            raise MovieCardValidationError('custom tag max length is 40')
+            raise UserCardValidationError('custom tag max length is 40')
         key = tag.lower()
         if key in seen:
             continue
         seen.add(key)
         normalized.append(tag)
     if len(normalized) > 5:
-        raise MovieCardValidationError('max 5 custom tags allowed')
+        raise UserCardValidationError('max 5 custom tags allowed')
     return normalized
 
 
 def _normalize_watch_note(raw: str) -> str:
     s = (raw or '').strip()
     if len(s) > 500:
-        raise MovieCardValidationError('watch note max length is 500')
+        raise UserCardValidationError('watch note max length is 500')
     return s
 
 
@@ -101,14 +101,14 @@ def _normalize_genres(genres: Sequence[str]) -> list[str]:
         if genre == '':
             continue
         if len(genre) > 80:
-            raise MovieCardValidationError('genre max length is 80')
+            raise UserCardValidationError('genre max length is 80')
         key = genre.lower()
         if key in seen:
             continue
         seen.add(key)
         normalized.append(genre)
     if len(normalized) > 20:
-        raise MovieCardValidationError('max 20 genres allowed')
+        raise UserCardValidationError('max 20 genres allowed')
     return normalized
 
 
@@ -119,7 +119,7 @@ def _normalize_catalog_external_id(raw: str | None) -> str | None:
     if s == '':
         return None
     if len(s) > 255:
-        raise MovieCardValidationError('external_id max length is 255')
+        raise UserCardValidationError('external_id max length is 255')
     return s
 
 
@@ -128,7 +128,7 @@ def _normalize_display_summary(raw: str | None) -> str | None:
         return None
     s = raw.strip()
     if len(s) > 8000:
-        raise MovieCardValidationError('display_summary max length is 8000')
+        raise UserCardValidationError('display_summary max length is 8000')
     return s or None
 
 
@@ -139,7 +139,7 @@ def _normalize_optional_url(raw: str | None, *, field: str) -> str | None:
     if s == '':
         return None
     if len(s) > 2048:
-        raise MovieCardValidationError(f'{field} max length is 2048')
+        raise UserCardValidationError(f'{field} max length is 2048')
     return s
 
 
@@ -150,11 +150,11 @@ def _apply_display_from_film(entity: UserCard, film: Film) -> None:
     entity.display_summary = sd
 
 
-class CreateMovieCardService:
+class CreateUserCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, user_id: UUID, payload: CreateMovieCardInput) -> UserCard:
+    async def execute(self, user_id: UUID, payload: CreateUserCardInput) -> UserCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
         watch_note = _normalize_watch_note(payload.watch_note)
@@ -166,7 +166,7 @@ class CreateMovieCardService:
                 self._session
             ).execute(user_id, payload.category_id)
         except ResolveUserCardCategoryIdForOwnerService.CategoryNotFoundForUserError as e:
-            raise MovieCardValidationError('category not found') from e
+            raise UserCardValidationError('category not found') from e
 
         ext_norm = _normalize_catalog_external_id(payload.external_id)
         has_film = payload.film_id is not None
@@ -177,14 +177,14 @@ class CreateMovieCardService:
 
         if payload.provider == CatalogProvider.no_provider:
             if ext_norm is not None:
-                raise MovieCardValidationError('external_id must not be set for no_provider')
+                raise UserCardValidationError('external_id must not be set for no_provider')
             if has_film or has_catalog or has_ke:
-                raise MovieCardValidationError(
+                raise UserCardValidationError(
                     'no_provider cannot be combined with film_id, catalog_item_id, '
                     'or kinopoisk external_id',
                 )
             if not manual_title:
-                raise MovieCardValidationError('display_title is required for no_provider')
+                raise UserCardValidationError('display_title is required for no_provider')
 
         if (
             payload.provider == CatalogProvider.kinopoisk
@@ -192,16 +192,16 @@ class CreateMovieCardService:
             and not has_film
             and not has_catalog
         ):
-            raise MovieCardValidationError(
+            raise UserCardValidationError(
                 'provider kinopoisk requires external_id, '
                 'or omit provider and use film_id/catalog_item_id',
             )
 
         if ext_norm is not None:
             if payload.provider not in (None, CatalogProvider.kinopoisk):
-                raise MovieCardValidationError('external_id is only valid with provider kinopoisk')
+                raise UserCardValidationError('external_id is only valid with provider kinopoisk')
             if payload.provider is None:
-                raise MovieCardValidationError(
+                raise UserCardValidationError(
                     'provider kinopoisk is required when external_id is set'
                 )
 
@@ -209,7 +209,7 @@ class CreateMovieCardService:
 
         modes = int(has_film) + int(has_catalog) + int(has_ke) + int(is_manual)
         if modes != 1:
-            raise MovieCardValidationError(
+            raise UserCardValidationError(
                 'exactly one of: film-backed (film_id), catalog_item_id, '
                 'kinopoisk external subject (provider kinopoisk + external_id), '
                 'or display_title (manual)',
@@ -292,20 +292,20 @@ class CreateMovieCardService:
         custom_tags: list[str],
         watch_note: str,
         genres: list[str],
-        payload: CreateMovieCardInput,
+        payload: CreateUserCardInput,
         display_cover_url: str | None,
         display_summary: str | None,
     ) -> UserCard:
         assert payload.film_id is not None
         if payload.kinopoisk_id is None:
-            raise MovieCardValidationError('kinopoisk_id is required with film_id')
+            raise UserCardValidationError('kinopoisk_id is required with film_id')
 
         film_result = await self._session.execute(select(Film).where(Film.id == payload.film_id))
         film = film_result.scalar_one_or_none()
         if film is None:
             raise FilmNotFoundError
         if film.kinopoisk_id != payload.kinopoisk_id:
-            raise MovieCardValidationError('kinopoisk_id does not match film_id')
+            raise UserCardValidationError('kinopoisk_id does not match film_id')
         if genres != (film.genres or []):
             film.genres = genres
 
@@ -340,7 +340,7 @@ class CreateMovieCardService:
             await self._session.flush()
         except IntegrityError as exc:
             await self._session.rollback()
-            raise MovieCardAlreadyExistsError from exc
+            raise UserCardAlreadyExistsError from exc
 
         await self._session.execute(
             delete(UserWatchlistFilm).where(
@@ -363,7 +363,7 @@ class CreateMovieCardService:
         custom_tags: list[str],
         watch_note: str,
         genres: list[str],
-        payload: CreateMovieCardInput,
+        payload: CreateUserCardInput,
         display_cover_url: str | None,
         display_summary: str | None,
     ) -> UserCard:
@@ -404,9 +404,9 @@ class CreateMovieCardService:
         else:
             mt = (payload.display_title or '').strip()
             if not mt:
-                raise MovieCardValidationError('display_title is required for this catalog item')
+                raise UserCardValidationError('display_title is required for this catalog item')
             if len(mt) > 255:
-                raise MovieCardValidationError('display_title max length is 255')
+                raise UserCardValidationError('display_title max length is 255')
             entity.display_title = mt
             entity.display_cover_url = display_cover_url
             entity.display_summary = display_summary
@@ -423,7 +423,7 @@ class CreateMovieCardService:
             await self._session.flush()
         except IntegrityError as exc:
             await self._session.rollback()
-            raise MovieCardAlreadyExistsError from exc
+            raise UserCardAlreadyExistsError from exc
 
         if film is not None:
             await self._session.execute(
@@ -454,7 +454,7 @@ class CreateMovieCardService:
         mood_after: CardMoodAfter,
     ) -> UserCard:
         if len(title) > 255:
-            raise MovieCardValidationError('display_title max length is 255')
+            raise UserCardValidationError('display_title max length is 255')
 
         entity = UserCard(
             user_id=user_id,
@@ -479,7 +479,7 @@ class CreateMovieCardService:
             await self._session.flush()
         except IntegrityError as exc:
             await self._session.rollback()
-            raise MovieCardAlreadyExistsError from exc
+            raise UserCardAlreadyExistsError from exc
 
         if custom_tags:
             self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])

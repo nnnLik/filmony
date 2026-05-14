@@ -12,14 +12,14 @@ from models.card_comment import CardComment
 from models.user import User
 from models.user_card import UserCard
 from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
-from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
+from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardSnippet
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardCommentAuthor:
+class UserCardCommentAuthor:
     id: UUID
     profile_slug: str
     username: str | None
@@ -30,22 +30,22 @@ class MovieCardCommentAuthor:
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardCommentItem:
+class UserCardCommentItem:
     id: int
-    movie_card_id: int
+    user_card_id: int
     parent_comment_id: int | None
     text: str
     image_url: str | None
     created_at: dt.datetime
     replies_count: int
     total_descendants_count: int
-    author: MovieCardCommentAuthor
+    author: UserCardCommentAuthor
     reactions: ReactionTargetSummary
-    referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    referenced_inline_user_cards: tuple[ReferencedInlineUserCardSnippet, ...] = ()
     referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
 
 
-class MovieCardNotFoundError(Exception):
+class UserCardNotFoundError(Exception):
     pass
 
 
@@ -54,12 +54,12 @@ class CommentNotFoundError(Exception):
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardCommentPage:
-    items: list[MovieCardCommentItem]
+class UserCardCommentPage:
+    items: list[UserCardCommentItem]
     next_cursor: str | None
 
 
-class ListMovieCardCommentsService:
+class ListUserCardCommentsService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -71,12 +71,12 @@ class ListMovieCardCommentsService:
         cursor: int | None,
         limit: int,
         flat: bool = False,
-    ) -> MovieCardCommentPage:
+    ) -> UserCardCommentPage:
         card_exists = (
             await self._session.execute(select(UserCard.id).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card_exists is None:
-            raise MovieCardNotFoundError()
+            raise UserCardNotFoundError()
 
         if parent_comment_id is not None:
             parent_card_id = (
@@ -159,23 +159,23 @@ class ListMovieCardCommentsService:
             self._session
         ).execute(
             viewer_user_id=viewer_user_id,
-            movie_card_ids=[],
+            user_card_ids=[],
             comment_ids=comment_ids,
             feed_post_comment_ids=[],
             feed_post_ids=[],
         )
 
         items = [
-            MovieCardCommentItem(
+            UserCardCommentItem(
                 id=comment.id,
-                movie_card_id=comment.card_id,
+                user_card_id=comment.card_id,
                 parent_comment_id=comment.parent_comment_id,
                 text=comment.text,
                 image_url=comment.image_url,
                 created_at=comment.created_at,
                 replies_count=replies_count_by_comment.get(comment.id, 0),
                 total_descendants_count=descendants_count_by_comment.get(comment.id, 0),
-                author=MovieCardCommentAuthor(
+                author=UserCardCommentAuthor(
                     id=user.id,
                     profile_slug=user.profile_slug,
                     username=user.username,
@@ -191,9 +191,9 @@ class ListMovieCardCommentsService:
         ref_pairs = [(it.author.id, it.text) for it in items]
         ref_lists, men_lists = await batch_resolve_comment_inline_refs(self._session, ref_pairs)
         items = [
-            MovieCardCommentItem(
+            UserCardCommentItem(
                 id=it.id,
-                movie_card_id=it.movie_card_id,
+                user_card_id=it.user_card_id,
                 parent_comment_id=it.parent_comment_id,
                 text=it.text,
                 image_url=it.image_url,
@@ -202,10 +202,10 @@ class ListMovieCardCommentsService:
                 total_descendants_count=it.total_descendants_count,
                 author=it.author,
                 reactions=it.reactions,
-                referenced_movie_cards=ref_lists[i],
+                referenced_inline_user_cards=ref_lists[i],
                 referenced_mentions=men_lists[i],
             )
             for i, it in enumerate(items)
         ]
         next_cursor = str(visible_rows[-1][0].id) if has_more and visible_rows else None
-        return MovieCardCommentPage(items=items, next_cursor=next_cursor)
+        return UserCardCommentPage(items=items, next_cursor=next_cursor)

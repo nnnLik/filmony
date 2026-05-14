@@ -17,20 +17,20 @@ from services.user_card_categories.resolve_user_card_category_id_for_owner impor
 )
 
 
-class MovieCardNotFoundError(Exception):
+class UserCardNotFoundError(Exception):
     pass
 
 
-class MovieCardForbiddenError(Exception):
+class UserCardForbiddenError(Exception):
     pass
 
 
-class MovieCardValidationError(Exception):
+class UserCardValidationError(Exception):
     pass
 
 
 @dataclass(frozen=True, slots=True)
-class UpdateMovieCardInput:
+class UpdateUserCardInput:
     rating: float | None = None
     company: CardCompany | None = None
     mood_before: CardMoodBefore | None = None
@@ -43,19 +43,19 @@ class UpdateMovieCardInput:
 
 def _normalize_rating(value: float) -> float:
     if not isfinite(value):
-        raise MovieCardValidationError('rating must be finite')
+        raise UserCardValidationError('rating must be finite')
     snapped = round(value * 2) / 2
     if abs(snapped - value) > 1e-8:
-        raise MovieCardValidationError('rating must have 0.5 step')
+        raise UserCardValidationError('rating must have 0.5 step')
     if snapped < 1 or snapped > 10:
-        raise MovieCardValidationError('rating must be in [1, 10]')
+        raise UserCardValidationError('rating must be in [1, 10]')
     return snapped
 
 
 def _normalize_watch_note(raw: str) -> str:
     s = raw.strip()
     if len(s) > 500:
-        raise MovieCardValidationError('watch note max length is 500')
+        raise UserCardValidationError('watch note max length is 500')
     return s
 
 
@@ -67,31 +67,31 @@ def _normalize_tags(tags: Sequence[str]) -> list[str]:
         if tag == '':
             continue
         if len(tag) > 40:
-            raise MovieCardValidationError('custom tag max length is 40')
+            raise UserCardValidationError('custom tag max length is 40')
         key = tag.lower()
         if key in seen:
             continue
         seen.add(key)
         normalized.append(tag)
     if len(normalized) > 5:
-        raise MovieCardValidationError('max 5 custom tags allowed')
+        raise UserCardValidationError('max 5 custom tags allowed')
     return normalized
 
 
-class UpdateMovieCardService:
+class UpdateUserCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def execute(
-        self, card_id: int, viewer_user_id: UUID, payload: UpdateMovieCardInput
+        self, card_id: int, viewer_user_id: UUID, payload: UpdateUserCardInput
     ) -> UserCard:
         card = (
             await self._session.execute(select(UserCard).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card is None:
-            raise MovieCardNotFoundError
+            raise UserCardNotFoundError
         if card.user_id != viewer_user_id:
-            raise MovieCardForbiddenError
+            raise UserCardForbiddenError
         if (
             payload.rating is None
             and payload.company is None
@@ -102,7 +102,7 @@ class UpdateMovieCardService:
             and payload.is_favorite is None
             and payload.category_id is None
         ):
-            raise MovieCardValidationError('at least one field must be provided')
+            raise UserCardValidationError('at least one field must be provided')
 
         if payload.category_id is not None:
             try:
@@ -110,7 +110,7 @@ class UpdateMovieCardService:
                     self._session
                 ).execute(viewer_user_id, payload.category_id)
             except ResolveUserCardCategoryIdForOwnerService.CategoryNotFoundForUserError as e:
-                raise MovieCardValidationError('category not found') from e
+                raise UserCardValidationError('category not found') from e
 
         if payload.is_favorite is not None:
             if payload.is_favorite:

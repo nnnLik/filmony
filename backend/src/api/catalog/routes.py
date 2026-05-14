@@ -18,7 +18,7 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
-from services.cards.get_my_movie_card_id_for_film import GetMyMovieCardIdForFilmService
+from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
 from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
@@ -148,7 +148,7 @@ async def resolve_catalog_item(
     except KinopoiskClientError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
-    my_card_id = await GetMyMovieCardIdForFilmService.build(db).execute(viewer.id, film.id)
+    my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
 
     return CatalogResolveResponse(
         catalog_item_id=catalog_item.id,

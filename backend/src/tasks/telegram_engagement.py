@@ -18,12 +18,12 @@ from services.telegram.notify_feed_post_comment_mention import (
 from services.telegram.notify_feed_post_comment_reply import run_notify_feed_post_comment_reply_safe
 from services.telegram.notify_feed_post_mention import run_notify_feed_post_mention_safe
 from services.telegram.notify_feed_post_root_comment import run_notify_feed_post_root_comment_safe
-from services.telegram.notify_movie_card_comment_mention import (
-    run_notify_movie_card_comment_mention_safe,
-)
-from services.telegram.notify_movie_card_root_comment import run_notify_movie_card_root_comment_safe
 from services.telegram.notify_reaction_added import run_notify_reaction_added_safe
-from services.telegram.notify_shared_movie_card import run_deliver_shared_movie_card_safe
+from services.telegram.notify_shared_user_card import run_deliver_shared_user_card_safe
+from services.telegram.notify_user_card_comment_mention import (
+    run_notify_user_card_comment_mention_safe,
+)
+from services.telegram.notify_user_card_root_comment import run_notify_user_card_root_comment_safe
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +52,14 @@ async def _notify_feed_post_mentions_async(
         )
 
 
-async def _notify_movie_card_comment_mentions_async(
+async def _notify_user_card_comment_mentions_async(
     actor_user_id: UUID,
     card_id: int,
     comment_id: int,
     recipient_user_ids: list[UUID],
 ) -> None:
     for rid in recipient_user_ids:
-        await run_notify_movie_card_comment_mention_safe(
+        await run_notify_user_card_comment_mention_safe(
             actor_user_id=actor_user_id,
             card_id=card_id,
             comment_id=comment_id,
@@ -110,7 +110,7 @@ def _register_movie_card_comment_tasks(app: Celery) -> None:
     ) -> None:
         try:
             _run_async_isolated(
-                run_notify_movie_card_root_comment_safe(
+                run_notify_user_card_root_comment_safe(
                     actor_user_id=UUID(actor_user_id),
                     card_id=card_id,
                     comment_text=comment_text,
@@ -188,7 +188,7 @@ def _register_reaction_and_share_tasks(app: Celery) -> None:
     ) -> None:
         try:
             _run_async_isolated(
-                run_deliver_shared_movie_card_safe(
+                run_deliver_shared_user_card_safe(
                     actor_user_id=UUID(actor_user_id),
                     card_id=card_id,
                     recipient_user_id=UUID(recipient_user_id),
@@ -234,7 +234,7 @@ def _register_mention_tasks(app: Celery) -> None:
             if not ids:
                 return
             _run_async_isolated(
-                _notify_movie_card_comment_mentions_async(
+                _notify_user_card_comment_mentions_async(
                     actor_user_id=UUID(actor_user_id),
                     card_id=card_id,
                     comment_id=comment_id,

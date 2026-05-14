@@ -19,17 +19,17 @@ REACTION_REACTORS_EMBED_CAP = 25
 
 
 def _scope_conditions_for_ids(
-    movie_card_ids: list[int],
+    user_card_ids: list[int],
     comment_ids: list[int],
     fp_comment_ids: list[int],
     feed_post_ids: list[int],
 ) -> list:
     scope_conds: list = []
-    if movie_card_ids:
+    if user_card_ids:
         scope_conds.append(
             and_(
                 UserReaction.target_kind == ReactionTargetKind.CARD.value,
-                UserReaction.target_id.in_(movie_card_ids),
+                UserReaction.target_id.in_(user_card_ids),
             )
         )
     if comment_ids:
@@ -141,7 +141,7 @@ class GetReactionSummariesForTargetsService:
         self,
         *,
         viewer_user_id: UUID,
-        movie_card_ids: list[int],
+        user_card_ids: list[int],
         comment_ids: list[int],
         feed_post_comment_ids: list[int] | None = None,
         feed_post_ids: list[int] | None = None,
@@ -154,7 +154,7 @@ class GetReactionSummariesForTargetsService:
         fp_comment_ids = feed_post_comment_ids if feed_post_comment_ids is not None else []
         fpost_ids = feed_post_ids if feed_post_ids is not None else []
         card_out: dict[int, ReactionTargetSummary] = {
-            cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in movie_card_ids
+            cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in user_card_ids
         }
         comment_out: dict[int, ReactionTargetSummary] = {
             cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in comment_ids
@@ -167,7 +167,7 @@ class GetReactionSummariesForTargetsService:
         }
 
         scope_conds = _scope_conditions_for_ids(
-            movie_card_ids, comment_ids, fp_comment_ids, fpost_ids
+            user_card_ids, comment_ids, fp_comment_ids, fpost_ids
         )
         if not scope_conds:
             return card_out, comment_out, feed_post_comment_out, feed_post_out

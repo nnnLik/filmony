@@ -81,7 +81,7 @@ def _decode_rating_cursor(cursor: str, *, desc: bool) -> tuple[float, int] | Non
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardListItem:
+class UserCardListItem:
     id: int
     provider: CatalogProvider
     external_id: str | None
@@ -109,8 +109,8 @@ class MovieCardListItem:
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardPage:
-    items: list[MovieCardListItem]
+class UserCardListPage:
+    items: list[UserCardListItem]
     next_cursor: str | None
 
 
@@ -118,8 +118,8 @@ def _rows_to_items(
     visible_rows: list[tuple[UserCard, Film | None, Game | None]],
     tags_by_card: dict[int, list[str]],
     category_name_by_id: dict[int, str],
-) -> list[MovieCardListItem]:
-    items: list[MovieCardListItem] = []
+) -> list[UserCardListItem]:
+    items: list[UserCardListItem] = []
     for card, film, game in visible_rows:
         display_title = (card.display_title or '').strip()
         film_title = film.title if film is not None else (display_title or 'Untitled')
@@ -133,7 +133,7 @@ def _rows_to_items(
             game_released=game.released if game is not None else None,
         )
         items.append(
-            MovieCardListItem(
+            UserCardListItem(
                 id=card.id,
                 provider=card.provider,
                 external_id=card.external_id,
@@ -163,7 +163,7 @@ def _rows_to_items(
     return items
 
 
-class ListUserMovieCardsService:
+class ListUserCardsService:
     """Paginated movie cards for a profile with optional sort and filters."""
 
     class InvalidCursor(Exception):
@@ -191,7 +191,7 @@ class ListUserMovieCardsService:
         mood_after: str | None = None,
         film_title_search: str | None = None,
         category_id: int | None = None,
-    ) -> MovieCardPage:
+    ) -> UserCardListPage:
         tags = list(tags_all or [])
         title_q = _normalize_film_title_search(film_title_search)
         if category_id is not None:
@@ -296,7 +296,7 @@ class ListUserMovieCardsService:
         mood_after: str | None,
         film_title_search: str | None,
         category_id: int | None,
-    ) -> MovieCardPage:
+    ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
             .select_from(UserCard)
@@ -374,7 +374,7 @@ class ListUserMovieCardsService:
                 next_cursor = _encode_rating_desc_cursor(float(last_card.rating), last_card.id)
             else:
                 next_cursor = _encode_rating_asc_cursor(float(last_card.rating), last_card.id)
-        return MovieCardPage(items=items, next_cursor=next_cursor)
+        return UserCardListPage(items=items, next_cursor=next_cursor)
 
     async def _execute_favorites(
         self,
@@ -391,7 +391,7 @@ class ListUserMovieCardsService:
         mood_after: str | None,
         film_title_search: str | None,
         category_id: int | None,
-    ) -> MovieCardPage:
+    ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
             .select_from(UserCard)
@@ -483,7 +483,7 @@ class ListUserMovieCardsService:
                 marked = last_card.favorite_marked_at
                 if marked is not None:
                     next_cursor = _encode_favorites_cursor(marked, last_card.id)
-        return MovieCardPage(items=items, next_cursor=next_cursor)
+        return UserCardListPage(items=items, next_cursor=next_cursor)
 
     async def _load_tags(self, card_ids: list[int]) -> dict[int, list[str]]:
         tags_by_card: dict[int, list[str]] = {}
@@ -515,7 +515,7 @@ class ListUserMovieCardsService:
             names[int(cid)] = str(name)
         return names
 
-    async def list_all_for_user(self, user_id: UUID) -> list[MovieCardListItem]:
+    async def list_all_for_user(self, user_id: UUID) -> list[UserCardListItem]:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
             .select_from(UserCard)

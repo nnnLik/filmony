@@ -149,7 +149,7 @@ function FeedPostCardBody({
           type="button"
           size="s"
           mode="plain"
-          className="!-ms-1 !mt-0.5 !min-h-8 !justify-start !px-1 !text-xs font-semibold"
+          className="-ms-1! mt-0.5! min-h-8! justify-start! px-1! text-xs! font-semibold"
           onMouseDown={stopPostNav}
           onClick={(e) => {
             stopPostNavClick(e)
@@ -164,7 +164,7 @@ function FeedPostCardBody({
           type="button"
           size="s"
           mode="plain"
-          className="!-ms-1 !mt-0.5 !min-h-8 !justify-start !px-1 !text-xs font-semibold"
+          className="-ms-1! mt-0.5! min-h-8! justify-start! px-1! text-xs! font-semibold"
           onMouseDown={stopPostNav}
           onClick={(e) => {
             stopPostNavClick(e)
@@ -414,7 +414,9 @@ export function FeedPostCard({
       ? {
           role: 'button' as const,
           tabIndex: 0,
-          onClick: () => void navigate(postHref, { state: { fromFeed: true } }),
+          onClick: () => {
+            void navigate(postHref, { state: { fromFeed: true } })
+          },
           onKeyDown: (ev: KeyboardEvent) => {
             if (ev.key === 'Enter' || ev.key === ' ') {
               ev.preventDefault()
@@ -453,7 +455,7 @@ export function FeedPostCard({
           >
             <span
               title="Комментарии"
-              className="max-w-[5.5rem] truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
+              className="max-w-22 truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
             >
               Комментарии
             </span>

@@ -111,7 +111,7 @@ def _truncate_caption(raw: str, max_len: int = 1000) -> str:
 
 
 @dataclass
-class DeliverSharedMovieCardTelegramService:
+class DeliverSharedUserCardTelegramService:
     """Формирует DM с контекстом карточки; постер скачивается на сервере и уходит в Telegram как файл."""
 
     async def execute(
@@ -203,7 +203,7 @@ class DeliverSharedMovieCardTelegramService:
         return cls()
 
 
-async def run_deliver_shared_movie_card_safe(
+async def run_deliver_shared_user_card_safe(
     *,
     actor_user_id: UUID,
     card_id: int,
@@ -211,7 +211,7 @@ async def run_deliver_shared_movie_card_safe(
     share_comment: str = '',
 ) -> None:
     try:
-        await DeliverSharedMovieCardTelegramService.build().execute(
+        await DeliverSharedUserCardTelegramService.build().execute(
             actor_user_id=actor_user_id,
             card_id=card_id,
             recipient_user_id=recipient_user_id,

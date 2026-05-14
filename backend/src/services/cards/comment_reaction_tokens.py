@@ -7,9 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.reaction_type import ReactionType
-from services.cards.inline_movie_card_ref_tokens import (
-    MovieCardRefTokenValidationError,
-    validate_inline_movie_card_refs_for_author,
+from services.cards.inline_user_card_ref_tokens import (
+    InlineUserCardRefTokenValidationError,
+    validate_inline_user_card_refs_for_author,
 )
 from services.profile.validate_inline_mention_tokens import (
     MentionTokenValidationError,
@@ -60,10 +60,10 @@ async def validate_comment_text_with_reaction_tokens(
             raise CommentReactionTokenError('unknown reaction type in comment')
 
     try:
-        await validate_inline_movie_card_refs_for_author(
+        await validate_inline_user_card_refs_for_author(
             body, session, author_user_id=author_user_id
         )
-    except MovieCardRefTokenValidationError as e:
+    except InlineUserCardRefTokenValidationError as e:
         raise CommentReactionTokenError(str(e)) from e
 
     try:

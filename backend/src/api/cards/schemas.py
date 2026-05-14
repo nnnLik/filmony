@@ -109,7 +109,7 @@ class CardResponse(BaseModel):
     is_favorite: bool = False
 
 
-class ReferencedInlineMovieCardSnippetResponse(BaseModel):
+class ReferencedInlineUserCardSnippetResponse(BaseModel):
     movie_card_id: int
     film_title: str
     film_year: int | None = None
@@ -137,7 +137,7 @@ class WatchedInlinePickerListResponse(BaseModel):
     items: list[WatchedInlinePickerRowResponse] = Field(default_factory=list)
 
 
-class MovieCardCommentAuthorResponse(BaseModel):
+class UserCardCommentAuthorResponse(BaseModel):
     id: UUID
     profile_slug: str
     username: str | None
@@ -150,7 +150,7 @@ class MovieCardCommentAuthorResponse(BaseModel):
 class CardDetailResponse(BaseModel):
     id: int
     user_id: UUID
-    card_author: MovieCardCommentAuthorResponse
+    card_author: UserCardCommentAuthorResponse
     film_id: int | None = None
     film_kinopoisk_id: int | None = None
     film_genres: list[str] = Field(default_factory=list)
@@ -179,7 +179,7 @@ class CardDetailResponse(BaseModel):
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
 
 
-class MovieCardDetailResponse(CardDetailResponse):
+class UserCardDetailResponse(CardDetailResponse):
     """Полная карточка (GET /cards/:id): синопсис из БД, не отдаётся в ленте."""
 
     film_short_description: str | None = None
@@ -199,7 +199,7 @@ class CardUpdateRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
-class MovieCardCommentResponse(BaseModel):
+class UserCardCommentResponse(BaseModel):
     id: int
     movie_card_id: int
     parent_comment_id: int | None
@@ -208,9 +208,9 @@ class MovieCardCommentResponse(BaseModel):
     created_at: datetime
     replies_count: int = 0
     total_descendants_count: int = 0
-    author: MovieCardCommentAuthorResponse
+    author: UserCardCommentAuthorResponse
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
-    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+    referenced_movie_cards: list[ReferencedInlineUserCardSnippetResponse] = Field(
         default_factory=list,
         description='Сниппеты фильмов для токенов ⟦c{id}⟧ в тексте (порядок первых вхождений id)',
     )
@@ -220,12 +220,12 @@ class MovieCardCommentResponse(BaseModel):
     )
 
 
-class MovieCardCommentListResponse(BaseModel):
-    items: list[MovieCardCommentResponse]
+class UserCardCommentListResponse(BaseModel):
+    items: list[UserCardCommentResponse]
     next_cursor: str | None = None
 
 
-class MovieCardCommentCreateRequest(BaseModel):
+class UserCardCommentCreateRequest(BaseModel):
     text: str = Field(default='', max_length=250)
     parent_comment_id: int | None = Field(default=None, ge=1)
     image_url: str | None = Field(default=None, max_length=2048)
@@ -233,7 +233,7 @@ class MovieCardCommentCreateRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     @model_validator(mode='after')
-    def require_text_or_image(self) -> MovieCardCommentCreateRequest:
+    def require_text_or_image(self) -> UserCardCommentCreateRequest:
         if self.text.strip() == '' and (
             self.image_url is None or str(self.image_url).strip() == ''
         ):
@@ -258,11 +258,11 @@ FeedCardSource = Literal[
 ]
 
 
-class MovieCardFeedItemResponse(CardDetailResponse):
+class UserCardFeedItemResponse(CardDetailResponse):
     kind: Literal['movie_card'] = 'movie_card'
     feed_source: FeedCardSource
     comments_count: int
-    comments_preview: list[MovieCardCommentResponse] = Field(default_factory=list)
+    comments_preview: list[UserCardCommentResponse] = Field(default_factory=list)
 
 
 class FeedPostReferencedCardResponse(BaseModel):
@@ -285,9 +285,9 @@ class FeedPostCommentPreviewResponse(BaseModel):
     created_at: datetime
     replies_count: int = 0
     total_descendants_count: int = 0
-    author: MovieCardCommentAuthorResponse
+    author: UserCardCommentAuthorResponse
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
-    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+    referenced_movie_cards: list[ReferencedInlineUserCardSnippetResponse] = Field(
         default_factory=list,
     )
     referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(
@@ -299,8 +299,8 @@ class FeedPostSourceCommentSnippetResponse(BaseModel):
     id: int
     text: str
     image_url: str | None = None
-    author: MovieCardCommentAuthorResponse
-    referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+    author: UserCardCommentAuthorResponse
+    referenced_movie_cards: list[ReferencedInlineUserCardSnippetResponse] = Field(
         default_factory=list,
     )
     referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(default_factory=list)
@@ -310,7 +310,7 @@ class FeedPostFeedItemResponse(BaseModel):
     kind: Literal['feed_post'] = 'feed_post'
     id: int
     user_id: UUID
-    author: MovieCardCommentAuthorResponse
+    author: UserCardCommentAuthorResponse
     body: str
     image_url: str | None
     referenced_movie_card_id: int | None
@@ -321,7 +321,7 @@ class FeedPostFeedItemResponse(BaseModel):
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
     comments_count: int = 0
     comments_preview: list[FeedPostCommentPreviewResponse] = Field(default_factory=list)
-    body_referenced_movie_cards: list[ReferencedInlineMovieCardSnippetResponse] = Field(
+    body_referenced_movie_cards: list[ReferencedInlineUserCardSnippetResponse] = Field(
         default_factory=list,
     )
     body_referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(
@@ -330,10 +330,10 @@ class FeedPostFeedItemResponse(BaseModel):
     source_comment: FeedPostSourceCommentSnippetResponse | None = None
 
 
-FeedPageItemResponse = MovieCardFeedItemResponse | FeedPostFeedItemResponse
+FeedPageItemResponse = UserCardFeedItemResponse | FeedPostFeedItemResponse
 
 
-class MovieCardFeedPageResponse(BaseModel):
+class UserCardFeedPageResponse(BaseModel):
     items: list[FeedPageItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
     feed_head_version: int = Field(

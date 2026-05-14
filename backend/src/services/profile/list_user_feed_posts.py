@@ -14,8 +14,8 @@ from models.game import Game
 from models.user import User
 from models.user_card import UserCard
 from services.cards.card_catalog_release_fields import universal_release_year_date
-from services.cards.list_movie_card_comments import MovieCardCommentAuthor
-from services.cards.list_movie_card_feed import (
+from services.cards.list_user_card_comments import UserCardCommentAuthor
+from services.cards.list_user_card_feed import (
     FeedPostFeedItem,
     FeedPostReferencedCardSnippet,
     attach_feed_post_list_engagement,
@@ -132,7 +132,7 @@ class ListUserFeedPostsService:
                 )
                 ref_poster = fl.poster_url if fl is not None else mc.display_cover_url
                 ref_snippet = FeedPostReferencedCardSnippet(
-                    movie_card_id=int(mc.id),
+                    user_card_id=int(mc.id),
                     film_title=ref_title,
                     film_year=fy,
                     release_year=release_year,
@@ -140,7 +140,7 @@ class ListUserFeedPostsService:
                     film_poster_url=ref_poster,
                     rating=float(mc.rating),
                 )
-            author = MovieCardCommentAuthor(
+            author = UserCardCommentAuthor(
                 id=author_user.id,
                 profile_slug=author_user.profile_slug,
                 username=author_user.username,
@@ -156,7 +156,7 @@ class ListUserFeedPostsService:
                     author=author,
                     body=fp.body or '',
                     image_url=fp.image_url,
-                    referenced_movie_card_id=int(rid) if rid is not None else None,
+                    referenced_user_card_id=int(rid) if rid is not None else None,
                     source_comment_id=int(fp.source_comment_id)
                     if fp.source_comment_id is not None
                     else None,

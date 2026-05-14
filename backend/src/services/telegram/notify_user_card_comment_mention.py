@@ -39,7 +39,7 @@ def _snippet_from_comment_text(body: str, max_len: int = 160) -> str:
 
 
 @dataclass
-class NotifyTelegramMovieCardCommentMentionService:
+class NotifyTelegramUserCardCommentMentionService:
     """Sends a Telegram DM when a card comment @mentions the recipient."""
 
     async def execute(
@@ -83,7 +83,7 @@ class NotifyTelegramMovieCardCommentMentionService:
         return cls()
 
 
-async def run_notify_movie_card_comment_mention_safe(
+async def run_notify_user_card_comment_mention_safe(
     *,
     actor_user_id: UUID,
     card_id: int,
@@ -91,7 +91,7 @@ async def run_notify_movie_card_comment_mention_safe(
     recipient_user_id: UUID,
 ) -> None:
     try:
-        await NotifyTelegramMovieCardCommentMentionService.build().execute(
+        await NotifyTelegramUserCardCommentMentionService.build().execute(
             actor_user_id=actor_user_id,
             card_id=card_id,
             comment_id=comment_id,

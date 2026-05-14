@@ -9,21 +9,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.cards.feed_post_feed_mapping import (
     feed_post_feed_item_to_response,
     inline_mention_snippets_to_response,
-    inline_movie_card_snippets_to_response,
+    inline_user_card_snippets_to_response,
 )
 from api.cards.schemas import (
     FeedPostFeedItemResponse,
-    MovieCardCommentAuthorResponse,
-    MovieCardCommentResponse,
-    MovieCardFeedItemResponse,
-    MovieCardFeedPageResponse,
     UserCardCategorySnippet,
+    UserCardCommentAuthorResponse,
+    UserCardCommentResponse,
+    UserCardFeedItemResponse,
+    UserCardFeedPageResponse,
 )
 from api.reactions.schemas import reaction_target_summary_to_response
 from core.database import get_db
 from deps.auth import CurrentUser
-from services.cards.list_movie_card_comments import MovieCardCommentItem
-from services.cards.list_movie_card_feed import FeedPostFeedItem, MovieCardFeedItem
+from services.cards.list_user_card_comments import UserCardCommentItem
+from services.cards.list_user_card_feed import FeedPostFeedItem, UserCardFeedItem
 from services.feed.global_feed_head_broker import (
     get_global_feed_head_version,
     iter_global_feed_head_sse,
@@ -33,17 +33,17 @@ from services.feed.list_global_feed import GlobalFeedKind, ListGlobalFeedService
 router = APIRouter(prefix='/feed', tags=['feed'])
 
 
-def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentResponse:
-    return MovieCardCommentResponse(
+def _comment_item_to_response(item: UserCardCommentItem) -> UserCardCommentResponse:
+    return UserCardCommentResponse(
         id=item.id,
-        movie_card_id=item.movie_card_id,
+        movie_card_id=item.user_card_id,
         parent_comment_id=item.parent_comment_id,
         text=item.text,
         image_url=item.image_url,
         created_at=item.created_at,
         replies_count=item.replies_count,
         total_descendants_count=item.total_descendants_count,
-        author=MovieCardCommentAuthorResponse(
+        author=UserCardCommentAuthorResponse(
             id=item.author.id,
             profile_slug=item.author.profile_slug,
             username=item.author.username,
@@ -53,27 +53,27 @@ def _comment_item_to_response(item: MovieCardCommentItem) -> MovieCardCommentRes
             display_name=item.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
-        referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(item.referenced_inline_user_cards),
         referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
 
 def _global_feed_domain_to_response(
-    page_items: list[MovieCardFeedItem | FeedPostFeedItem],
+    page_items: list[UserCardFeedItem | FeedPostFeedItem],
     next_cursor: str | None,
     *,
     feed_head_version: int,
-) -> MovieCardFeedPageResponse:
-    out_items: list[MovieCardFeedItemResponse | FeedPostFeedItemResponse] = []
+) -> UserCardFeedPageResponse:
+    out_items: list[UserCardFeedItemResponse | FeedPostFeedItemResponse] = []
     for item in page_items:
         if isinstance(item, FeedPostFeedItem):
             out_items.append(feed_post_feed_item_to_response(item))
             continue
         out_items.append(
-            MovieCardFeedItemResponse(
+            UserCardFeedItemResponse(
                 id=item.id,
                 user_id=item.user_id,
-                card_author=MovieCardCommentAuthorResponse(
+                card_author=UserCardCommentAuthorResponse(
                     id=item.card_author.id,
                     profile_slug=item.card_author.profile_slug,
                     username=item.card_author.username,
@@ -110,7 +110,7 @@ def _global_feed_domain_to_response(
                 is_favorite=item.is_favorite,
             )
         )
-    return MovieCardFeedPageResponse(
+    return UserCardFeedPageResponse(
         items=out_items,
         next_cursor=next_cursor,
         feed_head_version=feed_head_version,
@@ -119,7 +119,7 @@ def _global_feed_domain_to_response(
 
 @router.get(
     '/global',
-    response_model=MovieCardFeedPageResponse,
+    response_model=UserCardFeedPageResponse,
     summary='Глобальная лента (карточки и/или посты по времени)',
 )
 async def list_global_feed(
@@ -135,7 +135,7 @@ async def list_global_feed(
         default=False,
         description='Исключить из выдачи посты и карточки текущего пользователя',
     ),
-) -> MovieCardFeedPageResponse:
+) -> UserCardFeedPageResponse:
     page = await ListGlobalFeedService.build(db).execute(
         viewer.id,
         kind,

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.user_card import UserCard
 
 
-class GetMyMovieCardIdForFilmService:
+class GetMyUserCardIdForLinkedFilmService:
     """Looks up the viewer's rated card for a catalog film, if any."""
 
     def __init__(self, session: AsyncSession) -> None:

@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.cards.feed_post_feed_mapping import (
     feed_post_feed_item_to_response,
     inline_mention_snippets_to_response,
-    inline_movie_card_snippets_to_response,
+    inline_user_card_snippets_to_response,
 )
-from api.cards.schemas import FeedPostFeedItemResponse, MovieCardCommentAuthorResponse
+from api.cards.schemas import FeedPostFeedItemResponse, UserCardCommentAuthorResponse
 from api.feed_posts.schemas import (
     FeedPostCommentCreateRequest,
     FeedPostCommentListResponse,
@@ -33,7 +33,7 @@ from deps.auth import CurrentUser
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
-from services.cards.inline_movie_card_ref_tokens import batch_resolve_inline_movie_card_refs
+from services.cards.inline_user_card_ref_tokens import batch_resolve_inline_user_card_refs
 from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.feed_posts import (
     FEED_POST_IMAGE_MAX_BYTES,
@@ -42,7 +42,7 @@ from services.feed_posts import (
     FeedPostImageUploadError,
     FeedPostNotFoundError,
     FeedPostValidationError,
-    ReferencedMovieCardNotFoundError,
+    ReferencedUserCardNotFoundError,
     SourceCommentForbiddenError,
     SourceCommentNotFoundError,
     UploadFeedPostImageService,
@@ -82,7 +82,7 @@ def _feed_post_comment_item_to_response(item: FeedPostCommentItem) -> FeedPostCo
         created_at=item.created_at,
         replies_count=item.replies_count,
         total_descendants_count=item.total_descendants_count,
-        author=MovieCardCommentAuthorResponse(
+        author=UserCardCommentAuthorResponse(
             id=a.id,
             profile_slug=a.profile_slug,
             username=a.username,
@@ -92,7 +92,7 @@ def _feed_post_comment_item_to_response(item: FeedPostCommentItem) -> FeedPostCo
             display_name=a.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
-        referenced_movie_cards=inline_movie_card_snippets_to_response(item.referenced_movie_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(item.referenced_inline_user_cards),
         referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
@@ -110,12 +110,12 @@ async def _load_feed_post_comment_response(
     comment, author = row
     _, _, rx, _ = await GetReactionSummariesForTargetsService(db).execute(
         viewer_user_id=viewer_user_id,
-        movie_card_ids=[],
+        user_card_ids=[],
         comment_ids=[],
         feed_post_comment_ids=[comment.id],
         feed_post_ids=[],
     )
-    (snips,) = await batch_resolve_inline_movie_card_refs(db, [(author.id, comment.text or '')])
+    (snips,) = await batch_resolve_inline_user_card_refs(db, [(author.id, comment.text or '')])
     (mens,) = await batch_resolve_inline_mentions(db, [comment.text or ''])
     return FeedPostCommentResponse(
         id=comment.id,
@@ -125,7 +125,7 @@ async def _load_feed_post_comment_response(
         created_at=comment.created_at,
         replies_count=0,
         total_descendants_count=0,
-        author=MovieCardCommentAuthorResponse(
+        author=UserCardCommentAuthorResponse(
             id=author.id,
             profile_slug=author.profile_slug,
             username=author.username,
@@ -135,7 +135,7 @@ async def _load_feed_post_comment_response(
             display_name=author.display_name,
         ),
         reactions=reaction_target_summary_to_response(rx[comment.id]),
-        referenced_movie_cards=inline_movie_card_snippets_to_response(snips),
+        referenced_movie_cards=inline_user_card_snippets_to_response(snips),
         referenced_mentions=inline_mention_snippets_to_response(mens),
     )
 
@@ -240,13 +240,13 @@ async def create_feed_post(
             CreateFeedPostInput(
                 body=payload.body,
                 image_url=payload.image_url,
-                referenced_movie_card_id=payload.referenced_movie_card_id,
+                referenced_user_card_id=payload.referenced_movie_card_id,
                 source_comment_id=payload.source_comment_id,
             ),
         )
     except FeedPostValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    except ReferencedMovieCardNotFoundError:
+    except ReferencedUserCardNotFoundError:
         raise HTTPException(status_code=400, detail='referenced movie card not found') from None
     except SourceCommentNotFoundError:
         raise HTTPException(status_code=404, detail='source comment not found') from None

@@ -13,15 +13,15 @@ from models.user_subscription import UserSubscription
 
 
 @dataclass(frozen=True, slots=True)
-class ShareMovieCardOutcome:
+class ShareUserCardOutcome:
     recipient_ids: tuple[UUID, ...]
 
 
-class MovieCardNotFoundForShareError(Exception):
+class UserCardNotFoundForShareError(Exception):
     pass
 
 
-class ShareMovieCardForbiddenError(Exception):
+class ShareUserCardForbiddenError(Exception):
     pass
 
 
@@ -40,7 +40,7 @@ class ShareRecipientsNotFollowersError(Exception):
 _MAX_RECIPIENTS = 100
 
 
-class ShareMovieCardService:
+class ShareUserCardService:
     """Проверяет владельца карточки и что все адресаты — подписчики автора."""
 
     def __init__(self, session: AsyncSession) -> None:
@@ -51,7 +51,7 @@ class ShareMovieCardService:
         actor_user_id: UUID,
         card_id: int,
         recipient_user_ids: list[UUID],
-    ) -> ShareMovieCardOutcome:
+    ) -> ShareUserCardOutcome:
         unique = tuple(dict.fromkeys(recipient_user_ids))
         if len(unique) == 0:
             raise ShareRecipientsEmptyError
@@ -60,9 +60,9 @@ class ShareMovieCardService:
 
         card = await self._session.get(UserCard, card_id)
         if card is None:
-            raise MovieCardNotFoundForShareError()
+            raise UserCardNotFoundForShareError()
         if card.user_id != actor_user_id:
-            raise ShareMovieCardForbiddenError()
+            raise ShareUserCardForbiddenError()
 
         stmt = select(UserSubscription.follower_user_id).where(
             UserSubscription.following_user_id == actor_user_id,
@@ -73,4 +73,4 @@ class ShareMovieCardService:
         if len(found) != len(unique):
             raise ShareRecipientsNotFollowersError()
 
-        return ShareMovieCardOutcome(recipient_ids=unique)
+        return ShareUserCardOutcome(recipient_ids=unique)

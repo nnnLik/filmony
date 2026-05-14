@@ -1,5 +1,12 @@
 # catalog-search-providers — progress
 
+## 2026-05-14 — Backend card-first symbol rename (MovieCard → UserCard internals)
+
+- **Scope:** Python-only cleanup: service/DTO/API schema class names, module filenames under `services/cards`, profile card listing, Telegram notify modules, reaction summary parameter `user_card_ids`, inline ref snippet `ReferencedInlineUserCardSnippet` (`user_card_id`, `catalog_title`, `catalog_release_year`), feed merge state `tail_linked_film_ids` (cursor JSON still uses `tail_films` / `seen_cards` keys).
+- **Preserved contracts:** DB tables/columns (`movie_card`, `referenced_movie_card_id`, …), HTTP JSON field names where clients depend on them (`movie_card_id`, `film_title`, `referenced_movie_cards`, feed `kind: movie_card`), `ReactionTargetKind` wire values, Celery **task name strings** unchanged.
+- **Tests / lint:** `make backend-fix`, `make backend-lint`; `docker compose … pytest` — **267 passed** (`RAWG_API_KEY=test`).
+- **Log:** `.cursor/memory/logs/2026-05-14T183000Z-catalog-search-providers-code.md`
+
 ## 2026-05-15 — Universal release fields (films vs RAWG games)
 
 - **Problem:** Game cards showed «Год неизвестен» from legacy `film_year` while RAWG subtitle/date appeared only in `display_summary`.

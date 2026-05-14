@@ -27,8 +27,8 @@ from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardC
 from models.user_subscription import UserSubscription
 from services.cards.batch_resolve_comment_inline_refs import batch_resolve_comment_inline_refs
 from services.cards.card_catalog_release_fields import universal_release_year_date
-from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
-from services.cards.list_movie_card_comments import MovieCardCommentAuthor, MovieCardCommentItem
+from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardSnippet
+from services.cards.list_user_card_comments import UserCardCommentAuthor, UserCardCommentItem
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
@@ -120,7 +120,7 @@ async def _load_feed_post_engagement_maps(
                 created_at=created_at,
                 replies_count=0,
                 total_descendants_count=0,
-                author=MovieCardCommentAuthor(
+                author=UserCardCommentAuthor(
                     id=author_row.id,
                     profile_slug=author_row.profile_slug,
                     username=author_row.username,
@@ -135,7 +135,7 @@ async def _load_feed_post_engagement_maps(
 
     _, _, fpc_rx, fp_rx = await GetReactionSummariesForTargetsService(session).execute(
         viewer_user_id=viewer_user_id,
-        movie_card_ids=[],
+        user_card_ids=[],
         comment_ids=[],
         feed_post_comment_ids=preview_comment_ids,
         feed_post_ids=post_ids,
@@ -178,13 +178,13 @@ async def enrich_feed_post_items_for_feed_paths(
             mens = preview_men_list[snip_i]
             snip_i += 1
             upgraded.append(
-                replace(c, referenced_movie_cards=snips, referenced_mentions=mens),
+                replace(c, referenced_inline_user_cards=snips, referenced_mentions=mens),
             )
         out.append(
             replace(
                 it,
                 comments_preview=tuple(upgraded),
-                body_referenced_movie_cards=body_snips_list[idx],
+                body_referenced_inline_user_cards=body_snips_list[idx],
                 body_referenced_mentions=body_men_list[idx],
             ),
         )
@@ -226,7 +226,7 @@ async def enrich_feed_posts_source_comments(
 
     snippet_by_comment_id: dict[int, FeedPostSourceCommentSnippet] = {}
     for i, (sid, comm, usr) in enumerate(pair_meta):
-        author = MovieCardCommentAuthor(
+        author = UserCardCommentAuthor(
             id=usr.id,
             profile_slug=usr.profile_slug,
             username=usr.username,
@@ -240,7 +240,7 @@ async def enrich_feed_posts_source_comments(
             text=comm.text or '',
             image_url=comm.image_url,
             author=author,
-            referenced_movie_cards=snips_list[i],
+            referenced_inline_user_cards=snips_list[i],
             referenced_mentions=mens_list[i],
         )
 
@@ -303,7 +303,7 @@ async def attach_feed_post_list_engagement(
             snips = preview_snips_list[snip_i]
             mens = preview_men_list[snip_i]
             snip_i += 1
-            upgraded.append(replace(c, referenced_movie_cards=snips, referenced_mentions=mens))
+            upgraded.append(replace(c, referenced_inline_user_cards=snips, referenced_mentions=mens))
         upgraded_by_post[pid] = tuple(upgraded)
 
     merged = [
@@ -312,7 +312,7 @@ async def attach_feed_post_list_engagement(
             reactions=fp_rx[it.id],
             comments_count=counts_by_post.get(it.id, 0),
             comments_preview=upgraded_by_post.get(it.id, ()),
-            body_referenced_movie_cards=body_snips_list[idx],
+            body_referenced_inline_user_cards=body_snips_list[idx],
             body_referenced_mentions=body_men_list[idx],
         )
         for idx, it in enumerate(items)
@@ -343,10 +343,10 @@ def _parse_cursor_offsets(off: Any) -> dict[str, int] | None:
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardFeedItem:
+class UserCardFeedItem:
     id: int
     user_id: UUID
-    card_author: MovieCardCommentAuthor
+    card_author: UserCardCommentAuthor
     provider: CatalogProvider
     external_id: str | None
     film_id: int | None
@@ -368,7 +368,7 @@ class MovieCardFeedItem:
     watch_note: str
     custom_tags: list[str]
     comments_count: int
-    comments_preview: list[MovieCardCommentItem]
+    comments_preview: list[UserCardCommentItem]
     reactions: ReactionTargetSummary
     feed_source: const.feed.StreamName
     is_favorite: bool
@@ -378,7 +378,7 @@ class MovieCardFeedItem:
 
 @dataclass(frozen=True, slots=True)
 class FeedPostReferencedCardSnippet:
-    movie_card_id: int
+    user_card_id: int
     film_title: str
     film_year: int | None
     release_year: int | None
@@ -394,8 +394,8 @@ class FeedPostSourceCommentSnippet:
     id: int
     text: str
     image_url: str | None
-    author: MovieCardCommentAuthor
-    referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    author: UserCardCommentAuthor
+    referenced_inline_user_cards: tuple[ReferencedInlineUserCardSnippet, ...] = ()
     referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
 
 
@@ -403,10 +403,10 @@ class FeedPostSourceCommentSnippet:
 class FeedPostFeedItem:
     id: int
     user_id: UUID
-    author: MovieCardCommentAuthor
+    author: UserCardCommentAuthor
     body: str
     image_url: str | None
-    referenced_movie_card_id: int | None
+    referenced_user_card_id: int | None
     source_comment_id: int | None
     created_at: dt.datetime
     feed_source: const.feed.StreamName
@@ -414,16 +414,16 @@ class FeedPostFeedItem:
     reactions: ReactionTargetSummary = field(default_factory=_empty_reaction_summary)
     comments_count: int = 0
     comments_preview: tuple[FeedPostCommentItem, ...] = ()
-    body_referenced_movie_cards: tuple[ReferencedInlineMovieCardSnippet, ...] = ()
+    body_referenced_inline_user_cards: tuple[ReferencedInlineUserCardSnippet, ...] = ()
     body_referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
     source_comment: FeedPostSourceCommentSnippet | None = None
 
 
-FeedPageEntry = MovieCardFeedItem | FeedPostFeedItem
+FeedPageEntry = UserCardFeedItem | FeedPostFeedItem
 
 
 @dataclass(frozen=True, slots=True)
-class MovieCardFeedPage:
+class UserCardFeedPage:
     items: list[FeedPageEntry]
     next_cursor: str | None
 
@@ -435,7 +435,7 @@ class _MergeState:
     seen_cards: set[int]
     seen_posts: set[int]
     tail_author_ids: list[str]
-    tail_film_ids: list[int]
+    tail_linked_film_ids: list[int]
     feed_mode: FeedMode
 
     @classmethod
@@ -446,7 +446,7 @@ class _MergeState:
             seen_cards=set(),
             seen_posts=set(),
             tail_author_ids=[],
-            tail_film_ids=[],
+            tail_linked_film_ids=[],
             feed_mode=feed_mode,
         )
 
@@ -484,7 +484,7 @@ class _MergeState:
             seen_cards=seen_cards,
             seen_posts=seen_posts,
             tail_author_ids=[str(x) for x in ta],
-            tail_film_ids=[int(x) for x in tf],
+            tail_linked_film_ids=[int(x) for x in tf],
             feed_mode=raw_mode,
         )
 
@@ -503,7 +503,7 @@ class _MergeState:
             'seen_cards': sc_list,
             'seen_posts': sp_list,
             'tail_authors': list(self.tail_author_ids),
-            'tail_films': list(self.tail_film_ids),
+            'tail_films': list(self.tail_linked_film_ids),
             'mode': self.feed_mode,
         }
 
@@ -514,7 +514,7 @@ class _MergeState:
             seen_cards=set(self.seen_cards),
             seen_posts=set(self.seen_posts),
             tail_author_ids=list(self.tail_author_ids),
-            tail_film_ids=list(self.tail_film_ids),
+            tail_linked_film_ids=list(self.tail_linked_film_ids),
             feed_mode=self.feed_mode,
         )
 
@@ -544,7 +544,7 @@ def _decode_cursor(cursor: str | None) -> _MergeState | None:
     return _MergeState.from_cursor_payload(data)
 
 
-class ListMovieCardFeedService:
+class ListUserCardFeedService:
     """Собирает персональную ленту: карточки фильмов и текстовые посты из нескольких потоков."""
 
     def __init__(self, session: AsyncSession) -> None:
@@ -557,7 +557,7 @@ class ListMovieCardFeedService:
         limit: int,
         *,
         feed_mode: FeedMode = 'default',
-    ) -> MovieCardFeedPage:
+    ) -> UserCardFeedPage:
         decoded = _decode_cursor(cursor)
         if decoded is not None and decoded.feed_mode != feed_mode:
             merge_state = _MergeState.initial(feed_mode)
@@ -597,7 +597,7 @@ class ListMovieCardFeedService:
                 post_ids_order.append(item_id)
                 source_by_post[item_id] = src
 
-        async def _cards_branch() -> list[MovieCardFeedItem]:
+        async def _cards_branch() -> list[UserCardFeedItem]:
             visible_rows = await self._load_card_rows_ordered(card_ids_order)
             return await self._hydrate_feed_items(viewer_user_id, visible_rows, source_by_card)
 
@@ -623,7 +623,7 @@ class ListMovieCardFeedService:
                 items.append(post_by_id[item_id])
 
         next_cursor: str | None = _encode_cursor(next_state) if has_more else None
-        return MovieCardFeedPage(items=items, next_cursor=next_cursor)
+        return UserCardFeedPage(items=items, next_cursor=next_cursor)
 
     def _streams_for_mode(
         self,
@@ -873,11 +873,11 @@ class ListMovieCardFeedService:
         else:
             st.seen_cards.add(cid)
         st.tail_author_ids.append(str(uid))
-        st.tail_film_ids.append(fid)
+        st.tail_linked_film_ids.append(fid)
         k = const.feed.ANTI_SPAM_WINDOW
         if len(st.tail_author_ids) > k:
             st.tail_author_ids = st.tail_author_ids[-k:]
-            st.tail_film_ids = st.tail_film_ids[-k:]
+            st.tail_linked_film_ids = st.tail_linked_film_ids[-k:]
         st.slot_index += 1
         kind: Literal['card', 'post'] = 'post' if is_post else 'card'
         return kind, cid, stream_name
@@ -918,7 +918,7 @@ class ListMovieCardFeedService:
             return True
         if film_id <= 0:
             return False
-        tail = st.tail_film_ids[-k:]
+        tail = st.tail_linked_film_ids[-k:]
         return film_id in tail
 
     async def _load_card_rows_ordered(
@@ -944,7 +944,7 @@ class ListMovieCardFeedService:
         viewer_user_id: UUID,
         visible_rows: list[tuple[UserCard, Film | None, Game | None, User]],
         source_by_id: dict[int, const.feed.StreamName],
-    ) -> list[MovieCardFeedItem]:
+    ) -> list[UserCardFeedItem]:
         card_ids = [card.id for card, _film, _game, _author in visible_rows]
 
         cat_ids = list({int(c.category_id) for c, _f, _g, _a in visible_rows})
@@ -985,7 +985,7 @@ class ListMovieCardFeedService:
             for card_id_val, cnt in count_rows:
                 counts_by_card[int(card_id_val)] = int(cnt)
 
-        previews_by_card: dict[int, list[MovieCardCommentItem]] = {cid: [] for cid in card_ids}
+        previews_by_card: dict[int, list[UserCardCommentItem]] = {cid: [] for cid in card_ids}
         if card_ids:
             ranked = (
                 select(
@@ -1023,24 +1023,24 @@ class ListMovieCardFeedService:
             preview_rows = (await self._session.execute(preview_stmt)).all()
             for (
                 cid,
-                movie_card_id,
+                user_card_id,
                 parent_comment_id,
                 text,
                 image_url,
                 created_at,
                 author_row,
             ) in preview_rows:
-                previews_by_card[int(movie_card_id)].append(
-                    MovieCardCommentItem(
+                previews_by_card[int(user_card_id)].append(
+                    UserCardCommentItem(
                         id=int(cid),
-                        movie_card_id=int(movie_card_id),
+                        user_card_id=int(user_card_id),
                         parent_comment_id=parent_comment_id,
                         text=text,
                         image_url=image_url,
                         created_at=created_at,
                         replies_count=0,
                         total_descendants_count=0,
-                        author=MovieCardCommentAuthor(
+                        author=UserCardCommentAuthor(
                             id=author_row.id,
                             profile_slug=author_row.profile_slug,
                             username=author_row.username,
@@ -1062,20 +1062,20 @@ class ListMovieCardFeedService:
             self._session
         ).execute(
             viewer_user_id=viewer_user_id,
-            movie_card_ids=card_ids,
+            user_card_ids=card_ids,
             comment_ids=preview_comment_ids,
             feed_post_comment_ids=[],
             feed_post_ids=[],
         )
 
-        flat_tmps: list[MovieCardCommentItem] = []
+        flat_tmps: list[UserCardCommentItem] = []
         flat_card_ids: list[int] = []
         for card, _film, _game, _card_author_user in visible_rows:
             for p in previews_by_card.get(card.id, []):
                 flat_tmps.append(
-                    MovieCardCommentItem(
+                    UserCardCommentItem(
                         id=p.id,
-                        movie_card_id=p.movie_card_id,
+                        user_card_id=p.user_card_id,
                         parent_comment_id=p.parent_comment_id,
                         text=p.text,
                         image_url=p.image_url,
@@ -1093,14 +1093,14 @@ class ListMovieCardFeedService:
         else:
             ref_all, men_all = [], []
         enriched_flat = [
-            replace(flat_tmps[i], referenced_movie_cards=ref_all[i], referenced_mentions=men_all[i])
+            replace(flat_tmps[i], referenced_inline_user_cards=ref_all[i], referenced_mentions=men_all[i])
             for i in range(len(flat_tmps))
         ]
-        previews_resolved: dict[int, list[MovieCardCommentItem]] = {cid: [] for cid in card_ids}
+        previews_resolved: dict[int, list[UserCardCommentItem]] = {cid: [] for cid in card_ids}
         for i, cid in enumerate(flat_card_ids):
             previews_resolved[cid].append(enriched_flat[i])
 
-        items: list[MovieCardFeedItem] = []
+        items: list[UserCardFeedItem] = []
         for card, film, game, card_author_user in visible_rows:
             preview_with_rx = previews_resolved.get(card.id, [])
             display_title = (card.display_title or '').strip()
@@ -1116,10 +1116,10 @@ class ListMovieCardFeedService:
                 game_released=game.released if game is not None else None,
             )
             items.append(
-                MovieCardFeedItem(
+                UserCardFeedItem(
                     id=card.id,
                     user_id=card.user_id,
-                    card_author=MovieCardCommentAuthor(
+                    card_author=UserCardCommentAuthor(
                         id=card_author_user.id,
                         profile_slug=card_author_user.profile_slug,
                         username=card_author_user.username,
@@ -1222,7 +1222,7 @@ class ListMovieCardFeedService:
                 )
                 ref_poster = fl.poster_url if fl is not None else mc.display_cover_url
                 ref_snippet = FeedPostReferencedCardSnippet(
-                    movie_card_id=int(mc.id),
+                    user_card_id=int(mc.id),
                     film_title=ref_title,
                     film_year=fy,
                     release_year=release_year,
@@ -1230,7 +1230,7 @@ class ListMovieCardFeedService:
                     film_poster_url=ref_poster,
                     rating=float(mc.rating),
                 )
-            author = MovieCardCommentAuthor(
+            author = UserCardCommentAuthor(
                 id=author_user.id,
                 profile_slug=author_user.profile_slug,
                 username=author_user.username,
@@ -1247,7 +1247,7 @@ class ListMovieCardFeedService:
                     author=author,
                     body=fp.body or '',
                     image_url=fp.image_url,
-                    referenced_movie_card_id=int(rid) if rid is not None else None,
+                    referenced_user_card_id=int(rid) if rid is not None else None,
                     source_comment_id=int(fp.source_comment_id)
                     if fp.source_comment_id is not None
                     else None,
@@ -1260,11 +1260,11 @@ class ListMovieCardFeedService:
             self._session, viewer_user_id, items, engagement=snap
         )
 
-    async def hydrate_global_feed_movie_cards(
+    async def hydrate_global_feed_user_cards(
         self,
         viewer_user_id: UUID,
         ordered_card_ids: list[int],
-    ) -> list[MovieCardFeedItem]:
+    ) -> list[UserCardFeedItem]:
         """Публичная глобальная лента: карточки с feed_source=global (без merge-потоков)."""
         if not ordered_card_ids:
             return []

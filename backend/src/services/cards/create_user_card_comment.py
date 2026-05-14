@@ -12,17 +12,17 @@ from services.cards.comment_reaction_tokens import (
     CommentReactionTokenError,
     validate_comment_text_with_reaction_tokens,
 )
-from services.cards.movie_card_comment_image_url import normalize_movie_card_comment_image_url
+from services.cards.user_card_comment_image_url import normalize_user_card_comment_image_url
 
 
 @dataclass(frozen=True, slots=True)
-class CreateMovieCardCommentInput:
+class CreateUserCardCommentInput:
     text: str
     parent_comment_id: int | None
     image_url: str | None = None
 
 
-class MovieCardNotFoundError(Exception):
+class UserCardNotFoundError(Exception):
     pass
 
 
@@ -34,12 +34,12 @@ class ParentCommentMismatchError(Exception):
     pass
 
 
-class MovieCardCommentValidationError(Exception):
+class UserCardCommentValidationError(Exception):
     pass
 
 
 @dataclass(frozen=True, slots=True)
-class CreateMovieCardCommentResult:
+class CreateUserCardCommentResult:
     comment: CardComment
     mentioned_user_ids: tuple[UUID, ...]
 
@@ -52,10 +52,10 @@ async def _normalize_text(
             value, session, author_user_id=author_user_id
         )
     except CommentReactionTokenError as e:
-        raise MovieCardCommentValidationError(str(e)) from e
+        raise UserCardCommentValidationError(str(e)) from e
 
 
-class CreateMovieCardCommentService:
+class CreateUserCardCommentService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -63,16 +63,16 @@ class CreateMovieCardCommentService:
         self,
         card_id: int,
         user_id: UUID,
-        payload: CreateMovieCardCommentInput,
-    ) -> CreateMovieCardCommentResult:
+        payload: CreateUserCardCommentInput,
+    ) -> CreateUserCardCommentResult:
         try:
-            image_url = normalize_movie_card_comment_image_url(payload.image_url)
+            image_url = normalize_user_card_comment_image_url(payload.image_url)
         except ValueError as e:
-            raise MovieCardCommentValidationError(str(e)) from e
+            raise UserCardCommentValidationError(str(e)) from e
 
         text_stripped = payload.text.strip()
         if text_stripped == '' and image_url is None:
-            raise MovieCardCommentValidationError('text or image_url is required')
+            raise UserCardCommentValidationError('text or image_url is required')
 
         if text_stripped == '':
             text_final = ''
@@ -86,17 +86,17 @@ class CreateMovieCardCommentService:
             await self._session.execute(select(UserCard.id).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card is None:
-            raise MovieCardNotFoundError()
+            raise UserCardNotFoundError()
 
         if payload.parent_comment_id is not None:
-            parent_movie_card_id = (
+            parent_user_card_id = (
                 await self._session.execute(
                     select(CardComment.card_id).where(CardComment.id == payload.parent_comment_id)
                 )
             ).scalar_one_or_none()
-            if parent_movie_card_id is None:
+            if parent_user_card_id is None:
                 raise ParentCommentNotFoundError()
-            if parent_movie_card_id != card_id:
+            if parent_user_card_id != card_id:
                 raise ParentCommentMismatchError()
 
         comment = CardComment(
@@ -109,4 +109,4 @@ class CreateMovieCardCommentService:
         self._session.add(comment)
         await self._session.commit()
         await self._session.refresh(comment)
-        return CreateMovieCardCommentResult(comment=comment, mentioned_user_ids=mentioned_user_ids)
+        return CreateUserCardCommentResult(comment=comment, mentioned_user_ids=mentioned_user_ids)

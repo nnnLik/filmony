@@ -139,7 +139,7 @@ class SetOrToggleUserReactionService:
             self._session
         ).execute(
             viewer_user_id=user_id,
-            movie_card_ids=cards,
+            user_card_ids=cards,
             comment_ids=comments,
             feed_post_comment_ids=feed_post_comments,
             feed_post_ids=feed_posts,

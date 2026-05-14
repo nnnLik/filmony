@@ -31,7 +31,7 @@ def _format_actor_display(user: User) -> str:
 
 
 @dataclass
-class NotifyTelegramMovieCardRootCommentService:
+class NotifyTelegramUserCardRootCommentService:
     """Отправляет DM владельцу карточки, когда оставлен корневой комментарий (не ответ)."""
 
     async def execute(
@@ -87,14 +87,14 @@ class NotifyTelegramMovieCardRootCommentService:
         return cls()
 
 
-async def run_notify_movie_card_root_comment_safe(
+async def run_notify_user_card_root_comment_safe(
     *,
     actor_user_id: UUID,
     card_id: int,
     comment_text: str,
 ) -> None:
     try:
-        await NotifyTelegramMovieCardRootCommentService.build().execute(
+        await NotifyTelegramUserCardRootCommentService.build().execute(
             actor_user_id=actor_user_id,
             card_id=card_id,
             comment_text=comment_text,

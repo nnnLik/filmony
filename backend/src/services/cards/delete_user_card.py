@@ -8,15 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.user_card import UserCard
 
 
-class MovieCardNotFoundError(Exception):
+class UserCardNotFoundError(Exception):
     pass
 
 
-class MovieCardForbiddenError(Exception):
+class UserCardForbiddenError(Exception):
     pass
 
 
-class DeleteMovieCardService:
+class DeleteUserCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -25,8 +25,8 @@ class DeleteMovieCardService:
             await self._session.execute(select(UserCard).where(UserCard.id == card_id))
         ).scalar_one_or_none()
         if card is None:
-            raise MovieCardNotFoundError
+            raise UserCardNotFoundError
         if card.user_id != viewer_user_id:
-            raise MovieCardForbiddenError
+            raise UserCardForbiddenError
         await self._session.delete(card)
         await self._session.commit()

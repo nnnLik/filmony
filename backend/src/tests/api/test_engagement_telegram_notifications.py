@@ -19,7 +19,7 @@ from tests.api.test_reactions_routes import (
 
 _DELIVER_ENGAGEMENT_PATCHES = (
     'services.telegram.notify_comment_reply.deliver_engagement_html_message',
-    'services.telegram.notify_movie_card_root_comment.deliver_engagement_html_message',
+    'services.telegram.notify_user_card_root_comment.deliver_engagement_html_message',
     'services.telegram.notify_feed_post_root_comment.deliver_engagement_html_message',
     'services.telegram.notify_feed_post_comment_reply.deliver_engagement_html_message',
     'services.telegram.notify_reaction_added.deliver_engagement_html_message',

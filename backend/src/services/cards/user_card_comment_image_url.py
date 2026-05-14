@@ -5,7 +5,7 @@ from utils.feed_post_media_key import is_safe_feed_post_media_key
 _MEDIA_PREFIX = '/api/feed-posts/media/'
 
 
-def normalize_movie_card_comment_image_url(raw: str | None) -> str | None:
+def normalize_user_card_comment_image_url(raw: str | None) -> str | None:
     """Strip and validate stored image path for a movie-card comment (same proxy as feed posts)."""
     if raw is None:
         return None

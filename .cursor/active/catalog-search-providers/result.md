@@ -24,7 +24,7 @@
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend full suite | `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest` | **247 passed** (~45s) *earlier recorded full run* |
+| Backend full suite | `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest -q` | **267 passed** *2026-05-14 card-first rename pass* |
 | RAWG DTO + catalog search slice | `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest src/tests/providers/test_rawg_openapi_dto_ratings_blob.py src/tests/api/test_catalog_routes.py src/tests/services/test_search_rawg_catalog_games_service.py -v` | **20 passed** (~4s) *2026-05-15 final pass* |
 | Catalog slice (broader) | Same Docker env, paths: `src/tests/api/test_catalog_routes.py` `src/tests/services/catalog/` `src/tests/services/test_search_rawg_catalog_games_service.py` `src/tests/models/test_game_catalog_schema.py` | **22 passed** *earlier recorded* |
 | Frontend | `cd frontend && npm run lint && npm run build` | **Pass** *2026-05-15 final pass* |
@@ -33,6 +33,8 @@
 | Cards API tests | `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest src/tests/api/test_cards_routes.py` | **53 passed** *earlier recorded* |
 
 ## Known limitations and next steps
+
+- **Legacy naming (intentional):** DB tables/constraints (`movie_card`, `movie_card_comment`), polymorphic reaction/export identifiers (`movie_card`, `movie_card_comment`), several HTTP JSON keys (`movie_card_id`, `film_*`, `referenced_movie_cards`), media subdirectory `movie_card_comments`, RAWG OpenAPI `movies_count`, and Celery task registry names (`tasks.telegram_engagement.notify_movie_card_*`, `deliver_shared_movie_card`) remain for persistence and client/worker compatibility; internals use card-first symbols where refactored.
 
 - **`POST /api/catalog/resolve` (Kinopoisk URL)** kept for legacy / paste flows; search-first is the primary create path for films.
 - **No dedicated public game detail page** in-app; games are discoverable via search and card UX.

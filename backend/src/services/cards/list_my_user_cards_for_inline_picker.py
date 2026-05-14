@@ -14,13 +14,13 @@ from models.user_card import UserCard
 
 
 @dataclass(frozen=True, slots=True)
-class MyMovieCardInlinePickerRow:
-    movie_card_id: int
+class MyUserCardInlinePickerRow:
+    user_card_id: int
     film_title: str
     film_year: int | None
 
 
-class ListMyMovieCardsForInlinePickerService:
+class ListMyUserCardsForInlinePickerService:
     """Returns a capped list of the user's cards filtered by film title on the server."""
 
     _session: AsyncSession
@@ -38,7 +38,7 @@ class ListMyMovieCardsForInlinePickerService:
         *,
         query: str,
         limit: int,
-    ) -> list[MyMovieCardInlinePickerRow]:
+    ) -> list[MyUserCardInlinePickerRow]:
         cap = max(1, min(limit, 80))
         q = query.strip()
         stmt = (
@@ -56,8 +56,8 @@ class ListMyMovieCardsForInlinePickerService:
 
         rows = (await self._session.execute(stmt)).all()
         return [
-            MyMovieCardInlinePickerRow(
-                movie_card_id=int(r[0]), film_title=str(r[1]), film_year=r[2]
+            MyUserCardInlinePickerRow(
+                user_card_id=int(r[0]), film_title=str(r[1]), film_year=r[2]
             )
             for r in rows
         ]

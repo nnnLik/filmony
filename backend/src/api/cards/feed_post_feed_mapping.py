@@ -7,25 +7,25 @@ from api.cards.schemas import (
     FeedPostFeedItemResponse,
     FeedPostReferencedCardResponse,
     FeedPostSourceCommentSnippetResponse,
-    MovieCardCommentAuthorResponse,
-    ReferencedInlineMovieCardSnippetResponse,
+    ReferencedInlineUserCardSnippetResponse,
     ReferencedMentionSnippetResponse,
+    UserCardCommentAuthorResponse,
 )
 from api.reactions.schemas import reaction_target_summary_to_response
-from services.cards.inline_movie_card_ref_tokens import ReferencedInlineMovieCardSnippet
-from services.cards.list_movie_card_feed import FeedPostFeedItem, FeedPostSourceCommentSnippet
+from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardSnippet
+from services.cards.list_user_card_feed import FeedPostFeedItem, FeedPostSourceCommentSnippet
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 
 
-def inline_movie_card_snippets_to_response(
-    seq: tuple[ReferencedInlineMovieCardSnippet, ...],
-) -> list[ReferencedInlineMovieCardSnippetResponse]:
+def inline_user_card_snippets_to_response(
+    seq: tuple[ReferencedInlineUserCardSnippet, ...],
+) -> list[ReferencedInlineUserCardSnippetResponse]:
     return [
-        ReferencedInlineMovieCardSnippetResponse(
-            movie_card_id=s.movie_card_id,
-            film_title=s.film_title,
-            film_year=s.film_year,
+        ReferencedInlineUserCardSnippetResponse(
+            movie_card_id=s.user_card_id,
+            film_title=s.catalog_title,
+            film_year=s.catalog_release_year,
         )
         for s in seq
     ]
@@ -59,7 +59,7 @@ def _feed_post_comment_preview_to_response(
         created_at=c.created_at,
         replies_count=c.replies_count,
         total_descendants_count=c.total_descendants_count,
-        author=MovieCardCommentAuthorResponse(
+        author=UserCardCommentAuthorResponse(
             id=c.author.id,
             profile_slug=c.author.profile_slug,
             username=c.author.username,
@@ -69,7 +69,7 @@ def _feed_post_comment_preview_to_response(
             display_name=c.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(c.reactions),
-        referenced_movie_cards=inline_movie_card_snippets_to_response(c.referenced_movie_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(c.referenced_inline_user_cards),
         referenced_mentions=inline_mention_snippets_to_response(c.referenced_mentions),
     )
 
@@ -81,7 +81,7 @@ def _source_comment_snippet_to_response(
         id=s.id,
         text=s.text,
         image_url=s.image_url,
-        author=MovieCardCommentAuthorResponse(
+        author=UserCardCommentAuthorResponse(
             id=s.author.id,
             profile_slug=s.author.profile_slug,
             username=s.author.username,
@@ -90,7 +90,7 @@ def _source_comment_snippet_to_response(
             photo_url=s.author.photo_url,
             display_name=s.author.display_name,
         ),
-        referenced_movie_cards=inline_movie_card_snippets_to_response(s.referenced_movie_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(s.referenced_inline_user_cards),
         referenced_mentions=inline_mention_snippets_to_response(s.referenced_mentions),
     )
 
@@ -100,7 +100,7 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
     return FeedPostFeedItemResponse(
         id=item.id,
         user_id=item.user_id,
-        author=MovieCardCommentAuthorResponse(
+        author=UserCardCommentAuthorResponse(
             id=item.author.id,
             profile_slug=item.author.profile_slug,
             username=item.author.username,
@@ -111,13 +111,13 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
         ),
         body=item.body,
         image_url=item.image_url,
-        referenced_movie_card_id=item.referenced_movie_card_id,
+        referenced_movie_card_id=item.referenced_user_card_id,
         source_comment_id=item.source_comment_id,
         created_at=item.created_at,
         feed_source=item.feed_source,
         referenced_card=(
             FeedPostReferencedCardResponse(
-                movie_card_id=ref.movie_card_id,
+                movie_card_id=ref.user_card_id,
                 film_title=ref.film_title,
                 film_year=ref.film_year,
                 release_year=ref.release_year,
@@ -131,8 +131,8 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
         reactions=reaction_target_summary_to_response(item.reactions),
         comments_count=item.comments_count,
         comments_preview=[_feed_post_comment_preview_to_response(c) for c in item.comments_preview],
-        body_referenced_movie_cards=inline_movie_card_snippets_to_response(
-            item.body_referenced_movie_cards
+        body_referenced_movie_cards=inline_user_card_snippets_to_response(
+            item.body_referenced_inline_user_cards
         ),
         body_referenced_mentions=inline_mention_snippets_to_response(item.body_referenced_mentions),
         source_comment=(

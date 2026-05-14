@@ -18,7 +18,7 @@ FOLLOWING_RATINGS_TOP_LIMIT = 5
 @dataclass(frozen=True, slots=True)
 class FollowingRatingRow:
     user_id: UUID
-    movie_card_id: int
+    user_card_id: int
     profile_slug: str
     username: str | None
     first_name: str | None
@@ -28,7 +28,7 @@ class FollowingRatingRow:
     rating: float
 
 
-class MovieCardAnchorNotFoundError(Exception):
+class UserCardAnchorNotFoundError(Exception):
     pass
 
 
@@ -40,7 +40,7 @@ class ListFollowingRatingsResult:
     items: list[FollowingRatingRow]
 
 
-class ListFollowingRatingsForMovieCardService:
+class ListFollowingRatingsForUserCardService:
     """Возвращает оценки того же фильма: опционально карточку зрителя и до N подписок.
 
     Подписки — пользователи, на которых зритель подписан, с карточкой на тот же фильм; из этого
@@ -60,7 +60,7 @@ class ListFollowingRatingsForMovieCardService:
             await self._session.execute(select(UserCard).where(UserCard.id == anchor_card_id))
         ).scalar_one_or_none()
         if anchor is None:
-            raise MovieCardAnchorNotFoundError()
+            raise UserCardAnchorNotFoundError()
 
         film_id = anchor.film_id
         catalog_id = anchor.catalog_item_id
@@ -94,10 +94,10 @@ class ListFollowingRatingsForMovieCardService:
             else:
                 vr = None
             if vr is not None:
-                u, rating, movie_card_id = vr
+                u, rating, user_card_id = vr
                 viewer_row = FollowingRatingRow(
                     user_id=u.id,
-                    movie_card_id=int(movie_card_id),
+                    user_card_id=int(user_card_id),
                     profile_slug=u.profile_slug,
                     username=u.username,
                     first_name=u.first_name,
@@ -132,7 +132,7 @@ class ListFollowingRatingsForMovieCardService:
         items = [
             FollowingRatingRow(
                 user_id=u.id,
-                movie_card_id=int(movie_card_id),
+                user_card_id=int(user_card_id),
                 profile_slug=u.profile_slug,
                 username=u.username,
                 first_name=u.first_name,
@@ -141,6 +141,6 @@ class ListFollowingRatingsForMovieCardService:
                 display_name=u.display_name,
                 rating=float(rating),
             )
-            for u, rating, movie_card_id in rows
+            for u, rating, user_card_id in rows
         ]
         return ListFollowingRatingsResult(viewer_row=viewer_row, items=items)

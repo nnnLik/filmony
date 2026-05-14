@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-14T183000Z-catalog-search-providers-code.md`
 - `2026-05-15T100000Z-catalog-search-providers-code.md`
 - `2026-05-14T235500Z-catalog-search-providers-code.md`
 - `2026-05-15T090100Z-catalog-search-providers-docs.md`

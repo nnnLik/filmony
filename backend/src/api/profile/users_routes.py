@@ -10,17 +10,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
 from api.cards.schemas import UserFeedPostsPageResponse
 from api.profile.schemas import (
-    MovieCardPageResponse,
-    MyMovieCardTagStatItem,
-    MyMovieCardTagStatsResponse,
+    MyUserCardTagStatItem,
+    MyUserCardTagStatsResponse,
     PublicProfileResponse,
     SubscriptionListResponse,
-    UserMovieCardStatsResponse,
+    UserCardPageResponse,
+    UserCardStatsApiResponse,
     WatchlistFilmPageResponse,
-    build_movie_card_page_response,
     build_public_profile_response,
     build_subscription_list_response,
-    build_user_movie_card_stats_response,
+    build_user_card_page_response,
+    build_user_card_stats_response,
     build_watchlist_film_page_response,
 )
 from core.database import get_db
@@ -28,11 +28,11 @@ from deps.auth import CurrentUser
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
-from services.profile.get_user_movie_card_stats import GetUserMovieCardStatsService
+from services.profile.get_user_card_stats import GetUserCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
-from services.profile.list_my_movie_card_tag_stats import ListMyMovieCardTagStatsService
+from services.profile.list_my_user_card_tag_stats import ListMyUserCardTagStatsService
+from services.profile.list_user_cards import ListUserCardsService
 from services.profile.list_user_feed_posts import ListUserFeedPostsService
-from services.profile.list_user_movie_cards import ListUserMovieCardsService
 from services.subscriptions.create_user_subscription import (
     CreateUserSubscriptionService,
     SelfSubscriptionError,
@@ -118,7 +118,7 @@ async def get_user_by_id(
 
 @router.get(
     '/{user_id}/movie-card-tags',
-    response_model=MyMovieCardTagStatsResponse,
+    response_model=MyUserCardTagStatsResponse,
     summary='Кастомные теги с карточек пользователя (частота) — для фильтра в профиле',
 )
 async def list_user_movie_card_tags(
@@ -126,20 +126,20 @@ async def list_user_movie_card_tags(
     _viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     limit: int = Query(default=200, ge=1, le=500),
-) -> MyMovieCardTagStatsResponse:
+) -> MyUserCardTagStatsResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
     cap = min(limit, 500)
-    rows = await ListMyMovieCardTagStatsService(db).execute(user_id, limit=cap)
-    return MyMovieCardTagStatsResponse(
-        items=[MyMovieCardTagStatItem(tag=r.tag, use_count=r.use_count) for r in rows]
+    rows = await ListMyUserCardTagStatsService(db).execute(user_id, limit=cap)
+    return MyUserCardTagStatsResponse(
+        items=[MyUserCardTagStatItem(tag=r.tag, use_count=r.use_count) for r in rows]
     )
 
 
 @router.get(
     '/{user_id}/cards',
-    response_model=MovieCardPageResponse,
+    response_model=UserCardPageResponse,
     summary='Карточки фильмов пользователя (пагинация)',
 )
 async def list_user_cards(
@@ -175,7 +175,7 @@ async def list_user_cards(
         max_length=120,
         description='Подстрока в названии фильма (только карточки этого пользователя, без внешних API)',
     ),
-) -> MovieCardPageResponse:
+) -> UserCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
@@ -187,7 +187,7 @@ async def list_user_cards(
     mood_before_val = mood_before.value if mood_before is not None else None
     mood_after_val = mood_after.value if mood_after is not None else None
     try:
-        page = await ListUserMovieCardsService(db).execute(
+        page = await ListUserCardsService(db).execute(
             user_id,
             cursor,
             cap,
@@ -202,11 +202,11 @@ async def list_user_cards(
             film_title_search=film_title,
             category_id=category_id,
         )
-    except ListUserMovieCardsService.InvalidCursor:
+    except ListUserCardsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None
-    except ListUserMovieCardsService.InvalidCategoryFilter:
+    except ListUserCardsService.InvalidCategoryFilter:
         raise HTTPException(status_code=422, detail='invalid category for user') from None
-    return build_movie_card_page_response(page)
+    return build_user_card_page_response(page)
 
 
 @router.get(
@@ -257,19 +257,19 @@ async def list_user_feed_posts(
 
 @router.get(
     '/{user_id}/stats',
-    response_model=UserMovieCardStatsResponse,
+    response_model=UserCardStatsApiResponse,
     summary='Агрегированная статистика карточек фильмов пользователя',
 )
 async def get_user_movie_card_stats(
     user_id: UUID,
     _viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> UserMovieCardStatsResponse:
+) -> UserCardStatsApiResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
-    stats = await GetUserMovieCardStatsService(db).execute(user_id)
-    return build_user_movie_card_stats_response(stats)
+    stats = await GetUserCardStatsService(db).execute(user_id)
+    return build_user_card_stats_response(stats)
 
 
 @router.post(

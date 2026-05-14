@@ -12,7 +12,7 @@ from typing import Self
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
-from services.profile.list_user_movie_cards import ListUserMovieCardsService, MovieCardListItem
+from services.profile.list_user_cards import ListUserCardsService, UserCardListItem
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 
 
@@ -25,7 +25,7 @@ def _safe_export_filename_slug(profile_slug: str) -> str:
     return s
 
 
-def _movie_cards_to_csv_bytes(items: list[MovieCardListItem]) -> bytes:
+def _movie_cards_to_csv_bytes(items: list[UserCardListItem]) -> bytes:
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(
@@ -73,7 +73,7 @@ def _movie_cards_to_csv_bytes(items: list[MovieCardListItem]) -> bytes:
 
 
 @dataclass
-class ExportMyMovieCardsCsvTelegramService:
+class ExportMyUserCardsCsvTelegramService:
     """Builds a UTF-8 CSV of all movie cards for one user and sends it as a Telegram document.
 
     Used from the profile screen so the user receives a portable dump in their chat with the bot.
@@ -87,7 +87,7 @@ class ExportMyMovieCardsCsvTelegramService:
         return cls(_session=session, _telegram=SendTelegramBotMessageService.build())
 
     async def execute(self, user: User) -> None:
-        items = await ListUserMovieCardsService(self._session).list_all_for_user(user.id)
+        items = await ListUserCardsService(self._session).list_all_for_user(user.id)
         csv_bytes = _movie_cards_to_csv_bytes(items)
         today = dt.datetime.now(dt.UTC).strftime('%Y%m%d')
         slug = _safe_export_filename_slug(user.profile_slug)

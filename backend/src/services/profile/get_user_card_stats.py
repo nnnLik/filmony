@@ -47,7 +47,7 @@ class ProfileMovieStatsItem:
 
 
 @dataclass(frozen=True, slots=True)
-class UserMovieCardStats:
+class UserCardStats:
     total_movies: int
     average_rating: float
     rating_distribution: list[RatingDistributionItem]
@@ -59,11 +59,11 @@ class UserMovieCardStats:
     worst_movies: list[ProfileMovieStatsItem]
 
 
-class GetUserMovieCardStatsService:
+class GetUserCardStatsService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, user_id: UUID) -> UserMovieCardStats:
+    async def execute(self, user_id: UUID) -> UserCardStats:
         card_rows = (
             await self._session.execute(
                 select(
@@ -144,7 +144,7 @@ class GetUserMovieCardStatsService:
         sorted_by_top = sorted(movies, key=lambda item: (-item.rating, item.card_id))
         sorted_by_worst = sorted(movies, key=lambda item: (item.rating, item.card_id))
 
-        return UserMovieCardStats(
+        return UserCardStats(
             total_movies=total_movies,
             average_rating=average_rating,
             rating_distribution=rating_distribution,
