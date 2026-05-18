@@ -62,6 +62,9 @@ from services.feed_posts.list_feed_post_comments import (
 )
 from services.profile.batch_resolve_inline_mentions import batch_resolve_inline_mentions
 from services.reactions import GetReactionSummariesForTargetsService
+from services.subscriptions.list_follower_user_ids_for_following_user import (
+    ListFollowerUserIdsForFollowingUserService,
+)
 from utils.feed_post_media_key import is_safe_feed_post_media_key
 from utils.rustfs_get_object import (
     RustfsClientError,
@@ -263,6 +266,18 @@ async def create_feed_post(
             recipient_user_ids_json=orjson.dumps(
                 [str(x) for x in created.mentioned_user_ids]
             ).decode(),
+        )
+
+    exclude = frozenset(created.mentioned_user_ids) if created.mentioned_user_ids else None
+    follower_ids = await ListFollowerUserIdsForFollowingUserService.build(db).execute(
+        user.id,
+        exclude_user_ids=exclude,
+    )
+    if follower_ids:
+        celery_application.tasks['tasks.telegram_engagement.notify_followers_new_feed_post'].delay(
+            actor_user_id=str(user.id),
+            feed_post_id=post.id,
+            recipient_user_ids_json=orjson.dumps([str(x) for x in follower_ids]).decode(),
         )
 
     await bump_global_feed_head_version()

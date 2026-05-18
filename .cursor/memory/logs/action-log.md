@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-18T011500Z-followed-content-notifications-code.md`
+- `2026-05-18T004500Z-followed-content-notifications-docs.md`
 - `2026-05-14T200000Z-catalog-search-providers-docs.md`
 - `2026-05-14T183000Z-catalog-search-providers-code.md`
 - `2026-05-15T100000Z-catalog-search-providers-code.md`

@@ -121,6 +121,9 @@ from services.feed_posts import (
 )
 from services.profile.batch_resolve_inline_mentions import batch_resolve_inline_mentions
 from services.reactions import GetReactionSummariesForTargetsService
+from services.subscriptions.list_follower_user_ids_for_following_user import (
+    ListFollowerUserIdsForFollowingUserService,
+)
 
 router = APIRouter(prefix='/cards', tags=['cards'])
 
@@ -337,6 +340,13 @@ async def create_card(
         .all()
     )
     await bump_global_feed_head_version()
+    follower_ids = await ListFollowerUserIdsForFollowingUserService.build(db).execute(user.id)
+    if follower_ids:
+        celery_application.tasks['tasks.telegram_engagement.notify_followers_new_user_card'].delay(
+            actor_user_id=str(user.id),
+            card_id=card.id,
+            recipient_user_ids_json=orjson.dumps([str(x) for x in follower_ids]).decode(),
+        )
     return await _card_response_from_user_card(db, card, list(tags))
 
 

@@ -1836,3 +1836,69 @@ async def test_patch_card_rejects_other_users_category_id(async_client: AsyncCli
         json={'category_id': foreign_cat_id},
     )
     assert patch_bad.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_card_queues_follower_publish_notify(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    task = celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_user_card']
+    monkeypatch.setattr(task, 'delay', mock_delay)
+
+    author = await _login(async_client, telegram_user_id=762)
+    follower = await _login(async_client, telegram_user_id=763)
+    await _login(async_client, telegram_user_id=763)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=762)
+    film = await _create_film(kinopoisk_id=762_001)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    cid = int(r.json()['id'])
+
+    mock_delay.assert_called_once()
+    kwargs = mock_delay.call_args.kwargs
+    assert kwargs['actor_user_id'] == author['id']
+    assert kwargs['card_id'] == cid
+    listed = orjson.loads(kwargs['recipient_user_ids_json'])
+    assert listed == [str(follower['id'])]
+
+
+@pytest.mark.asyncio
+async def test_create_card_no_followers_skips_follower_notify(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    task = celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_user_card']
+    monkeypatch.setattr(task, 'delay', mock_delay)
+
+    await _login(async_client, telegram_user_id=770)
+    film = await _create_film(kinopoisk_id=770_001)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    mock_delay.assert_not_called()
