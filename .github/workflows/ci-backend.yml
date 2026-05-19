@@ -62,6 +62,7 @@ jobs:
       TG_APP_TOKEN: ci-placeholder-token
       KINOPOISK_API_KEY: ci-placeholder-key
       KINOPOISK_API_BASE_URL: https://kinopoiskapiunofficial.tech/api
+      RAWG_API_KEY: test
     steps:
       - uses: actions/checkout@v6
 
