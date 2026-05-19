@@ -17,6 +17,13 @@ type MovieCardAudioPlayerProps = {
   /** Для визуализации на постере: передаётся смонтированный `<audio>`. */
   onAttachedAudioElement?: (element: HTMLAudioElement | null) => void
   /**
+   * Лента: один общий `<audio>` в `FeedCardGlobalAudioProvider` — локальный тег не монтируем.
+   */
+  feedGlobal?: {
+    paused: boolean
+    onToggle: () => void
+  }
+  /**
    * `compact` — один ряд поменьше для оверлея на постере (play заметнее, download вторичнее).
    */
   variant?: 'default' | 'compact'
@@ -27,35 +34,44 @@ export function MovieCardAudioPlayer({
   cardId,
   audioUrl,
   onAttachedAudioElement,
+  feedGlobal,
   variant = 'default',
   className,
 }: MovieCardAudioPlayerProps) {
   const src = movieCardAudioSrc(audioUrl)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const usesFeedGlobal = feedGlobal != null
 
   useLayoutEffect(() => {
+    if (usesFeedGlobal) {
+      return
+    }
     onAttachedAudioElement?.(audioRef.current)
     return () => {
       onAttachedAudioElement?.(null)
     }
-  }, [src, onAttachedAudioElement])
-  const [paused, setPaused] = useState(true)
+  }, [usesFeedGlobal, src, onAttachedAudioElement])
+  const [localPaused, setLocalPaused] = useState(true)
+  const paused = usesFeedGlobal ? feedGlobal.paused : localPaused
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [telegramOk, setTelegramOk] = useState<string | null>(null)
 
   useEffect(() => {
+    if (usesFeedGlobal) {
+      return
+    }
     const el = audioRef.current
     if (el == null) return
-    const onPlay = () => setPaused(false)
-    const onPause = () => setPaused(true)
+    const onPlay = () => setLocalPaused(false)
+    const onPause = () => setLocalPaused(true)
     el.addEventListener('play', onPlay)
     el.addEventListener('pause', onPause)
     return () => {
       el.removeEventListener('play', onPlay)
       el.removeEventListener('pause', onPause)
     }
-  }, [src])
+  }, [src, usesFeedGlobal])
 
   useEffect(() => {
     if (telegramOk == null) return
@@ -68,10 +84,14 @@ export function MovieCardAudioPlayer({
   }, [telegramOk])
 
   const toggle = useCallback(() => {
-    const el = audioRef.current
-    if (el == null) return
     setDownloadError(null)
     setTelegramOk(null)
+    if (usesFeedGlobal) {
+      feedGlobal.onToggle()
+      return
+    }
+    const el = audioRef.current
+    if (el == null) return
     if (el.paused) {
       el.muted = false
       void el.play().catch(() => {
@@ -80,7 +100,7 @@ export function MovieCardAudioPlayer({
     } else {
       el.pause()
     }
-  }, [])
+  }, [feedGlobal, usesFeedGlobal])
 
   const onSendToTelegram = useCallback(async () => {
     setDownloadError(null)
@@ -161,15 +181,17 @@ export function MovieCardAudioPlayer({
             aria-hidden
           />
         </IconButton>
-        <audio
-          key={src}
-          ref={audioRef}
-          src={src}
-          preload="metadata"
-          playsInline
-          crossOrigin="anonymous"
-          className="hidden"
-        />
+        {usesFeedGlobal ? null : (
+          <audio
+            key={src}
+            ref={audioRef}
+            src={src}
+            preload="metadata"
+            playsInline
+            crossOrigin="anonymous"
+            className="hidden"
+          />
+        )}
       </div>
       {telegramOk != null ? (
         <p

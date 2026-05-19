@@ -28,6 +28,7 @@ import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
 import { readFeedScrollSnapshot, saveFeedScrollSnapshot } from '../lib/feedScrollRestore'
+import { FeedCardGlobalAudioProvider } from '../context/FeedCardGlobalAudioProvider'
 import { consumeGlobalFeedHeadSse } from '../lib/globalFeedSse'
 import {
   isGlobalFeedCardDetailOpened,
@@ -327,6 +328,7 @@ export function FeedPage() {
   const authPending = auth.kind === 'loading'
 
   return (
+    <FeedCardGlobalAudioProvider>
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="px-4 pb-3 pt-3">
@@ -499,5 +501,6 @@ export function FeedPage() {
         />
       ) : null}
     </div>
+    </FeedCardGlobalAudioProvider>
   )
 }

@@ -39,8 +39,12 @@ import {
   formatCommentTime,
   MOOD_AFTER_SHORT,
   MOOD_BEFORE_SHORT,
+  ratingPalette,
   snippetPreview,
 } from './feedCardUtils'
+import { MovieCardAudioPlayer } from '../cards/MovieCardAudioPlayer'
+import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVisualizer'
+import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -89,6 +93,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   /** Карточка с `is_favorite`: второй бейдж «Особая карточка» в шапке (свои и чужие в ленте). */
   const authorFavoriteRibbon = Boolean(card.is_favorite)
   const hasAttachedAudio = card.audio_url != null && card.audio_url.trim() !== ''
+  const feedAudio = useFeedCardGlobalAudio()
+  const audioUrlTrimmed = (card.audio_url ?? '').trim()
+  const ratingRingPalette = useMemo(() => ratingPalette(card.rating), [card.rating])
+  const isThisCardActive = feedAudio.playingCardId === card.id
+  const playerPaused = !isThisCardActive || feedAudio.paused
   const sourceBadgeText = useMemo(
     () => feedCardSourceBadge(card, viewerUserId ?? null),
     [card, viewerUserId],
@@ -301,40 +310,72 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
         ) : null}
         <CardCategoryChip category={card.category} className="max-w-[min(100%,10rem)] shrink-0" />
       </div>
-      {/* Главная зона: постер отступает от краёв карточки, клик ведёт на страницу карточки */}
-      <Link
-        to={cardHref}
-        state={{ fromFeed: true }}
-        className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) no-underline ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]"
-        aria-label={`Открыть карточку «${primaryTitle}»`}
-      >
-        <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full sm:max-h-64">
-          {primaryPoster ? (
-            <img
-              src={primaryPoster}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            />
-          ) : (
-            <div className="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-(--tgui--hint_color)">
-              Нет постера
+      {/* Главная зона: постер — кликом открываем карточку; аудио-кнопки вне ссылки */}
+      <div className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]">
+        <Link
+          to={cardHref}
+          state={{ fromFeed: true }}
+          className="block w-full no-underline"
+          aria-label={`Открыть карточку «${primaryTitle}»`}
+        >
+          <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full sm:max-h-64">
+            {primaryPoster ? (
+              <img
+                src={primaryPoster}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <div className="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-(--tgui--hint_color)">
+                Нет постера
+              </div>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-3 bg-linear-to-t from-black/82 via-black/35 to-transparent pt-14 pb-2.5 pl-3 pr-19">
+              <Title
+                level="3"
+                weight="2"
+                className="line-clamp-2 text-[16px]! leading-tight text-white drop-shadow-sm"
+              >
+                {primaryTitle}
+                {releaseSuffix != null ? (
+                  <span className="font-normal text-white/72"> · {releaseSuffix}</span>
+                ) : null}
+              </Title>
             </div>
-          )}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] bg-linear-to-t from-black/82 via-black/35 to-transparent pt-14 pb-2.5 pl-3 pr-19">
-            <Title
-              level="3"
-              weight="2"
-              className="line-clamp-2 text-[16px]! leading-tight text-white drop-shadow-sm"
-            >
-              {primaryTitle}
-              {releaseSuffix != null ? (
-                <span className="font-normal text-white/72"> · {releaseSuffix}</span>
-              ) : null}
-            </Title>
+            <div className="pointer-events-none absolute right-2.5 top-2.5 z-3">
+              <div className="relative flex size-12 items-center justify-center">
+                {hasAttachedAudio && isThisCardActive ? (
+                  <MovieCardRatingAudioVisualizer
+                    audio={feedAudio.audioRef.current}
+                    audioUrl={audioUrlTrimmed}
+                    ringColor={ratingRingPalette.ring}
+                    compact
+                  />
+                ) : null}
+                <FeedRatingRing
+                  rating={card.rating}
+                  positionClassName="relative z-10"
+                />
+              </div>
+            </div>
           </div>
-          <FeedRatingRing rating={card.rating} positionClassName="absolute right-2.5 top-2.5 z-[3]" />
-        </div>
-      </Link>
+        </Link>
+        {hasAttachedAudio ? (
+          <div className="pointer-events-auto absolute bottom-3 right-3 z-10">
+            <MovieCardAudioPlayer
+              cardId={card.id}
+              audioUrl={audioUrlTrimmed}
+              variant="compact"
+              feedGlobal={{
+                paused: playerPaused,
+                onToggle: () => {
+                  feedAudio.toggleCardAudio(card.id, audioUrlTrimmed)
+                },
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
 
       {/* Мета: профиль (только аватар, имя в title) + теги — не накрываем overlay-ссылкой */}
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -401,10 +442,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               />
             </div>
             <div className="flex shrink-0 items-center gap-1 border-l border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] pl-2">
-              <span
-                title="Комментарии"
-                className="max-w-[5.5rem] truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
-              >
+                <span
+                  title="Комментарии"
+                  className="max-w-22 truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
+                >
                 Комментарии
               </span>
               <span
