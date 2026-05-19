@@ -101,7 +101,9 @@ async def load_user_card_audio_media_bytes(rustfs_key: str) -> tuple[bytes, str]
     if upstream.status_code != 200:
         raise UserCardAudioObjectNotFoundError('not found')
     ct_raw = upstream.headers.get('content-type')
-    ct = ct_raw.strip() if isinstance(ct_raw, str) and ct_raw.strip() else 'application/octet-stream'
+    ct = (
+        ct_raw.strip() if isinstance(ct_raw, str) and ct_raw.strip() else 'application/octet-stream'
+    )
     return upstream.content, ct
 
 
