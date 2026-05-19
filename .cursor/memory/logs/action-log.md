@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-19T150400Z-dev-env-secrets-code.md`
 - `2026-05-19T145631Z-audio-vibe-cards-code.md`
 - `2026-05-19T120000Z-audio-vibe-cards-code.md`
 - `2026-05-19T195500Z-movie-card-audio-controls-code.md`

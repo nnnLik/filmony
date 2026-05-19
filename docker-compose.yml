@@ -17,6 +17,7 @@ x-app: &app
     target: dev
   env_file:
     - vars/.env.development
+    - vars/.env.development.local
   working_dir: /opt/app
   volumes:
     - ./backend/src:/opt/app/src
