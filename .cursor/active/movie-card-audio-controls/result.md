@@ -9,7 +9,7 @@
 - Removed the **tags-panel subsection** with heading “Аудио к карточке” to avoid a standalone audio block and extra vertical stack.
 - `MovieCardAudioPlayer`: `variant` (`default` | `compact`) and optional `className`; compact layout emphasizes play (bezeled `m`, ring + drop shadow, slightly bolder icon) vs download (gray `s`, faint glass fill + ring).
 - `MovieCardRatingAudioVisualizer`: optional `compact` — smaller canvas + scaled draw geometry.
-- Visualizer peaks were tightened once more so loud passages stay inside the ring without edge clipping.
+- Visualizer peaks were rebalanced once more so loud passages stay inside the ring without edge clipping while still feeling energetic.
 
 ## Changed files
 

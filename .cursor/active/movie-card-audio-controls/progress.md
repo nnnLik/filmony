@@ -10,3 +10,4 @@
 | Docs + action log | done |
 | Poster: frosted pill + stronger compact control contrast | done |
 | Visualizer clipping on loud peaks | fixed |
+| Visualizer intensity rebalanced after clipping fix | done |
