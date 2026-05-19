@@ -8,3 +8,5 @@
 | Detail page: inline poster controls, remove tags audio section | done |
 | Lint + build | done |
 | Docs + action log | done |
+| Poster: frosted pill + stronger compact control contrast | done |
+| Visualizer clipping on loud peaks | fixed |

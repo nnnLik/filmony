@@ -1001,8 +1001,8 @@ function MovieCardDetailLoadedBody({
                   className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] via-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_35%,transparent)] to-transparent"
                   aria-hidden
                 />
-                <div className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1 sm:bottom-4 sm:right-4">
-                  <div className="relative flex h-29 w-29 items-center justify-center sm:h-30 sm:w-30">
+                <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 sm:left-3.5 sm:top-3.5">
+                  <div className="relative flex h-21 w-21 items-center justify-center sm:h-21.5 sm:w-21.5">
                     {hasCardAudio ? (
                       <MovieCardRatingAudioVisualizer
                         audio={cardAttachedAudio}
@@ -1012,30 +1012,34 @@ function MovieCardDetailLoadedBody({
                       />
                     ) : null}
                     <div
-                      className="filmony-detail-rating-ring relative z-10 flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-0.5 rounded-full border-[3px] bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:h-21 sm:w-21"
+                      className="filmony-detail-rating-ring relative z-10 flex h-14.5 w-14.5 shrink-0 flex-col items-center justify-center gap-px rounded-full border-2 bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_8px_18px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:h-15 sm:w-15"
                       style={{
                         borderColor: palette.ring,
                         color: palette.text,
                       }}
                     >
-                      <span className="text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-(--tgui--hint_color)">
+                      <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-(--tgui--hint_color) sm:text-[7.5px]">
                         Оценка
                       </span>
-                      <span className="text-[1.5rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.65rem]">
+                      <span className="text-[1.05rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.1rem]">
                         {formatRating(card.rating)}
                       </span>
                     </div>
                   </div>
-                  {hasCardAudio ? (
-                    <MovieCardAudioPlayer
-                      cardId={card.id}
-                      variant="compact"
-                      audioUrl={cardAudioUrlTrimmed}
-                      onAttachedAudioElement={onCardAttachedAudio}
-                      className="pointer-events-auto items-end drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]"
-                    />
-                  ) : null}
                 </div>
+                {hasCardAudio ? (
+                  <div className="absolute bottom-3 right-3 z-10 sm:bottom-4 sm:right-4">
+                    <div className="filmony-detail-poster-audio-pill pointer-events-auto flex flex-col items-stretch">
+                      <MovieCardAudioPlayer
+                        cardId={card.id}
+                        variant="compact"
+                        audioUrl={cardAudioUrlTrimmed}
+                        onAttachedAudioElement={onCardAttachedAudio}
+                        className="items-center"
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
               <div className="px-3.5 pb-3 pt-4 sm:px-4">
                 <div className="flex items-start gap-2">

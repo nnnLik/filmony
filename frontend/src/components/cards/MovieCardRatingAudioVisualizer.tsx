@@ -111,7 +111,7 @@ export function MovieCardRatingAudioVisualizer({
     if (canvas == null) return
 
     const ringRgb = hexToRgb(ringColor) ?? FILM_MINT
-    const geomScale = canvasCssPx / CANVAS_CSS_PX_DEFAULT
+      const geomScale = canvasCssPx / CANVAS_CSS_PX_DEFAULT
     const freq = new Uint8Array(FFT_SIZE / 2)
     const raw = new Float32Array(SEGMENTS).fill(0)
     const smooth = new Float32Array(SEGMENTS).fill(0)
@@ -229,9 +229,11 @@ export function MovieCardRatingAudioVisualizer({
 
       g.clearRect(0, 0, canvasCssPx, canvasCssPx)
 
-      const rInner = 33 * geomScale
-      const rBase = 38.5 * geomScale
-      const amp = 25 * geomScale
+      const renderInset = compact ? 8 : 10
+      const renderRadius = Math.max(24, canvasCssPx / 2 - renderInset)
+      const rInner = renderRadius * 0.58
+      const rBase = renderRadius * 0.72
+      const amp = renderRadius * 0.18
       const thOff = -Math.PI / 2
 
       for (let i = 0; i < SEGMENTS; i += 1) {
@@ -253,7 +255,7 @@ export function MovieCardRatingAudioVisualizer({
         const cMid = lerpRgb(ringRgb, FILM_AMBER, em * 0.75)
         const cHot = lerpRgb(cMid, FILM_AMBER, em * em * 0.85)
 
-        const gr = g.createRadialGradient(cx, cy, rInner * 0.65, cx, cy, roMax + 5 * geomScale)
+        const gr = g.createRadialGradient(cx, cy, rInner * 0.65, cx, cy, roMax + 4 * geomScale)
         gr.addColorStop(0, rgba(cCore, 0.05 + em * 0.1))
         gr.addColorStop(0.45, rgba(cMid, 0.14 + em * 0.38))
         gr.addColorStop(1, rgba(cHot, 0.22 + em * 0.52))
@@ -294,10 +296,10 @@ export function MovieCardRatingAudioVisualizer({
       rim.addColorStop(0.5, rgba(rimB, 0.75))
       rim.addColorStop(1, rgba(FILM_AMBER, 0.5))
       const glowRgb = lerpRgb(rimA, rimB, 0.5)
-      g.shadowBlur = (8 + mean * 22) * geomScale
+      g.shadowBlur = (6 + mean * 18) * geomScale
       g.shadowColor = rgba(glowRgb, 0.35 + mean * 0.35)
       g.strokeStyle = rim
-      g.lineWidth = 1.35 * geomScale
+      g.lineWidth = 1.2 * geomScale
       g.lineJoin = 'round'
       g.stroke()
       g.restore()

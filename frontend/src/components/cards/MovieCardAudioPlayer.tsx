@@ -115,25 +115,29 @@ export function MovieCardAudioPlayer({
           : `flex flex-col gap-2 ${className ?? ''}`.trim()
       }
     >
-      <div className={`flex flex-nowrap items-center ${isCompact ? 'gap-1' : 'flex-wrap gap-2'}`}>
+      <div className={`flex flex-nowrap items-center ${isCompact ? 'gap-2' : 'flex-wrap gap-2'}`}>
         <IconButton
           type="button"
           size={isCompact ? 'm' : 'l'}
           mode="bezeled"
-          className="rounded-full!"
+          className={
+            isCompact
+              ? 'rounded-full! ring-1 ring-white/40 shadow-[0_3px_14px_rgba(0,0,0,0.45)]'
+              : 'rounded-full!'
+          }
           aria-label={paused ? 'Воспроизвести' : 'Пауза'}
           onClick={() => void toggle()}
         >
           {paused ? (
             <Play
-              className={`relative z-1 block ${isCompact ? 'size-[18px]' : 'size-[22px]'}`}
-              strokeWidth={1.75}
+              className={`relative z-1 block ${isCompact ? 'size-[19px]' : 'size-[22px]'}`}
+              strokeWidth={isCompact ? 2 : 1.75}
               aria-hidden
             />
           ) : (
             <Pause
-              className={`relative z-1 block ${isCompact ? 'size-[18px]' : 'size-[22px]'}`}
-              strokeWidth={1.75}
+              className={`relative z-1 block ${isCompact ? 'size-[19px]' : 'size-[22px]'}`}
+              strokeWidth={isCompact ? 2 : 1.75}
               aria-hidden
             />
           )}
@@ -142,14 +146,18 @@ export function MovieCardAudioPlayer({
           type="button"
           size={isCompact ? 's' : 'l'}
           mode="gray"
-          className="rounded-full! opacity-88 motion-safe:hover:opacity-100"
+          className={
+            isCompact
+              ? 'rounded-full! ring-1 ring-white/22 bg-[color-mix(in_srgb,#fff_10%,transparent)] opacity-95 motion-safe:hover:opacity-100'
+              : 'rounded-full! opacity-88 motion-safe:hover:opacity-100'
+          }
           aria-label="Отправить аудио в Telegram"
           disabled={downloadBusy}
           onClick={() => void onSendToTelegram()}
         >
           <Download
-            className={`relative z-1 block ${isCompact ? 'size-[16px]' : 'size-[22px]'}`}
-            strokeWidth={1.75}
+            className={`relative z-1 block ${isCompact ? 'size-[17px]' : 'size-[22px]'}`}
+            strokeWidth={isCompact ? 2 : 1.75}
             aria-hidden
           />
         </IconButton>
@@ -167,7 +175,7 @@ export function MovieCardAudioPlayer({
         <p
           className={
             isCompact
-              ? 'max-w-46 truncate text-[10px] leading-tight text-(--tgui--hint_color)'
+              ? 'max-w-46 truncate text-center text-[10px] leading-tight text-white/84'
               : 'text-xs text-(--tgui--hint_color)'
           }
           title={telegramOk}
@@ -179,7 +187,7 @@ export function MovieCardAudioPlayer({
         <p
           className={
             isCompact
-              ? 'max-w-46 truncate text-[10px] leading-tight text-(--tgui--destructive_text_color)'
+              ? 'max-w-46 truncate text-center text-[10px] leading-tight text-rose-300'
               : 'text-xs text-(--tgui--destructive_text_color)'
           }
           title={downloadError}
