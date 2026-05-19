@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-19T182100Z-movie-card-audio-controls-docs.md`
+- `2026-05-19T182000Z-movie-card-audio-controls-code.md`
 - `2026-05-19T180100Z-audio-vibe-cards-docs.md`
 - `2026-05-19T180000Z-audio-vibe-cards-test.md`
 - `2026-05-19T235900Z-profile-stats-redesign-code.md`

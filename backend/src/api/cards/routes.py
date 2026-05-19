@@ -25,6 +25,7 @@ from api.cards.schemas import (
     FollowingRatingsListResponse,
     ShareCardRequest,
     ShareCardResponse,
+    UserCardAudioTelegramResponse,
     UserCardCategorySnippet,
     UserCardCommentAuthorResponse,
     UserCardCommentCreateRequest,
@@ -116,6 +117,15 @@ from services.cards.list_user_card_feed import (
     FeedPostFeedItem,
     ListUserCardFeedService,
 )
+from services.cards.send_user_card_audio_to_telegram import (
+    SendUserCardAudioToTelegramService,
+    UserCardAudioFetchError,
+    UserCardAudioKeyInvalidError,
+    UserCardAudioMissingError,
+    UserCardAudioObjectNotFoundError,
+    UserCardAudioStorageNotConfiguredError,
+    UserCardAudioTooLargeError,
+)
 from services.cards.share_user_card import (
     ShareRecipientsEmptyError,
     ShareRecipientsNotFollowersError,
@@ -152,6 +162,7 @@ from services.reactions import GetReactionSummariesForTargetsService
 from services.subscriptions.list_follower_user_ids_for_following_user import (
     ListFollowerUserIdsForFollowingUserService,
 )
+from services.telegram.send_bot_message import SendTelegramBotMessageService
 from utils.user_card_media_key import is_safe_user_card_media_key
 
 router = APIRouter(prefix='/cards', tags=['cards'])
@@ -582,6 +593,56 @@ async def delete_user_card_audio_route(
     except DeleteCardAudioForbiddenError:
         raise HTTPException(status_code=403, detail='forbidden') from None
     return Response(status_code=204)
+
+
+@router.post(
+    '/{card_id}/audio/send-telegram',
+    response_model=UserCardAudioTelegramResponse,
+    summary='Отправить аудио с карточки в Telegram',
+)
+async def post_send_user_card_audio_to_telegram(
+    card_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserCardAudioTelegramResponse:
+    try:
+        await SendUserCardAudioToTelegramService.build(db).execute(card_id=card_id, viewer=user)
+    except UserCardNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    except UserCardAudioMissingError:
+        raise HTTPException(status_code=404, detail='no audio on this card') from None
+    except UserCardAudioKeyInvalidError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except UserCardAudioStorageNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except UserCardAudioObjectNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except UserCardAudioFetchError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    except UserCardAudioTooLargeError as e:
+        raise HTTPException(status_code=413, detail=str(e)) from e
+    except SendTelegramBotMessageService.TelegramChatUnavailable:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                'code': 'telegram_chat_unavailable',
+                'message': (
+                    'Чтобы получать уведомления, откройте бота в Telegram '
+                    'и нажмите «Start» / «Запустить», затем попробуйте снова.'
+                ),
+                'bot_username': settings.telegram.bot_username,
+            },
+        ) from None
+    except SendTelegramBotMessageService.TelegramDeliveryFailed as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                'code': 'telegram_delivery_failed',
+                'message': 'Не удалось связаться с Telegram. Попробуйте позже.',
+            },
+        ) from e
+
+    return UserCardAudioTelegramResponse()
 
 
 @router.get(

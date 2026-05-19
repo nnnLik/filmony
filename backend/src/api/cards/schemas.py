@@ -373,6 +373,14 @@ class ShareCardResponse(BaseModel):
     queued: int
 
 
+class UserCardAudioTelegramResponse(BaseModel):
+    """Ответ POST отправки аудио карточки в Telegram (как у экспорта CSV)."""
+
+    status: Literal['sent'] = 'sent'
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class FollowingRatingEntryResponse(BaseModel):
     user_id: UUID
     movie_card_id: int

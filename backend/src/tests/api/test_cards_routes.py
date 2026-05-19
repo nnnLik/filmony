@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import orjson
 import pytest
@@ -10,6 +10,7 @@ from sqlalchemy import select
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
+from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
@@ -2083,3 +2084,156 @@ async def test_upload_card_audio_too_large(
         files={'file': ('x.mp3', b'12345', 'audio/mpeg')},
     )
     assert up.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_send_card_audio_to_telegram_success(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    from services.cards import attach_user_card_audio as attach_audio_mod
+    from services.cards import send_user_card_audio_to_telegram as send_audio_mod
+
+    async def fake_upload_execute(
+        self: object,
+        *,
+        user_id,
+        content_type,
+        data: bytes,
+    ) -> str:
+        return '/api/cards/media/user_media/movie_card_audio/fake-user/fakefile.mp3'
+
+    monkeypatch.setattr(attach_audio_mod.UploadUserCardAudioService, 'execute', fake_upload_execute)
+
+    async def fake_load_bytes(_rustfs_key: str) -> tuple[bytes, str]:
+        return b'id3fake', 'audio/mpeg'
+
+    monkeypatch.setattr(send_audio_mod, 'load_user_card_audio_media_bytes', fake_load_bytes)
+
+    await _login(async_client, telegram_user_id=880020)
+    film = await _create_film(kinopoisk_id=8800202)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = int(created.json()['id'])
+    up = await async_client.post(
+        f'/api/cards/{card_id}/audio',
+        files={'file': ('x.mp3', b'id3fake', 'audio/mpeg')},
+    )
+    assert up.status_code == 200
+
+    with patch.object(TelegramBotApiClient, 'send_document_multipart', new_callable=AsyncMock) as m:
+        m.return_value = TelegramSendMessageResult(ok=True, payload={'ok': True, 'result': {}})
+        r = await async_client.post(f'/api/cards/{card_id}/audio/send-telegram')
+
+    assert r.status_code == 200
+    assert r.json() == {'status': 'sent'}
+    assert m.await_count == 1
+    args, kwargs = m.call_args
+    assert args[0] == 880020
+    assert args[1] == b'id3fake'
+    assert kwargs['filename'].endswith('.mp3')
+    assert kwargs['content_type'] == 'audio/mpeg'
+
+
+@pytest.mark.asyncio
+async def test_send_card_audio_to_telegram_no_audio(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=880021)
+    film = await _create_film(kinopoisk_id=8800212)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = int(created.json()['id'])
+    r = await async_client.post(f'/api/cards/{card_id}/audio/send-telegram')
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_send_card_audio_to_telegram_card_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=880022)
+    r = await async_client.post('/api/cards/999999999/audio/send-telegram')
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_send_card_audio_to_telegram_chat_unavailable(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    from services.cards import attach_user_card_audio as attach_audio_mod
+    from services.cards import send_user_card_audio_to_telegram as send_audio_mod
+
+    async def fake_upload_execute(
+        self: object,
+        *,
+        user_id,
+        content_type,
+        data: bytes,
+    ) -> str:
+        return '/api/cards/media/user_media/movie_card_audio/fake-user/fakefile.mp3'
+
+    monkeypatch.setattr(attach_audio_mod.UploadUserCardAudioService, 'execute', fake_upload_execute)
+
+    async def fake_load_bytes(_rustfs_key: str) -> tuple[bytes, str]:
+        return b'id3', 'audio/mpeg'
+
+    monkeypatch.setattr(send_audio_mod, 'load_user_card_audio_media_bytes', fake_load_bytes)
+
+    await _login(async_client, telegram_user_id=880023)
+    film = await _create_film(kinopoisk_id=8800233)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    card_id = int(created.json()['id'])
+    assert (
+        await async_client.post(
+            f'/api/cards/{card_id}/audio',
+            files={'file': ('x.mp3', b'id3', 'audio/mpeg')},
+        )
+    ).status_code == 200
+
+    with patch.object(TelegramBotApiClient, 'send_document_multipart', new_callable=AsyncMock) as m:
+        m.return_value = TelegramSendMessageResult(
+            ok=False,
+            payload={
+                'ok': False,
+                'error_code': 403,
+                'description': "Forbidden: bot can't initiate conversation with the user",
+            },
+        )
+        r = await async_client.post(f'/api/cards/{card_id}/audio/send-telegram')
+
+    assert r.status_code == 422
+    detail = r.json()['detail']
+    assert detail['code'] == 'telegram_chat_unavailable'
+    assert 'bot_username' in detail

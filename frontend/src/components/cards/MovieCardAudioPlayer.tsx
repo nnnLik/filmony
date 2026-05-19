@@ -1,18 +1,48 @@
 import { IconButton } from '@telegram-apps/telegram-ui'
-import { Pause, Play } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Download, Pause, Play } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import { MOVIE_CARD_AUDIO_PLAY_START_DELAY_MS, movieCardAudioSrc } from '../../lib/movieCardAudioMedia'
+import { ApiError } from '../../api/client'
+import { postSendUserCardAudioToTelegram } from '../../api/cardApi'
+import { movieCardAudioSrc } from '../../lib/movieCardAudioMedia'
+import { safeHapticSuccess } from '../../lib/safeHaptic'
+import {
+  isTelegramChatUnavailableDetail,
+  notificationFailureMessage,
+} from '../../lib/telegramNotificationError'
 
 type MovieCardAudioPlayerProps = {
+  cardId: number
   audioUrl: string
+  /** Для визуализации на постере: передаётся смонтированный `<audio>`. */
+  onAttachedAudioElement?: (element: HTMLAudioElement | null) => void
+  /**
+   * `compact` — один ряд поменьше для оверлея на постере (play заметнее, download вторичнее).
+   */
+  variant?: 'default' | 'compact'
+  className?: string
 }
 
-export function MovieCardAudioPlayer({ audioUrl }: MovieCardAudioPlayerProps) {
+export function MovieCardAudioPlayer({
+  cardId,
+  audioUrl,
+  onAttachedAudioElement,
+  variant = 'default',
+  className,
+}: MovieCardAudioPlayerProps) {
   const src = movieCardAudioSrc(audioUrl)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useLayoutEffect(() => {
+    onAttachedAudioElement?.(audioRef.current)
+    return () => {
+      onAttachedAudioElement?.(null)
+    }
+  }, [src, onAttachedAudioElement])
   const [paused, setPaused] = useState(true)
+  const [downloadBusy, setDownloadBusy] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [telegramOk, setTelegramOk] = useState<string | null>(null)
 
   useEffect(() => {
     const el = audioRef.current
@@ -27,48 +57,136 @@ export function MovieCardAudioPlayer({ audioUrl }: MovieCardAudioPlayerProps) {
     }
   }, [src])
 
+  useEffect(() => {
+    if (telegramOk == null) return
+    const t = window.setTimeout(() => {
+      setTelegramOk(null)
+    }, 6000)
+    return () => {
+      window.clearTimeout(t)
+    }
+  }, [telegramOk])
+
   const toggle = useCallback(() => {
     const el = audioRef.current
     if (el == null) return
+    setDownloadError(null)
+    setTelegramOk(null)
     if (el.paused) {
-      void (async () => {
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, MOVIE_CARD_AUDIO_PLAY_START_DELAY_MS)
-        })
-        el.muted = false
-        void el.play().catch(() => {
-          // ignore — user can tap again
-        })
-      })()
+      el.muted = false
+      void el.play().catch(() => {
+        /* autoplay / gesture policies — пользователь может нажать ещё раз */
+      })
     } else {
       el.pause()
     }
   }, [])
 
-  if (typeof document === 'undefined') {
-    return null
-  }
+  const onSendToTelegram = useCallback(async () => {
+    setDownloadError(null)
+    setTelegramOk(null)
+    setDownloadBusy(true)
+    try {
+      await postSendUserCardAudioToTelegram(cardId)
+      setTelegramOk('Аудио отправлено в Telegram — откройте чат с ботом Filmony.')
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (isTelegramChatUnavailableDetail(e.detail)) {
+          setDownloadError(e.detail.message)
+        } else {
+          setDownloadError(notificationFailureMessage(e.detail))
+        }
+      } else {
+        setDownloadError(e instanceof Error ? e.message : 'Не удалось отправить')
+      }
+    } finally {
+      setDownloadBusy(false)
+    }
+  }, [cardId])
 
-  return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-100 flex justify-end p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="pointer-events-auto shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
+  const isCompact = variant === 'compact'
+
+  return (
+    <div
+      className={
+        isCompact
+          ? `flex min-w-0 flex-col gap-0.5 ${className ?? ''}`.trim()
+          : `flex flex-col gap-2 ${className ?? ''}`.trim()
+      }
+    >
+      <div className={`flex flex-nowrap items-center ${isCompact ? 'gap-1' : 'flex-wrap gap-2'}`}>
         <IconButton
           type="button"
-          size="l"
+          size={isCompact ? 'm' : 'l'}
           mode="bezeled"
           className="rounded-full!"
           aria-label={paused ? 'Воспроизвести' : 'Пауза'}
           onClick={() => void toggle()}
         >
           {paused ? (
-            <Play className="relative z-1 block size-[22px]" strokeWidth={1.75} aria-hidden />
+            <Play
+              className={`relative z-1 block ${isCompact ? 'size-[18px]' : 'size-[22px]'}`}
+              strokeWidth={1.75}
+              aria-hidden
+            />
           ) : (
-            <Pause className="relative z-1 block size-[22px]" strokeWidth={1.75} aria-hidden />
+            <Pause
+              className={`relative z-1 block ${isCompact ? 'size-[18px]' : 'size-[22px]'}`}
+              strokeWidth={1.75}
+              aria-hidden
+            />
           )}
         </IconButton>
+        <IconButton
+          type="button"
+          size={isCompact ? 's' : 'l'}
+          mode="gray"
+          className="rounded-full! opacity-88 motion-safe:hover:opacity-100"
+          aria-label="Отправить аудио в Telegram"
+          disabled={downloadBusy}
+          onClick={() => void onSendToTelegram()}
+        >
+          <Download
+            className={`relative z-1 block ${isCompact ? 'size-[16px]' : 'size-[22px]'}`}
+            strokeWidth={1.75}
+            aria-hidden
+          />
+        </IconButton>
+        <audio
+          key={src}
+          ref={audioRef}
+          src={src}
+          preload="metadata"
+          playsInline
+          crossOrigin="anonymous"
+          className="hidden"
+        />
       </div>
-      <audio key={src} ref={audioRef} src={src} preload="metadata" playsInline className="hidden" />
-    </div>,
-    document.body,
+      {telegramOk != null ? (
+        <p
+          className={
+            isCompact
+              ? 'max-w-46 truncate text-[10px] leading-tight text-(--tgui--hint_color)'
+              : 'text-xs text-(--tgui--hint_color)'
+          }
+          title={telegramOk}
+        >
+          {telegramOk}
+        </p>
+      ) : null}
+      {downloadError != null ? (
+        <p
+          className={
+            isCompact
+              ? 'max-w-46 truncate text-[10px] leading-tight text-(--tgui--destructive_text_color)'
+              : 'text-xs text-(--tgui--destructive_text_color)'
+          }
+          title={downloadError}
+        >
+          {downloadError}
+        </p>
+      ) : null}
+    </div>
   )
 }

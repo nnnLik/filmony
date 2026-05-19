@@ -255,6 +255,18 @@ export async function deleteUserCardAudio(cardId: number): Promise<void> {
   await assertActionOk(res)
 }
 
+export type UserCardAudioTelegramResponse = {
+  status: 'sent'
+}
+
+export async function postSendUserCardAudioToTelegram(
+  cardId: number
+): Promise<UserCardAudioTelegramResponse> {
+  return apiJson<UserCardAudioTelegramResponse>(`/api/cards/${cardId}/audio/send-telegram`, {
+    method: 'POST',
+  })
+}
+
 export async function getMovieCardComments(
   cardId: number,
   params?: { cursor?: string | null; limit?: number }

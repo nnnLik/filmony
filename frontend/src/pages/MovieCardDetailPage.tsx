@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-  type CSSProperties,
   type Dispatch,
   type KeyboardEventHandler,
   type MutableRefObject,
@@ -77,6 +76,7 @@ import { CommentReactionTokenPicker } from '../components/comments/CommentReacti
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
+import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
@@ -959,6 +959,10 @@ function MovieCardDetailLoadedBody({
 }: MovieCardDetailLoadedBodyProps) {
   const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
   const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
+  const [cardAttachedAudio, setCardAttachedAudio] = useState<HTMLAudioElement | null>(null)
+  const onCardAttachedAudio = useCallback((el: HTMLAudioElement | null) => {
+    setCardAttachedAudio(el)
+  }, [])
   const { openCompose } = useComposeFeedPost()
   const navigate = useNavigate()
   const location = useLocation()
@@ -974,6 +978,8 @@ function MovieCardDetailLoadedBody({
   const detailCardAuthor = movieCardAuthorOrNull(card)
   const watchNoteText = movieCardWatchNotePlainText(card)
   const showWatchNote = watchNoteText.trim().length > 0
+  const hasCardAudio = card.audio_url != null && card.audio_url.trim() !== ''
+  const cardAudioUrlTrimmed = (card.audio_url ?? '').trim()
 
   return (
     <>
@@ -995,24 +1001,40 @@ function MovieCardDetailLoadedBody({
                   className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] via-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_35%,transparent)] to-transparent"
                   aria-hidden
                 />
-                <div
-                  className="absolute bottom-3 right-3 z-10 sm:bottom-4 sm:right-4"
-                  style={{ '--filmony-rating-glow': palette.glow } as CSSProperties}
-                >
-                  <div
-                    className="filmony-detail-rating-ring flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-0.5 rounded-full border-[3px] bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:h-21 sm:w-21"
-                    style={{
-                      borderColor: palette.ring,
-                      color: palette.text,
-                    }}
-                  >
-                    <span className="text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-(--tgui--hint_color)">
-                      Оценка
-                    </span>
-                    <span className="text-[1.5rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.65rem]">
-                      {formatRating(card.rating)}
-                    </span>
+                <div className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1 sm:bottom-4 sm:right-4">
+                  <div className="relative flex h-29 w-29 items-center justify-center sm:h-30 sm:w-30">
+                    {hasCardAudio ? (
+                      <MovieCardRatingAudioVisualizer
+                        audio={cardAttachedAudio}
+                        audioUrl={cardAudioUrlTrimmed}
+                        ringColor={palette.ring}
+                        compact
+                      />
+                    ) : null}
+                    <div
+                      className="filmony-detail-rating-ring relative z-10 flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-0.5 rounded-full border-[3px] bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_12px_28px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:h-21 sm:w-21"
+                      style={{
+                        borderColor: palette.ring,
+                        color: palette.text,
+                      }}
+                    >
+                      <span className="text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-(--tgui--hint_color)">
+                        Оценка
+                      </span>
+                      <span className="text-[1.5rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.65rem]">
+                        {formatRating(card.rating)}
+                      </span>
+                    </div>
                   </div>
+                  {hasCardAudio ? (
+                    <MovieCardAudioPlayer
+                      cardId={card.id}
+                      variant="compact"
+                      audioUrl={cardAudioUrlTrimmed}
+                      onAttachedAudioElement={onCardAttachedAudio}
+                      className="pointer-events-auto items-end drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]"
+                    />
+                  ) : null}
                 </div>
               </div>
               <div className="px-3.5 pb-3 pt-4 sm:px-4">
@@ -1521,9 +1543,6 @@ function MovieCardDetailLoadedBody({
               ) : null}
             </section>
           </div>
-      {card.audio_url != null && card.audio_url.trim() !== '' ? (
-        <MovieCardAudioPlayer audioUrl={card.audio_url} />
-      ) : null}
     </>
   )
 }

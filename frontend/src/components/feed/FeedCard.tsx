@@ -1,4 +1,5 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
+import { Music } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -87,6 +88,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
   /** Карточка с `is_favorite`: второй бейдж «Особая карточка» в шапке (свои и чужие в ленте). */
   const authorFavoriteRibbon = Boolean(card.is_favorite)
+  const hasAttachedAudio = card.audio_url != null && card.audio_url.trim() !== ''
   const sourceBadgeText = useMemo(
     () => feedCardSourceBadge(card, viewerUserId ?? null),
     [card, viewerUserId],
@@ -285,6 +287,16 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             }
           >
             Особая карточка
+          </span>
+        ) : null}
+        {hasAttachedAudio ? (
+          <span
+            role="img"
+            aria-label="К карточке прикреплено аудио"
+            title="К карточке прикреплено аудио"
+            className="inline-flex shrink-0 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_48%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_16%,transparent)] px-1.5 py-0.5 text-(--tgui--text_color)"
+          >
+            <Music className="block size-3.5" strokeWidth={2.25} aria-hidden />
           </span>
         ) : null}
         <CardCategoryChip category={card.category} className="max-w-[min(100%,10rem)] shrink-0" />
