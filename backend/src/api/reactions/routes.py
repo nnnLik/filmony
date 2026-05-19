@@ -21,6 +21,11 @@ from api.reactions.schemas import (
 from celery_app import app as celery_application
 from conf import settings
 from core.database import get_db
+from core.rustfs_s3_client import (
+    RustfsClientError,
+    RustfsKeyNotFoundError,
+    get_rustfs_object_bytes,
+)
 from deps.auth import CurrentUser
 from models.reaction_target_kind import ReactionTargetKind
 from services.reactions.list_reaction_actors import ListReactionActorsService
@@ -36,11 +41,6 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetUserReactionInput,
 )
 from utils.reaction_asset_key import is_safe_reaction_asset_key
-from utils.rustfs_get_object import (
-    RustfsClientError,
-    RustfsKeyNotFoundError,
-    get_rustfs_object_bytes,
-)
 
 router = APIRouter(prefix='/reactions', tags=['reactions'])
 

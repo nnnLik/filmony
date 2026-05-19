@@ -107,6 +107,7 @@ class CardResponse(BaseModel):
     custom_tags: list[str]
     category: UserCardCategorySnippet
     is_favorite: bool = False
+    audio_url: str | None = None
 
 
 class ReferencedInlineUserCardSnippetResponse(BaseModel):
@@ -177,6 +178,7 @@ class CardDetailResponse(BaseModel):
     category: UserCardCategorySnippet
     is_favorite: bool = False
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
+    audio_url: str | None = None
 
 
 class UserCardDetailResponse(CardDetailResponse):

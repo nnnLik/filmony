@@ -130,6 +130,7 @@ class UserCardItemResponse(BaseModel):
     watch_note: str = ''
     category: UserCardCategorySnippet
     is_favorite: bool = False
+    audio_url: str | None = None
 
 
 class UserCardPageResponse(BaseModel):
@@ -282,6 +283,7 @@ def build_user_card_page_response(page: UserCardListPage) -> UserCardPageRespons
             watch_note=item.watch_note,
             category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
             is_favorite=item.is_favorite,
+            audio_url=item.audio_url,
         )
         for item in page.items
     ]

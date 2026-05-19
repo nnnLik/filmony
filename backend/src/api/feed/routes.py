@@ -53,7 +53,9 @@ def _comment_item_to_response(item: UserCardCommentItem) -> UserCardCommentRespo
             display_name=item.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
-        referenced_movie_cards=inline_user_card_snippets_to_response(item.referenced_inline_user_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(
+            item.referenced_inline_user_cards
+        ),
         referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
@@ -108,6 +110,7 @@ def _global_feed_domain_to_response(
                 comments_count=item.comments_count,
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
                 is_favorite=item.is_favorite,
+                audio_url=item.audio_url,
             )
         )
     return UserCardFeedPageResponse(

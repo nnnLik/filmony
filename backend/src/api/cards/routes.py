@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 from uuid import UUID
 
+import httpx
 import orjson
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
@@ -37,14 +39,29 @@ from api.cards.schemas import (
 from api.feed_posts.schemas import FeedPostImageUploadResponse
 from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
+from conf import settings
 from const.feed import FeedMode
 from core.database import get_db
+from core.rustfs_s3_client import (
+    RustfsClientError,
+    RustfsKeyNotFoundError,
+    get_rustfs_object_bytes,
+)
 from deps.auth import CurrentUser
 from models.card_comment import CardComment
 from models.card_tag import CardTag
 from models.user import User
 from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
+from services.cards.attach_user_card_audio import (
+    AttachUserCardAudioService,
+)
+from services.cards.attach_user_card_audio import (
+    UserCardForbiddenError as AttachCardAudioForbiddenError,
+)
+from services.cards.attach_user_card_audio import (
+    UserCardNotFoundError as AttachCardAudioNotFoundError,
+)
 from services.cards.create_user_card import (
     CatalogItemNotFoundError,
     CreateUserCardInput,
@@ -69,6 +86,13 @@ from services.cards.delete_user_card import (
 )
 from services.cards.delete_user_card import (
     UserCardNotFoundError as DeleteUserCardNotFoundError,
+)
+from services.cards.delete_user_card_audio import DeleteUserCardAudioService
+from services.cards.delete_user_card_audio import (
+    UserCardForbiddenError as DeleteCardAudioForbiddenError,
+)
+from services.cards.delete_user_card_audio import (
+    UserCardNotFoundError as DeleteCardAudioNotFoundError,
 )
 from services.cards.get_user_card_details import GetUserCardDetailsService, UserCardNotFoundError
 from services.cards.inline_user_card_ref_tokens import batch_resolve_inline_user_card_refs
@@ -113,6 +137,10 @@ from services.cards.update_user_card import (
 from services.cards.update_user_card import (
     UserCardValidationError as UpdateUserCardValidationError,
 )
+from services.cards.upload_user_card_audio import (
+    USER_CARD_AUDIO_MAX_BYTES,
+    UserCardAudioUploadError,
+)
 from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.feed_posts import (
     FEED_POST_IMAGE_MAX_BYTES,
@@ -124,6 +152,7 @@ from services.reactions import GetReactionSummariesForTargetsService
 from services.subscriptions.list_follower_user_ids_for_following_user import (
     ListFollowerUserIdsForFollowingUserService,
 )
+from utils.user_card_media_key import is_safe_user_card_media_key
 
 router = APIRouter(prefix='/cards', tags=['cards'])
 
@@ -151,6 +180,7 @@ async def _card_response_from_user_card(
         custom_tags=list(tags),
         category=UserCardCategorySnippet(id=cat.id, name=cat.name),
         is_favorite=bool(card.is_favorite),
+        audio_url=card.audio_url,
     )
 
 
@@ -166,6 +196,57 @@ async def _read_upload_body_max(file: UploadFile, max_bytes: int) -> bytes:
             raise HTTPException(status_code=413, detail='file too large') from None
         chunks.append(chunk)
     return b''.join(chunks)
+
+
+@router.get(
+    '/media/{media_key:path}',
+    summary='Аудио карточки из RustFS (без Bearer для audio src / скачивания)',
+)
+async def get_user_card_media(media_key: str) -> Response:
+    if not is_safe_user_card_media_key(media_key):
+        raise HTTPException(status_code=404, detail='not found') from None
+    internal = settings.reaction_media.rustfs_internal_base_url.strip().rstrip('/')
+    if not internal:
+        raise HTTPException(status_code=503, detail='media proxy not configured') from None
+    bucket = settings.reaction_media.rustfs_bucket.strip()
+    safe_key = media_key.lstrip('/')
+    access = settings.reaction_media.rustfs_access_key.strip()
+    secret = settings.reaction_media.rustfs_secret_key.strip()
+    headers: dict[str, str] = {'Cache-Control': 'public, max-age=86400'}
+
+    if access and secret:
+        try:
+            result = await asyncio.to_thread(
+                get_rustfs_object_bytes,
+                endpoint_url=internal,
+                access_key_id=access,
+                secret_access_key=secret,
+                bucket=bucket,
+                key=safe_key,
+            )
+        except RustfsKeyNotFoundError:
+            raise HTTPException(status_code=404, detail='not found') from None
+        except RustfsClientError:
+            raise HTTPException(status_code=502, detail='storage unreachable') from None
+        media = (
+            result.content_type.strip()
+            if isinstance(result.content_type, str) and result.content_type.strip()
+            else 'application/octet-stream'
+        )
+        return Response(content=result.body, media_type=media, headers=headers)
+
+    url = f'{internal}/{bucket}/{safe_key}'
+    timeout = httpx.Timeout(18.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            upstream = await client.get(url)
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail='storage unreachable') from exc
+    if upstream.status_code != 200:
+        raise HTTPException(status_code=404, detail='not found') from None
+    ct = upstream.headers.get('content-type')
+    media = ct.strip() if isinstance(ct, str) and ct.strip() else 'application/octet-stream'
+    return Response(content=upstream.content, media_type=media, headers=headers)
 
 
 @router.post(
@@ -288,7 +369,9 @@ def _comment_item_to_response(item: UserCardCommentItem) -> UserCardCommentRespo
             display_name=item.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
-        referenced_movie_cards=inline_user_card_snippets_to_response(item.referenced_inline_user_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(
+            item.referenced_inline_user_cards
+        ),
         referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
@@ -406,6 +489,7 @@ async def list_user_card_feed(
                 comments_count=item.comments_count,
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
                 is_favorite=item.is_favorite,
+                audio_url=item.audio_url,
             )
         )
     return UserCardFeedPageResponse(items=out_items, next_cursor=page.next_cursor)
@@ -443,6 +527,61 @@ async def list_following_ratings_for_user_card(
         viewer_rating=_entry(result.viewer_row) if result.viewer_row is not None else None,
         items=[_entry(r) for r in result.items],
     )
+
+
+@router.post(
+    '/{card_id}/audio',
+    response_model=FeedPostImageUploadResponse,
+    summary='Загрузить или заменить аудио к карточке',
+)
+async def upload_user_card_audio(
+    card_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(...),
+) -> FeedPostImageUploadResponse:
+    content_type = (file.content_type or '').strip()
+    try:
+        data = await _read_upload_body_max(file, USER_CARD_AUDIO_MAX_BYTES)
+        card = await AttachUserCardAudioService.build(db).execute(
+            card_id=card_id,
+            viewer_user_id=user.id,
+            content_type=content_type,
+            data=data,
+        )
+    except HTTPException:
+        raise
+    except AttachCardAudioNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    except AttachCardAudioForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    except UserCardAudioUploadError as e:
+        msg = str(e).lower()
+        if 'not configured' in msg:
+            raise HTTPException(status_code=503, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    url = card.audio_url or ''
+    return FeedPostImageUploadResponse(url=url)
+
+
+@router.delete(
+    '/{card_id}/audio',
+    status_code=204,
+    response_class=Response,
+    summary='Удалить аудио с карточки',
+)
+async def delete_user_card_audio_route(
+    card_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteUserCardAudioService.build(db).execute(card_id=card_id, viewer_user_id=user.id)
+    except DeleteCardAudioNotFoundError:
+        raise HTTPException(status_code=404, detail='movie card not found') from None
+    except DeleteCardAudioForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    return Response(status_code=204)
 
 
 @router.get(
@@ -494,6 +633,7 @@ async def get_card(
         category=UserCardCategorySnippet(id=card.category_id, name=card.category_name),
         reactions=reaction_target_summary_to_response(card.reactions),
         is_favorite=card.is_favorite,
+        audio_url=card.audio_url,
     )
 
 

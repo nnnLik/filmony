@@ -56,8 +56,6 @@ class ListMyUserCardsForInlinePickerService:
 
         rows = (await self._session.execute(stmt)).all()
         return [
-            MyUserCardInlinePickerRow(
-                user_card_id=int(r[0]), film_title=str(r[1]), film_year=r[2]
-            )
+            MyUserCardInlinePickerRow(user_card_id=int(r[0]), film_title=str(r[1]), film_year=r[2])
             for r in rows
         ]

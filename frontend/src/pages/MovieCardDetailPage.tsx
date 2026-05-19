@@ -76,6 +76,7 @@ import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInl
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
+import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
@@ -975,7 +976,8 @@ function MovieCardDetailLoadedBody({
   const showWatchNote = watchNoteText.trim().length > 0
 
   return (
-          <div className="space-y-3">
+    <>
+      <div className="space-y-3">
             <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
               <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
                 {primaryPoster ? (
@@ -1519,5 +1521,9 @@ function MovieCardDetailLoadedBody({
               ) : null}
             </section>
           </div>
+      {card.audio_url != null && card.audio_url.trim() !== '' ? (
+        <MovieCardAudioPlayer audioUrl={card.audio_url} />
+      ) : null}
+    </>
   )
 }

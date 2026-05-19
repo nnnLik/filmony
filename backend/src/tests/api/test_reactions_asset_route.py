@@ -7,7 +7,7 @@ from httpx import AsyncClient
 
 from api.reactions import routes as reactions_routes
 from conf import settings
-from utils.rustfs_get_object import RustfsGetObjectResult, RustfsKeyNotFoundError
+from core.rustfs_s3_client import RustfsGetObjectResult, RustfsKeyNotFoundError
 
 
 @pytest.mark.asyncio

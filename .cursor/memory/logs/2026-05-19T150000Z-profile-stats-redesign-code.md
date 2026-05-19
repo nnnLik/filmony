@@ -1,0 +1,12 @@
+- **Timestamp:** 2026-05-19T150000Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** code
+- **Summary:** Вкладка статистики профиля: три внутренних сегмента (Обзор / Вкусы / Рейтинги), блоки статистики перераспределены; графики столбиков без горизонтальной прокрутки под узкий экран; сброс подвкладки при смене userId.
+- **Files:**
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `.cursor/features/profile-stats-redesign/feature.md`
+  - `.cursor/active/profile-stats-redesign/plan.md`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T150000Z-profile-stats-redesign-code.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.

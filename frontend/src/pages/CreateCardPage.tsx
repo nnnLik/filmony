@@ -11,7 +11,14 @@ import {
   resolveCatalogByProviderUrl,
   searchCatalog,
 } from '../api/catalogApi'
-import { createMovieCard, getFilmById, getMovieCardById, resolveFilmByKinopoiskUrl, shareMovieCardWithFollowers } from '../api/cardApi'
+import {
+  createMovieCard,
+  getFilmById,
+  getMovieCardById,
+  resolveFilmByKinopoiskUrl,
+  shareMovieCardWithFollowers,
+  uploadUserCardAudio,
+} from '../api/cardApi'
 import {
   createMyCardCategory,
   getMyMovieCardTagStats,
@@ -237,6 +244,8 @@ export function CreateCardPage() {
   const [createShelfBusy, setCreateShelfBusy] = useState(false)
   const fromCardBootstrapSeq = useRef(0)
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+  const createCardAudioInputRef = useRef<HTMLInputElement>(null)
+  const [createCardAudioFile, setCreateCardAudioFile] = useState<File | null>(null)
 
   const insertReactionIntoWatchNote = useCallback(
     (id: number) => {
@@ -917,6 +926,14 @@ export function CreateCardPage() {
           ...shelfOpt,
         })
       }
+      let audioUploadFailed = false
+      if (createCardAudioFile != null) {
+        try {
+          await uploadUserCardAudio(newCard.id, createCardAudioFile)
+        } catch {
+          audioUploadFailed = true
+        }
+      }
       const bundleUid = readMyProfileBundleCache()?.profile.id
       if (bundleUid != null && bundleUid !== '') {
         void queryClient.invalidateQueries({ queryKey: userMovieCardTagStatsQueryKey(bundleUid) })
@@ -931,6 +948,11 @@ export function CreateCardPage() {
           film_title: movieCardPrimaryTitle(newCard),
           film_poster_url: movieCardPrimaryPoster(newCard),
         })
+      }
+      if (audioUploadFailed) {
+        void navigate(`/cards/${newCard.id}/edit`, { replace: true })
+        setSubmitLoading(false)
+        return
       }
       const returnToFeed = searchParams.get('returnTo') === 'feed'
       if (shareSelected.size > 0) {
@@ -1770,6 +1792,52 @@ export function CreateCardPage() {
                     {watchNote.length}/{MAX_WATCH_NOTE_LEN}
                   </p>
                 )}
+              </div>
+
+              <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Атмосфера (по желанию)</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  MP3, M4A, OGG, WAV или WebM, до ~50 МБ. Загрузится сразу после создания карточки.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    mode="gray"
+                    size="s"
+                    type="button"
+                    disabled={submitLoading}
+                    onClick={() => createCardAudioInputRef.current?.click()}
+                  >
+                    {createCardAudioFile != null ? 'Другой файл' : 'Выбрать аудио'}
+                  </Button>
+                  {createCardAudioFile != null ? (
+                    <Button
+                      mode="gray"
+                      size="s"
+                      type="button"
+                      disabled={submitLoading}
+                      onClick={() => setCreateCardAudioFile(null)}
+                    >
+                      Сбросить
+                    </Button>
+                  ) : null}
+                </div>
+                {createCardAudioFile != null ? (
+                  <p className="mt-2 truncate text-xs text-(--tgui--text_color)" title={createCardAudioFile.name}>
+                    {createCardAudioFile.name}
+                  </p>
+                ) : null}
+                <input
+                  ref={createCardAudioInputRef}
+                  type="file"
+                  accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,.mp3,.m4a,.ogg,.wav,.webm"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    e.target.value = ''
+                    setCreateCardAudioFile(f ?? null)
+                    setSubmitError(null)
+                  }}
+                />
               </div>
 
               <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">

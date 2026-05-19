@@ -91,6 +91,7 @@ class UserCard(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    audio_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
     __table_args__ = (
         Index(

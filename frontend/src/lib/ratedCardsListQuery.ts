@@ -10,6 +10,8 @@ export type RatedCardsListQuery = {
   company: CardCompany | ''
   moodBefore: CardMoodBefore | ''
   moodAfter: CardMoodAfter | ''
+  /** Только карточки с отметкой «в избранном» (`favorites_only` в API списков). */
+  favoritesOnly: boolean
   /** Пустая строка = все полки. */
   categoryId: string
 }
@@ -23,6 +25,7 @@ export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   company: '',
   moodBefore: '',
   moodAfter: '',
+  favoritesOnly: false,
   categoryId: '',
 }
 
@@ -36,6 +39,7 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
     q.company === '' &&
     q.moodBefore === '' &&
     q.moodAfter === '' &&
+    !q.favoritesOnly &&
     q.categoryId.trim() === ''
   )
 }
@@ -50,14 +54,12 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
     co: q.company,
     mb: q.moodBefore,
     ma: q.moodAfter,
+    fav: q.favoritesOnly,
     shelf: q.categoryId.trim(),
   })
 }
 
-export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<
-  GetUserCardsParams,
-  'cursor' | 'limit' | 'favoritesOnly'
-> {
+export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCardsParams, 'cursor' | 'limit'> {
   const ymn = q.yearMin.trim()
   const ymx = q.yearMax.trim()
   const yearMin = ymn === '' ? null : Number(ymn)
@@ -70,6 +72,7 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<
 
   return {
     sort: q.sort,
+    ...(q.favoritesOnly ? { favoritesOnly: true as const } : {}),
     tags: q.tags.length > 0 ? q.tags : undefined,
     filmTitle: ft === '' ? null : ft,
     yearMin: yearMin != null && Number.isFinite(yearMin) ? yearMin : null,

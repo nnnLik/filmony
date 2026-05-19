@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID, uuid4
 
-from conf import settings
-from utils.rustfs_put_object import RustfsPutObjectError, put_rustfs_object_bytes
+from core.rustfs_s3_client import RustfsPutObjectError, RustfsS3Client
 
 _ALLOWED_CT_SUFFIX: dict[str, str] = {
     'image/jpeg': '.jpg',
@@ -50,14 +49,8 @@ class UploadFeedPostImageService:
         if len(data) > FEED_POST_IMAGE_MAX_BYTES:
             raise FeedPostImageUploadError('file too large')
 
-        internal = settings.reaction_media.rustfs_internal_base_url.strip().rstrip('/')
-        if not internal:
-            raise FeedPostImageUploadError('storage not configured')
-
-        bucket = settings.reaction_media.rustfs_bucket.strip()
-        access = settings.reaction_media.rustfs_access_key.strip()
-        secret = settings.reaction_media.rustfs_secret_key.strip()
-        if not bucket or not access or not secret:
+        client = RustfsS3Client.try_build_from_settings()
+        if client is None:
             raise FeedPostImageUploadError('storage not configured')
 
         if media_subdir not in ('feed_posts', 'movie_card_comments'):
@@ -66,16 +59,7 @@ class UploadFeedPostImageService:
         key = f'user_media/{media_subdir}/{user_id}/{uuid4().hex}{ext}'
 
         try:
-            await asyncio.to_thread(
-                put_rustfs_object_bytes,
-                endpoint_url=internal,
-                access_key_id=access,
-                secret_access_key=secret,
-                bucket=bucket,
-                key=key,
-                body=data,
-                content_type=ct,
-            )
+            await asyncio.to_thread(client.put_object, key, data, ct)
         except RustfsPutObjectError as exc:
             raise FeedPostImageUploadError(str(exc)) from exc
 

@@ -418,6 +418,16 @@ export function ProfilePage() {
     }
   }
 
+  const drillToRatedCards = useCallback(() => {
+    setMainTab('movies')
+    setMoviesSegment('rated')
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById('profile-rated-cards-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    })
+  }, [])
+
   const ratedCardsLoadMoreRef = useInfiniteScrollLoadMore({
     enabled:
       auth.kind === 'ready' &&
@@ -667,7 +677,7 @@ export function ProfilePage() {
         </div>
 
         {mainTab === 'movies' ? (
-          <div className="mt-6">
+          <div className="mt-6" id="profile-rated-cards-panel">
             <div className="mb-4 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
               <button
                 type="button"
@@ -808,7 +818,13 @@ export function ProfilePage() {
 
         {mainTab === 'stats' ? (
           <div className="mt-6">
-            <ProfileStatsPanel userId={profile.id} />
+            <ProfileStatsPanel
+              userId={profile.id}
+              cardsQuery={ratedQuery}
+              onCardsQueryChange={setRatedQuery}
+              enableCategoryFilter
+              onDrillToRatedCards={drillToRatedCards}
+            />
           </div>
         ) : null}
       </main>

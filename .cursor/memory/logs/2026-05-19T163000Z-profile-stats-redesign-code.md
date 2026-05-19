@@ -1,0 +1,12 @@
+- **Timestamp:** 2026-05-19T163000Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** code
+- **Summary:** Task 2 — мобильная вёрстка карточек и графиков статистики профиля: общие обёртки секций/KPI, горизонтальные бары вместо столбиков (без overflow-x), вертикальная компоновка «пончик + легенда», компактные чипы и сводные строки для «с кем» / «настроение».
+- **Files:**
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/components/profile/ProfileStatsCharts.tsx`
+  - `frontend/src/components/profile/ProfileStatsSummaryCard.tsx`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T163000Z-profile-stats-redesign-code.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.

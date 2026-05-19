@@ -1,0 +1,12 @@
+- **Timestamp:** 2026-05-19T200000Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** docs
+- **Summary:** Task 5 — финальная верификация (пустые состояния, владелец/публичный профиль, адаптивность по коду), свежие `npm run lint` / `npm run build`; публикация `docs/features/profile-stats-redesign.md` и `result.md`; обновление `progress.md` и индекса action-log.
+- **Files:**
+  - `.cursor/active/profile-stats-redesign/result.md`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `docs/features/profile-stats-redesign.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T200000Z-profile-stats-redesign-docs.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.
+- **Links:** Детали ограничений API `/stats` и приблизительных топов при фильтрах — в `docs/features/profile-stats-redesign.md`.

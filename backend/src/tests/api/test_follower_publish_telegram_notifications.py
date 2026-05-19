@@ -34,7 +34,9 @@ async def test_new_card_follower_dm_contains_publish_copy_and_deep_link(
     monkeypatch.setattr(settings.telegram, 'bot_username', 'stubfilmony_bot')
 
     mock_dm = AsyncMock(return_value=None)
-    with patch('services.telegram.notify_follower_new_user_card.deliver_engagement_html_message', mock_dm):
+    with patch(
+        'services.telegram.notify_follower_new_user_card.deliver_engagement_html_message', mock_dm
+    ):
         author = await _login_cards(async_client, telegram_user_id=9_771_001)
         await _login_cards(async_client, telegram_user_id=9_771_002)
         await async_client.post(f'/api/users/{author["id"]}/subscriptions')

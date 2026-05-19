@@ -29,6 +29,11 @@ from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
 from conf import settings
 from core.database import get_db
+from core.rustfs_s3_client import (
+    RustfsClientError,
+    RustfsKeyNotFoundError,
+    get_rustfs_object_bytes,
+)
 from deps.auth import CurrentUser
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
@@ -66,11 +71,6 @@ from services.subscriptions.list_follower_user_ids_for_following_user import (
     ListFollowerUserIdsForFollowingUserService,
 )
 from utils.feed_post_media_key import is_safe_feed_post_media_key
-from utils.rustfs_get_object import (
-    RustfsClientError,
-    RustfsKeyNotFoundError,
-    get_rustfs_object_bytes,
-)
 
 router = APIRouter(prefix='/feed-posts', tags=['feed-posts'])
 
@@ -95,7 +95,9 @@ def _feed_post_comment_item_to_response(item: FeedPostCommentItem) -> FeedPostCo
             display_name=a.display_name,
         ),
         reactions=reaction_target_summary_to_response(item.reactions),
-        referenced_movie_cards=inline_user_card_snippets_to_response(item.referenced_inline_user_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(
+            item.referenced_inline_user_cards
+        ),
         referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
     )
 
@@ -182,7 +184,7 @@ async def upload_feed_post_image(
 
 @router.get(
     '/media/{media_key:path}',
-    summary='Картинка поста из RustFS (без Bearer в img src)',
+    summary='Картинка поста из RustFS',
 )
 async def get_feed_post_media(media_key: str) -> Response:
     if not is_safe_feed_post_media_key(media_key):

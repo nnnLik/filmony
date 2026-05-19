@@ -1,20 +1,44 @@
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../../api/client'
-import { getUserMovieCardStats } from '../../api/profileApi'
-import type { ProfileStatsMovieItem, UserMovieCardStats } from '../../api/profileTypes'
+import { getUserCards, getUserMovieCardStats } from '../../api/profileApi'
+import type {
+  CardCompany,
+  CardMoodAfter,
+  MovieCard,
+  ProfileStatsMovieItem,
+  TagDistributionItem,
+  UserMovieCardStats,
+  ValueDistributionItem,
+} from '../../api/profileTypes'
 import { profileStatsMoviePrimaryTitle } from '../../lib/movieCardDisplay'
+import {
+  isDefaultRatedCardsQuery,
+  ratedCardsQueryKey,
+  ratedCardsToListParams,
+  type RatedCardsListQuery,
+} from '../../lib/ratedCardsListQuery'
+
+import { StatsDistributionBars, TastePolarityChart } from './ProfileStatsCharts'
+import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCard } from './ProfileStatsSummaryCard'
 
 type ProfileStatsPanelProps = {
   userId: string
+  cardsQuery: RatedCardsListQuery
+  onCardsQueryChange: (next: RatedCardsListQuery) => void
+  /** Фильтр полок доступен только владельцу профиля на вкладке карточек. */
+  enableCategoryFilter?: boolean
+  /** После действия из статистики — перейти к списку оценённых карточек (вкладка родителя). */
+  onDrillToRatedCards?: () => void
 }
 
 const COMPANY_LABELS: Record<string, string> = {
   alone: 'Один',
   partner: 'С партнером',
   friends: 'С друзьями',
-  family: 'С семьей',
+  family: 'С семьёй',
 }
 
 const MOOD_AFTER_LABELS: Record<string, string> = {
@@ -22,7 +46,7 @@ const MOOD_AFTER_LABELS: Record<string, string> = {
   cried: 'Плакал',
   enjoyed: 'Кайфанул',
   tense: 'Уставший',
-  wasted_time: 'Зря потратил время',
+  wasted_time: 'Зря время',
 }
 
 function formatRating(value: number): string {
@@ -30,35 +54,17 @@ function formatRating(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
-function ColumnChart({
-  items,
-  maxCount,
-}: {
-  items: Array<{ label: string; count: number }>
-  maxCount: number
-}) {
-  return (
-    <div className="overflow-x-auto pb-1">
-      <div className="flex min-h-48 min-w-max items-end gap-3">
-        {items.map((item) => {
-          const rawHeight = maxCount > 0 ? (item.count / maxCount) * 100 : 0
-          const barHeight = item.count > 0 ? Math.max(rawHeight, 8) : 0
-          return (
-            <div key={item.label} className="flex w-9 shrink-0 flex-col items-center gap-2">
-              <span className="text-xs tabular-nums text-(--tgui--hint_color)">{item.count}</span>
-              <div className="flex h-32 w-full items-end rounded-xl bg-(--tgui--bg_color) p-1">
-                <div
-                  className="w-full rounded-lg bg-[linear-gradient(180deg,#72efe4_0%,#52d6c7_100%)]"
-                  style={{ height: `${barHeight}%` }}
-                />
-              </div>
-              <span className="text-sm tabular-nums text-(--tgui--hint_color)">{item.label}</span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+function movieCardToProfileStatsMovieItem(card: MovieCard): ProfileStatsMovieItem {
+  return {
+    card_id: card.id,
+    film_id: card.film_id,
+    film_title: card.film_title,
+    film_year: card.film_year,
+    film_poster_url: card.film_poster_url,
+    display_title: card.display_title,
+    display_cover_url: card.display_cover_url ?? undefined,
+    rating: card.rating,
+  }
 }
 
 function StatsRatedCardRows({ items }: { items: ProfileStatsMovieItem[] }) {
@@ -66,19 +72,19 @@ function StatsRatedCardRows({ items }: { items: ProfileStatsMovieItem[] }) {
     return <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
   }
   return (
-    <div className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-2xl">
       <ul className="divide-y divide-(--tgui--divider_color)">
         {items.map((entry) => (
           <li key={entry.card_id}>
             <Link
               to={`/cards/${entry.card_id}`}
-              className="flex items-center justify-between gap-3 px-3 py-3 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color)"
+              className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color) sm:py-3"
             >
               <div className="min-w-0">
                 <p className="truncate text-(--tgui--text_color)">{profileStatsMoviePrimaryTitle(entry)}</p>
                 <p className="text-xs text-(--tgui--hint_color)">{entry.film_year ?? 'Год неизвестен'}</p>
               </div>
-              <span className="shrink-0 text-lg font-semibold tabular-nums text-(--tgui--link_color)">
+              <span className="shrink-0 text-base font-semibold tabular-nums text-(--tgui--link_color) sm:text-lg">
                 {formatRating(entry.rating)}
               </span>
             </Link>
@@ -89,11 +95,25 @@ function StatsRatedCardRows({ items }: { items: ProfileStatsMovieItem[] }) {
   )
 }
 
-export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
+function splitPopularTags(tags: TagDistributionItem[], selected: readonly string[]): TagDistributionItem[] {
+  if (selected.length === 0) {
+    return tags
+  }
+  const setAll = new Set(selected)
+  const hit = tags.filter((t) => setAll.has(t.tag))
+  const miss = tags.filter((t) => !setAll.has(t.tag))
+  return [...hit, ...miss]
+}
+
+export function ProfileStatsPanel({
+  userId,
+  cardsQuery,
+  onCardsQueryChange,
+  onDrillToRatedCards,
+}: ProfileStatsPanelProps) {
   const [stats, setStats] = useState<UserMovieCardStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
     if (userId === '') return
     let alive = true
@@ -120,6 +140,26 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
     }
   }, [userId])
 
+  const needsFilteredRankings = !isDefaultRatedCardsQuery(cardsQuery)
+  const rankingsKey = ratedCardsQueryKey(cardsQuery)
+
+  const rankingsQuery = useQuery({
+    queryKey: ['profile-stats-filtered-top', userId, rankingsKey],
+    queryFn: async (): Promise<{ top: ProfileStatsMovieItem[]; worst: ProfileStatsMovieItem[] }> => {
+      const base = ratedCardsToListParams(cardsQuery)
+      const [bestPage, worstPage] = await Promise.all([
+        getUserCards(userId, { ...base, limit: 50, sort: 'rating_desc' }),
+        getUserCards(userId, { ...base, limit: 50, sort: 'rating_asc' }),
+      ])
+      return {
+        top: bestPage.items.slice(0, 5).map(movieCardToProfileStatsMovieItem),
+        worst: worstPage.items.slice(0, 5).map(movieCardToProfileStatsMovieItem),
+      }
+    },
+    enabled: Boolean(userId) && needsFilteredRankings,
+    staleTime: 45_000,
+  })
+
   const ratingMax = useMemo(
     () => Math.max(0, ...(stats?.rating_distribution.map((item) => item.count) ?? [0])),
     [stats],
@@ -128,6 +168,21 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
     () => Math.max(0, ...(stats?.year_distribution.map((item) => item.count) ?? [0])),
     [stats],
   )
+
+  const ratingBarItems = useMemo(() => {
+    const list = stats?.rating_distribution ?? []
+    return [...list]
+      .sort((a, b) => a.rating - b.rating)
+      .map((item) => ({ label: String(item.rating), count: item.count }))
+  }, [stats])
+
+  const yearBarItems = useMemo(() => {
+    const list = stats?.year_distribution ?? []
+    return [...list]
+      .sort((a, b) => a.year - b.year)
+      .map((item) => ({ label: String(item.year), count: item.count }))
+  }, [stats])
+
   const sentiment = useMemo(() => {
     const low = (stats?.rating_distribution ?? [])
       .filter((item) => item.rating <= 4)
@@ -142,8 +197,77 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
     const lowPct = total > 0 ? Math.round((low / total) * 100) : 0
     const midPct = total > 0 ? Math.round((mid / total) * 100) : 0
     const highPct = Math.max(0, 100 - lowPct - midPct)
-    return { low, mid, high, total, lowPct, midPct, highPct }
+    return { low, mid, high, total, midPct, highPct }
   }, [stats])
+
+  const metricStripItems = useMemo(() => {
+    const total = stats != null ? String(stats.total_movies) : '0'
+    const avg = stats != null ? formatRating(stats.average_rating) : '0'
+    return [
+      { label: 'Карточек', value: total },
+      { label: 'Средний балл', value: avg },
+    ] as const
+  }, [stats])
+
+  const watchSummaryRows = useMemo(() => {
+    const raw: ValueDistributionItem[] = stats?.watch_with_distribution ?? []
+    const narrowed =
+      cardsQuery.company === '' ? raw : raw.filter((item) => item.value === cardsQuery.company)
+    return narrowed.map((item) => {
+      const v = item.value as CardCompany
+      return {
+        label: COMPANY_LABELS[item.value] ?? item.value,
+        value: String(item.count),
+        onActivate: () => {
+          const nextCompany: CardCompany | '' = cardsQuery.company === v ? '' : v
+          onCardsQueryChange({ ...cardsQuery, company: nextCompany })
+          onDrillToRatedCards?.()
+        },
+      }
+    })
+  }, [stats, cardsQuery, onCardsQueryChange, onDrillToRatedCards])
+
+  const moodSummaryRows = useMemo(() => {
+    const raw: ValueDistributionItem[] = stats?.mood_after_distribution ?? []
+    const narrowed =
+      cardsQuery.moodAfter === '' ? raw : raw.filter((item) => item.value === cardsQuery.moodAfter)
+    return narrowed.map((item) => {
+      const v = item.value as CardMoodAfter
+      return {
+        label: MOOD_AFTER_LABELS[item.value] ?? item.value,
+        value: String(item.count),
+        onActivate: () => {
+          const nextMood: CardMoodAfter | '' = cardsQuery.moodAfter === v ? '' : v
+          onCardsQueryChange({ ...cardsQuery, moodAfter: nextMood })
+          onDrillToRatedCards?.()
+        },
+      }
+    })
+  }, [stats, cardsQuery, onCardsQueryChange, onDrillToRatedCards])
+
+  const handleYearDistributionDrill = (label: string) => {
+    const y = Number(label)
+    if (!Number.isFinite(y)) return
+    const yi = Math.trunc(y)
+    onCardsQueryChange({
+      ...cardsQuery,
+      yearMin: String(yi),
+      yearMax: String(yi),
+    })
+    onDrillToRatedCards?.()
+  }
+
+  const prioritizedPopularTags = useMemo(() => {
+    const base = stats?.popular_tags ?? []
+    return splitPopularTags(base, cardsQuery.tags)
+  }, [stats, cardsQuery.tags])
+
+  const topMoviesDisplay = needsFilteredRankings
+    ? (rankingsQuery.data?.top ?? [])
+    : (stats?.top_movies ?? [])
+  const worstMoviesDisplay = needsFilteredRankings
+    ? (rankingsQuery.data?.worst ?? [])
+    : (stats?.worst_movies ?? [])
 
   if (loading && stats == null) {
     return <p className="filmony-text-panel py-8 text-center text-sm text-(--tgui--hint_color)">Загрузка статистики…</p>
@@ -155,155 +279,133 @@ export function ProfileStatsPanel({ userId }: ProfileStatsPanelProps) {
     return null
   }
 
+  const hasRatings = stats.rating_distribution.some((item) => item.count > 0)
+  const rankingsLoading = needsFilteredRankings && rankingsQuery.isPending
+  const rankingsErr =
+    rankingsQuery.error instanceof ApiError
+      ? formatApiDetail(rankingsQuery.error.detail)
+      : rankingsQuery.error != null
+        ? 'Не удалось загрузить списки по фильтру'
+        : null
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-          <p className="text-xs text-(--tgui--hint_color)">Всего карточек</p>
-          <p className="mt-1 text-4xl font-bold tabular-nums">{stats.total_movies}</p>
-        </div>
-        <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-          <p className="text-xs text-(--tgui--hint_color)">Средняя оценка</p>
-          <p className="mt-1 text-4xl font-bold tabular-nums">{formatRating(stats.average_rating)}</p>
-        </div>
-      </div>
-
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">Распределение оценок</p>
-        <div className="mt-3">
-          {stats.rating_distribution.some((item) => item.count > 0) ? (
-            <ColumnChart
-              items={stats.rating_distribution.map((item) => ({
-                label: String(item.rating),
-                count: item.count,
-              }))}
-              maxCount={ratingMax}
-            />
-          ) : (
-            <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
-          )}
-        </div>
+      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-2.5 sm:p-3">
+        <ProfileStatsMetricStrip metrics={metricStripItems} />
       </section>
 
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">По годам темы</p>
-        <div className="mt-3">
-          {stats.year_distribution.length > 0 ? (
-            <ColumnChart
-              items={stats.year_distribution.map((item) => ({
-                label: String(item.year),
-                count: item.count,
-              }))}
-              maxCount={yearMax}
-            />
-          ) : (
-            <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
-          )}
-        </div>
-      </section>
+      <ProfileStatsSectionCard title="Оценки по шкале">
+        {hasRatings ? (
+          <StatsDistributionBars items={ratingBarItems} maxCount={ratingMax} />
+        ) : (
+          <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+        )}
+      </ProfileStatsSectionCard>
 
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">Полярность вкуса</p>
+      <ProfileStatsSectionCard title="Полярность оценок">
         {sentiment.total > 0 ? (
-          <div className="mt-3 flex items-center gap-4">
-            <div
-              className="relative h-28 w-28 shrink-0 rounded-full"
-              style={{
-                background: `conic-gradient(#5de1d4 0% ${sentiment.highPct}%, #4f87ff ${sentiment.highPct}% ${
-                  sentiment.highPct + sentiment.midPct
-                }%, #ef7d9b ${sentiment.highPct + sentiment.midPct}% 100%)`,
-              }}
-            >
-              <div className="absolute inset-3 flex items-center justify-center rounded-full bg-(--tgui--secondary_bg_color) text-center">
-                <div>
-                  <p className="text-[10px] text-(--tgui--hint_color)">оценок</p>
-                  <p className="text-lg font-bold tabular-nums">{sentiment.total}</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2 text-sm">
-              <p className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#5de1d4]" />
-                Высокие (8-10): {sentiment.high} ({sentiment.highPct}%)
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#4f87ff]" />
-                Средние (5-7): {sentiment.mid} ({sentiment.midPct}%)
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ef7d9b]" />
-                Низкие (1-4): {sentiment.low} ({sentiment.lowPct}%)
-              </p>
-            </div>
+          <TastePolarityChart sentiment={sentiment} />
+        ) : (
+          <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+        )}
+      </ProfileStatsSectionCard>
+
+      <ProfileStatsSectionCard title="Популярные теги">
+        {prioritizedPopularTags.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {prioritizedPopularTags.map((tag) => {
+              const hilite = cardsQuery.tags.length > 0 && cardsQuery.tags.includes(tag.tag)
+              const neutral = cardsQuery.tags.length === 0
+              return (
+                <button
+                  key={tag.tag}
+                  type="button"
+                  aria-pressed={hilite}
+                  aria-label={`Фильтр по тегу «${tag.tag}»`}
+                  className={`max-w-[min(100%,12rem)] truncate rounded-lg border px-2 py-0.5 text-left text-[11px] leading-snug tabular-nums outline-none transition-[opacity,background-color] focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) focus-visible:ring-offset-1 focus-visible:ring-offset-(--tgui--secondary_bg_color) active:opacity-90 ${
+                    hilite
+                      ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_16%,transparent)] text-(--tgui--text_color)'
+                      : neutral
+                        ? 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--text_color)'
+                        : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--text_color) opacity-60'
+                  }`}
+                  onClick={() => {
+                    const has = cardsQuery.tags.includes(tag.tag)
+                    const nextTags = has ? cardsQuery.tags.filter((t) => t !== tag.tag) : [...cardsQuery.tags, tag.tag]
+                    onCardsQueryChange({ ...cardsQuery, tags: nextTags })
+                    onDrillToRatedCards?.()
+                  }}
+                >
+                  {tag.tag} <span className="text-(--tgui--hint_color)">({tag.count})</span>
+                </button>
+              )
+            })}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+          <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
         )}
-      </section>
+      </ProfileStatsSectionCard>
 
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">Популярные теги</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {stats.popular_tags.length > 0 ? (
-            stats.popular_tags.map((tag) => (
-              <span
-                key={tag.tag}
-                className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2 py-1 text-xs"
-              >
-                {tag.tag} ({tag.count})
-              </span>
-            ))
-          ) : (
-            <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
-          )}
+      {watchSummaryRows.length > 0 ? (
+        <ProfileStatsSummaryCard title="Компания" rows={watchSummaryRows} />
+      ) : (
+        <ProfileStatsSectionCard title="Компания">
+          <p className="text-sm text-(--tgui--hint_color)">
+            {cardsQuery.company === '' ? 'Пока нет данных' : 'Нет совпадающего среза среди этого профиля.'}
+          </p>
+        </ProfileStatsSectionCard>
+      )}
+
+      {moodSummaryRows.length > 0 ? (
+        <ProfileStatsSummaryCard title="После" rows={moodSummaryRows} />
+      ) : (
+        <ProfileStatsSectionCard title="После">
+          <p className="text-sm text-(--tgui--hint_color)">
+            {cardsQuery.moodAfter === '' ? 'Пока нет данных' : 'Нет строки настроения, совпадающей с фильтром.'}
+          </p>
+        </ProfileStatsSectionCard>
+      )}
+
+      {rankingsErr != null ? (
+        <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">{rankingsErr}</p>
+      ) : null}
+
+      <ProfileStatsSectionCard title="Топ по оценке">
+        {rankingsLoading ? <StatsRatedCardSkeleton /> : <StatsRatedCardRows items={topMoviesDisplay} />}
+      </ProfileStatsSectionCard>
+
+      <ProfileStatsSectionCard title="Самые низкие оценки">
+        {rankingsLoading ? <StatsRatedCardSkeleton /> : <StatsRatedCardRows items={worstMoviesDisplay} />}
+      </ProfileStatsSectionCard>
+
+      <ProfileStatsSectionCard title="По годам выпуска">
+        {stats.year_distribution.length > 0 ? (
+          <StatsDistributionBars
+            items={yearBarItems}
+            maxCount={yearMax}
+            onItemActivate={handleYearDistributionDrill}
+            itemActionHint="Показать карточки за год"
+          />
+        ) : (
+          <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+        )}
+      </ProfileStatsSectionCard>
+    </div>
+  )
+}
+
+function StatsRatedCardSkeleton() {
+  return (
+    <div className="space-y-2">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="animate-pulse rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-3 sm:py-3.5"
+        >
+          <div className="h-4 w-2/3 rounded bg-[color-mix(in_srgb,var(--tgui--hint_color)_12%,transparent)]" />
+          <div className="mt-2 h-3 w-24 rounded bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)]" />
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">С кем смотрю</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {stats.watch_with_distribution.length > 0 ? (
-            stats.watch_with_distribution.map((item) => (
-              <span
-                key={item.value}
-                className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2 py-1 text-xs"
-              >
-                {COMPANY_LABELS[item.value] ?? item.value} ({item.count})
-              </span>
-            ))
-          ) : (
-            <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
-          )}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="text-sm font-medium">Настроение после</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {stats.mood_after_distribution.length > 0 ? (
-            stats.mood_after_distribution.map((item) => (
-              <span
-                key={item.value}
-                className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2 py-1 text-xs"
-              >
-                {MOOD_AFTER_LABELS[item.value] ?? item.value} ({item.count})
-              </span>
-            ))
-          ) : (
-            <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
-          )}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="mb-3 text-sm font-medium">Топ по оценке</p>
-        <StatsRatedCardRows items={stats.top_movies} />
-      </section>
-
-      <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-4">
-        <p className="mb-3 text-sm font-medium">Самые низкие оценки</p>
-        <StatsRatedCardRows items={stats.worst_movies} />
-      </section>
+      ))}
     </div>
   )
 }

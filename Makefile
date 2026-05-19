@@ -1,13 +1,14 @@
 DC = docker compose -f docker-compose.yml
 DEXEC = docker exec -it -w /opt/app/src
-APP = backend
+AEXEC = docker exec -it -w /opt/app
+APP = filmony-backend
+BACKEND_SERVICE = backend
 DLOG = docker logs -f -n 50
-RUFF_FMT = ruff format --config pyproject.toml src/
-RUFF_LINT = ruff check --config pyproject.toml src/
-RUFF_FIX = ruff check --fix --config pyproject.toml src/
-DC_PROD = docker exec -it -w /opt/app/src filmony-backend
+RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
+RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
+RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs prod-up prod-migrate
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs
 
 start: build up
 
@@ -21,36 +22,36 @@ down:
 	$(DC) down
 
 backend-restart:
-	$(DC) restart $(APP)
+	$(DC) restart $(BACKEND_SERVICE)
 
 make-migration:
 	@test -n "$(msg)" || (echo 'usage: make make-migration msg="your message"' >&2; exit 1)
-	$(DC) exec -w /opt/app $(APP) alembic revision --autogenerate -m "$(msg)"
+	$(AEXEC) $(APP) alembic revision --autogenerate -m "$(msg)"
 
 migrate:
-	$(DC) exec -w /opt/app $(APP) alembic upgrade head
+	$(AEXEC) $(APP) alembic upgrade head
 
 backend-format:
-	$(DC) exec -w /opt/app $(APP) $(RUFF_FMT)
+	$(DEXEC) $(APP) $(RUFF_FMT)
 
 backend-lint:
-	$(DC) exec -w /opt/app $(APP) $(RUFF_LINT)
+	$(DEXEC) $(APP) $(RUFF_LINT)
 
 backend-fix:
-	$(DC) exec -w /opt/app $(APP) $(RUFF_FIX)
+	$(DEXEC) $(APP) $(RUFF_FIX)
 
 backend-test:
-	$(DC) exec -w /opt/app $(APP) pytest
+	$(DEXEC) $(APP) pytest
 
 backend-test-one:
 	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/<dir>/test_<name>::<test_name>' >&2; exit 1)
-	$(DC) exec -w /opt/app $(APP) pytest $(target)
+	$(DEXEC) $(APP) pytest $(target)
 
 logs:
-	$(DC) logs -f -n 50 $(APP)
+	$(DLOG) $(APP)
 
 celery-worker-logs:
-	$(DC) logs -f -n 50 celery-worker
+	$(DLOG) filmony-celery-worker
 
 fixtures-load:
 	@if [ -z "$(file)" ]; then bash scripts/load-fixtures.sh; else bash scripts/load-fixtures.sh "$(file)"; fi
@@ -78,12 +79,3 @@ sync-reactions-rustfs:
 	  export RUSTFS_SECRET_KEY="$${RUSTFS_SECRET_KEY:-rustfsadmin}"; \
 	  export RUSTFS_BUCKET="$${RUSTFS_BUCKET:-filmony-reactions}"; \
 	  uv run --project backend python scripts/upload_reactions_to_rustfs.py $$DB_FLAG $(ARGS)'
-
-
-prod-migrate:
-	$(DC_PROD) alembic upgrade head
-
-prod-up:
-	$(DC_PROD) pull
-	$(DC_PROD) up -d
-	$(MAKE) prod-migrate

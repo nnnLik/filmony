@@ -24,44 +24,16 @@ import {
   readCachedUserMovieCardTagStats,
   writeCachedUserMovieCardTagStats,
 } from '../../lib/movieCardTagStatsStorage'
+import {
+  PROFILE_RATED_COMPANY_OPTIONS,
+  PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS,
+  PROFILE_RATED_MOOD_AFTER_OPTIONS,
+  PROFILE_RATED_MOOD_BEFORE_OPTIONS,
+  PROFILE_RATED_CARDS_SORT_OPTIONS,
+  profileRatedCardsSortLabel,
+} from '../../lib/profileRatedCardsFilterOptions'
 
-const SORT_OPTIONS: Array<{ value: ProfileCardsSort; label: string }> = [
-  { value: 'recent', label: 'Сначала новые' },
-  { value: 'rating_desc', label: 'Оценка: выше' },
-  { value: 'rating_asc', label: 'Оценка: ниже' },
-]
-
-function sortLabel(sort: ProfileCardsSort): string {
-  return SORT_OPTIONS.find((o) => o.value === sort)?.label ?? sort
-}
-
-const COMPANY_OPTIONS: Array<{ value: CardCompany | ''; label: string }> = [
-  { value: '', label: 'Кто угодно' },
-  { value: 'alone', label: 'Один' },
-  { value: 'partner', label: 'С партнёром' },
-  { value: 'friends', label: 'С друзьями' },
-  { value: 'family', label: 'С семьёй' },
-]
-
-const MOOD_BEFORE_OPTIONS: Array<{ value: CardMoodBefore | ''; label: string }> = [
-  { value: '', label: 'Любое' },
-  { value: 'relax', label: 'Расслабиться' },
-  { value: 'laugh', label: 'Поржать' },
-  { value: 'sad', label: 'Погрустить' },
-  { value: 'thrill', label: 'Напряжение' },
-]
-
-const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter | ''; label: string }> = [
-  { value: '', label: 'Любой итог' },
-  { value: 'laughed', label: 'Весёлый' },
-  { value: 'cried', label: 'Плакал' },
-  { value: 'enjoyed', label: 'Кайфанул' },
-  { value: 'tense', label: 'Уставший' },
-  { value: 'wasted_time', label: 'Зря время' },
-]
-
-const SELECT_CLASS =
-  'w-full rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-2 text-sm text-(--tgui--text_color) outline-none ring-(--tgui--link_color) focus-visible:ring-2'
+const SELECT_CLASS = `${PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS} w-full`
 
 function ratedListTitleInputValue(q: RatedCardsListQuery): string {
   return q.filmTitle
@@ -173,7 +145,7 @@ export function ProfileRatedCardsFilters({
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-(--tgui--text_color)">Фильтры и сортировка</span>
             <span className="mt-0.5 block truncate text-[11px] text-(--tgui--hint_color)">
-              {filtersOpen ? 'Настройте список ниже' : sortLabel(cardsQuery.sort)}
+              {filtersOpen ? 'Настройте список ниже' : profileRatedCardsSortLabel(cardsQuery.sort)}
               {hasActive && !filtersOpen ? ' · заданы условия' : ''}
             </span>
           </span>
@@ -198,15 +170,28 @@ export function ProfileRatedCardsFilters({
           aria-labelledby="profile-rated-cards-filters-trigger"
           className="space-y-3 border-t border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] px-3 pb-3 pt-3"
         >
+          <label className="flex flex-wrap items-center gap-2 rounded-xl px-1 py-1 text-xs font-medium text-(--tgui--hint_color)">
+            <span className="grow basis-full">Только избранное</span>
+            <input
+              type="checkbox"
+              className="size-4 accent-(--tgui--link_color)"
+              checked={cardsQuery.favoritesOnly}
+              onChange={(e) => onChange({ ...cardsQuery, favoritesOnly: e.currentTarget.checked })}
+              aria-label="Показывать только карточки из избранного"
+            />
+          </label>
+
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
             Сортировка
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.sort}
-              onChange={(e) => onChange({ ...cardsQuery, sort: e.currentTarget.value as ProfileCardsSort })}
+              onChange={(e) =>
+                onChange({ ...cardsQuery, sort: e.currentTarget.value as ProfileCardsSort })
+              }
               aria-label="Сортировка карточек"
             >
-              {SORT_OPTIONS.map((o) => (
+              {PROFILE_RATED_CARDS_SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -270,14 +255,14 @@ export function ProfileRatedCardsFilters({
           </div>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            С кем делились впечатлением
+            Компания
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.company}
               onChange={(e) => onChange({ ...cardsQuery, company: e.currentTarget.value as CardCompany | '' })}
               aria-label="Фильтр: компания"
             >
-              {COMPANY_OPTIONS.map((o) => (
+              {PROFILE_RATED_COMPANY_OPTIONS.map((o) => (
                 <option key={o.value || 'any'} value={o.value}>
                   {o.label}
                 </option>
@@ -286,14 +271,14 @@ export function ProfileRatedCardsFilters({
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            Настроение до
+            До
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.moodBefore}
               onChange={(e) => onChange({ ...cardsQuery, moodBefore: e.currentTarget.value as CardMoodBefore | '' })}
               aria-label="Фильтр: настроение до"
             >
-              {MOOD_BEFORE_OPTIONS.map((o) => (
+              {PROFILE_RATED_MOOD_BEFORE_OPTIONS.map((o) => (
                 <option key={o.value || 'any'} value={o.value}>
                   {o.label}
                 </option>
@@ -302,14 +287,14 @@ export function ProfileRatedCardsFilters({
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            Итог / настроение после
+            После
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.moodAfter}
               onChange={(e) => onChange({ ...cardsQuery, moodAfter: e.currentTarget.value as CardMoodAfter | '' })}
               aria-label="Фильтр: настроение после"
             >
-              {MOOD_AFTER_OPTIONS.map((o) => (
+              {PROFILE_RATED_MOOD_AFTER_OPTIONS.map((o) => (
                 <option key={o.value || 'any'} value={o.value}>
                   {o.label}
                 </option>

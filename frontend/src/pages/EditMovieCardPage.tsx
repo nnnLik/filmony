@@ -1,9 +1,9 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { getMovieCardById, updateMovieCard } from '../api/cardApi'
+import { getMovieCardById, updateMovieCard, uploadUserCardAudio, deleteUserCardAudio } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyCardCategories, getMyProfile } from '../api/profileApi'
 import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MyUserCardCategory } from '../api/profileTypes'
@@ -74,6 +74,10 @@ export function EditMovieCardPage() {
   /** Полка после загрузки списка категорий; в PATCH уходит только при успешной загрузке списка. */
   const [draftCategoryId, setDraftCategoryId] = useState<number | null>(null)
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+  const audioFileInputRef = useRef<HTMLInputElement>(null)
+
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioBusy, setAudioBusy] = useState(false)
 
   const shelvesQuery = useQuery({
     queryKey: myCardCategoriesQueryKey(),
@@ -173,6 +177,8 @@ export function EditMovieCardPage() {
         setWatchNote(item.watch_note ?? '')
         const cid = item.category?.id
         setDraftCategoryId(typeof cid === 'number' && cid >= 1 ? cid : null)
+        const au = item.audio_url
+        setAudioUrl(typeof au === 'string' && au.trim() !== '' ? au : null)
       } catch (e) {
         if (!alive) return
         if (e instanceof ApiError) {
@@ -238,6 +244,47 @@ export function EditMovieCardPage() {
   function removeTag(tag: string) {
     setCustomTags((prev) => prev.filter((item) => item !== tag))
   }
+
+  const handleAudioFileChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+      if (file == null || parsedCardId == null) return
+      setAudioBusy(true)
+      setError(null)
+      try {
+        const { url } = await uploadUserCardAudio(parsedCardId, file)
+        setAudioUrl(url)
+      } catch (e) {
+        if (e instanceof ApiError) {
+          setError(formatApiDetail(e.detail))
+        } else {
+          setError('Не удалось загрузить аудио')
+        }
+      } finally {
+        setAudioBusy(false)
+      }
+    },
+    [parsedCardId],
+  )
+
+  const handleRemoveAudio = useCallback(async () => {
+    if (parsedCardId == null || audioBusy) return
+    setAudioBusy(true)
+    setError(null)
+    try {
+      await deleteUserCardAudio(parsedCardId)
+      setAudioUrl(null)
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(formatApiDetail(e.detail))
+      } else {
+        setError('Не удалось удалить аудио')
+      }
+    } finally {
+      setAudioBusy(false)
+    }
+  }, [parsedCardId, audioBusy])
 
   async function handleSave() {
     if (parsedCardId == null || saving) return
@@ -448,6 +495,39 @@ export function EditMovieCardPage() {
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">
                   {watchNote.length}/{MAX_WATCH_NOTE_LEN}
                 </p>
+              </div>
+            </Section>
+
+            <Section header="Атмосфера (звук)">
+              <div className="space-y-3 px-3 py-3">
+                <p className="text-xs text-(--tgui--hint_color)">
+                  MP3, M4A, OGG, WAV или WebM, до ~50 МБ. Файл сохраняется сразу после выбора.
+                </p>
+                <p className="text-xs text-(--tgui--text_color)">
+                  {audioUrl != null && audioUrl.trim() !== '' ? 'Аудио прикреплено.' : 'Пока без звука.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    mode="gray"
+                    size="s"
+                    disabled={saving || audioBusy}
+                    onClick={() => audioFileInputRef.current?.click()}
+                  >
+                    {audioBusy ? 'Загрузка...' : audioUrl != null && audioUrl.trim() !== '' ? 'Заменить файл' : 'Загрузить аудио'}
+                  </Button>
+                  {audioUrl != null && audioUrl.trim() !== '' ? (
+                    <Button mode="gray" size="s" disabled={saving || audioBusy} onClick={() => void handleRemoveAudio()}>
+                      Удалить аудио
+                    </Button>
+                  ) : null}
+                </div>
+                <input
+                  ref={audioFileInputRef}
+                  type="file"
+                  accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,.mp3,.m4a,.ogg,.wav,.webm"
+                  className="hidden"
+                  onChange={(e) => void handleAudioFileChange(e)}
+                />
               </div>
             </Section>
 

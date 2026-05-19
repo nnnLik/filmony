@@ -196,6 +196,8 @@ export type MovieCard = {
   category?: UserCardCategorySnippet
   reactions?: ReactionSummary
   is_favorite?: boolean
+  /** Опциональный аудио-слой (деталка / лента / профиль). */
+  audio_url?: string | null
 }
 
 export type MyUserCardCategory = {

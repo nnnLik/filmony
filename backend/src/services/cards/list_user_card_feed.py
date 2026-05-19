@@ -303,7 +303,9 @@ async def attach_feed_post_list_engagement(
             snips = preview_snips_list[snip_i]
             mens = preview_men_list[snip_i]
             snip_i += 1
-            upgraded.append(replace(c, referenced_inline_user_cards=snips, referenced_mentions=mens))
+            upgraded.append(
+                replace(c, referenced_inline_user_cards=snips, referenced_mentions=mens)
+            )
         upgraded_by_post[pid] = tuple(upgraded)
 
     merged = [
@@ -374,6 +376,7 @@ class UserCardFeedItem:
     is_favorite: bool
     category_id: int
     category_name: str
+    audio_url: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1093,7 +1096,11 @@ class ListUserCardFeedService:
         else:
             ref_all, men_all = [], []
         enriched_flat = [
-            replace(flat_tmps[i], referenced_inline_user_cards=ref_all[i], referenced_mentions=men_all[i])
+            replace(
+                flat_tmps[i],
+                referenced_inline_user_cards=ref_all[i],
+                referenced_mentions=men_all[i],
+            )
             for i in range(len(flat_tmps))
         ]
         previews_resolved: dict[int, list[UserCardCommentItem]] = {cid: [] for cid in card_ids}
@@ -1155,6 +1162,7 @@ class ListUserCardFeedService:
                     is_favorite=bool(card.is_favorite),
                     category_id=cid,
                     category_name=cat_names.get(cid, DEFAULT_USER_CARD_CATEGORY_NAME),
+                    audio_url=card.audio_url,
                 )
             )
         return items

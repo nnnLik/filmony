@@ -235,6 +235,26 @@ export const deleteMovieCard: (cardId: number) => Promise<void> = async (cardId:
   await assertActionOk(res)
 }
 
+export async function uploadUserCardAudio(cardId: number, file: File): Promise<{ url: string }> {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await apiFetch(`/api/cards/${cardId}/audio`, {
+    method: 'POST',
+    body,
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readActionErrorDetail(res))
+  }
+  return (await res.json()) as { url: string }
+}
+
+export async function deleteUserCardAudio(cardId: number): Promise<void> {
+  const res = await apiFetch(`/api/cards/${cardId}/audio`, {
+    method: 'DELETE',
+  })
+  await assertActionOk(res)
+}
+
 export async function getMovieCardComments(
   cardId: number,
   params?: { cursor?: string | null; limit?: number }

@@ -106,6 +106,7 @@ class UserCardListItem:
     is_favorite: bool
     category_id: int
     category_name: str
+    audio_url: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,6 +159,7 @@ def _rows_to_items(
                 is_favorite=bool(card.is_favorite),
                 category_id=cid,
                 category_name=category_name_by_id.get(cid, DEFAULT_USER_CARD_CATEGORY_NAME),
+                audio_url=card.audio_url,
             )
         )
     return items

@@ -69,7 +69,9 @@ def _feed_post_comment_preview_to_response(
             display_name=c.author.display_name,
         ),
         reactions=reaction_target_summary_to_response(c.reactions),
-        referenced_movie_cards=inline_user_card_snippets_to_response(c.referenced_inline_user_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(
+            c.referenced_inline_user_cards
+        ),
         referenced_mentions=inline_mention_snippets_to_response(c.referenced_mentions),
     )
 
@@ -90,7 +92,9 @@ def _source_comment_snippet_to_response(
             photo_url=s.author.photo_url,
             display_name=s.author.display_name,
         ),
-        referenced_movie_cards=inline_user_card_snippets_to_response(s.referenced_inline_user_cards),
+        referenced_movie_cards=inline_user_card_snippets_to_response(
+            s.referenced_inline_user_cards
+        ),
         referenced_mentions=inline_mention_snippets_to_response(s.referenced_mentions),
     )
 

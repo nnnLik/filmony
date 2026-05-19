@@ -90,9 +90,7 @@ class CreateFeedPostService:
             if comment.user_id != user_id:
                 raise SourceCommentForbiddenError
             if ref_card_id is not None and ref_card_id != comment.card_id:
-                raise FeedPostValidationError(
-                    'referenced user card id does not match comment card'
-                )
+                raise FeedPostValidationError('referenced user card id does not match comment card')
             ref_card_id = comment.card_id
             # Одна картинка на пост: при конвертации из комментария берём изображение комментария.
             image_url = _normalize_image_url(comment.image_url)

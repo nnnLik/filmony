@@ -1,0 +1,16 @@
+- **Timestamp:** 2026-05-19T173000Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** code
+- **Summary:** Task 3 — компактные фильтры/сортировка статистики, синхронизация состояния с оценёнными карточками через `RatedCardsListQuery`, топы под фильтр через два запроса `getUserCards` (до 50+50), ограничения агрегата `/stats` задокументированы во встроенном тексте; добавлен общий файл опций фильтров и `favoritesOnly` в модели запроса списка.
+- **Files:**
+  - `frontend/src/lib/profileRatedCardsFilterOptions.ts`
+  - `frontend/src/lib/ratedCardsListQuery.ts`
+  - `frontend/src/components/profile/ProfileRatedCardsFilters.tsx`
+  - `frontend/src/components/profile/ProfileStatsFilters.tsx`
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T173000Z-profile-stats-redesign-code.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.

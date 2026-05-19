@@ -1,0 +1,14 @@
+- **Timestamp:** 2026-05-19T181500Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** code
+- **Summary:** Task 4 — drill-down из статистики: кликабельные теги (пересечение), строки «С кем смотрю» / «Настроение после» (переключение фильтров), годовые бары в «Рейтинги» (yearMin/yearMax); общий колбэк `onDrillToRatedCards` переключает вкладку «Карточки» / «Оценённые» и скролл к `#profile-rated-cards-panel`; гистограмма оценок остаётся справочной (нет API-фильтра по баллу), задокументировано в UI.
+- **Files:**
+  - `frontend/src/components/profile/ProfileStatsCharts.tsx`
+  - `frontend/src/components/profile/ProfileStatsSummaryCard.tsx`
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T181500Z-profile-stats-redesign-code.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.

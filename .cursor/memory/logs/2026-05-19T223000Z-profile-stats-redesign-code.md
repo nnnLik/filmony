@@ -1,0 +1,11 @@
+- **Timestamp:** 2026-05-19T223000Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** code
+- **Summary:** Статистика профиля — одна страница без подвкладок; удалены «Коротко» и крупные KPI; компактная полоса метрик (`ProfileStatsMetricStrip`).
+- **Files:**
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/components/profile/ProfileStatsSummaryCard.tsx`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T223000Z-profile-stats-redesign-code.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.

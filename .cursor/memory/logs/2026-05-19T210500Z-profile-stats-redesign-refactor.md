@@ -1,0 +1,10 @@
+- **Timestamp:** 2026-05-19T210500Z
+- **Feature slug:** profile-stats-redesign
+- **Action type:** refactor
+- **Summary:** Tailwind v4 lint: в `ProfileStatsFilters` заменены произвольные ширины на канонические классы (`min-w-36`, `min-w-30`, `sm:max-w-48`).
+- **Files:**
+  - `frontend/src/components/profile/ProfileStatsFilters.tsx`
+  - `.cursor/active/profile-stats-redesign/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-19T210500Z-profile-stats-redesign-refactor.md`
+- **Verification:** `cd frontend && npm run lint` — exit 0; `cd frontend && npm run build` — exit 0.

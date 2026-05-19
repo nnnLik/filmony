@@ -51,6 +51,7 @@ class UserCardDetails:
     category_name: str
     reactions: ReactionTargetSummary
     is_favorite: bool
+    audio_url: str | None
 
 
 class UserCardNotFoundError(Exception):
@@ -147,4 +148,5 @@ class GetUserCardDetailsService:
             category_name=category_name,
             reactions=summaries[card.id],
             is_favorite=bool(card.is_favorite),
+            audio_url=card.audio_url,
         )

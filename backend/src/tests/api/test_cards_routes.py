@@ -1902,3 +1902,184 @@ async def test_create_card_no_followers_skips_follower_notify(
     )
     assert r.status_code == 200
     mock_delay.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_user_card_media_unsafe_key(async_client: AsyncClient) -> None:
+    r = await async_client.get('/api/cards/media/user_media/feed_posts/x/x.mp3')
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_upload_card_audio_success(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    from services.cards import attach_user_card_audio as attach_audio_mod
+
+    async def fake_upload_execute(
+        self: object,
+        *,
+        user_id,
+        content_type,
+        data: bytes,
+    ) -> str:
+        return '/api/cards/media/user_media/movie_card_audio/fake-user/fakefile.mp3'
+
+    monkeypatch.setattr(attach_audio_mod.UploadUserCardAudioService, 'execute', fake_upload_execute)
+
+    await _login(async_client, telegram_user_id=880001)
+    film = await _create_film(kinopoisk_id=8800011)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = int(created.json()['id'])
+    up = await async_client.post(
+        f'/api/cards/{card_id}/audio',
+        files={'file': ('x.mp3', b'id3fake', 'audio/mpeg')},
+    )
+    assert up.status_code == 200
+    assert up.json()['url'].endswith('fakefile.mp3')
+    detail = await async_client.get(f'/api/cards/{card_id}')
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body['audio_url'].endswith('fakefile.mp3')
+
+
+@pytest.mark.asyncio
+async def test_upload_card_audio_rejects_bad_type(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=880002)
+    film = await _create_film(kinopoisk_id=8800022)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = int(created.json()['id'])
+    up = await async_client.post(
+        f'/api/cards/{card_id}/audio',
+        files={'file': ('x.bin', b'hello', 'application/octet-stream')},
+    )
+    assert up.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_upload_card_audio_forbidden_other_user(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=880003)
+    film = await _create_film(kinopoisk_id=8800033)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = int(created.json()['id'])
+    await _login(async_client, telegram_user_id=880004)
+    up = await async_client.post(
+        f'/api/cards/{card_id}/audio',
+        files={'file': ('x.mp3', b'id3', 'audio/mpeg')},
+    )
+    assert up.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_card_audio_success(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    from services.cards import attach_user_card_audio as attach_audio_mod
+
+    async def fake_upload_execute(
+        self: object,
+        *,
+        user_id,
+        content_type,
+        data: bytes,
+    ) -> str:
+        return '/api/cards/media/user_media/movie_card_audio/fake-user/fake2.mp3'
+
+    monkeypatch.setattr(attach_audio_mod.UploadUserCardAudioService, 'execute', fake_upload_execute)
+
+    await _login(async_client, telegram_user_id=880005)
+    film = await _create_film(kinopoisk_id=8800055)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    card_id = int(created.json()['id'])
+    assert (
+        await async_client.post(
+            f'/api/cards/{card_id}/audio',
+            files={'file': ('x.mp3', b'id3', 'audio/mpeg')},
+        )
+    ).status_code == 200
+    deleted = await async_client.delete(f'/api/cards/{card_id}/audio')
+    assert deleted.status_code == 204
+    got = await async_client.get(f'/api/cards/{card_id}')
+    assert got.json()['audio_url'] is None
+
+
+@pytest.mark.asyncio
+async def test_upload_card_audio_too_large(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    from api.cards import routes as cards_routes_module
+
+    monkeypatch.setattr(cards_routes_module, 'USER_CARD_AUDIO_MAX_BYTES', 4)
+
+    await _login(async_client, telegram_user_id=880007)
+    film = await _create_film(kinopoisk_id=8800077)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    card_id = int(created.json()['id'])
+    up = await async_client.post(
+        f'/api/cards/{card_id}/audio',
+        files={'file': ('x.mp3', b'12345', 'audio/mpeg')},
+    )
+    assert up.status_code == 413
