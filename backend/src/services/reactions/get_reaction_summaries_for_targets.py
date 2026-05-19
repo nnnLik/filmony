@@ -19,23 +19,23 @@ REACTION_REACTORS_EMBED_CAP = 25
 
 
 def _scope_conditions_for_ids(
-    movie_card_ids: list[int],
+    user_card_ids: list[int],
     comment_ids: list[int],
     fp_comment_ids: list[int],
     feed_post_ids: list[int],
 ) -> list:
     scope_conds: list = []
-    if movie_card_ids:
+    if user_card_ids:
         scope_conds.append(
             and_(
-                UserReaction.target_kind == ReactionTargetKind.MOVIE_CARD.value,
-                UserReaction.target_id.in_(movie_card_ids),
+                UserReaction.target_kind == ReactionTargetKind.CARD.value,
+                UserReaction.target_id.in_(user_card_ids),
             )
         )
     if comment_ids:
         scope_conds.append(
             and_(
-                UserReaction.target_kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value,
+                UserReaction.target_kind == ReactionTargetKind.CARD_COMMENT.value,
                 UserReaction.target_id.in_(comment_ids),
             )
         )
@@ -63,8 +63,6 @@ def _actor_tuple_map_from_rows(
     for row in actor_rows:
         kind, tid, rtid, uid, slug, dname, uname, fn, ln, photo = row
         key = (str(kind), int(tid), int(rtid))
-        if len(actors_lists[key]) >= REACTION_REACTORS_EMBED_CAP:
-            continue
         actors_lists[key].append(
             ReactionActorEntry(
                 id=uid,
@@ -88,12 +86,12 @@ def _set_summary_counts_if_member(
     feed_post_comment_out: dict[int, ReactionTargetSummary],
     feed_post_out: dict[int, ReactionTargetSummary],
 ) -> None:
-    if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
+    if kind == ReactionTargetKind.CARD.value and tid in card_out:
         prev = card_out[tid]
         card_out[tid] = ReactionTargetSummary(
             counts=ordered, my_reaction_type_ids=prev.my_reaction_type_ids
         )
-    elif kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value and tid in comment_out:
+    elif kind == ReactionTargetKind.CARD_COMMENT.value and tid in comment_out:
         prev = comment_out[tid]
         comment_out[tid] = ReactionTargetSummary(
             counts=ordered, my_reaction_type_ids=prev.my_reaction_type_ids
@@ -119,10 +117,10 @@ def _set_summary_mine_if_member(
     feed_post_comment_out: dict[int, ReactionTargetSummary],
     feed_post_out: dict[int, ReactionTargetSummary],
 ) -> None:
-    if kind == ReactionTargetKind.MOVIE_CARD.value and tid in card_out:
+    if kind == ReactionTargetKind.CARD.value and tid in card_out:
         s = card_out[tid]
         card_out[tid] = ReactionTargetSummary(counts=s.counts, my_reaction_type_ids=unique_ids)
-    elif kind == ReactionTargetKind.MOVIE_CARD_COMMENT.value and tid in comment_out:
+    elif kind == ReactionTargetKind.CARD_COMMENT.value and tid in comment_out:
         s = comment_out[tid]
         comment_out[tid] = ReactionTargetSummary(counts=s.counts, my_reaction_type_ids=unique_ids)
     elif kind == ReactionTargetKind.FEED_POST_COMMENT.value and tid in feed_post_comment_out:
@@ -143,7 +141,7 @@ class GetReactionSummariesForTargetsService:
         self,
         *,
         viewer_user_id: UUID,
-        movie_card_ids: list[int],
+        user_card_ids: list[int],
         comment_ids: list[int],
         feed_post_comment_ids: list[int] | None = None,
         feed_post_ids: list[int] | None = None,
@@ -156,7 +154,7 @@ class GetReactionSummariesForTargetsService:
         fp_comment_ids = feed_post_comment_ids if feed_post_comment_ids is not None else []
         fpost_ids = feed_post_ids if feed_post_ids is not None else []
         card_out: dict[int, ReactionTargetSummary] = {
-            cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in movie_card_ids
+            cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in user_card_ids
         }
         comment_out: dict[int, ReactionTargetSummary] = {
             cid: ReactionTargetSummary(counts=(), my_reaction_type_ids=()) for cid in comment_ids
@@ -169,18 +167,34 @@ class GetReactionSummariesForTargetsService:
         }
 
         scope_conds = _scope_conditions_for_ids(
-            movie_card_ids, comment_ids, fp_comment_ids, fpost_ids
+            user_card_ids, comment_ids, fp_comment_ids, fpost_ids
         )
         if not scope_conds:
             return card_out, comment_out, feed_post_comment_out, feed_post_out
 
         scope = or_(*scope_conds)
 
+        rx = UserReaction
+        ranked = (
+            select(
+                rx.target_kind,
+                rx.target_id,
+                rx.reaction_type_id,
+                rx.user_id,
+                func.row_number()
+                .over(
+                    partition_by=(rx.target_kind, rx.target_id, rx.reaction_type_id),
+                    order_by=rx.id.desc(),
+                )
+                .label('rn'),
+            ).where(scope)
+        ).subquery()
+
         actors_stmt = (
             select(
-                UserReaction.target_kind,
-                UserReaction.target_id,
-                UserReaction.reaction_type_id,
+                ranked.c.target_kind,
+                ranked.c.target_id,
+                ranked.c.reaction_type_id,
                 User.id,
                 User.profile_slug,
                 User.display_name,
@@ -189,9 +203,14 @@ class GetReactionSummariesForTargetsService:
                 User.last_name,
                 User.photo_url,
             )
-            .join(User, User.id == UserReaction.user_id)
-            .where(scope)
-            .order_by(UserReaction.id.desc())
+            .join(User, User.id == ranked.c.user_id)
+            .where(ranked.c.rn <= REACTION_REACTORS_EMBED_CAP)
+            .order_by(
+                ranked.c.target_kind,
+                ranked.c.target_id,
+                ranked.c.reaction_type_id,
+                ranked.c.rn,
+            )
         )
         actor_rows = (await self._session.execute(actors_stmt)).all()
         actors_tuple_map = _actor_tuple_map_from_rows(actor_rows)
@@ -204,6 +223,7 @@ class GetReactionSummariesForTargetsService:
                 UserReaction.target_id,
                 UserReaction.reaction_type_id,
                 func.count(UserReaction.id).label('cnt'),
+                func.bool_or(UserReaction.user_id == viewer_user_id).label('viewer_has'),
                 ReactionType.asset_key,
                 ReactionType.image_url,
             )
@@ -220,8 +240,9 @@ class GetReactionSummariesForTargetsService:
         count_rows = (await self._session.execute(count_stmt)).all()
 
         buckets: dict[tuple[str, int], list[ReactionCountEntry]] = defaultdict(list)
+        mines_acc: defaultdict[tuple[str, int], list[int]] = defaultdict(list)
         for row in count_rows:
-            kind, tid, rtid, cnt, asset_key, url = row
+            kind, tid, rtid, cnt, viewer_has, asset_key, url = row
             resolved_url = resolve_reaction_media_url(
                 asset_key=asset_key,
                 image_url_fallback=str(url),
@@ -237,6 +258,8 @@ class GetReactionSummariesForTargetsService:
                     reactors=actors_tuple_map.get(rkey, ()),
                 )
             )
+            if viewer_has:
+                mines_acc[(str(kind), int(tid))].append(int(rtid))
 
         for key, entries in buckets.items():
             kind, tid = key
@@ -245,15 +268,7 @@ class GetReactionSummariesForTargetsService:
                 kind, tid, ordered, card_out, comment_out, feed_post_comment_out, feed_post_out
             )
 
-        mines: defaultdict[tuple[str, int], list[int]] = defaultdict(list)
-        mine_stmt = select(
-            UserReaction.target_kind, UserReaction.target_id, UserReaction.reaction_type_id
-        ).where(UserReaction.user_id == viewer_user_id, scope)
-        mine_rows = (await self._session.execute(mine_stmt)).all()
-        for kind, tid, rtid in mine_rows:
-            mines[(kind, int(tid))].append(int(rtid))
-
-        for (kind, tid), rtids in mines.items():
+        for (kind, tid), rtids in mines_acc.items():
             unique_ids = tuple(dict.fromkeys(rtids))
             _set_summary_mine_if_member(
                 kind, tid, unique_ids, card_out, comment_out, feed_post_comment_out, feed_post_out

@@ -15,12 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import literal
 
 from models.feed_post import FeedPost
-from models.movie_card import MovieCard
-from services.cards.list_movie_card_feed import (
+from models.user_card import UserCard
+from services.cards.list_user_card_feed import (
     FeedPageEntry,
-    ListMovieCardFeedService,
-    MovieCardFeedPage,
-    enrich_feed_post_items_for_feed_paths,
+    ListUserCardFeedService,
+    UserCardFeedPage,
 )
 
 GlobalFeedKind = Literal['all', 'posts', 'cards']
@@ -71,11 +70,11 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
     card_branch = select(
         literal('card', type_=String()).label('etype'),
         literal(0, type_=Integer()).label('kind_rank'),
-        MovieCard.id.label('eid'),
-        MovieCard.created_at.label('sort_at'),
-    ).select_from(MovieCard)
+        UserCard.id.label('eid'),
+        UserCard.created_at.label('sort_at'),
+    ).select_from(UserCard)
     if exclude_own:
-        card_branch = card_branch.where(MovieCard.user_id != viewer_user_id)
+        card_branch = card_branch.where(UserCard.user_id != viewer_user_id)
     post_branch = select(
         literal('post', type_=String()).label('etype'),
         literal(1, type_=Integer()).label('kind_rank'),
@@ -109,7 +108,7 @@ class ListGlobalFeedService:
         limit: int,
         *,
         exclude_own: bool = False,
-    ) -> MovieCardFeedPage:
+    ) -> UserCardFeedPage:
         cur = _decode_cursor(cursor)
         u = _union_subquery(kind, viewer_user_id, exclude_own=exclude_own)
         stmt = select(u.c.etype, u.c.kind_rank, u.c.eid, u.c.sort_at).select_from(u)
@@ -137,12 +136,11 @@ class ListGlobalFeedService:
             else:
                 ordered.append(('post', int(r.eid)))
 
-        hydrator = ListMovieCardFeedService(self._session)
+        hydrator = ListUserCardFeedService(self._session)
         card_ids = [i for k, i in ordered if k == 'card']
         post_ids = [i for k, i in ordered if k == 'post']
-        cards = await hydrator.hydrate_global_feed_movie_cards(viewer_user_id, card_ids)
+        cards = await hydrator.hydrate_global_feed_user_cards(viewer_user_id, card_ids)
         posts = await hydrator.hydrate_global_feed_posts(viewer_user_id, post_ids)
-        posts = await enrich_feed_post_items_for_feed_paths(self._session, posts)
         byc = {c.id: c for c in cards}
         byp = {p.id: p for p in posts}
 
@@ -159,4 +157,4 @@ class ListGlobalFeedService:
             last = page_rows[-1]
             next_cursor = _encode_cursor(last.sort_at, int(last.kind_rank), int(last.eid))
 
-        return MovieCardFeedPage(items=items, next_cursor=next_cursor)
+        return UserCardFeedPage(items=items, next_cursor=next_cursor)

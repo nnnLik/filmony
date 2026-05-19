@@ -1,0 +1,20 @@
+- Timestamp: 2026-05-14T233000Z
+- Feature slug: backend-performance-optimizations
+- Action type: code
+- Summary: Redis-backed catalog cache (bounded SHA256 keys, counters), merged reaction count/mine aggregation with `bool_or`, parallel card-details tail queries, Alembic drop of redundant `ix_user_reaction_target`, explicit `redis` prod dependency.
+- Files:
+  - `backend/src/conf/settings.py`
+  - `backend/src/services/catalog/redis_catalog_cache.py`
+  - `backend/src/services/catalog/search_kinopoisk_films_local_first.py`
+  - `backend/src/services/catalog/search_rawg_catalog_games_service.py`
+  - `backend/src/services/catalog/resolve_catalog_item_service.py`
+  - `backend/src/services/catalog/ttl_coalescing_cache.py`
+  - `backend/src/services/cards/get_movie_card_details.py`
+  - `backend/src/services/reactions/get_reaction_summaries_for_targets.py`
+  - `backend/src/models/user_reaction.py`
+  - `backend/src/migrations/versions/z9y8x7w65431_drop_ix_user_reaction_target.py`
+  - `backend/pyproject.toml`
+  - `backend/uv.lock`
+  - `docs/features/backend-performance-optimizations.md`
+  - `.cursor/active/backend-performance-optimizations/{progress,result}.md`
+- Verification: `docker compose run --rm --no-deps backend pytest src/tests/services/catalog/test_ttl_coalescing_cache.py src/tests/services/test_search_rawg_catalog_games_service.py src/tests/api/test_reactions_routes.py src/tests/api/test_catalog_routes.py -q`; `uv run ruff check src/services/catalog/redis_catalog_cache.py`

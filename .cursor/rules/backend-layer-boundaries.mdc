@@ -1,0 +1,26 @@
+---
+description: Backend layer boundaries — API thin, no SQL/transport leaks, DTO crossing rules
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend layer boundaries
+
+## API / presentation (`**/api/**`)
+
+- **No SQL or ORM in routes** — no `session.execute`, raw SQL, `Model.query`, or query construction in route modules. Persistence belongs in DAOs/services.
+- **Thin I/O only** — parse/validate input, call **one** application service (`*.build().execute(...)` or equivalent), map result to HTTP. No business branching beyond status mapping.
+- **Do not leak transport exceptions** — catch HTTP/client errors from integrations inside services or infrastructure adapters; routes should not expose `httpx`/`aiohttp` exceptions as 500 without mapping. Prefer service typed errors → HTTP mapping in the route.
+
+**Good:** route validates body → `CreateFooService.build().execute(...)` → returns schema from DTO.
+
+**Bad:** route opens DB session and `select()`; route calls Kinopoisk client directly; route catches bare `Exception` from transport.
+
+## Crossing business ↔ infrastructure
+
+- Prefer **explicit DTOs or primitives** between services and DAOs/clients — avoid passing loose `dict` for core flows when a `frozen`/`slots` dataclass makes the contract obvious.
+- Services stay **transport-agnostic** — no `Request`, raw response objects, or framework types in `execute` unless the use case is explicitly about that boundary.
+
+## Transactions
+
+- **Own units of work in the orchestrating service** (or a dedicated unit-of-work helper it calls), not in routes. DAOs perform persistence steps; the service decides where a transaction begins/ends for the use case. Do not start transactions inside route handlers.

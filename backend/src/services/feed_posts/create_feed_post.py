@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.card_comment import CardComment
 from models.feed_post import FeedPost
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
+from models.user_card import UserCard
 from services.feed_posts.validate_feed_post_body import (
     FeedPostBodyValidationError,
     validate_feed_post_body,
@@ -22,7 +22,7 @@ class CreateFeedPostInput:
 
     body: str
     image_url: str | None
-    referenced_movie_card_id: int | None
+    referenced_user_card_id: int | None
     source_comment_id: int | None
 
 
@@ -36,7 +36,7 @@ class FeedPostValidationError(Exception):
     """Общая ошибка валидации (пустой контент, несогласованные ссылки)."""
 
 
-class ReferencedMovieCardNotFoundError(Exception):
+class ReferencedUserCardNotFoundError(Exception):
     pass
 
 
@@ -76,24 +76,24 @@ class CreateFeedPostService:
 
     async def execute(self, user_id: UUID, payload: CreateFeedPostInput) -> CreateFeedPostResult:
         body_raw = payload.body.strip() if payload.body else ''
-        ref_card_id = payload.referenced_movie_card_id
+        ref_card_id = payload.referenced_user_card_id
         source_comment_id = payload.source_comment_id
 
         if source_comment_id is not None:
             comment = (
                 await self._session.execute(
-                    select(MovieCardComment).where(MovieCardComment.id == source_comment_id)
+                    select(CardComment).where(CardComment.id == source_comment_id)
                 )
             ).scalar_one_or_none()
             if comment is None:
                 raise SourceCommentNotFoundError
             if comment.user_id != user_id:
                 raise SourceCommentForbiddenError
-            if ref_card_id is not None and ref_card_id != comment.movie_card_id:
+            if ref_card_id is not None and ref_card_id != comment.card_id:
                 raise FeedPostValidationError(
-                    'referenced_movie_card_id does not match comment card'
+                    'referenced user card id does not match comment card'
                 )
-            ref_card_id = comment.movie_card_id
+            ref_card_id = comment.card_id
             # Одна картинка на пост: при конвертации из комментария берём изображение комментария.
             image_url = _normalize_image_url(comment.image_url)
         else:
@@ -101,10 +101,10 @@ class CreateFeedPostService:
 
         if ref_card_id is not None:
             exists = (
-                await self._session.execute(select(MovieCard.id).where(MovieCard.id == ref_card_id))
+                await self._session.execute(select(UserCard.id).where(UserCard.id == ref_card_id))
             ).scalar_one_or_none()
             if exists is None:
-                raise ReferencedMovieCardNotFoundError
+                raise ReferencedUserCardNotFoundError
 
         if body_raw == '' and image_url is None:
             raise FeedPostValidationError('body or image_url is required')
@@ -123,7 +123,7 @@ class CreateFeedPostService:
             user_id=user_id,
             body=body_final,
             image_url=image_url,
-            referenced_movie_card_id=ref_card_id,
+            referenced_card_id=ref_card_id,
             source_comment_id=source_comment_id,
         )
         self._session.add(entity)

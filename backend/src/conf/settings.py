@@ -58,7 +58,6 @@ class AppSettings(BaseSettings):
 
 class DatabaseSettings(BaseSettings):
     url: str = Field(..., alias='DATABASE_URL')
-    default_schema: str = Field(default='public', alias='DATABASE_SCHEMA')
     test_url: str | None = Field(default=None, alias='DATABASE_TEST_URL')
     echo: bool = Field(False, alias='DATABASE_ECHO')
 
@@ -86,7 +85,11 @@ class AuthJwtSettings(BaseSettings):
 class KinopoiskSettings(BaseSettings):
     api_key: str = Field(..., alias='KINOPOISK_API_KEY')
     base_url: str = Field(..., alias='KINOPOISK_API_BASE_URL')
-    timeout_seconds: float = Field(8.0, alias='KINOPOISK_API_TIMEOUT_SECONDS')
+
+
+class RawgSettings(BaseSettings):
+    api_key: str = Field(..., alias='RAWG_API_KEY')
+    base_url: str = Field('https://api.rawg.io/api', alias='RAWG_API_BASE_URL')
 
 
 class ReactionMediaSettings(BaseSettings):
@@ -102,6 +105,14 @@ class CelerySettings(BaseSettings):
     result_backend: str | None = Field(None, alias='CELERY_RESULT_BACKEND')
 
 
+class CatalogCacheSettings(BaseSettings):
+    """Redis-backed catalog search/resolve cache (falls back to ``CELERY_BROKER_URL`` when Redis)."""
+
+    redis_url: str | None = Field(None, alias='CATALOG_CACHE_REDIS_URL')
+    search_ttl_seconds: int = Field(45, alias='CATALOG_CACHE_SEARCH_TTL_SECONDS')
+    resolve_ttl_seconds: int = Field(60, alias='CATALOG_CACHE_RESOLVE_TTL_SECONDS')
+
+
 @dataclass
 class Settings:
     app: AppSettings
@@ -109,8 +120,10 @@ class Settings:
     telegram: TelegramAuthSettings
     auth_jwt: AuthJwtSettings
     kinopoisk: KinopoiskSettings
+    rawg: RawgSettings
     reaction_media: ReactionMediaSettings
     celery: CelerySettings
+    catalog_cache: CatalogCacheSettings
 
     @classmethod
     def build(cls) -> Self:
@@ -120,8 +133,10 @@ class Settings:
             telegram=TelegramAuthSettings(),
             auth_jwt=AuthJwtSettings(),
             kinopoisk=KinopoiskSettings(),
+            rawg=RawgSettings(),
             reaction_media=ReactionMediaSettings(),
             celery=CelerySettings(),
+            catalog_cache=CatalogCacheSettings(),
         )
 
 

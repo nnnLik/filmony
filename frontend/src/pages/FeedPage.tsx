@@ -34,6 +34,9 @@ import {
   isGlobalFeedPostDetailOpened,
 } from '../lib/globalFeedViewedIds'
 import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
+import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+
+import './FeedPage.css'
 
 const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
   { value: 'all', segmentLabel: 'Всё' },
@@ -42,6 +45,7 @@ const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
 ]
 
 export function FeedPage() {
+  const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -67,6 +71,10 @@ export function FeedPage() {
 
   const [liveHeadVersion, setLiveHeadVersion] = useState(0)
   const [ackHeadVersion, setAckHeadVersion] = useState(0)
+
+  useEffect(() => {
+    void ensureHeaderPepeGifsPreloaded()
+  }, [])
 
   useEffect(() => {
     feedKindRef.current = feedKind
@@ -323,9 +331,20 @@ export function FeedPage() {
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="px-4 pb-3 pt-3">
           <div className="mb-3 flex items-center gap-2">
-            <h1 className="min-w-0 flex-1 truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-              Лента
-            </h1>
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+                Лента
+              </h1>
+              <img
+                className="feed-page__title-pepe"
+                src={headerPepeSrc}
+                alt=""
+                width={28}
+                height={28}
+                decoding="async"
+                aria-hidden
+              />
+            </div>
             <div className="flex shrink-0 items-center gap-1">
               {auth.kind === 'ready' ? (
                 <IconButton

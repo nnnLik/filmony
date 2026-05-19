@@ -1,32 +1,39 @@
 from .base import Base
+from .card_comment import CardComment
+from .card_enums import CardCompany, CardMoodAfter, CardMoodBefore
+from .card_tag import CardTag
+from .catalog_item import CatalogItem, CatalogProvider
 from .feed_post import FeedPost
 from .feed_post_comment import FeedPostComment
 from .film import Film
-from .movie_card import MovieCard
-from .movie_card_comment import MovieCardComment
-from .movie_card_enums import CardCompany, CardMoodAfter, CardMoodBefore
-from .movie_card_tag import MovieCardTag
+from .game import Game
 from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .user import User
+from .user_card import UserCard
+from .user_card_category import UserCardCategory
 from .user_reaction import UserReaction
 from .user_subscription import UserSubscription
 from .user_watchlist_film import UserWatchlistFilm
 
 __all__ = (
     'Base',
+    'CardComment',
     'CardCompany',
     'CardMoodAfter',
     'CardMoodBefore',
+    'CardTag',
+    'CatalogItem',
+    'CatalogProvider',
     'FeedPost',
     'FeedPostComment',
     'Film',
-    'MovieCard',
-    'MovieCardComment',
-    'MovieCardTag',
+    'Game',
     'ReactionTargetKind',
     'ReactionType',
     'User',
+    'UserCard',
+    'UserCardCategory',
     'UserReaction',
     'UserSubscription',
     'UserWatchlistFilm',

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
 
-import { getUserMovieCardTags } from '../../api/profileApi'
+import { getMyCardCategories, getUserMovieCardTags } from '../../api/profileApi'
 import type { ProfileCardsSort } from '../../api/profileApi'
 import type {
   CardCompany,
@@ -11,9 +11,10 @@ import type {
   CardMoodBefore,
   MyMovieCardTagStatItem,
   MyMovieCardTagStatsResponse,
+  MyUserCardCategoryListResponse,
 } from '../../api/profileTypes'
 import { ApiError, formatApiDetail } from '../../api/client'
-import { userMovieCardTagStatsQueryKey } from '../../feed/feedQueryKeys'
+import { userMovieCardTagStatsQueryKey, myCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
 import {
   DEFAULT_RATED_CARDS_QUERY,
   type RatedCardsListQuery,
@@ -62,7 +63,7 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter | ''; label: string }> = 
 const SELECT_CLASS =
   'w-full rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-2 text-sm text-(--tgui--text_color) outline-none ring-(--tgui--link_color) focus-visible:ring-2'
 
-function filmTitleSearchValue(q: RatedCardsListQuery): string {
+function ratedListTitleInputValue(q: RatedCardsListQuery): string {
   return q.filmTitle
 }
 
@@ -70,9 +71,19 @@ type ProfileRatedCardsFiltersProps = {
   profileUserId: string
   cardsQuery: RatedCardsListQuery
   onChange: (next: RatedCardsListQuery) => void
+  /**
+   * При `true`: показывает фильтр по полкам и грузит `GET /api/me/card-categories`
+   * (имеет смысл только если список — ваш профиль; иначе id полок недоступны).
+   */
+  enableCategoryFilter?: boolean
 }
 
-export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }: ProfileRatedCardsFiltersProps) {
+export function ProfileRatedCardsFilters({
+  profileUserId,
+  cardsQuery,
+  onChange,
+  enableCategoryFilter = false,
+}: ProfileRatedCardsFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const tagsQuery = useQuery<MyMovieCardTagStatsResponse>({
@@ -88,6 +99,21 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
     placeholderData: (): MyMovieCardTagStatsResponse | undefined =>
       readCachedUserMovieCardTagStats(profileUserId) ?? undefined,
   })
+
+  const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
+    queryKey: myCardCategoriesQueryKey(),
+    queryFn: getMyCardCategories,
+    enabled: enableCategoryFilter,
+    staleTime: 60_000,
+    gcTime: 30 * 60_000,
+  })
+
+  const shelfItems = shelvesQuery.data?.items ?? []
+  const shelvesErr: string | null = enableCategoryFilter && shelvesQuery.isError
+    ? shelvesQuery.error instanceof ApiError
+      ? formatApiDetail(shelvesQuery.error.detail)
+      : 'Не удалось загрузить полки'
+    : null
 
   const tagItems: MyMovieCardTagStatItem[] = tagsQuery.data?.items ?? []
   const tagsErr: string | null = tagsQuery.isError
@@ -109,7 +135,7 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
       <div className="border-b border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] px-2.5 pt-2.5 pb-2">
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-(--tgui--hint_color)">Поиск по названию</span>
-          <span className="sr-only">Среди оценённых фильмов этого профиля</span>
+          <span className="sr-only">Среди оценённых карточек этого профиля</span>
           <div className="relative">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 block size-4 -translate-y-1/2 text-(--tgui--hint_color)"
@@ -121,11 +147,11 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
               enterKeyHint="search"
               maxLength={120}
               placeholder="Например, матрица…"
-              value={filmTitleSearchValue(cardsQuery)}
+              value={ratedListTitleInputValue(cardsQuery)}
               onChange={(e) => onChange({ ...cardsQuery, filmTitle: e.currentTarget.value })}
               className={`${SELECT_CLASS} pl-9`}
               autoComplete="off"
-              aria-label="Поиск карточек по названию фильма"
+              aria-label="Поиск карточек по названию темы"
             />
           </div>
         </label>
@@ -188,6 +214,30 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
             </select>
           </label>
 
+          {enableCategoryFilter ? (
+            <label className="block text-xs font-medium text-(--tgui--hint_color)">
+              Полка
+              <select
+                className={`${SELECT_CLASS} mt-1`}
+                value={cardsQuery.categoryId}
+                onChange={(e) => onChange({ ...cardsQuery, categoryId: e.currentTarget.value })}
+                aria-label="Фильтр: полка"
+              >
+                <option value="">Все полки</option>
+                {shelfItems.map((row) => (
+                  <option key={row.id} value={String(row.id)}>
+                    {row.name}
+                  </option>
+                ))}
+              </select>
+              {shelvesErr != null ? (
+                <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{shelvesErr}</p>
+              ) : shelvesQuery.isLoading && shelfItems.length === 0 ? (
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка полок…</p>
+              ) : null}
+            </label>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-2">
             <label className="text-xs font-medium text-(--tgui--hint_color)">
               Год от
@@ -200,7 +250,7 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
                 onChange={(e) => onChange({ ...cardsQuery, yearMin: e.currentTarget.value })}
                 min={1874}
                 max={2100}
-                aria-label="Минимальный год фильма"
+                aria-label="Минимальный год (тема)"
               />
             </label>
             <label className="text-xs font-medium text-(--tgui--hint_color)">
@@ -214,13 +264,13 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
                 onChange={(e) => onChange({ ...cardsQuery, yearMax: e.currentTarget.value })}
                 min={1874}
                 max={2100}
-                aria-label="Максимальный год фильма"
+                aria-label="Максимальный год (тема)"
               />
             </label>
           </div>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            С кем смотрел
+            С кем делились впечатлением
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.company}
@@ -236,7 +286,7 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            Хотел до просмотра
+            Настроение до
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.moodBefore}
@@ -252,7 +302,7 @@ export function ProfileRatedCardsFilters({ profileUserId, cardsQuery, onChange }
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
-            Итог просмотра
+            Итог / настроение после
             <select
               className={`${SELECT_CLASS} mt-1`}
               value={cardsQuery.moodAfter}

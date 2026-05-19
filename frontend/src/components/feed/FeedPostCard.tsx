@@ -5,6 +5,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import type { WatchedInlinePickerItem } from '../../api/cardApi'
 import type { FeedPostInFeed } from '../../api/feedInFeedTypes'
+import {
+  feedPostReferencedCardPoster,
+  feedPostReferencedCardTitle,
+  movieCardReleaseCompactSuffix,
+} from '../../lib/movieCardDisplay'
 import { createFeedPostComment, listAllFeedPostComments } from '../../api/feedPostApi'
 import type { FeedPostComment, ReactionSummary, ReferencedMentionSnippet } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
@@ -32,7 +37,7 @@ export type FeedPostCardProps = {
   viewerUserId?: string | null
   /** Если true (по умолчанию), клик по карточке открывает страницу поста */
   linkToDetail?: boolean
-  /** Как у карточки фильма в ленте: раскрывающиеся комментарии и поле ввода. На странице поста выключите. */
+  /** Как карточка в ленте: раскрывающиеся комментарии и поле ввода. На странице поста выключите. */
   inlineComments?: boolean
   onCommentsState?: (
     postId: number,
@@ -144,7 +149,7 @@ function FeedPostCardBody({
           type="button"
           size="s"
           mode="plain"
-          className="!-ms-1 !mt-0.5 !min-h-8 !justify-start !px-1 !text-xs font-semibold"
+          className="-ms-1! mt-0.5! min-h-8! justify-start! px-1! text-xs! font-semibold"
           onMouseDown={stopPostNav}
           onClick={(e) => {
             stopPostNavClick(e)
@@ -159,7 +164,7 @@ function FeedPostCardBody({
           type="button"
           size="s"
           mode="plain"
-          className="!-ms-1 !mt-0.5 !min-h-8 !justify-start !px-1 !text-xs font-semibold"
+          className="-ms-1! mt-0.5! min-h-8! justify-start! px-1! text-xs! font-semibold"
           onMouseDown={stopPostNav}
           onClick={(e) => {
             stopPostNavClick(e)
@@ -195,6 +200,12 @@ export function FeedPostCard({
     source_comment: sourceCommentQuote,
   } = post
 
+  const referencedCardPoster =
+    referenced_card != null ? feedPostReferencedCardPoster(referenced_card) : null
+  const referencedCardTitle =
+    referenced_card != null ? feedPostReferencedCardTitle(referenced_card) : ''
+  const referencedReleaseSuffix =
+    referenced_card != null ? movieCardReleaseCompactSuffix(referenced_card) : null
   const name = useMemo(() => displayNameFromAuthorFields(author), [author])
   const postHref = `/feed-posts/${id}`
   const bodyInlineRefMap = useMemo(
@@ -403,7 +414,9 @@ export function FeedPostCard({
       ? {
           role: 'button' as const,
           tabIndex: 0,
-          onClick: () => void navigate(postHref, { state: { fromFeed: true } }),
+          onClick: () => {
+            void navigate(postHref, { state: { fromFeed: true } })
+          },
           onKeyDown: (ev: KeyboardEvent) => {
             if (ev.key === 'Enter' || ev.key === ' ') {
               ev.preventDefault()
@@ -442,7 +455,7 @@ export function FeedPostCard({
           >
             <span
               title="Комментарии"
-              className="max-w-[5.5rem] truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
+              className="max-w-22 truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
             >
               Комментарии
             </span>
@@ -666,7 +679,7 @@ export function FeedPostCard({
           {source_comment_id != null ? (
             <span
               className="shrink-0 rounded-md border border-(--tgui--divider_color) bg-(--tgui--section_bg_color) px-1.5 py-0.5 text-[10px] font-medium text-(--tgui--hint_color)"
-              title="Пост создан из вашего комментария к карточке фильма"
+              title="Пост создан из вашего комментария к карточке"
             >
               Из комментария
             </span>
@@ -759,8 +772,8 @@ export function FeedPostCard({
               className="flex min-w-0 gap-2.5 rounded-xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] p-2 no-underline transition-[border-color,box-shadow] active:opacity-95 hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_28%,var(--tgui--divider_color))]"
             >
               <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)">
-                {referenced_card.film_poster_url ? (
-                  <img src={referenced_card.film_poster_url} alt="" className="h-full w-full object-cover" />
+                {referencedCardPoster ? (
+                  <img src={referencedCardPoster} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[9px] text-(--tgui--hint_color)">
                     н/д
@@ -770,9 +783,12 @@ export function FeedPostCard({
               <div className="min-w-0 flex-1 py-0.5">
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <p className="line-clamp-2 min-w-0 flex-1 text-[13px] font-semibold leading-snug text-(--tgui--text_color)">
-                    {referenced_card.film_title}
-                    {referenced_card.film_year != null ? (
-                      <span className="font-normal text-(--tgui--hint_color)"> · {referenced_card.film_year}</span>
+                    {referencedCardTitle}
+                    {referencedReleaseSuffix != null ? (
+                      <span className="font-normal text-(--tgui--hint_color)">
+                        {' '}
+                        · {referencedReleaseSuffix}
+                      </span>
                     ) : null}
                   </p>
                   <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-(--tgui--text_color)">

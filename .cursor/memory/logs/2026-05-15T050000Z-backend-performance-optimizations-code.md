@@ -1,0 +1,10 @@
+- Timestamp: 2026-05-15T050000Z
+- Feature slug: backend-performance-optimizations
+- Action type: code
+- Summary: Added Alembic merge revision `m3n4o5p89012` merging heads `k7l8m9n0o123` and `z9y8x7w65431` so `alembic upgrade head` resolves a single head (`make migrate` no longer hits multiple-head error).
+- Files:
+  - `backend/src/migrations/versions/m3n4o5p89012_merge_k7_z9_heads.py`
+  - `.cursor/active/backend-performance-optimizations/progress.md`
+- Verification:
+  - `docker compose -f docker-compose.yml exec -w /opt/app backend alembic heads` → `m3n4o5p89012 (head)`
+  - `docker compose -f docker-compose.yml exec -w /opt/app backend alembic upgrade head` → success

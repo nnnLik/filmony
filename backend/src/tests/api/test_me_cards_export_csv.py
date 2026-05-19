@@ -56,9 +56,11 @@ async def test_export_cards_csv_sent_with_row(logged_in_client: AsyncClient) -> 
     user_id = UUID(prof.json()['id'])
 
     from core.database import get_session_factory
+    from models.card_tag import CardTag
+    from models.catalog_item import CatalogProvider
     from models.film import Film
-    from models.movie_card import MovieCard
-    from models.movie_card_tag import MovieCardTag
+    from models.user_card import UserCard
+    from tests.support.user_card_category import ensure_default_category
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -71,9 +73,13 @@ async def test_export_cards_csv_sent_with_row(logged_in_client: AsyncClient) -> 
         )
         session.add(film)
         await session.flush()
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=8.5,
             company='solo',
             mood_before='low',
@@ -81,7 +87,7 @@ async def test_export_cards_csv_sent_with_row(logged_in_client: AsyncClient) -> 
         )
         session.add(card)
         await session.flush()
-        session.add(MovieCardTag(movie_card_id=card.id, tag='cinema'))
+        session.add(CardTag(card_id=card.id, tag='cinema'))
         await session.commit()
 
     with patch.object(TelegramBotApiClient, 'send_document_multipart', new_callable=AsyncMock) as m:

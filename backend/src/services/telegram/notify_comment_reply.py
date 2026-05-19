@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import select
 
 from core.database import disposable_async_session
-from models.movie_card_comment import MovieCardComment
+from models.card_comment import CardComment
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import html_card_deep_link_block
@@ -44,7 +44,7 @@ class NotifyTelegramCommentReplyService:
         async with disposable_async_session() as session:
             parent_author_id = (
                 await session.execute(
-                    select(MovieCardComment.user_id).where(MovieCardComment.id == parent_comment_id)
+                    select(CardComment.user_id).where(CardComment.id == parent_comment_id)
                 )
             ).scalar_one_or_none()
             if parent_author_id is None or parent_author_id == actor_user_id:

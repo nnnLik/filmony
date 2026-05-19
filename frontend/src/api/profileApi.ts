@@ -7,6 +7,8 @@ import type {
   MovieCardPage,
   MyMovieCardTagStatsResponse,
   MyProfile,
+  MyUserCardCategory,
+  MyUserCardCategoryListResponse,
   PublicProfile,
   SubscriptionListResponse,
   SubscriptionListType,
@@ -31,8 +33,10 @@ export type GetUserCardsParams = {
   company?: CardCompany | null
   moodBefore?: CardMoodBefore | null
   moodAfter?: CardMoodAfter | null
-  /** Подстрока в названии фильма (карточки пользователя). */
+  /** Подстрока в отображаемом названии темы карточки пользователя. */
   filmTitle?: string | null
+  /** Полка владельца списка; несовпадение id и владельца даёт 422 на бэкенде. */
+  categoryId?: number | null
 }
 
 async function readActionErrorDetail(res: Response): Promise<unknown> {
@@ -114,8 +118,37 @@ export async function getUserCards(userId: string, params: GetUserCardsParams): 
   if (params.filmTitle != null && params.filmTitle.trim() !== '') {
     q.set('film_title', params.filmTitle.trim())
   }
+  if (params.categoryId != null && params.categoryId >= 1) {
+    q.set('category_id', String(params.categoryId))
+  }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)
+}
+
+export async function getMyCardCategories(): Promise<MyUserCardCategoryListResponse> {
+  return apiJson<MyUserCardCategoryListResponse>('/api/me/card-categories')
+}
+
+export async function createMyCardCategory(body: { name: string }): Promise<MyUserCardCategory> {
+  return apiJson<MyUserCardCategory>('/api/me/card-categories', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export async function renameMyCardCategory(
+  categoryId: number,
+  body: { name: string },
+): Promise<MyUserCardCategory> {
+  return apiJson<MyUserCardCategory>(
+    `/api/me/card-categories/${encodeURIComponent(String(categoryId))}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
 }
 
 export async function getUserMovieCardTags(userId: string): Promise<MyMovieCardTagStatsResponse> {

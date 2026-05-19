@@ -37,14 +37,10 @@ def async_engine_connect_url() -> str:
 
 def _connect_args() -> dict[str, str] | None:
     if settings.app.is_test:
-        sch = settings.database.default_schema
-        if sch != 'public':
-            return {'server_settings': {'search_path': f'{sch}, public'}}
         return None
-    sch = settings.database.default_schema
-    if sch != 'public':
-        return {'server_settings': {'search_path': f'{sch}, public'}}
-    return None
+    return {
+        'server_settings': {'search_path': 'public'},
+    }
 
 
 def get_engine() -> AsyncEngine:
@@ -76,6 +72,12 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 @asynccontextmanager
 async def disposable_async_session() -> AsyncGenerator[AsyncSession]:
+    """Celery engagement tasks run ``asyncio.run`` in a worker thread (different loop than FastAPI).
+
+    Each call uses a dedicated short-lived engine so asyncpg connections stay bound to that loop.
+    Follow-up: pool-per-loop (keyed by ``id(asyncio.get_running_loop())``) to cut churn in hot paths.
+    """
+
     kwargs: dict[str, Any] = {
         'echo': settings.database.echo,
         'pool_pre_ping': True,

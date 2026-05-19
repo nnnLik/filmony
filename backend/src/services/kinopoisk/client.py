@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from conf import settings
+from providers.shared_async_http import httpx_get_idempotent
 from utils.http_url import normalize_absolute_http_url
 
 
@@ -58,11 +59,9 @@ class KinopoiskClient:
         base = settings.kinopoisk.base_url.rstrip('/')
         url = f'{base}/v2.2/films/{kinopoisk_id}'
         headers = {'X-API-KEY': settings.kinopoisk.api_key}
-        timeout = settings.kinopoisk.timeout_seconds
 
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.get(url, headers=headers)
+            response = await httpx_get_idempotent(url, headers=headers)
         except httpx.HTTPError as exc:
             raise KinopoiskClientError('failed to fetch kinopoisk film') from exc
 

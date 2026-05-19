@@ -11,12 +11,14 @@ from sqlalchemy import select
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
+from models.card_comment import CardComment
+from models.catalog_item import CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
-from models.movie_card_comment import MovieCardComment
 from models.reaction_type import ReactionType
 from models.user import User
+from models.user_card import UserCard
 from tests.auth.telegram_init_data import build_init_data
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, object]:
@@ -153,9 +155,13 @@ async def test_feed_post_create_with_referenced_card(async_client: AsyncClient) 
     user_id = await _get_user_id(704)
     session_factory = get_session_factory()
     async with session_factory() as session:
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=8.0,
             company='alone',
             mood_before='relax',
@@ -191,9 +197,13 @@ async def test_feed_post_from_own_comment(async_client: AsyncClient) -> None:
     user_id = await _get_user_id(706)
     session_factory = get_session_factory()
     async with session_factory() as session:
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=7.0,
             company='alone',
             mood_before='laugh',
@@ -201,8 +211,8 @@ async def test_feed_post_from_own_comment(async_client: AsyncClient) -> None:
         )
         session.add(card)
         await session.flush()
-        comment = MovieCardComment(
-            movie_card_id=card.id,
+        comment = CardComment(
+            card_id=card.id,
             user_id=user_id,
             parent_comment_id=None,
             text='Мой коммент для поста',
@@ -243,9 +253,13 @@ async def test_feed_post_from_own_comment_empty_body_ok_with_comment_image(
     user_id = await _get_user_id(713)
     session_factory = get_session_factory()
     async with session_factory() as session:
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=8.0,
             company='alone',
             mood_before='laugh',
@@ -253,8 +267,8 @@ async def test_feed_post_from_own_comment_empty_body_ok_with_comment_image(
         )
         session.add(card)
         await session.flush()
-        comment = MovieCardComment(
-            movie_card_id=card.id,
+        comment = CardComment(
+            card_id=card.id,
             user_id=user_id,
             parent_comment_id=None,
             text='',
@@ -281,9 +295,13 @@ async def test_feed_post_from_comment_forbidden_other_author(async_client: Async
     await _login(async_client, telegram_user_id=708)
     session_factory = get_session_factory()
     async with session_factory() as session:
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, uid707)
+        card = UserCard(
             user_id=uid707,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=6.0,
             company='alone',
             mood_before='relax',
@@ -291,8 +309,8 @@ async def test_feed_post_from_comment_forbidden_other_author(async_client: Async
         )
         session.add(card)
         await session.flush()
-        comment = MovieCardComment(
-            movie_card_id=card.id,
+        comment = CardComment(
+            card_id=card.id,
             user_id=uid707,
             parent_comment_id=None,
             text='Чужой',
@@ -321,17 +339,24 @@ async def test_feed_post_from_comment_mismatched_card_id(async_client: AsyncClie
     user_id = await _get_user_id(709)
     session_factory = get_session_factory()
     async with session_factory() as session:
-        c1 = MovieCard(
+        cat_id = await ensure_default_category(session, user_id)
+        c1 = UserCard(
             user_id=user_id,
             film_id=film_a.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film_a.kinopoisk_id),
             rating=5.0,
             company='alone',
             mood_before='relax',
             mood_after='tense',
         )
-        c2 = MovieCard(
+        c2 = UserCard(
             user_id=user_id,
             film_id=film_b.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film_b.kinopoisk_id),
             rating=6.0,
             company='alone',
             mood_before='thrill',
@@ -339,8 +364,8 @@ async def test_feed_post_from_comment_mismatched_card_id(async_client: AsyncClie
         )
         session.add_all([c1, c2])
         await session.flush()
-        comment = MovieCardComment(
-            movie_card_id=c1.id,
+        comment = CardComment(
+            card_id=c1.id,
             user_id=user_id,
             parent_comment_id=None,
             text='x',
@@ -633,3 +658,144 @@ async def test_feed_post_mention_self_forbidden(async_client: AsyncClient) -> No
     slug = await _profile_slug_for_tg(735)
     r = await async_client.post('/api/feed-posts', json={'body': f'⟦@{slug}⟧'})
     assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_feed_post_create_queues_follower_publish_notify(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    task = celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_feed_post']
+    monkeypatch.setattr(task, 'delay', mock_delay)
+
+    author = await _login(async_client, telegram_user_id=764)
+    await _login(async_client, telegram_user_id=765)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=764)
+    r = await async_client.post('/api/feed-posts', json={'body': 'hello followers'})
+    assert r.status_code == 200
+    data = r.json()
+
+    mock_delay.assert_called_once()
+    kwargs = mock_delay.call_args.kwargs
+    assert kwargs['actor_user_id'] == author['id']
+    assert kwargs['feed_post_id'] == data['id']
+    uid765 = str(await _get_user_id(765))
+    listed = orjson.loads(kwargs['recipient_user_ids_json'])
+    assert listed == [uid765]
+
+
+@pytest.mark.asyncio
+async def test_feed_post_follower_notify_excludes_mention_recipients(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_mention = MagicMock()
+    mock_follower = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_feed_post_mentions'],
+        'delay',
+        mock_mention,
+    )
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_feed_post'],
+        'delay',
+        mock_follower,
+    )
+
+    author = await _login(async_client, telegram_user_id=766)
+    mentioned_follower = await _login(async_client, telegram_user_id=767)
+    slug_m = await _profile_slug_for_tg(767)
+    other_follower = await _login(async_client, telegram_user_id=768)
+
+    await _login(async_client, telegram_user_id=767)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+    await _login(async_client, telegram_user_id=768)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=766)
+    await async_client.post(f'/api/users/{mentioned_follower["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=766)
+    token = f'⟦@{slug_m}⟧'
+    r = await async_client.post('/api/feed-posts', json={'body': f'Hey {token}'})
+    assert r.status_code == 200
+
+    mock_mention.assert_called_once()
+    mock_follower.assert_called_once()
+    mention_ids = orjson.loads(mock_mention.call_args.kwargs['recipient_user_ids_json'])
+    assert mention_ids == [str(mentioned_follower['id'])]
+    follower_ids = orjson.loads(mock_follower.call_args.kwargs['recipient_user_ids_json'])
+    assert follower_ids == [str(other_follower['id'])]
+
+
+@pytest.mark.asyncio
+async def test_feed_post_only_followers_mentioned_skips_follower_broadcast(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_follower = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_feed_post'],
+        'delay',
+        mock_follower,
+    )
+
+    author = await _login(async_client, telegram_user_id=778)
+    only_follower = await _login(async_client, telegram_user_id=779)
+    slug_only = await _profile_slug_for_tg(779)
+    await _login(async_client, telegram_user_id=779)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=778)
+    await async_client.post(f'/api/users/{only_follower["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=778)
+    token = f'⟦@{slug_only}⟧'
+    r = await async_client.post('/api/feed-posts', json={'body': f'Solo hey {token}'})
+    assert r.status_code == 200
+    mock_follower.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_feed_post_create_no_followers_skips_follower_notify(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    task = celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_feed_post']
+    monkeypatch.setattr(task, 'delay', mock_delay)
+
+    await _login(async_client, telegram_user_id=769)
+    r = await async_client.post('/api/feed-posts', json={'body': 'solo'})
+    assert r.status_code == 200
+    mock_delay.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_feed_post_only_mention_follower_skips_follower_broadcast(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_mention = MagicMock()
+    mock_follower = MagicMock()
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_feed_post_mentions'],
+        'delay',
+        mock_mention,
+    )
+    monkeypatch.setattr(
+        celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_feed_post'],
+        'delay',
+        mock_follower,
+    )
+
+    author = await _login(async_client, telegram_user_id=771)
+    await _login(async_client, telegram_user_id=772)
+    slug_t = await _profile_slug_for_tg(772)
+    await _login(async_client, telegram_user_id=772)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+    await _login(async_client, telegram_user_id=771)
+    token = f'⟦@{slug_t}⟧'
+    r = await async_client.post('/api/feed-posts', json={'body': f'Only you {token}'})
+    assert r.status_code == 200
+
+    mock_mention.assert_called_once()
+    mock_follower.assert_not_called()

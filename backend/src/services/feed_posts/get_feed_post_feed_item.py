@@ -3,15 +3,18 @@ from __future__ import annotations
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.catalog_item import CatalogItem
 from models.feed_post import FeedPost
 from models.film import Film
-from models.movie_card import MovieCard
+from models.game import Game
 from models.user import User
-from services.cards.list_movie_card_comments import MovieCardCommentAuthor
-from services.cards.list_movie_card_feed import (
+from models.user_card import UserCard
+from services.cards.card_catalog_release_fields import universal_release_year_date
+from services.cards.list_user_card_comments import UserCardCommentAuthor
+from services.cards.list_user_card_feed import (
     FeedPostFeedItem,
     FeedPostReferencedCardSnippet,
     attach_feed_post_list_engagement,
@@ -42,25 +45,41 @@ class GetFeedPostFeedItemService:
         fp, author_user = row
 
         ref_snippet: FeedPostReferencedCardSnippet | None = None
-        rid = fp.referenced_movie_card_id
+        rid = fp.referenced_card_id
         if rid is not None:
+            film_pk = func.coalesce(UserCard.film_id, CatalogItem.film_id)
             rq = (
-                select(MovieCard, Film)
-                .join(Film, Film.id == MovieCard.film_id)
-                .where(MovieCard.id == int(rid))
+                select(UserCard, Film, Game)
+                .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
+                .outerjoin(Film, Film.id == film_pk)
+                .outerjoin(Game, Game.id == CatalogItem.game_id)
+                .where(UserCard.id == int(rid))
             )
             ref_row = (await self._session.execute(rq)).one_or_none()
             if ref_row is not None:
-                mc, fl = ref_row
+                mc, fl, gm = ref_row
+                ref_title = (
+                    str(fl.title)
+                    if fl is not None
+                    else ((mc.display_title or '').strip() or 'Untitled')
+                )
+                fy = fl.year if fl is not None else None
+                release_year, release_date = universal_release_year_date(
+                    film_year=fy,
+                    game_released=gm.released if gm is not None else None,
+                )
+                ref_poster = fl.poster_url if fl is not None else mc.display_cover_url
                 ref_snippet = FeedPostReferencedCardSnippet(
-                    movie_card_id=int(mc.id),
-                    film_title=str(fl.title),
-                    film_year=fl.year,
-                    film_poster_url=fl.poster_url,
+                    user_card_id=int(mc.id),
+                    film_title=ref_title,
+                    film_year=fy,
+                    release_year=release_year,
+                    release_date=release_date,
+                    film_poster_url=ref_poster,
                     rating=float(mc.rating),
                 )
 
-        author = MovieCardCommentAuthor(
+        author = UserCardCommentAuthor(
             id=author_user.id,
             profile_slug=author_user.profile_slug,
             username=author_user.username,
@@ -75,7 +94,7 @@ class GetFeedPostFeedItemService:
             author=author,
             body=fp.body or '',
             image_url=fp.image_url,
-            referenced_movie_card_id=int(rid) if rid is not None else None,
+            referenced_user_card_id=int(rid) if rid is not None else None,
             source_comment_id=int(fp.source_comment_id)
             if fp.source_comment_id is not None
             else None,

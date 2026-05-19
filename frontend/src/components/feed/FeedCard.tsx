@@ -5,6 +5,11 @@ import { Link } from 'react-router-dom'
 import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
 import type { FeedMovieCard, MovieCardComment, ReactionSummary } from '../../api/profileTypes'
+import {
+  movieCardPrimaryPoster,
+  movieCardPrimaryTitle,
+  movieCardReleaseCompactSuffix,
+} from '../../lib/movieCardDisplay'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
@@ -21,6 +26,7 @@ import {
 import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { FilmGenreChips } from '../films/FilmGenreChips'
+import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
 import { FeedRatingRing } from './FeedRatingRing'
@@ -88,6 +94,9 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const profileHref = `/u/${encodeURIComponent(card.user_id)}`
   const cardHref = `/cards/${card.id}`
   const name = authorLabel(card)
+  const primaryTitle = movieCardPrimaryTitle(card)
+  const primaryPoster = movieCardPrimaryPoster(card)
+  const releaseSuffix = movieCardReleaseCompactSuffix(card)
   useEffect(() => {
     let cancelled = false
     if (!commentsPreviewOpen || card.comments_count === 0) {
@@ -278,18 +287,19 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             Особая карточка
           </span>
         ) : null}
+        <CardCategoryChip category={card.category} className="max-w-[min(100%,10rem)] shrink-0" />
       </div>
       {/* Главная зона: постер отступает от краёв карточки, клик ведёт на страницу карточки */}
       <Link
         to={cardHref}
         state={{ fromFeed: true }}
         className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) no-underline ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]"
-        aria-label={`Открыть карточку «${card.film_title}»`}
+        aria-label={`Открыть карточку «${primaryTitle}»`}
       >
         <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full sm:max-h-64">
-          {card.film_poster_url ? (
+          {primaryPoster ? (
             <img
-              src={card.film_poster_url}
+              src={primaryPoster}
               alt=""
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
@@ -304,9 +314,9 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               weight="2"
               className="line-clamp-2 text-[16px]! leading-tight text-white drop-shadow-sm"
             >
-              {card.film_title}
-              {card.film_year != null ? (
-                <span className="font-normal text-white/72"> · {card.film_year}</span>
+              {primaryTitle}
+              {releaseSuffix != null ? (
+                <span className="font-normal text-white/72"> · {releaseSuffix}</span>
               ) : null}
             </Title>
           </div>

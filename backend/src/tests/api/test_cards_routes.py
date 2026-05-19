@@ -10,11 +10,14 @@ from sqlalchemy import select
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
+from models.game import Game
 from models.reaction_type import ReactionType
 from models.user import User
+from models.user_card import UserCard
 from tests.auth.telegram_init_data import build_init_data
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, object]:
@@ -75,6 +78,145 @@ async def _create_film(
         return film
 
 
+async def _catalog_item_id_for_film_id(film_id: int) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        existing = (
+            await session.execute(select(CatalogItem.id).where(CatalogItem.film_id == film_id))
+        ).scalar_one_or_none()
+        if existing is not None:
+            return int(existing)
+        film = (await session.execute(select(Film).where(Film.id == film_id))).scalar_one()
+        ci = CatalogItem(
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
+            film_id=film.id,
+        )
+        session.add(ci)
+        await session.commit()
+        await session.refresh(ci)
+        return int(ci.id)
+
+
+async def _create_rawg_catalog_item_with_game(
+    *,
+    rawg_numeric_id: int,
+    released: str = '2015-05-18',
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        game = Game(rawg_id=rawg_numeric_id, released=released)
+        session.add(game)
+        await session.commit()
+        await session.refresh(game)
+        ci = CatalogItem(
+            provider=CatalogProvider.rawg,
+            external_id=str(rawg_numeric_id),
+            game_id=int(game.id),
+            film_id=None,
+        )
+        session.add(ci)
+        await session.commit()
+        await session.refresh(ci)
+        return int(ci.id)
+
+
+@pytest.mark.asyncio
+async def test_get_rawg_game_card_detail_has_release_fields(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=760050)
+    cat_id = await _create_rawg_catalog_item_with_game(rawg_numeric_id=7600501)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'catalog_item_id': cat_id,
+            'display_title': 'The Witcher 3',
+            'genres': [],
+            'rating': 9.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    cid = int(created.json()['id'])
+    detail = await async_client.get(f'/api/cards/{cid}')
+    assert detail.status_code == 200
+    d = detail.json()
+    assert d['film_id'] is None
+    assert d['film_year'] is None
+    assert d['release_year'] == 2015
+    assert d['release_date'] == '2015-05-18'
+
+
+@pytest.mark.asyncio
+async def test_create_card_via_kinopoisk_provider_external_id(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=761020)
+    film = await _create_film(kinopoisk_id=761021)
+    ci_id = await _catalog_item_id_for_film_id(film.id)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'provider': 'kinopoisk',
+            'external_id': str(film.kinopoisk_id),
+            'genres': film.genres or [],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['provider'] == 'kinopoisk'
+    assert body['external_id'] == str(film.kinopoisk_id)
+    assert body['film_id'] == film.id
+    assert body['catalog_item_id'] == ci_id
+
+
+@pytest.mark.asyncio
+async def test_create_card_kinopoisk_external_duplicate_returns_409(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=761022)
+    film = await _create_film(kinopoisk_id=761023)
+    await _catalog_item_id_for_film_id(film.id)
+    payload = {
+        'provider': 'kinopoisk',
+        'external_id': str(film.kinopoisk_id),
+        'genres': [],
+        'rating': 8.0,
+        'company': 'alone',
+        'mood_before': 'relax',
+        'mood_after': 'enjoyed',
+        'custom_tags': [],
+    }
+    assert (await async_client.post('/api/cards', json=payload)).status_code == 200
+    assert (await async_client.post('/api/cards', json=payload)).status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_create_card_kinopoisk_external_unknown_catalog_returns_404(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=761024)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'provider': 'kinopoisk',
+            'external_id': '999888777666',
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 404
+
+
 @pytest.mark.asyncio
 async def test_create_card_requires_auth(async_client: AsyncClient) -> None:
     film = await _create_film()
@@ -116,6 +258,9 @@ async def test_create_card_success(async_client: AsyncClient) -> None:
     assert body['film_id'] == film.id
     assert body['rating'] == 7.5
     assert body['custom_tags'] == ['IMAX', 'Пятница']
+    assert body['display_title'] == film.title
+    assert body['provider'] == 'kinopoisk'
+    assert body['external_id'] == str(film.kinopoisk_id)
 
 
 @pytest.mark.asyncio
@@ -127,6 +272,80 @@ async def test_create_card_duplicate_returns_409(async_client: AsyncClient) -> N
         'kinopoisk_id': film.kinopoisk_id,
         'genres': ['комедия'],
         'rating': 8.0,
+        'company': 'family',
+        'mood_before': 'relax',
+        'mood_after': 'enjoyed',
+        'custom_tags': [],
+    }
+    first = await async_client.post('/api/cards', json=payload)
+    assert first.status_code == 200
+    second = await async_client.post('/api/cards', json=payload)
+    assert second.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_create_manual_movie_card_without_film(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=760010)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': '',
+            'display_title': '  Кастомный спектакль  ',
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['film_id'] is None
+    assert body['catalog_item_id'] is None
+    assert body['display_title'] == 'Кастомный спектакль'
+    assert body['provider'] == 'no_provider'
+    assert body['external_id'] is None
+
+
+@pytest.mark.asyncio
+async def test_get_manual_movie_card_detail_includes_display_and_legacy_fields(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=760011)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'rating': 6.0,
+            'company': 'partner',
+            'mood_before': 'thrill',
+            'mood_after': 'tense',
+            'custom_tags': [],
+            'watch_note': 'note',
+            'display_title': 'Manual title',
+        },
+    )
+    assert created.status_code == 200
+    cid = int(created.json()['id'])
+    detail = await async_client.get(f'/api/cards/{cid}')
+    assert detail.status_code == 200
+    d = detail.json()
+    assert d['display_title'] == 'Manual title'
+    assert d['film_title'] == 'Manual title'
+    assert d['film_id'] is None
+    assert d['catalog_item_id'] is None
+
+
+@pytest.mark.asyncio
+async def test_create_card_by_catalog_item_id_duplicate_returns_409(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=760012)
+    film = await _create_film(kinopoisk_id=770012)
+    cat_id = await _catalog_item_id_for_film_id(film.id)
+    payload = {
+        'catalog_item_id': cat_id,
+        'genres': list(film.genres or []),
+        'rating': 7.0,
         'company': 'family',
         'mood_before': 'relax',
         'mood_after': 'enjoyed',
@@ -259,9 +478,13 @@ async def test_get_card_by_id_requires_auth(async_client: AsyncClient) -> None:
         )
         session.add(film)
         await session.flush()
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user.id)
+        card = UserCard(
             user_id=user.id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=8.5,
             company='alone',
             mood_before='thrill',
@@ -302,6 +525,8 @@ async def test_get_card_success_surfaces_movie_and_author(async_client: AsyncCli
     assert body['is_favorite'] is False
     assert body['film_kinopoisk_id'] == film.kinopoisk_id
     assert body['film_title'] == 'Интерстеллар'
+    assert body['provider'] == 'kinopoisk'
+    assert body['external_id'] == str(film.kinopoisk_id)
     assert body['card_author']['id'] == data['id']
     assert body['card_author']['profile_slug']
     assert body['watch_note'] == ''
@@ -371,9 +596,13 @@ async def test_patch_card_requires_auth(async_client: AsyncClient) -> None:
         )
         session.add(film)
         await session.flush()
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user.id)
+        card = UserCard(
             user_id=user.id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=6.0,
             company='alone',
             mood_before='relax',
@@ -540,9 +769,13 @@ async def test_delete_card_requires_auth(async_client: AsyncClient) -> None:
         )
         session.add(user)
         await session.flush()
-        card = MovieCard(
+        cat_id = await ensure_default_category(session, user.id)
+        card = UserCard(
             user_id=user.id,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=7.0,
             company='alone',
             mood_before='relax',
@@ -1350,9 +1583,13 @@ async def test_resolve_film_invalid_url(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_card_model_uses_unique_user_film_pair() -> None:
-    constraints = {constraint.name for constraint in MovieCard.__table__.constraints}
-    assert 'uq_movie_card_user_film' in constraints
+async def test_card_model_uses_partial_unique_indexes_for_film_and_catalog() -> None:
+    constraint_names = {c.name for c in UserCard.__table__.constraints}
+    assert 'uq_movie_card_user_film' not in constraint_names
+    index_names = {ix.name for ix in UserCard.__table__.indexes}
+    assert 'uq_movie_card_user_film_id_partial' in index_names
+    assert 'uq_movie_card_user_catalog_item_id_partial' in index_names
+    assert 'uq_movie_card_user_provider_external_kinopoisk_partial' in index_names
 
 
 @pytest.mark.asyncio
@@ -1502,3 +1739,166 @@ async def test_movie_card_feed_cursor_pagination(async_client: AsyncClient) -> N
     second_id = second_body['items'][0]['id']
     assert second_id in card_ids
     assert second_id != first_id
+
+
+@pytest.mark.asyncio
+async def test_list_my_card_categories_includes_default_films(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8801)
+    r = await async_client.get('/api/me/card-categories')
+    assert r.status_code == 200
+    items = r.json()['items']
+    assert any(it['name'] == 'Фильмы' for it in items)
+
+
+@pytest.mark.asyncio
+async def test_create_my_card_category_and_use_on_card(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8802)
+    create_cat = await async_client.post('/api/me/card-categories', json={'name': '  Аниме  '})
+    assert create_cat.status_code == 200
+    cat_body = create_cat.json()
+    assert cat_body['name'] == 'Аниме'
+
+    film = await _create_film(kinopoisk_id=880_002)
+    card_r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'category_id': cat_body['id'],
+        },
+    )
+    assert card_r.status_code == 200
+    out = card_r.json()
+    assert out['category']['id'] == cat_body['id']
+    assert out['category']['name'] == 'Аниме'
+
+    detail = await async_client.get(f'/api/cards/{out["id"]}')
+    assert detail.status_code == 200
+    assert detail.json()['category']['name'] == 'Аниме'
+
+
+@pytest.mark.asyncio
+async def test_create_card_without_category_uses_default_films(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8803)
+    film = await _create_film(kinopoisk_id=880_003)
+    card_r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert card_r.status_code == 200
+    assert card_r.json()['category']['name'] == 'Фильмы'
+
+
+@pytest.mark.asyncio
+async def test_patch_card_rejects_other_users_category_id(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8804)
+    await _login(async_client, telegram_user_id=8805)
+
+    create_other_cat = await async_client.post('/api/me/card-categories', json={'name': 'Games'})
+    assert create_other_cat.status_code == 200
+    foreign_cat_id = create_other_cat.json()['id']
+
+    await _login(async_client, telegram_user_id=8804)
+    film = await _create_film(kinopoisk_id=880_004)
+    card_r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert card_r.status_code == 200
+    card_id = card_r.json()['id']
+
+    patch_bad = await async_client.patch(
+        f'/api/cards/{card_id}',
+        json={'category_id': foreign_cat_id},
+    )
+    assert patch_bad.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_card_queues_follower_publish_notify(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    task = celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_user_card']
+    monkeypatch.setattr(task, 'delay', mock_delay)
+
+    author = await _login(async_client, telegram_user_id=762)
+    follower = await _login(async_client, telegram_user_id=763)
+    await _login(async_client, telegram_user_id=763)
+    await async_client.post(f'/api/users/{author["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=762)
+    film = await _create_film(kinopoisk_id=762_001)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    cid = int(r.json()['id'])
+
+    mock_delay.assert_called_once()
+    kwargs = mock_delay.call_args.kwargs
+    assert kwargs['actor_user_id'] == author['id']
+    assert kwargs['card_id'] == cid
+    listed = orjson.loads(kwargs['recipient_user_ids_json'])
+    assert listed == [str(follower['id'])]
+
+
+@pytest.mark.asyncio
+async def test_create_card_no_followers_skips_follower_notify(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    mock_delay = MagicMock()
+    task = celery_app_instance.tasks['tasks.telegram_engagement.notify_followers_new_user_card']
+    monkeypatch.setattr(task, 'delay', mock_delay)
+
+    await _login(async_client, telegram_user_id=770)
+    film = await _create_film(kinopoisk_id=770_001)
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    mock_delay.assert_not_called()

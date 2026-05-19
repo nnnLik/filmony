@@ -9,8 +9,11 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from core.database import get_session_factory
-from models.movie_card import MovieCard
+from models.catalog_item import CatalogProvider
+from models.film import Film
+from models.user_card import UserCard
 from tests.api.test_profile_routes import _login, _seed_movie_card
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _seed_movie_card_same_film(
@@ -21,9 +24,14 @@ async def _seed_movie_card_same_film(
 ) -> int:
     session_factory = get_session_factory()
     async with session_factory() as session:
-        card = MovieCard(
+        film = (await session.execute(select(Film).where(Film.id == film_id))).scalar_one()
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
             user_id=user_id,
             film_id=film_id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=rating,
             company='alone',
             mood_before='relax',
@@ -63,7 +71,7 @@ async def test_following_ratings_lists_subscriptions_same_film_sorted_desc(
     session_factory = get_session_factory()
     async with session_factory() as session:
         row = (
-            await session.execute(select(MovieCard).where(MovieCard.id == alice_card_id))
+            await session.execute(select(UserCard).where(UserCard.id == alice_card_id))
         ).scalar_one()
         film_id = row.film_id
 
@@ -131,7 +139,7 @@ async def test_following_ratings_includes_viewer_row_when_viewer_has_same_film_c
     session_factory = get_session_factory()
     async with session_factory() as session:
         row = (
-            await session.execute(select(MovieCard).where(MovieCard.id == alice_card_id))
+            await session.execute(select(UserCard).where(UserCard.id == alice_card_id))
         ).scalar_one()
         film_id = row.film_id
 

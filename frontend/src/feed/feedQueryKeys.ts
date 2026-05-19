@@ -12,3 +12,6 @@ export const myMovieCardTagStatsQueryKey = () => ['myMovieCardTagStats'] as cons
 /** Кастомные теги с карточек пользователя (фильтр в профиле). */
 export const userMovieCardTagStatsQueryKey = (userId: string) =>
   ['userMovieCardTagStats', userId] as const
+
+/** Полки текущего пользователя (`GET /api/me/card-categories`). */
+export const myCardCategoriesQueryKey = () => ['myCardCategories'] as const

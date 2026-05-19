@@ -1,0 +1,6 @@
+- **Timestamp:** 2026-05-13T14:00:00Z
+- **Feature slug:** abstract-user-cards
+- **Action type:** plan
+- **Summary:** Инициализированы артефакты фичи Universal User Cards: спека, активный план/прогресс/результат, `docs/features/abstract-user-cards.md`; slug `abstract-user-cards`; модель `movie_card → user_card`, `film → catalog_item(provider='kinopoisk')`, сохранение существующих id карточек (1000+). Референс-план в `.cursor/plans/` не менялся.
+- **Files:** `.cursor/features/abstract-user-cards/feature.md`, `.cursor/active/abstract-user-cards/plan.md`, `.cursor/active/abstract-user-cards/progress.md`, `.cursor/active/abstract-user-cards/result.md`, `docs/features/abstract-user-cards.md`, `.cursor/memory/logs/action-log.md`, `.cursor/memory/logs/2026-05-13T140000Z-abstract-user-cards-plan.md`
+- **Verification:** n/a (документы; код приложения не менялся)

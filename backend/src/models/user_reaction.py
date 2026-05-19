@@ -31,6 +31,13 @@ class UserReaction(Base):
             'reaction_type_id',
             name='uq_user_reaction_user_target_kind_type',
         ),
-        Index('ix_user_reaction_target', 'target_kind', 'target_id'),
         Index('ix_user_reaction_user_target_kind', 'user_id', 'target_kind', 'target_id'),
+        Index(
+            'ix_user_reaction_target_kind_type_id',
+            'target_kind',
+            'target_id',
+            'reaction_type_id',
+            'id',
+            postgresql_ops={'id': 'DESC'},
+        ),
     )

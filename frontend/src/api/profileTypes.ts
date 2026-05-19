@@ -98,6 +98,15 @@ export type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
 export type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
 export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_time'
 
+/** Привязка карточки к каталогу / Kinopoisk / RAWG или ручной тайтл без внешнего id. */
+export type UserCardProvider = 'kinopoisk' | 'rawg' | 'no_provider'
+
+/** Полка пользователя из ответов карточек (detail / профиль / лента). */
+export type UserCardCategorySnippet = {
+  id: number
+  name: string
+}
+
 export type ReactionActor = {
   id: string
   profile_slug: string
@@ -154,12 +163,25 @@ export type MovieCard = {
   user_id?: string
   /** Приходит в GET /api/cards/:id и в элементах ленты; может отсутствовать в укороченных ответах. */
   card_author?: MovieCardCommentAuthor
-  film_id: number
-  film_kinopoisk_id: number
+  film_id: number | null
+  film_kinopoisk_id: number | null
   film_genres: string[]
   film_title: string
   film_year: number | null
+  /** Kinopoisk: mirrors ``film_year``. RAWG: from ``Game.released``. */
+  release_year?: number | null
+  /** ISO ``YYYY-MM-DD`` when known (typically RAWG). */
+  release_date?: string | null
   film_poster_url: string | null
+  /** Связка с каталогом (универсальные карточки). */
+  catalog_item_id?: number | null
+  provider: UserCardProvider
+  /** Внешний id провайдера (например Kinopoisk); для `no_provider` — null. */
+  external_id: string | null
+  /** Пользовательские поля отображения (приоритетнее legacy `film_*` в UI). */
+  display_title: string
+  display_cover_url?: string | null
+  display_summary?: string | null
   /** Только GET /api/cards/:id (не в ленте). */
   film_short_description?: string | null
   film_description?: string | null
@@ -170,8 +192,20 @@ export type MovieCard = {
   custom_tags: string[]
   /** Заметка о просмотре (до 500 символов); в ленте и профиле приходит с бэкенда. */
   watch_note?: string
+  /** Полка организации коллекции; может отсутствовать на устаревших кэшах клиента. */
+  category?: UserCardCategorySnippet
   reactions?: ReactionSummary
   is_favorite?: boolean
+}
+
+export type MyUserCardCategory = {
+  id: number
+  name: string
+  created_at: string
+}
+
+export type MyUserCardCategoryListResponse = {
+  items: MyUserCardCategory[]
 }
 
 /** Query-параметр `mode` для GET /api/cards/feed (legacy) */
@@ -332,10 +366,12 @@ export type TagDistributionItem = {
 
 export type ProfileStatsMovieItem = {
   card_id: number
-  film_id: number
+  film_id: number | null
   film_title: string
   film_year: number | null
   film_poster_url: string | null
+  display_title?: string | null
+  display_cover_url?: string | null
   rating: number
 }
 

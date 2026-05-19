@@ -5,11 +5,11 @@ export function reactionTokenFromId(reactionTypeId: number): string {
   return `⟦r${reactionTypeId}⟧`
 }
 
-/** Inline reference to viewer's movie card (matches backend `inline_movie_card_ref_tokens`). */
+/** Inline reference to viewer's card (matches backend `inline_movie_card_ref_tokens`). */
 export function movieCardRefTokenFromId(movieCardId: number): string {
   const id = Math.floor(movieCardId)
   if (!Number.isFinite(id) || id < 1) {
-    throw new RangeError('invalid movie card id')
+    throw new RangeError('invalid card id')
   }
   return `⟦c${id}⟧`
 }
@@ -38,7 +38,7 @@ const UNICODE_TOKEN_RE = /⟦r(\d+)⟧/g
 const ASCII_TOKEN_RE = /\[\[r(\d+)\]\]/g
 /** Feed @mention token `⟦@profile_slug⟧` (matches backend). */
 const UNICODE_MENTION_RE = /⟦@([^⟧]+)⟧/g
-/** Own movie card ref `⟦c{id}⟧` (matches backend). */
+/** Own card ref `⟦c{id}⟧` (matches backend). */
 const UNICODE_CARD_REF_RE = /⟦c(\d+)⟧/g
 
 type SegmentHit =

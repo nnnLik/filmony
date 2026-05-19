@@ -1,0 +1,24 @@
+# Action log — abstract-user-cards (frontend API/UI)
+
+- **Timestamp:** 2026-05-13T193500Z
+- **Feature slug:** abstract-user-cards
+- **Action type:** code
+- **Summary:** Frontend consumes universal user cards: nullable `film_id` / `film_kinopoisk_id`, `catalog_item_id`, display fields; create payload union (film / `catalog_item_id` / manual); Kinopoisk URL flow tries `POST /api/catalog/resolve` then `/api/films/resolve`; manual create path on `CreateCardPage`; detail/feed/profile use `movieCardDisplay` fallbacks; KP link only when `film_kinopoisk_id` present.
+- **Files:**
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/api/feedInFeedTypes.ts`
+  - `frontend/src/api/cardApi.ts`
+  - `frontend/src/api/catalogApi.ts` (new)
+  - `frontend/src/lib/movieCardDisplay.ts` (new)
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `frontend/src/pages/ShareMovieCardPage.tsx`
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/components/profile/MoviePosterGrid.tsx`
+  - `frontend/src/components/profile/FavoriteMoviesStrip.tsx`
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `.cursor/active/abstract-user-cards/progress.md`
+  - `.cursor/memory/logs/action-log.md`
+  - `.cursor/memory/logs/2026-05-13T193500Z-abstract-user-cards-code.md`
+- **Verification:** `cd frontend && npm run lint && npm run build` — exit 0

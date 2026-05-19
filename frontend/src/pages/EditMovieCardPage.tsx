@@ -1,15 +1,17 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getMovieCardById, updateMovieCard } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
-import { getMyProfile } from '../api/profileApi'
-import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard } from '../api/profileTypes'
+import { getMyCardCategories, getMyProfile } from '../api/profileApi'
+import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MyUserCardCategory } from '../api/profileTypes'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { myCardCategoriesQueryKey } from '../feed/feedQueryKeys'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -69,7 +71,40 @@ export function EditMovieCardPage() {
   const [customTags, setCustomTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [watchNote, setWatchNote] = useState('')
+  /** Полка после загрузки списка категорий; в PATCH уходит только при успешной загрузке списка. */
+  const [draftCategoryId, setDraftCategoryId] = useState<number | null>(null)
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+
+  const shelvesQuery = useQuery({
+    queryKey: myCardCategoriesQueryKey(),
+    queryFn: getMyCardCategories,
+    staleTime: 60_000,
+    gcTime: 30 * 60_000,
+  })
+
+  const shelfRows: MyUserCardCategory[] = useMemo(() => {
+    const base = shelvesQuery.data?.items ?? []
+    const curId = card?.category?.id
+    const curNameRaw = typeof card?.category?.name === 'string' ? card.category.name.trim() : ''
+    if (typeof curId === 'number' && curId >= 1 && curNameRaw !== '' && !base.some((r) => r.id === curId)) {
+      return [...base, { id: curId, name: curNameRaw, created_at: '' }]
+    }
+    return base
+  }, [card, shelvesQuery.data?.items])
+
+  const shelfSelectBusy = shelvesQuery.isLoading && shelfRows.length === 0
+
+  const shelfSelectControlId = useMemo(() => {
+    if (
+      draftCategoryId != null &&
+      draftCategoryId >= 1 &&
+      shelfRows.some((r) => r.id === draftCategoryId)
+    ) {
+      return draftCategoryId
+    }
+    const fallback = shelfRows[0]?.id
+    return typeof fallback === 'number' && fallback >= 1 ? fallback : null
+  }, [draftCategoryId, shelfRows])
 
   const insertReactionIntoWatchNote = useCallback(
     (id: number) => {
@@ -136,6 +171,8 @@ export function EditMovieCardPage() {
         setMoodAfter(item.mood_after)
         setCustomTags(item.custom_tags)
         setWatchNote(item.watch_note ?? '')
+        const cid = item.category?.id
+        setDraftCategoryId(typeof cid === 'number' && cid >= 1 ? cid : null)
       } catch (e) {
         if (!alive) return
         if (e instanceof ApiError) {
@@ -207,6 +244,10 @@ export function EditMovieCardPage() {
     setSaving(true)
     setError(null)
     try {
+      const shelfPatch =
+        shelvesQuery.isSuccess && draftCategoryId != null && draftCategoryId >= 1
+          ? { category_id: draftCategoryId }
+          : {}
       await updateMovieCard(parsedCardId, {
         rating: normalizeRating(rating),
         company,
@@ -214,6 +255,7 @@ export function EditMovieCardPage() {
         mood_after: moodAfter,
         custom_tags: customTags,
         watch_note: watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
+        ...shelfPatch,
       })
       clearMyProfileBundleCache()
       // Pop edit off the history stack instead of pushing another detail route.
@@ -293,14 +335,55 @@ export function EditMovieCardPage() {
               </div>
             </Section>
 
-            <Section header="Контекст просмотра">
+            <Section header="Контекст карточки">
               <div className="px-3 py-3">
                 <p className="text-sm font-medium text-(--tgui--text_color)">С кем смотрели:</p>
                 {renderChoiceChips(COMPANY_OPTIONS, company, setCompany)}
-                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">До просмотра:</p>
+                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Настроение до:</p>
                 {renderChoiceChips(MOOD_BEFORE_OPTIONS, moodBefore, setMoodBefore)}
-                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">После просмотра:</p>
+                <p className="mt-4 text-sm font-medium text-(--tgui--text_color)">Настроение после:</p>
                 {renderChoiceChips(MOOD_AFTER_OPTIONS, moodAfter, setMoodAfter)}
+              </div>
+            </Section>
+
+            <Section header="Полка">
+              <div className="px-3 py-3">
+                {shelvesQuery.isError ? (
+                  <p className="text-xs text-(--tgui--hint_color)">
+                    Не удалось загрузить список полок — положение можно поменять позже. Текущая:{' '}
+                    <span className="font-medium text-(--tgui--text_color)">
+                      {card.category?.name?.trim() !== '' ? card.category?.name : '—'}
+                    </span>
+                  </p>
+                ) : shelfSelectBusy ? (
+                  <p className="text-xs text-(--tgui--hint_color)">Загрузка полок…</p>
+                ) : shelfRows.length === 0 ? (
+                  <p className="text-xs text-(--tgui--hint_color)">
+                    Полок пока нет — сохранится текущее размещение на сервере.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-(--tgui--hint_color)">Куда отнести карточку в вашей коллекции.</p>
+                    <select
+                      className="mt-2 w-full rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2.5 text-sm text-(--tgui--text_color) outline-none focus-visible:border-(--tgui--link_color) focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
+                      value={
+                        shelfSelectControlId == null ? '' : String(shelfSelectControlId)
+                      }
+                      onChange={(e) => {
+                        const v = Number(e.currentTarget.value)
+                        setDraftCategoryId(Number.isInteger(v) && v >= 1 ? v : null)
+                      }}
+                      disabled={saving}
+                      aria-label="Полка карточки"
+                    >
+                      {shelfRows.map((row) => (
+                        <option key={row.id} value={String(row.id)}>
+                          {row.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
               </div>
             </Section>
 
@@ -339,7 +422,7 @@ export function EditMovieCardPage() {
               </div>
             </Section>
 
-            <Section header="Заметка о просмотре">
+            <Section header="Заметка к карточке">
               <div className="px-3 py-3">
                 <p className="text-xs text-(--tgui--hint_color)">До {MAX_WATCH_NOTE_LEN} символов.</p>
                 <div className="mt-2 flex gap-2">
@@ -348,7 +431,7 @@ export function EditMovieCardPage() {
                     value={watchNote}
                     onChange={setWatchNote}
                     placeholder="Коротко о впечатлении…"
-                    ariaLabel="Заметка о просмотре"
+                    ariaLabel="Заметка к карточке"
                     disabled={saving}
                     maxLength={MAX_WATCH_NOTE_LEN}
                     rows={5}

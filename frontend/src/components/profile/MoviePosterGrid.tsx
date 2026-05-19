@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { MovieCard } from '../../api/profileTypes'
+import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../../lib/movieCardDisplay'
 import { FeedRatingRing } from '../feed/FeedRatingRing'
 import { FavoriteCardHeartButton } from '../cards/FavoriteCardHeartButton'
 
@@ -36,6 +37,8 @@ function PosterCell({
   showFavoriteToggle: boolean
   onFavoriteToggled?: (cardId: number, nextFavorite: boolean) => void
 }) {
+  const primaryTitle = movieCardPrimaryTitle(card)
+  const primaryPoster = movieCardPrimaryPoster(card)
   const [favoriteSync, setFavoriteSync] = useState(() => ({
     cardId: card.id,
     isFavorite: card.is_favorite ?? false,
@@ -51,11 +54,11 @@ function PosterCell({
     <Link
       to={`/cards/${card.id}`}
       className="relative block overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) no-underline"
-      aria-label={`Открыть карточку «${card.film_title}»`}
+      aria-label={`Открыть карточку «${primaryTitle}»`}
     >
       <div className="relative aspect-2/3 w-full">
-        {card.film_poster_url ? (
-          <img src={card.film_poster_url} alt={card.film_title} className="h-full w-full object-cover" />
+        {primaryPoster ? (
+          <img src={primaryPoster} alt={primaryTitle} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[11px] text-(--tgui--hint_color)">
             Нет постера

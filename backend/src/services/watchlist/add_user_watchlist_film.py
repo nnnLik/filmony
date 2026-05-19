@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
-from models.movie_card import MovieCard
+from models.user_card import UserCard
 from models.user_watchlist_film import UserWatchlistFilm
 from services.watchlist.list_user_watchlist_films import WatchlistFilmListItem
 
@@ -42,9 +42,9 @@ class AddUserWatchlistFilmService:
 
         has_card = (
             await self._session.execute(
-                select(func.count(MovieCard.id)).where(
-                    MovieCard.user_id == user_id,
-                    MovieCard.film_id == film_id,
+                select(func.count(UserCard.id)).where(
+                    UserCard.user_id == user_id,
+                    UserCard.film_id == film_id,
                 )
             )
         ).scalar_one()

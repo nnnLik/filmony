@@ -3,6 +3,7 @@
 ## Summary
 
 - **Шаринг карточки:** автор отправляет уведомление **своим подписчикам** (followers): только пользователи из отношения `UserSubscription`, где `following_user_id` = автор и `follower_user_id` ∈ списка получателей. Это **не** список «мои подписки» (following).
+- **Авто-уведомления подписчикам при публикации:** новая карточка или новый пост ленты — см. [`followed-content-notifications.md`](./followed-content-notifications.md) (для постов без дубля с @упоминаниями).
 - **Реакции и комментарии:** при добавлении реакции на карточку или комментарий, при ответе на комментарий и при корневом комментарии под карточкой — соответствующие DM в Telegram (см. каноничный документ [`engagement-telegram-notifications.md`](./engagement-telegram-notifications.md)).
 
 ## User flows
@@ -47,8 +48,10 @@
 
 - Share + инфраструктура Celery — **готово**.
 - Уведомления по реакциям и комментариям — **готово** (см. [`engagement-telegram-notifications.md`](./engagement-telegram-notifications.md)).
+- Авто-уведомления подписчикам о **новой карточке** и **новом посте ленты** — **готово** (см. [`followed-content-notifications.md`](./followed-content-notifications.md); посты: без дубля для @упоминаний).
 
 ## References
 
 - `.cursor/features/telegram-engagement-notifications/feature.md`
+- `.cursor/features/followed-content-notifications/feature.md`
 - Расширенный бэклог бота: `.cursor/features/009-telegram-notifications.md`

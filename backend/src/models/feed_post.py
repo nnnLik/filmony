@@ -19,7 +19,8 @@ class FeedPost(Base):
     )
     body: Mapped[str] = mapped_column(String(2000), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
-    referenced_movie_card_id: Mapped[int | None] = mapped_column(
+    referenced_card_id: Mapped[int | None] = mapped_column(
+        'referenced_movie_card_id',
         Integer,
         ForeignKey('movie_card.id', ondelete='SET NULL'),
         nullable=True,

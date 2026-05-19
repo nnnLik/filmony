@@ -1,0 +1,591 @@
+/* Desktop-only decorative rails — hidden on touch-first / narrow viewports */
+
+.app-shell__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-shell__side {
+  display: none;
+}
+
+.app-shell__main {
+  min-width: 0;
+}
+
+/* Narrow/touch: omit extra rain-GIF decode layer (sides hidden; saves fetch). */
+.app-shell__disco-rain-decode-warm {
+  display: none;
+}
+
+.app-shell__side-text {
+  margin: 0;
+}
+
+@media (min-width: 1200px) and (pointer: fine) {
+  /* Warm a single decoded instance of the rain GIF before the disco burst mounts many sprites. */
+  .app-shell__disco-rain-decode-warm {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+    contain: strict;
+  }
+
+  .app-shell__body {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .app-shell__side {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .app-shell__side-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: min(16rem, max(0px, calc((100vw - 28rem) / 2 - 1.5rem)));
+    max-width: 16rem;
+    box-sizing: border-box;
+  }
+
+  /* Center each rail in its gutter; fixed to viewport so feed scroll does not move them */
+  .app-shell__side--left .app-shell__side-stack {
+    position: fixed;
+    z-index: 0;
+    top: 50%;
+    left: calc((100vw - 28rem) / 4);
+    transform: translate(-50%, -50%);
+  }
+
+  .app-shell__side--right .app-shell__side-stack {
+    position: fixed;
+    z-index: 0;
+    top: 50%;
+    left: calc(100vw - (100vw - 28rem) / 4);
+    transform: translate(-50%, -50%);
+  }
+
+  .app-shell__side-pepe-trigger {
+    display: block;
+    flex-shrink: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    pointer-events: auto;
+    border-radius: 0.625rem;
+    line-height: 0;
+  }
+
+  .app-shell__side-pepe-trigger:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--filmony-mint) 70%, white);
+    outline-offset: 3px;
+  }
+
+  .app-shell__side-ad-gif {
+    display: block;
+    flex-shrink: 0;
+    width: auto;
+    max-width: min(11rem, 100%);
+    height: auto;
+    max-height: 10rem;
+    border-radius: 0.625rem;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .app-shell--side-disco .app-shell__body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0.36;
+    background-image:
+      radial-gradient(0.9px 0.9px at 50% 50%, rgba(255, 255, 255, 0.98) 38%, transparent 52%),
+      radial-gradient(0.65px 0.65px at 50% 50%, rgba(200, 255, 255, 0.92) 35%, transparent 52%),
+      radial-gradient(0.7px 0.7px at 50% 50%, rgba(255, 200, 255, 0.9) 35%, transparent 52%);
+    background-size: 64px 64px, 88px 88px, 112px 112px;
+    background-position:
+      0 0,
+      36px 22px,
+      18px 44px;
+  }
+
+  .app-shell__side--disco .app-shell__side-stack {
+    border-radius: 1rem;
+    animation:
+      app-shell-disco-hue 0.3s linear infinite,
+      app-shell-disco-side-rainbow-glow 0.5s ease-in-out infinite alternate;
+  }
+
+  .app-shell__side--disco .app-shell__side-ad-gif {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, #ff4ddb 75%, transparent))
+      drop-shadow(0 0 28px color-mix(in srgb, var(--filmony-mint) 70%, transparent))
+      drop-shadow(0 0 44px color-mix(in srgb, #6cf0ff 55%, transparent))
+      drop-shadow(0 0 3px color-mix(in srgb, white 40%, transparent));
+  }
+
+  .app-shell__side--disco .app-shell__side-text {
+    border-color: color-mix(in srgb, #c86cff 55%, transparent);
+    animation: app-shell-disco-text-rim 0.62s ease-in-out infinite alternate;
+  }
+
+  .app-shell__disco-rain {
+    display: none;
+    position: fixed;
+    z-index: 5;
+    top: 0;
+    bottom: 0;
+    width: max(0px, calc((100vw - 28rem) / 2));
+    pointer-events: none;
+    overflow: hidden;
+    contain: strict;
+  }
+
+  .app-shell--side-disco .app-shell__disco-rain {
+    display: block;
+  }
+
+  .app-shell__disco-rain--left {
+    left: 0;
+    right: auto;
+  }
+
+  .app-shell__disco-rain--right {
+    right: 0;
+    left: auto;
+  }
+
+  .app-shell__disco-rain-sprite {
+    position: absolute;
+    top: 0;
+    left: var(--rain-left-pct, 45%);
+    max-width: min(104px, 38vw);
+    width: auto;
+    height: auto;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+    image-rendering: auto;
+  }
+
+  .app-shell__main {
+    flex: 0 1 28rem;
+    max-width: 28rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-shell--side-disco .app-shell__main--disco {
+    border-radius: 1.125rem;
+    animation: app-shell-disco-main-column-rim 0.68s ease-in-out infinite alternate;
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, white 22%, transparent),
+      0 0 28px color-mix(in srgb, #ff8a4b 35%, transparent),
+      0 0 56px color-mix(in srgb, var(--filmony-mint) 42%, transparent),
+      0 0 88px color-mix(in srgb, #9b5cff 28%, transparent),
+      inset 0 0 36px color-mix(in srgb, white 6%, transparent);
+  }
+
+  .app-shell--side-disco .app-shell__main--disco::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.55;
+    mix-blend-mode: soft-light;
+    background: linear-gradient(
+      125deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.12) 22%,
+      transparent 38%,
+      rgba(255, 214, 120, 0.14) 52%,
+      transparent 68%,
+      rgba(180, 255, 255, 0.12) 82%,
+      transparent 100%
+    );
+    background-size: 240% 240%;
+  }
+
+  .app-shell--side-disco .app-shell__main--disco > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  .app-shell__side-text {
+    position: relative;
+    z-index: 1;
+    max-width: 16rem;
+    padding: 1.375rem 1rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--filmony-muted) 78%, var(--filmony-mint));
+    border: 1px solid color-mix(in srgb, var(--filmony-mint) 32%, transparent);
+    border-radius: 0.875rem;
+    background: color-mix(in srgb, var(--filmony-surface) 50%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--filmony-mint) 8%, transparent),
+      0 0 22px color-mix(in srgb, var(--filmony-mint) 12%, transparent);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .app-shell__side-text::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 300%;
+    height: 100%;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 38%,
+      color-mix(in srgb, var(--filmony-mint) 24%, transparent) 47%,
+      color-mix(in srgb, var(--filmony-surface) 35%, transparent) 50%,
+      color-mix(in srgb, var(--filmony-mint) 24%, transparent) 53%,
+      transparent 62%,
+      transparent 100%
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0.82;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-shell__side-text::after {
+      animation: app-shell-side-shimmer 2.15s linear infinite;
+    }
+
+    .app-shell--side-disco .app-shell__body::before {
+      animation: app-shell-sparkle-pan 3s linear infinite;
+    }
+
+    .app-shell__side--disco .app-shell__side-stack {
+      will-change: filter, box-shadow;
+    }
+
+    .app-shell--side-disco .app-shell__main--disco::after {
+      animation: app-shell-disco-main-sheen 1.55s linear infinite;
+    }
+
+    .app-shell--side-disco .app-shell__main article,
+    .app-shell--side-disco .app-shell__main [class*='rounded-3xl']:not(button):not(input):not(textarea),
+    .app-shell--side-disco .app-shell__main [class*='rounded-2xl']:not(button):not(input):not(textarea) {
+      animation:
+        app-shell-disco-main-glow 0.46s ease-in-out infinite alternate,
+        app-shell-disco-main-hue 0.75s linear infinite;
+    }
+
+    .app-shell__disco-rain-sprite {
+      /* Infinite loop while disco layer is mounted (9s window); unmount stops rain */
+      animation: app-shell-disco-rain-fall var(--rain-dur, 2.6s) linear var(--rain-delay, 0ms)
+        infinite;
+      will-change: transform;
+      filter: drop-shadow(0 0 6px color-mix(in srgb, white 55%, transparent))
+        drop-shadow(0 0 14px color-mix(in srgb, var(--filmony-mint) 40%, transparent));
+    }
+
+    .app-shell__disco-rain-sprite:nth-child(4n + 1) {
+      filter: drop-shadow(0 0 8px color-mix(in srgb, #ff6ad5 50%, transparent))
+        drop-shadow(0 0 16px color-mix(in srgb, white 35%, transparent));
+    }
+
+    .app-shell__disco-rain-sprite:nth-child(4n + 2) {
+      filter: drop-shadow(0 0 8px color-mix(in srgb, #5cf0ff 55%, transparent))
+        drop-shadow(0 0 14px color-mix(in srgb, white 30%, transparent));
+    }
+
+    .app-shell__disco-rain-sprite:nth-child(4n + 3) {
+      filter: drop-shadow(0 0 8px color-mix(in srgb, #c8ff4a 45%, transparent))
+        drop-shadow(0 0 14px color-mix(in srgb, white 28%, transparent));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-shell__side-text::after {
+      animation: none;
+      transform: none;
+      opacity: 0;
+    }
+
+    .app-shell--side-disco .app-shell__body::before {
+      animation: none;
+      opacity: 0.07;
+      mix-blend-mode: normal;
+    }
+
+    .app-shell__side--disco .app-shell__side-stack {
+      animation: none;
+      outline: 2px solid color-mix(in srgb, var(--filmony-mint) 55%, white);
+      outline-offset: 4px;
+      box-shadow:
+        0 0 0 3px color-mix(in srgb, white 32%, transparent),
+        0 0 52px color-mix(in srgb, var(--filmony-mint) 72%, transparent),
+        0 0 96px color-mix(in srgb, var(--filmony-mint) 40%, transparent),
+        inset 0 0 32px color-mix(in srgb, var(--filmony-mint) 26%, transparent);
+    }
+
+    .app-shell--side-disco .app-shell__main--disco {
+      animation: none;
+    }
+
+    .app-shell--side-disco .app-shell__main--disco::after {
+      animation: none;
+      opacity: 0;
+    }
+
+    .app-shell__disco-rain {
+      display: none !important;
+    }
+
+    .app-shell__disco-rain-sprite {
+      visibility: hidden;
+    }
+
+    .app-shell__side--disco .app-shell__side-ad-gif {
+      filter: drop-shadow(0 0 20px color-mix(in srgb, var(--filmony-mint) 82%, transparent))
+        drop-shadow(0 0 36px color-mix(in srgb, var(--filmony-mint) 52%, transparent));
+    }
+
+    .app-shell__side--disco .app-shell__side-text {
+      animation: none;
+      border-color: color-mix(in srgb, var(--filmony-mint) 68%, transparent);
+      box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--filmony-mint) 28%, transparent),
+        0 0 56px color-mix(in srgb, var(--filmony-mint) 52%, transparent);
+    }
+
+    .app-shell--side-disco .app-shell__main article,
+    .app-shell--side-disco .app-shell__main [class*='rounded-3xl']:not(button):not(input):not(textarea),
+    .app-shell--side-disco .app-shell__main [class*='rounded-2xl']:not(button):not(input):not(textarea) {
+      animation: none;
+      box-shadow:
+        0 8px 28px -14px rgb(0 0 0 / 0.38),
+        0 0 0 2px color-mix(in srgb, var(--filmony-mint) 32%, transparent),
+        0 0 42px color-mix(in srgb, var(--filmony-mint) 46%, transparent),
+        0 0 72px color-mix(in srgb, var(--filmony-mint) 24%, transparent),
+        inset 0 0 22px color-mix(in srgb, var(--filmony-mint) 12%, transparent);
+    }
+  }
+}
+
+@keyframes app-shell-disco-hue {
+  from {
+    filter: hue-rotate(0deg) saturate(1.65) brightness(1.04);
+  }
+
+  to {
+    filter: hue-rotate(360deg) saturate(1.65) brightness(1.04);
+  }
+}
+
+@keyframes app-shell-disco-side-rainbow-glow {
+  0% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, white 42%, transparent),
+      0 0 36px color-mix(in srgb, #ff4d8d 78%, transparent),
+      0 0 72px color-mix(in srgb, #ffa04a 55%, transparent),
+      0 0 118px color-mix(in srgb, #9b7dff 32%, transparent),
+      0 0 160px color-mix(in srgb, var(--filmony-mint) 22%, transparent),
+      inset 0 0 48px color-mix(in srgb, #6cf0ff 22%, transparent);
+  }
+
+  33% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, #c8fff9 38%, transparent),
+      0 0 44px color-mix(in srgb, #5cf0ff 76%, transparent),
+      0 0 86px color-mix(in srgb, var(--filmony-mint) 58%, transparent),
+      0 0 132px color-mix(in srgb, #b862ff 34%, transparent),
+      0 0 168px color-mix(in srgb, #ff6ad5 18%, transparent),
+      inset 0 0 52px color-mix(in srgb, #fff6b3 20%, transparent);
+  }
+
+  66% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, white 44%, transparent),
+      0 0 40px color-mix(in srgb, #c8ff4a 72%, transparent),
+      0 0 80px color-mix(in srgb, #ff7ae2 52%, transparent),
+      0 0 124px color-mix(in srgb, #58ffe8 30%, transparent),
+      0 0 172px color-mix(in srgb, #ffc14a 20%, transparent),
+      inset 0 0 46px color-mix(in srgb, var(--filmony-mint) 26%, transparent);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, white 42%, transparent),
+      0 0 36px color-mix(in srgb, #ff4d8d 78%, transparent),
+      0 0 72px color-mix(in srgb, #ffa04a 55%, transparent),
+      0 0 118px color-mix(in srgb, #9b7dff 32%, transparent),
+      0 0 160px color-mix(in srgb, var(--filmony-mint) 22%, transparent),
+      inset 0 0 48px color-mix(in srgb, #6cf0ff 22%, transparent);
+  }
+}
+
+@keyframes app-shell-disco-text-rim {
+  from {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, #ff9ec4 32%, transparent),
+      0 0 28px color-mix(in srgb, #7dfff0 42%, transparent),
+      0 0 58px color-mix(in srgb, #dcb6ff 34%, transparent),
+      0 0 92px color-mix(in srgb, var(--filmony-mint) 24%, transparent),
+      inset 0 0 20px color-mix(in srgb, white 10%, transparent);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, #9fe7ff 38%, transparent),
+      0 0 34px color-mix(in srgb, #ffa8f6 44%, transparent),
+      0 0 64px color-mix(in srgb, #b4ff7a 32%, transparent),
+      0 0 104px color-mix(in srgb, #6cf0ff 26%, transparent),
+      inset 0 0 24px color-mix(in srgb, #fff288 12%, transparent);
+  }
+}
+
+@keyframes app-shell-sparkle-pan {
+  from {
+    background-position:
+      0 0,
+      36px 22px,
+      18px 44px;
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.52;
+  }
+
+  to {
+    background-position:
+      168px 120px,
+      -68px 86px,
+      118px -40px;
+    opacity: 0.3;
+  }
+}
+
+@keyframes app-shell-side-shimmer {
+  from {
+    transform: translateX(calc(-100% / 3));
+  }
+
+  to {
+    transform: translateX(calc(100% / 3));
+  }
+}
+
+@keyframes app-shell-disco-rain-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -22vh, 0) rotate(calc(var(--rain-rotate, 10deg) * -0.6));
+  }
+
+  12% {
+    opacity: 0.92;
+  }
+
+  100% {
+    opacity: 0.48;
+    transform: translate3d(calc(-50% + var(--rain-drift-end, 14px)), 116vh, 0)
+      rotate(var(--rain-rotate, 12deg));
+  }
+}
+
+@keyframes app-shell-disco-main-glow {
+  0% {
+    box-shadow:
+      0 8px 28px -14px rgb(0 0 0 / 0.38),
+      0 0 0 1px color-mix(in srgb, #ff79c8 38%, transparent),
+      0 0 22px color-mix(in srgb, #ffb35c 50%, transparent),
+      0 0 48px color-mix(in srgb, #58d7ff 36%, transparent),
+      0 0 88px color-mix(in srgb, var(--filmony-mint) 28%, transparent),
+      inset 0 0 18px color-mix(in srgb, white 8%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      0 10px 34px -12px rgb(0 0 0 / 0.42),
+      0 0 0 2px color-mix(in srgb, #7cf8ff 42%, transparent),
+      0 0 32px color-mix(in srgb, #d86cff 52%, transparent),
+      0 0 72px color-mix(in srgb, #c8ff5e 34%, transparent),
+      0 0 110px color-mix(in srgb, #ff9ad2 22%, transparent),
+      inset 0 0 24px color-mix(in srgb, var(--filmony-mint) 12%, transparent);
+  }
+
+  100% {
+    box-shadow:
+      0 9px 32px -13px rgb(0 0 0 / 0.4),
+      0 0 0 2px color-mix(in srgb, white 28%, transparent),
+      0 0 38px color-mix(in srgb, var(--filmony-mint) 58%, transparent),
+      0 0 82px color-mix(in srgb, #6cf0ff 38%, transparent),
+      inset 0 0 22px color-mix(in srgb, #fff4b8 10%, transparent);
+  }
+}
+
+@keyframes app-shell-disco-main-hue {
+  from {
+    filter: hue-rotate(0deg) saturate(1.12);
+  }
+
+  to {
+    filter: hue-rotate(360deg) saturate(1.12);
+  }
+}
+
+@keyframes app-shell-disco-main-column-rim {
+  from {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, #ff77c6 40%, transparent),
+      0 0 30px color-mix(in srgb, #6cf0ff 38%, transparent),
+      0 0 62px color-mix(in srgb, #ffe66d 32%, transparent),
+      0 0 96px color-mix(in srgb, var(--filmony-mint) 36%, transparent),
+      inset 0 0 28px color-mix(in srgb, white 7%, transparent);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, #8af7ff 44%, transparent),
+      0 0 38px color-mix(in srgb, #d47cff 42%, transparent),
+      0 0 74px color-mix(in srgb, #8cffb1 34%, transparent),
+      0 0 108px color-mix(in srgb, #ff8ac4 28%, transparent),
+      inset 0 0 32px color-mix(in srgb, var(--filmony-mint) 10%, transparent);
+  }
+}
+
+@keyframes app-shell-disco-main-sheen {
+  from {
+    background-position: 0% 40%;
+  }
+
+  to {
+    background-position: 100% 60%;
+  }
+}

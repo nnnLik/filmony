@@ -1,0 +1,12 @@
+- Timestamp: 2026-05-14T200500Z
+- Feature slug: catalog-search-providers
+- Action type: code
+- Summary: Throttled create-card catalog search (800 ms debounce, RAWG min 4 chars); `searchCatalog` passes AbortSignal for React Query cancellation; RAWG API route enforces min 4 trimmed chars with explicit 422 detail.
+- Files:
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/api/catalogApi.ts`
+  - `backend/src/api/catalog/routes.py`
+  - `backend/src/tests/api/test_catalog_routes.py`
+- Verification:
+  - `cd frontend && npm run lint && npm run build` — pass
+  - `docker compose -f docker-compose.yml exec -e RAWG_API_KEY=test -w /opt/app backend pytest src/tests/api/test_catalog_routes.py -q` — 12 passed

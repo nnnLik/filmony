@@ -14,7 +14,7 @@ from api.films.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
-from services.cards.get_my_movie_card_id_for_film import GetMyMovieCardIdForFilmService
+from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
 from services.films.get_film_by_id import GetFilmByIdService
 from services.films.list_film_community_cards import ListFilmCommunityCardsService
 from services.kinopoisk.resolve_kinopoisk_film import (
@@ -38,7 +38,7 @@ async def resolve_film(
         raise HTTPException(status_code=422, detail=str(e)) from e
     except KinopoiskClientError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
-    my_card_id = await GetMyMovieCardIdForFilmService.build(db).execute(viewer.id, film.id)
+    my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
     return FilmResponse(
         id=film.id,
         kinopoisk_id=film.kinopoisk_id,
@@ -108,7 +108,7 @@ async def get_film(
     film = await GetFilmByIdService(db).execute(film_id)
     if film is None:
         raise HTTPException(status_code=404, detail='film not found')
-    my_card_id = await GetMyMovieCardIdForFilmService.build(db).execute(viewer.id, film.id)
+    my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
     return FilmResponse(
         id=film.id,
         kinopoisk_id=film.kinopoisk_id,

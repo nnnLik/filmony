@@ -60,7 +60,14 @@ import {
 import { filterFollowingForMentionQuery } from '../lib/mentionFollowingFilter'
 import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
-import { kinopoiskTitleUrl, openExternalUrl } from '../lib/openExternalUrl'
+import {
+  movieCardHasKinopoiskLink,
+  movieCardPrimaryPoster,
+  movieCardPrimarySummary,
+  movieCardPrimaryTitle,
+  movieCardReleasePrimaryLabel,
+} from '../lib/movieCardDisplay'
+import { kinopoiskTitleUrlFromCard, openExternalUrl } from '../lib/openExternalUrl'
 import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
@@ -69,6 +76,7 @@ import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInl
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
+import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
@@ -525,8 +533,8 @@ export function MovieCardDetailPage() {
     if (card == null || viewerId == null) return
     recordRecentCardView(viewerId, {
       id: card.id,
-      film_title: card.film_title,
-      film_poster_url: card.film_poster_url,
+      film_title: movieCardPrimaryTitle(card),
+      film_poster_url: movieCardPrimaryPoster(card),
     })
     markGlobalFeedCardDetailOpened(card.id)
   }, [card, viewerId])
@@ -710,7 +718,7 @@ export function MovieCardDetailPage() {
             ←
           </button>
           <span className="truncate text-sm font-medium tracking-tight text-(--tgui--hint_color)">
-            {card?.film_title ?? 'Карточка'}
+            {card != null ? movieCardPrimaryTitle(card) : 'Карточка'}
           </span>
           <span className="ml-auto" />
           {isOwner ? (
@@ -953,6 +961,10 @@ function MovieCardDetailLoadedBody({
   const { openCompose } = useComposeFeedPost()
   const navigate = useNavigate()
   const location = useLocation()
+  const primaryTitle = movieCardPrimaryTitle(card)
+  const primaryPoster = movieCardPrimaryPoster(card)
+  const synopsisShort = movieCardPrimarySummary(card)
+  const showKinopoiskLink = movieCardHasKinopoiskLink(card)
   const fromFeed =
     typeof location.state === 'object' &&
     location.state !== null &&
@@ -966,10 +978,10 @@ function MovieCardDetailLoadedBody({
           <div className="space-y-3">
             <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
               <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
-                {card.film_poster_url ? (
+                {primaryPoster ? (
                   <img
-                    src={card.film_poster_url}
-                    alt={card.film_title}
+                    src={primaryPoster}
+                    alt={primaryTitle}
                     className="filmony-detail-poster-img block h-auto w-full max-w-full motion-safe:transition-transform motion-safe:duration-1100 motion-safe:ease-out motion-safe:group-hover/poster:scale-[1.02]"
                   />
                 ) : (
@@ -1005,33 +1017,43 @@ function MovieCardDetailLoadedBody({
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1 pr-1">
                     <Title level="2" weight="2" className="text-[1.15rem]! leading-snug! sm:text-[1.2rem]!">
-                      {card.film_title}
+                      {primaryTitle}
                     </Title>
+                    <CardCategoryChip category={card.category} className="mt-2" />
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {detailCardAuthor != null ? <CardAuthorAvatarLink author={detailCardAuthor} /> : null}
                       <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
-                        {card.film_year ?? 'Год неизвестен'}
+                        {movieCardReleasePrimaryLabel(card)}
                       </p>
                     </div>
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
                     <FilmSynopsisBlock
-                      shortDescription={card.film_short_description}
-                      description={card.film_description}
+                      shortDescription={synopsisShort}
+                      description={card.film_description ?? null}
                       className="mt-3"
                     />
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
-                    <IconButton
-                      type="button"
-                      size="s"
-                      mode="gray"
-                      aria-label="Открыть страницу фильма на Кинопоиске"
-                      onClick={() => openExternalUrl(kinopoiskTitleUrl(card.film_kinopoisk_id))}
-                    >
-                      <span className="relative z-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] bg-[#ff6600] px-[3px] text-[8px] font-black leading-none tracking-tight text-white">
-                        КП
-                      </span>
-                    </IconButton>
+                    {showKinopoiskLink ? (
+                      <IconButton
+                        type="button"
+                        size="s"
+                        mode="gray"
+                        aria-label="Открыть страницу темы на Кинопоиске"
+                        onClick={() => {
+                          const url = kinopoiskTitleUrlFromCard(
+                            card.film_kinopoisk_id,
+                            card.provider,
+                            card.external_id,
+                          )
+                          if (url != null) openExternalUrl(url)
+                        }}
+                      >
+                        <span className="relative z-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] bg-[#ff6600] px-[3px] text-[8px] font-black leading-none tracking-tight text-white">
+                          КП
+                        </span>
+                      </IconButton>
+                    ) : null}
                     {cardDeepLinkUrl != null ? (
                       <IconButton
                         type="button"
@@ -1078,7 +1100,7 @@ function MovieCardDetailLoadedBody({
                         type="button"
                         size="s"
                         mode="gray"
-                        aria-label="Взять за основу — создать свою карточку с этим тайтлом"
+                        aria-label="Взять за основу — создать свою карточку с этой же темой"
                         onClick={() => {
                           const qs = new URLSearchParams({ fromCard: String(card.id) })
                           if (fromFeed) qs.set('returnTo', 'feed')
@@ -1137,7 +1159,7 @@ function MovieCardDetailLoadedBody({
               </div>
               {showWatchNote ? (
                 <>
-                  <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка о просмотре</p>
+                  <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка к карточке</p>
                   <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--tgui--text_color)">
                     <CommentBodyWithReactionTokens text={watchNoteText} />
                   </p>

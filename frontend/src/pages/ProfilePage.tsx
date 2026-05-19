@@ -36,6 +36,9 @@ import {
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
+import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+
+import './ProfilePage.css'
 
 type ProfileMainTab = 'movies' | 'posts' | 'stats'
 
@@ -63,6 +66,7 @@ function toPublicShape(p: MyProfile): PublicProfile {
 }
 
 export function ProfilePage() {
+  const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const navigate = useNavigate()
   const location = useLocation()
@@ -109,6 +113,10 @@ export function ProfilePage() {
     if (favoriteStripForUserId !== profile.id) return []
     return favoriteStripFetched
   }, [profile, favoriteStripFetched, favoriteStripForUserId])
+
+  useEffect(() => {
+    void ensureHeaderPepeGifsPreloaded()
+  }, [])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -502,8 +510,21 @@ export function ProfilePage() {
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold tracking-tight text-(--tgui--text_color)">Профиль</h1>
-          <div className="flex items-center gap-0.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
+            <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+              Профиль
+            </h1>
+            <img
+              className="profile-page__title-pepe"
+              src={headerPepeSrc}
+              alt=""
+              width={28}
+              height={28}
+              decoding="async"
+              aria-hidden
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
             <IconButton
               type="button"
               size="s"
@@ -559,7 +580,7 @@ export function ProfilePage() {
             </div>
             <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
               <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.watchlist_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">к просмотру</span>
+              <span className="text-[11px] text-(--tgui--hint_color)">позже</span>
             </div>
             <div className="col-span-2 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
               <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.favorites_count)}</span>
@@ -668,7 +689,7 @@ export function ProfilePage() {
                 }`}
                 onClick={() => setMoviesSegment('watchlist')}
               >
-                К просмотру
+                Позже
               </button>
             </div>
 
@@ -679,6 +700,7 @@ export function ProfilePage() {
                   profileUserId={profile.id}
                   cardsQuery={ratedQuery}
                   onChange={setRatedQuery}
+                  enableCategoryFilter
                 />
                 {ratedCardsLoading ? (
                   <p className="filmony-text-panel mb-2 text-center text-xs text-(--tgui--hint_color)">
@@ -729,7 +751,7 @@ export function ProfilePage() {
                 ) : null}
                 {!watchlistLoading && myWatchlist != null && myWatchlist.items.length === 0 ? (
                   <div className="filmony-text-panel flex flex-col items-center gap-4 py-8 text-center">
-                    <p className="text-sm text-(--tgui--hint_color)">В «К просмотру» пока пусто</p>
+                    <p className="text-sm text-(--tgui--hint_color)">В списке «Позже» пока пусто</p>
                     <Link to="/cards/new" className="w-full max-w-xs no-underline">
                       <Button stretched>Добавить в список</Button>
                     </Link>

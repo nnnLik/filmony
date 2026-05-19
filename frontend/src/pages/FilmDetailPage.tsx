@@ -170,13 +170,13 @@ export function FilmDetailPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 409) {
-          setWatchlistActionErr('Уже в списке «к просмотру».')
+          setWatchlistActionErr('Уже в списке «Позже».')
           setInWatchlist(true)
           return
         }
         const msg = formatApiDetail(e.detail).toLowerCase()
         if (msg.includes('movie card already exists')) {
-          setWatchlistActionErr('У вас уже есть оценённая карточка для этого тайтла.')
+          setWatchlistActionErr('У вас уже есть оценённая карточка для этой темы.')
           return
         }
         setWatchlistActionErr(formatApiDetail(e.detail))
@@ -255,7 +255,7 @@ export function FilmDetailPage() {
         >
           ←
         </button>
-        <span className="truncate text-sm font-medium text-(--tgui--hint_color)">Тайтл в каталоге</span>
+        <span className="truncate text-sm font-medium text-(--tgui--hint_color)">Тема в каталоге</span>
       </header>
 
       <main className="mx-auto max-w-md space-y-4 px-4 pt-4">
@@ -324,7 +324,7 @@ export function FilmDetailPage() {
                     {hasMyRatedCard ? (
                       <>
                         <p className="text-sm text-(--tgui--hint_color)">
-                          Этот тайтл уже в ваших оценённых карточках.
+                          Эта тема уже в ваших оценённых карточках.
                         </p>
                         <Link
                           to={`/cards/${encodeURIComponent(String(film.my_card_id))}`}
@@ -344,7 +344,7 @@ export function FilmDetailPage() {
                     ) : (
                       <>
                         <Link to={`/cards/new?filmId=${encodeURIComponent(String(film.id))}`} className="no-underline">
-                          <Button stretched>Оценить просмотр</Button>
+                          <Button stretched>Добавить карточку с оценкой</Button>
                         </Link>
                         {inWatchlist === false ? (
                           <Button
@@ -353,7 +353,7 @@ export function FilmDetailPage() {
                             disabled={addWatchlistBusy}
                             onClick={() => void onAddToWatchlist()}
                           >
-                            {addWatchlistBusy ? 'Добавляем…' : 'К просмотру'}
+                            {addWatchlistBusy ? 'Добавляем…' : 'В список «Позже»'}
                           </Button>
                         ) : null}
                         {inWatchlist === true ? (
@@ -363,7 +363,7 @@ export function FilmDetailPage() {
                             disabled={removeBusy}
                             onClick={() => void onRemoveFromWatchlist()}
                           >
-                            {removeBusy ? 'Убираем…' : 'Убрать из списка «к просмотру»'}
+                            {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
                           </Button>
                         ) : null}
                       </>
@@ -386,7 +386,7 @@ export function FilmDetailPage() {
                 ) : null}
                 {!communityLoading && communityErr == null && community.length === 0 ? (
                   <p className="text-[14px] leading-relaxed text-(--tgui--hint_color)">
-                    Пока никто не оценил этот тайтл — станьте первым.
+                    Пока никто не оценил эту тему в Filmony — станьте первым.
                   </p>
                 ) : null}
                 {!communityLoading && communityErr == null && community.length > 0 ? (
@@ -431,7 +431,7 @@ export function FilmDetailPage() {
                               {row.watch_note.trim() !== '' ? (
                                 <details className="mt-2 rounded-lg bg-[color-mix(in_srgb,var(--tgui--bg_color)_60%,transparent)] px-2 py-1.5">
                                   <summary className="cursor-pointer text-xs font-medium text-(--tgui--link_color)">
-                                    Заметка о просмотре
+                                    Заметка к карточке
                                   </summary>
                                   <p className="mt-2 whitespace-pre-wrap text-[13px] leading-snug text-(--tgui--text_color)">
                                     {row.watch_note}

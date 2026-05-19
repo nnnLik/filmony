@@ -9,11 +9,13 @@ from sqlalchemy import select, update
 
 from conf import settings
 from core.database import get_session_factory
+from models.catalog_item import CatalogProvider
 from models.film import Film
-from models.movie_card import MovieCard
 from models.user import User
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 from tests.auth.telegram_init_data import build_init_data
+from tests.support.user_card_category import ensure_default_category
 
 
 async def _login(async_client: AsyncClient, telegram_user_id: int) -> dict[str, object]:
@@ -58,9 +60,13 @@ async def test_search_returns_films_and_users(async_client: AsyncClient) -> None
         )
         session.add(film)
         await session.flush()
-        my_card = MovieCard(
+        cat_id = await ensure_default_category(session, uid)
+        my_card = UserCard(
             user_id=uid,
             film_id=film.id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=7.5,
             company='alone',
             mood_before='relax',
@@ -114,10 +120,14 @@ async def test_suggestions_mutual_dedup_and_popular(async_client: AsyncClient) -
         film = Film(kinopoisk_id=920_001, title='X', year=None, poster_url=None, genres=[])
         session.add(film)
         await session.flush()
+        cat_e = await ensure_default_category(session, e)
         session.add(
-            MovieCard(
+            UserCard(
                 user_id=e,
                 film_id=film.id,
+                category_id=cat_e,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
                 rating=5.0,
                 company='solo',
                 mood_before='relax',
@@ -163,10 +173,14 @@ async def test_suggestions_popular_peer_not_viewer(async_client: AsyncClient) ->
         film = Film(kinopoisk_id=930_001, title='Y', year=None, poster_url=None, genres=[])
         session.add(film)
         await session.flush()
+        cat_peer = await ensure_default_category(session, peer_id)
         session.add(
-            MovieCard(
+            UserCard(
                 user_id=peer_id,
                 film_id=film.id,
+                category_id=cat_peer,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
                 rating=4.0,
                 company='solo',
                 mood_before='relax',
@@ -236,10 +250,14 @@ async def test_suggestions_excludes_followees_from_popular_and_random(
         )
         session.add(film)
         await session.flush()
+        cat_peer = await ensure_default_category(session, peer_id)
         session.add(
-            MovieCard(
+            UserCard(
                 user_id=peer_id,
                 film_id=film.id,
+                category_id=cat_peer,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
                 rating=4.5,
                 company='solo',
                 mood_before='relax',
@@ -272,9 +290,13 @@ async def test_popular_uses_cards_within_seven_days(async_client: AsyncClient) -
         film = Film(kinopoisk_id=950_001, title='Z', year=None, poster_url=None, genres=[])
         session.add(film)
         await session.flush()
-        old = MovieCard(
+        cat_author = await ensure_default_category(session, author)
+        old = UserCard(
             user_id=author,
             film_id=film.id,
+            category_id=cat_author,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
             rating=3.0,
             company='solo',
             mood_before='relax',
@@ -284,7 +306,7 @@ async def test_popular_uses_cards_within_seven_days(async_client: AsyncClient) -
         await session.flush()
         old_created = (dt.datetime.now(dt.UTC) - dt.timedelta(days=30)).replace(tzinfo=None)
         await session.execute(
-            update(MovieCard).where(MovieCard.id == old.id).values(created_at=old_created)
+            update(UserCard).where(UserCard.id == old.id).values(created_at=old_created)
         )
         await session.commit()
 

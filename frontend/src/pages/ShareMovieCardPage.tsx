@@ -9,6 +9,7 @@ import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
 import type { MovieCard, SubscriptionListItem } from '../api/profileTypes'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
+import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../lib/movieCardDisplay'
 import { useAuthStatus } from '../auth/useAuthStatus'
 
 const MAX_SHARE_COMMENT_LEN = 500
@@ -154,8 +155,8 @@ export function ShareMovieCardPage() {
           <div className="space-y-4">
             <ShareFollowersPicker
               preview={{
-                posterUrl: card.film_poster_url,
-                title: card.film_title,
+                posterUrl: movieCardPrimaryPoster(card),
+                title: movieCardPrimaryTitle(card),
                 yearLabel: card.film_year != null ? String(card.film_year) : '—',
               }}
               followers={followers}
