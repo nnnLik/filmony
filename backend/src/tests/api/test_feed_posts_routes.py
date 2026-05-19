@@ -788,11 +788,13 @@ async def test_feed_post_only_mention_follower_skips_follower_broadcast(
     )
 
     author = await _login(async_client, telegram_user_id=771)
-    await _login(async_client, telegram_user_id=772)
+    user772 = await _login(async_client, telegram_user_id=772)
     slug_t = await _profile_slug_for_tg(772)
     await _login(async_client, telegram_user_id=772)
     await async_client.post(f'/api/users/{author["id"]}/subscriptions')
     await _login(async_client, telegram_user_id=771)
+    # Mention tokens require the author to follow the mentioned user (see validate_inline_mention_tokens).
+    await async_client.post(f'/api/users/{user772["id"]}/subscriptions')
     token = f'⟦@{slug_t}⟧'
     r = await async_client.post('/api/feed-posts', json={'body': f'Only you {token}'})
     assert r.status_code == 200

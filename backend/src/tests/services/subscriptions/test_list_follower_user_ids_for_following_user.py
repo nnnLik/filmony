@@ -58,7 +58,7 @@ async def test_lists_distinct_followers_in_stable_order(
     session_factory = get_session_factory()
     async with session_factory() as session:
         out = await ListFollowerUserIdsForFollowingUserService.build(session).execute(author)
-    assert out == (f1, f2)
+    assert out == tuple(sorted((f1, f2)))
 
 
 @pytest.mark.asyncio
