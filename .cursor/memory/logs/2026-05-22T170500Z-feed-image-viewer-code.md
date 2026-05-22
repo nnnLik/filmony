@@ -1,0 +1,14 @@
+- **Timestamp**: 2026-05-22T17:05:00Z
+- **Feature slug**: feed-image-viewer
+- **Action type**: code
+- **Summary**: Poster cover-fill previews use **`object-bottom`** focal alignment (feed card, feed post **`object-cover`** surfaces, card detail hero) and a slightly taller **`FeedCard`** frame so vertical posters show more bottom content without **`object-contain`** or distortion; fullscreen overlay unchanged (**`object-contain`**).
+- **Files**:
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `docs/features/feed-image-viewer.md`
+  - `docs/frontend/ui-conventions.md`
+  - `.cursor/active/feed-image-viewer/progress.md`
+  - `.cursor/active/feed-image-viewer/result.md`
+  - `.cursor/memory/logs/action-log.md`
+- **Verification**: `cd frontend && npm run lint && npm run build` (pass)

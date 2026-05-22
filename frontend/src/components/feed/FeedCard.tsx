@@ -331,17 +331,18 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           className="block w-full cursor-pointer rounded-xl no-underline outline-offset-4 outline-(--tgui--link_color) focus-visible:outline-2"
           aria-label={`Открыть карточку «${primaryTitle}»`}
         >
-          <div className="relative h-[min(52vw,14rem)] w-full overflow-hidden rounded-xl sm:h-64">
+          <div className="relative w-full overflow-hidden rounded-xl bg-(--tgui--divider_color)">
             {primaryPoster ? (
               <img
                 src={primaryPoster}
                 alt=""
                 loading="lazy"
                 draggable={false}
-                className="pointer-events-none absolute inset-0 size-full object-cover object-center transition-transform duration-300 motion-safe:group-hover:scale-[1.02]"
+                decoding="async"
+                className="pointer-events-none block h-auto w-full max-w-none bg-(--tgui--divider_color) transition-transform duration-300 motion-safe:origin-top motion-safe:group-hover:scale-[1.02]"
               />
             ) : (
-              <div className="flex size-full min-h-[10rem] items-center justify-center px-4 py-8 text-center text-sm text-(--tgui--hint_color)">
+              <div className="flex min-h-40 w-full items-center justify-center px-4 py-8 text-center text-sm text-(--tgui--hint_color)">
                 Нет постера
               </div>
             )}

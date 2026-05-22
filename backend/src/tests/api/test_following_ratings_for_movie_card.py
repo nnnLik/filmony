@@ -1,6 +1,5 @@
 """GET /api/cards/{id}/following-ratings — подписки с оценкой того же тайтла (film_id или catalog_item_id)."""
 
-
 from __future__ import annotations
 
 from uuid import UUID

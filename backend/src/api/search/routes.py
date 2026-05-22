@@ -14,8 +14,8 @@ from api.search.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
-from services.search.search_catalog_users import SearchCatalogUsersService
 from services.search.search_catalog_cards import SearchCatalogCardsService
+from services.search.search_catalog_users import SearchCatalogUsersService
 from services.search.search_user_suggestions import SearchUserSuggestionsService
 
 router = APIRouter(prefix='/search', tags=['search'])

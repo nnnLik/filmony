@@ -1,0 +1,14 @@
+- **Timestamp**: 2026-05-22T18:05:00Z
+- **Feature slug**: feed-image-viewer
+- **Action type**: code
+- **Summary**: Poster cover-fill previews revert focal alignment from **`object-bottom`** to **`object-top`** (**`FeedCard`**, **`FeedPostCard`** **`object-cover`** surfaces, **`MovieCardDetailPage`** hero) so the upper portion of vertical posters stays visible inside fixed frames without distortion; fullscreen overlay unchanged (**`object-contain`**).
+- **Files**:
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `docs/features/feed-image-viewer.md`
+  - `docs/frontend/ui-conventions.md`
+  - `.cursor/active/feed-image-viewer/progress.md`
+  - `.cursor/active/feed-image-viewer/result.md`
+  - `.cursor/memory/logs/action-log.md`
+- **Verification**: `cd frontend && npm run lint && npm run build` (pass)

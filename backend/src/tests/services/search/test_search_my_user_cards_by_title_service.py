@@ -48,7 +48,9 @@ async def test_execute_matches_display_title_manual_card(prepare_db: None) -> No
         viewer_id = user.id
 
     async with session_factory() as session:
-        hits = await SearchMyUserCardsByTitleService.build(session).execute(viewer_id, 'OnlyTi', limit=15)
+        hits = await SearchMyUserCardsByTitleService.build(session).execute(
+            viewer_id, 'OnlyTi', limit=15
+        )
         assert len(hits) == 1
         assert hits[0].film_id is None
         assert hits[0].title == 'ManualOnlyTitleQwerty'
@@ -100,7 +102,9 @@ async def test_execute_prefers_joined_film_title_for_match(prepare_db: None) -> 
         expected_kp = film.kinopoisk_id
 
     async with session_factory() as session:
-        hits = await SearchMyUserCardsByTitleService.build(session).execute(viewer_id, 'SearchTok', limit=15)
+        hits = await SearchMyUserCardsByTitleService.build(session).execute(
+            viewer_id, 'SearchTok', limit=15
+        )
         assert len(hits) == 1
         assert hits[0].film_id == expected_film_pk
         assert hits[0].kinopoisk_id == expected_kp
@@ -171,6 +175,8 @@ async def test_execute_does_not_return_other_users_cards(prepare_db: None) -> No
         await session.commit()
 
     async with session_factory() as session:
-        visible = await SearchMyUserCardsByTitleService.build(session).execute(a.id, 'PrivateTok', limit=15)
+        visible = await SearchMyUserCardsByTitleService.build(session).execute(
+            a.id, 'PrivateTok', limit=15
+        )
         assert len(visible) == 1
         assert visible[0].title == 'AlicePrivateTokenZZ'

@@ -35,7 +35,9 @@ class SearchMyUserCardsByTitleService:
     def build(cls, session: AsyncSession) -> Self:
         return cls(_session=session)
 
-    async def execute(self, user_id: UUID, query: str, limit: int) -> list[MyUserCardTitleSearchHit]:
+    async def execute(
+        self, user_id: UUID, query: str, limit: int
+    ) -> list[MyUserCardTitleSearchHit]:
         cap = max(1, min(limit, 30))
         q = query.strip()
         pattern = f'%{escape_ilike_pattern(q)}%'

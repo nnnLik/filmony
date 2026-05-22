@@ -14,7 +14,9 @@ from tests.support.user_card_category import ensure_default_category
 
 
 @pytest.mark.asyncio
-async def test_search_catalog_cards_service_matches_film_and_manual_titles(prepare_db: None) -> None:
+async def test_search_catalog_cards_service_matches_film_and_manual_titles(
+    prepare_db: None,
+) -> None:
     session_factory = get_session_factory()
     owner_a_id = uuid4()
     owner_b_id = uuid4()

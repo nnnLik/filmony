@@ -45,7 +45,9 @@ async def test_search_rejects_short_query_after_trim(async_client: AsyncClient) 
 
 
 @pytest.mark.asyncio
-async def test_search_returns_matching_cards_users_and_film_alias(async_client: AsyncClient) -> None:
+async def test_search_returns_matching_cards_users_and_film_alias(
+    async_client: AsyncClient,
+) -> None:
     viewer = await _login(async_client, telegram_user_id=7102)
     owner_a = await _login(async_client, telegram_user_id=7103)
     owner_b = await _login(async_client, telegram_user_id=7104)
@@ -119,7 +121,9 @@ async def test_search_returns_matching_cards_users_and_film_alias(async_client: 
 
 
 @pytest.mark.asyncio
-async def test_search_matches_manual_card_display_title_without_film(async_client: AsyncClient) -> None:
+async def test_search_matches_manual_card_display_title_without_film(
+    async_client: AsyncClient,
+) -> None:
     data = await _login(async_client, telegram_user_id=7110)
     uid = UUID(str(data['id']))
     session_factory = get_session_factory()
@@ -148,6 +152,7 @@ async def test_search_matches_manual_card_display_title_without_film(async_clien
     body = r.json()
     assert any(c['card_id'] == card_id for c in body['cards'])
     assert any(f['card_id'] == card_id for f in body['films'])
+
 
 @pytest.mark.asyncio
 async def test_suggestions_mutual_dedup_and_popular(async_client: AsyncClient) -> None:

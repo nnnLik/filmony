@@ -783,7 +783,7 @@ export function FeedPostCard({
                   <FeedOpenableContainedImageThumbnail
                     src={referencedCardPoster}
                     wrapperClassName="relative block h-full w-full"
-                    imgClassName="absolute inset-0 size-full object-cover object-center bg-(--tgui--divider_color)"
+                    imgClassName="absolute inset-0 size-full object-cover object-top bg-(--tgui--divider_color)"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[9px] text-(--tgui--hint_color)">
@@ -814,8 +814,8 @@ export function FeedPostCard({
             <FeedOpenableContainedImage
               src={feedPostImageSrc(image_url)}
               ariaLabel={`Открыть пост из ленты`}
-              wrapperClassName="relative mt-1 h-[min(70vw,18rem)] w-full overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)"
-              imgClassName="pointer-events-none absolute inset-0 size-full object-cover object-center"
+              wrapperClassName="relative mt-1 block w-full overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)"
+              imgClassName="pointer-events-none block h-auto w-full max-w-none bg-(--tgui--divider_color)"
               loading="lazy"
               onSingleNavigate={linkToDetail ? navigateToPost : null}
             />

@@ -994,21 +994,21 @@ function MovieCardDetailLoadedBody({
     <>
       <div className="space-y-3">
             <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
-              <div className="relative h-[min(92vw,560px)] w-full overflow-hidden bg-(--tgui--bg_color)">
+              <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
                 <div
                   {...posterFs.bindings}
                   aria-hidden
                   tabIndex={-1}
-                  className="absolute inset-0 isolate outline-none!"
+                  className="relative isolate w-full outline-none!"
                 >
                 {primaryPoster ? (
                   <img
                     src={primaryPoster}
                     alt={primaryTitle}
-                    className="filmony-detail-poster-img pointer-events-none absolute inset-0 size-full object-cover object-center motion-safe:transition-transform motion-safe:duration-1100 motion-safe:ease-out motion-safe:group-hover/poster:scale-[1.02]"
+                    className="filmony-detail-poster-img pointer-events-none relative z-0 block h-auto w-full max-w-none bg-(--tgui--divider_color) motion-safe:transition-transform motion-safe:duration-1100 motion-safe:ease-out motion-safe:group-hover/poster:scale-[1.02] motion-safe:origin-top"
                   />
                 ) : (
-                  <div className="flex size-full min-h-[10rem] items-center justify-center px-4 py-12 text-sm text-(--tgui--hint_color)">
+                  <div className="flex min-h-40 w-full items-center justify-center px-4 py-12 text-sm text-(--tgui--hint_color)">
                     Нет постера
                   </div>
                 )}

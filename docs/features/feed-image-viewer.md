@@ -6,7 +6,7 @@ Users can **double-click** (desktop) or **double-tap** (touch) feed and card ima
 
 ## UX
 
-In the feed list, **movie posters**, **post attachment previews**, and the **card detail hero** use a fixed **media frame** (bounded height from previous layout caps) filled with **`object-cover`**: the bitmap scales uniformly and **crops** edges when aspect ratios differ—no stretching and no empty letterbox gutters inside the frame. Navigation and **fullscreen overlay** semantics are unchanged; the overlay still receives the canonical image URL via `useFullscreenImageActivator` and continues to show the image in **`object-contain`** for the full-bleed preview.
+Primary **movie posters**, **feed post attachments**, and the **card detail hero** use a **full-bleed preview block**: the bitmap is **`display: block`** with **`width: 100%`**, **`height: auto`**, and **`max-width: none`** so the **card reserves no fixed image slot** — **height follows the decoded aspect ratio** edge-to-edge (**no letterboxing inside the image region**). Images stay **non-distorted** (no `object-fit` stretch or crop on these surfaces). **`object-contain`** is reserved for the **fullscreen overlay** (full uncropped view) and smaller **thumbnail** surfaces (e.g. comment attachments, referenced-card chips) where fitting a fixed box matters. Navigation and **fullscreen overlay** semantics are unchanged; the overlay still receives the canonical image URL via `useFullscreenImageActivator`.
 
 | Surface | Single activation | Double activation |
 |---------|-------------------|-------------------|
@@ -24,8 +24,7 @@ Close the overlay via **backdrop tap**, **`X`**, or **Escape**.
 |-------|----------------|
 | [`frontend/src/components/media/FullscreenImageOverlay.tsx`](../../frontend/src/components/media/FullscreenImageOverlay.tsx) | Portal overlay, backdrop, close affordances |
 | [`frontend/src/hooks/useFullscreenImageActivator.ts`](../../frontend/src/hooks/useFullscreenImageActivator.ts) | Double activation + deferred navigation timers |
-| [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) | Default path: pass-through `<img>` classes (list rows use **`object-cover`** inside a sized wrapper where fill is desired). Optional **`backdropFill`** + **`FeedContainedImageBackdrop`** for legacy blurred fill + **`object-contain`** foreground on opt-in surfaces |
-| **`FeedContainedImageBackdrop`** (same module) | Optional building block: blurred `object-cover` under-layer + foreground `img` |
+| [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) | Openable thumbnails/attachments (`img` passes through Tailwind classes) |
 
 ## Verification
 
