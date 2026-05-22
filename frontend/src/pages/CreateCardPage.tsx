@@ -53,7 +53,11 @@ import {
   readCachedMyMovieCardTagStats,
   writeCachedMyMovieCardTagStats,
 } from '../lib/movieCardTagStatsStorage'
-import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../lib/movieCardDisplay'
+import {
+  movieCardPrimaryPoster,
+  movieCardPrimaryTitle,
+  movieCardReleaseCompactSuffix,
+} from '../lib/movieCardDisplay'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { safeHapticSuccess } from '../lib/safeHaptic'
@@ -447,6 +451,21 @@ export function CreateCardPage() {
           const item = await getFilmById(card.film_id)
           if (!alive || seq !== fromCardBootstrapSeq.current) return
           setCreationBinding({ kind: 'film', film: item })
+        } else if (
+          card.catalog_item_id != null &&
+          card.catalog_item_id > 0 &&
+          card.provider === 'rawg'
+        ) {
+          const subtitleRaw = movieCardReleaseCompactSuffix(card)
+          if (!alive || seq !== fromCardBootstrapSeq.current) return
+          setCreationBinding({
+            kind: 'catalog_game',
+            catalogItemId: card.catalog_item_id,
+            display_title: movieCardPrimaryTitle(card),
+            display_cover_url: movieCardPrimaryPoster(card),
+            display_summary: card.display_summary ?? null,
+            subtitle: subtitleRaw,
+          })
         } else {
           if (!alive || seq !== fromCardBootstrapSeq.current) return
           setCreationBinding({

@@ -814,6 +814,7 @@ export function FeedPostCard({
             <FeedOpenableContainedImage
               src={feedPostImageSrc(image_url)}
               ariaLabel={`Открыть пост из ленты`}
+              backdropFill
               wrapperClassName="mt-1 overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)"
               imgClassName="max-h-[min(70vw,18rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
               loading="lazy"

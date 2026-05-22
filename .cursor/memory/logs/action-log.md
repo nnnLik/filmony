@@ -17,6 +17,11 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-22T145139Z-feed-image-viewer-code.md`
+- `2026-05-22T153800Z-rawg-card-linking-docs.md`
+- `2026-05-22T153700Z-rawg-card-linking-test.md`
+- `2026-05-22T153600Z-rawg-card-linking-code.md`
+- `2026-05-22T153500Z-rawg-card-linking-plan.md`
 - `2026-05-22T135000Z-catalog-search-tab-docs.md`
 - `2026-05-22T134900Z-catalog-search-tab-test.md`
 - `2026-05-22T150000Z-catalog-search-tab-code.md`

@@ -47,6 +47,7 @@ import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVis
 import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
 import { useFullscreenImageActivator } from '../../hooks/useFullscreenImageActivator'
 import {
+  FeedContainedImageBackdrop,
   FeedOpenableContainedImageThumbnail,
 } from './FeedOpenableContainedImage'
 
@@ -335,10 +336,12 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
         >
           <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full overflow-hidden rounded-xl sm:max-h-64">
             {primaryPoster ? (
-              <img
+              <FeedContainedImageBackdrop
                 src={primaryPoster}
                 alt=""
-                className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                frameClassName="absolute inset-0 size-full"
+                foregroundClassName="pointer-events-none absolute inset-0 box-border max-h-full max-w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-[1.02]"
+                loading="lazy"
               />
             ) : (
               <div className="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-(--tgui--hint_color)">
