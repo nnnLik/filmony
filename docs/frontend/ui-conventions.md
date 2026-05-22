@@ -33,7 +33,7 @@
 
 - [`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx) — разметка и состояние карточки.
 - [`frontend/src/components/feed/FeedPostCard.tsx`](../../frontend/src/components/feed/FeedPostCard.tsx) — текстовые посты (картинка/превью карточки в посте).
-- [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) — **`object-contain`‑превью**, опционально с **`backdropFill`** (размытый заполнитель под слоем `object-cover`, чтобы края превью в ленте не выглядели пустыми), и **двойное** открытие fullscreen‑оверлея; экспорт **`FeedContainedImageBackdrop`** для постера `FeedCard` в фиксированном соотношении сторон (см. [`docs/features/feed-image-viewer.md`](../features/feed-image-viewer.md)).
+- [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) — обёртка с **двойным** открытием fullscreen‑оверлея: у основного постера в **`FeedCard`**, вложений поста и превью ссылаемой карточки в **`FeedPostCard`** превью заполняют **фиксированную по высоте/рамке** область через **`object-cover`** (кадрирование без растяжения). Опционально **`backdropFill`** + **`FeedContainedImageBackdrop`** для стека «размытый фон + **`object-contain`**» на отдельных поверхностях (см. [`docs/features/feed-image-viewer.md`](../features/feed-image-viewer.md)).
 - [`frontend/src/components/feed/feedCardUtils.ts`](../../frontend/src/components/feed/feedCardUtils.ts) — подписи enum’ов, палитра оценки, форматирование.
 - [`frontend/src/components/feed/FeedCardIcons.tsx`](../../frontend/src/components/feed/FeedCardIcons.tsx) — локальные SVG-иконки (отправка, шеврон).
 

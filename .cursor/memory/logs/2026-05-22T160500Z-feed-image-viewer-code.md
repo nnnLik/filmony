@@ -1,0 +1,14 @@
+- **Timestamp**: 2026-05-22T16:05:00Z
+- **Feature slug**: feed-image-viewer
+- **Action type**: code
+- **Summary**: Feed movie poster, feed post attachments, referenced-card thumb, and card detail hero use fixed frames with `object-cover` fill (crop, no stretch); fullscreen activator/`useFullscreenImageActivator` unchanged; overlay stays `object-contain`.
+- **Files**:
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `docs/features/feed-image-viewer.md`
+  - `docs/frontend/ui-conventions.md`
+  - `.cursor/active/feed-image-viewer/progress.md`
+  - `.cursor/active/feed-image-viewer/result.md`
+  - `.cursor/memory/logs/action-log.md`
+- **Verification**: `cd frontend && npm run lint && npm run build` (pass)

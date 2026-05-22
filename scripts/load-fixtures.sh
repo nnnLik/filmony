@@ -33,8 +33,10 @@ fi
 
 ORDER=(
 	user.sql
+	user_card_category.sql
 	reaction_type.sql
 	film.sql
+	catalog_game_rawg.sql
 	movie_card.sql
 	movie_card_favorite_updates.sql
 	user_watchlist_film.sql

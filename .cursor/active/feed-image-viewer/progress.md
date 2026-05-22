@@ -5,3 +5,4 @@
 - **2026-05-22** — Ran `cd frontend && npm run lint && npm run build` (pass).
 - **2026-05-22** — Authored `.cursor/features/`, `docs/features/feed-image-viewer.md`, updated action log index.
 - **2026-05-22** — Feed list previews: blurred `object-cover` under-layer beneath `object-contain` foreground for `FeedCard` poster + feed post attachments (`backdropFill` / `FeedContainedImageBackdrop`); docs/UI conventions/action log refreshed; `frontend` lint/build pass.
+- **2026-05-22** — **Cover-fill frames**: primary poster/media areas in `FeedCard`, `FeedPostCard` (attachment + referenced thumb), `MovieCardDetailPage` use fixed-height frames + **`object-cover`** (crop, no stretch); docs + memory log updated; **`cd frontend && npm run lint && npm run build`** pass.

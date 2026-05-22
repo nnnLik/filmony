@@ -46,10 +46,7 @@ import { MovieCardAudioPlayer } from '../cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVisualizer'
 import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
 import { useFullscreenImageActivator } from '../../hooks/useFullscreenImageActivator'
-import {
-  FeedContainedImageBackdrop,
-  FeedOpenableContainedImageThumbnail,
-} from './FeedOpenableContainedImage'
+import { FeedOpenableContainedImageThumbnail } from './FeedOpenableContainedImage'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -334,17 +331,17 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           className="block w-full cursor-pointer rounded-xl no-underline outline-offset-4 outline-(--tgui--link_color) focus-visible:outline-2"
           aria-label={`Открыть карточку «${primaryTitle}»`}
         >
-          <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full overflow-hidden rounded-xl sm:max-h-64">
+          <div className="relative h-[min(52vw,14rem)] w-full overflow-hidden rounded-xl sm:h-64">
             {primaryPoster ? (
-              <FeedContainedImageBackdrop
+              <img
                 src={primaryPoster}
                 alt=""
-                frameClassName="absolute inset-0 size-full"
-                foregroundClassName="pointer-events-none absolute inset-0 box-border max-h-full max-w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-[1.02]"
                 loading="lazy"
+                draggable={false}
+                className="pointer-events-none absolute inset-0 size-full object-cover object-center transition-transform duration-300 motion-safe:group-hover:scale-[1.02]"
               />
             ) : (
-              <div className="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-(--tgui--hint_color)">
+              <div className="flex size-full min-h-[10rem] items-center justify-center px-4 py-8 text-center text-sm text-(--tgui--hint_color)">
                 Нет постера
               </div>
             )}

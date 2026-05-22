@@ -27,10 +27,24 @@ INSERT INTO public.film (kinopoisk_id,title,"year",poster_url,created_at,genres)
 	 (100124,'Тихий зал побега',2021,'https://kinopoiskapiunofficial.tech/images/posters/kp/100107.jpg','2026-05-09 09:04:00','["\u0442\u0440\u0438\u043b\u043b\u0435\u0440", "\u0434\u0435\u0442\u0435\u043a\u0442\u0438\u0432"]'),
 	 (100125,'Соседи сверху',2016,'https://kinopoiskapiunofficial.tech/images/posters/kp/100112.jpg','2026-05-09 09:05:00','["\u043a\u043e\u043c\u0435\u0434\u0438\u044f", "\u0441\u0435\u043c\u0435\u0439\u043d\u044b\u0439"]'),
 	 (100126,'Бархатный билет',1999,'https://kinopoiskapiunofficial.tech/images/posters/kp/100114.jpg','2026-05-09 09:06:00','["\u043d\u043e\u044d\u0440", "\u0432\u0435\u0441\u0442\u0435\u0440\u043d"]'),
-	 (100127,'Ночь коротких сцен',2023,'https://kinopoiskapiunofficial.tech/images/posters/kp/100110.jpg','2026-05-09 09:07:00','["\u0430\u0440\u0442\u0445\u0430\u0443\u0441", "\u0440\u043e\u043c\u0430\u043d\u0442\u0438\u043a\u0430"]')
+	 (100127,'Ночь коротких сцен',2023,'https://kinopoiskapiunofficial.tech/images/posters/kp/100110.jpg','2026-05-09 09:07:00','["\u0430\u0440\u0442\u0445\u0430\u0443\u0441", "\u0440\u043e\u043c\u0430\u043d\u0442\u0438\u043a\u0430"]'),
+	 (991001,'KP Fixture Shared Title QA',2022,'https://cdn.example/posters/fixture-kp-shared-991001.jpg','2026-05-22 12:00:00','["\u0434\u0440\u0430\u043c\u0430", "\u0434\u0435\u0442\u0435\u043a\u0442\u0438\u0432"]')
 ON CONFLICT (kinopoisk_id) DO UPDATE SET
   title = EXCLUDED.title,
   "year" = EXCLUDED.year,
   poster_url = EXCLUDED.poster_url,
   created_at = EXCLUDED.created_at,
   genres = EXCLUDED.genres;
+
+-- Связка Kinopoisk → catalog_item для этого фильма (для карточек с catalog_item_id в хвосте movie_card.sql).
+INSERT INTO catalog_item (
+  provider,
+  external_id,
+  film_id,
+  created_at
+)
+SELECT 'kinopoisk'::varchar, '991001'::varchar, f.id, '2026-05-22 12:00:01'::timestamptz
+FROM film f
+WHERE f.kinopoisk_id = 991001
+ON CONFLICT ON CONSTRAINT uq_catalog_item_provider_external DO UPDATE SET
+  film_id = EXCLUDED.film_id;

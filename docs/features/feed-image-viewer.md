@@ -6,7 +6,7 @@ Users can **double-click** (desktop) or **double-tap** (touch) feed and card ima
 
 ## UX
 
-In the feed list, **movie posters** and **post attachment previews** combine a softened, blurred duplicate of the image (`object-cover`, slightly scaled) under the crisp **`object-contain`** foreground layer. Letterboxing gutters read as tinted fill instead of hard empty bands, without distorting the sharp preview. Navigation and **fullscreen overlay** semantics are unchanged; the overlay still receives the canonical image URL via `useFullscreenImageActivator`.
+In the feed list, **movie posters**, **post attachment previews**, and the **card detail hero** use a fixed **media frame** (bounded height from previous layout caps) filled with **`object-cover`**: the bitmap scales uniformly and **crops** edges when aspect ratios differ—no stretching and no empty letterbox gutters inside the frame. Navigation and **fullscreen overlay** semantics are unchanged; the overlay still receives the canonical image URL via `useFullscreenImageActivator` and continues to show the image in **`object-contain`** for the full-bleed preview.
 
 | Surface | Single activation | Double activation |
 |---------|-------------------|-------------------|
@@ -24,8 +24,8 @@ Close the overlay via **backdrop tap**, **`X`**, or **Escape**.
 |-------|----------------|
 | [`frontend/src/components/media/FullscreenImageOverlay.tsx`](../../frontend/src/components/media/FullscreenImageOverlay.tsx) | Portal overlay, backdrop, close affordances |
 | [`frontend/src/hooks/useFullscreenImageActivator.ts`](../../frontend/src/hooks/useFullscreenImageActivator.ts) | Double activation + deferred navigation timers |
-| [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) | `object-contain` preview plus optional **`backdropFill`** (blur under-layer); wrappers for thumbnails vs navigable blobs |
-| **`FeedContainedImageBackdrop`** (same module) | Building block: blurred fill + foreground `img` for ratio-locked regions (feed poster frame) |
+| [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) | Default path: pass-through `<img>` classes (list rows use **`object-cover`** inside a sized wrapper where fill is desired). Optional **`backdropFill`** + **`FeedContainedImageBackdrop`** for legacy blurred fill + **`object-contain`** foreground on opt-in surfaces |
+| **`FeedContainedImageBackdrop`** (same module) | Optional building block: blurred `object-cover` under-layer + foreground `img` |
 
 ## Verification
 
