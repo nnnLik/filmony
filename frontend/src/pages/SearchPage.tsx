@@ -7,11 +7,12 @@ import { Link } from 'react-router-dom'
 import {
   searchCatalog,
   searchSuggestions,
-  type SearchFilmItem,
+  type SearchCardItem,
   type SearchSuggestionsResponse,
   type SearchUserItem,
 } from '../api/searchApi'
 import { ApiError, formatApiDetail } from '../api/client'
+import { formatRating } from '../components/feed/feedCardUtils'
 import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
@@ -91,12 +92,32 @@ function SearchSuggestionsBlocks({ data }: { data: SearchSuggestionsResponse }) 
   )
 }
 
-function CatalogSearchResultRow({ row }: { row: SearchFilmItem }) {
+function cardAuthorLabel(row: SearchCardItem): string {
+  if (row.author_display_name?.trim()) {
+    return row.author_display_name.trim()
+  }
+  if (row.author_username?.trim()) {
+    return `@${row.author_username.trim()}`
+  }
+  return `@${row.author_profile_slug}`
+}
+
+function CardCatalogSearchResultRow({ row }: { row: SearchCardItem }) {
   const src = posterSrc(row.poster_url)
-  const hasMyCard = row.my_card_id != null && row.my_card_id > 0
+  const title = row.title.trim() === '' ? 'Без названия' : row.title.trim()
+  const author = cardAuthorLabel(row)
+  const summary = row.summary?.trim() ?? ''
+  const metaParts: string[] = [author]
+  if (row.year != null) {
+    metaParts.push(String(row.year))
+  }
+  if (Number.isFinite(row.rating)) {
+    metaParts.push(formatRating(row.rating))
+  }
+  const meta = metaParts.join(' · ')
   return (
     <Link
-      to={`/films/${encodeURIComponent(String(row.id))}`}
+      to={`/cards/${encodeURIComponent(String(row.card_id))}`}
       className="flex min-h-[56px] items-center gap-3 rounded-xl px-2.5 py-2 no-underline text-(--tgui--text_color) transition-colors hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] active:bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)]"
     >
       <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)] ring-1 ring-(--tgui--divider_color)">
@@ -105,17 +126,11 @@ function CatalogSearchResultRow({ row }: { row: SearchFilmItem }) {
         ) : null}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate font-medium">{row.title}</span>
-          {hasMyCard ? (
-            <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--tgui--link_color)_18%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--tgui--link_color)">
-              Уже у вас
-            </span>
-          ) : null}
-        </div>
-        <div className="truncate text-sm text-(--tgui--hint_color)">
-          {row.year != null ? `${row.year}` : 'Год не указан'}
-        </div>
+        <div className="truncate font-medium">{title}</div>
+        <div className="truncate text-sm text-(--tgui--hint_color)">{meta}</div>
+        {summary ? (
+          <div className="line-clamp-2 text-[13px] leading-snug text-(--tgui--hint_color)">{summary}</div>
+        ) : null}
       </div>
     </Link>
   )
@@ -205,10 +220,10 @@ export function SearchPage() {
         ? 'Ошибка поиска'
         : null
 
-  const catalogRows = searchQuery.data?.films ?? []
+  const cardRows = searchQuery.data?.cards ?? searchQuery.data?.films ?? []
   const users = searchQuery.data?.users ?? []
 
-  const showCatalogEmpty = canSearch && searchQuery.isSuccess && catalogRows.length === 0
+  const showCatalogEmpty = canSearch && searchQuery.isSuccess && cardRows.length === 0
   const showUserEmpty = canSearch && searchQuery.isSuccess && users.length === 0
 
   if (auth.kind === 'loading') {
@@ -247,7 +262,7 @@ export function SearchPage() {
         <div className="px-4 py-3">
           <SearchTitleRow />
           <p className="mt-1 text-[13px] leading-snug text-(--tgui--hint_color)">
-            Кого найти в сообществе и какие темы есть в каталоге Filmony
+            Кого найти в сообществе и какие карточки уже есть в Filmony
           </p>
         </div>
       </header>
@@ -286,7 +301,7 @@ export function SearchPage() {
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder="Тема из каталога или человек…"
+                placeholder="Карточка, тема или человек…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="min-w-0 flex-1 border-0 bg-transparent py-0.5 text-[16px] text-(--tgui--text_color) outline-none placeholder:text-(--tgui--hint_color)"
@@ -305,11 +320,11 @@ export function SearchPage() {
 
           {canSearch && searchQuery.isSuccess ? (
             <div className="flex flex-col gap-4">
-              <ResultsSection title="Каталог тем" subtitle="Уже в Filmony">
+              <ResultsSection title="Карточки" subtitle="Оценки и заметки участников">
                 {showCatalogEmpty ? (
                   <div className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4">
                     <p className="mb-3 text-[14px] leading-relaxed text-(--tgui--text_color)">
-                      Пока никто не добавлял эту тему. Можете первым — например по ссылке из каталога Кинопоиска.
+                      Пока нет карточек по этому запросу. Можете добавить первой — например по ссылке из внешнего каталога.
                     </p>
                     <Link to="/cards/new" className="block w-full no-underline">
                       <Button mode="filled" stretched>
@@ -319,8 +334,8 @@ export function SearchPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-0.5">
-                    {catalogRows.map((row) => (
-                      <CatalogSearchResultRow key={row.id} row={row} />
+                    {cardRows.map((row) => (
+                      <CardCatalogSearchResultRow key={row.card_id} row={row} />
                     ))}
                   </div>
                 )}

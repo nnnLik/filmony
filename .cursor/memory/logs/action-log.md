@@ -17,6 +17,12 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-22T135000Z-catalog-search-tab-docs.md`
+- `2026-05-22T134900Z-catalog-search-tab-test.md`
+- `2026-05-22T150000Z-catalog-search-tab-code.md`
+- `2026-05-22T134210Z-feed-image-viewer-docs.md`
+- `2026-05-22T134130Z-feed-image-viewer-code.md`
+- `2026-05-22T134050Z-feed-image-viewer-plan.md`
 - `2026-05-19T150400Z-dev-env-secrets-code.md`
 - `2026-05-19T145631Z-audio-vibe-cards-code.md`
 - `2026-05-19T120000Z-audio-vibe-cards-code.md`

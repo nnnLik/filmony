@@ -32,8 +32,11 @@
 Файлы:
 
 - [`frontend/src/components/feed/FeedCard.tsx`](../../frontend/src/components/feed/FeedCard.tsx) — разметка и состояние карточки.
+- [`frontend/src/components/feed/FeedPostCard.tsx`](../../frontend/src/components/feed/FeedPostCard.tsx) — текстовые посты (картинка/превью карточки в посте).
+- [`frontend/src/components/feed/FeedOpenableContainedImage.tsx`](../../frontend/src/components/feed/FeedOpenableContainedImage.tsx) — **`object-contain`‑превью** в рамках карточки + **двойное** открытие fullscreen‑оверлея; одиночный жест сохраняет существующую навигацию (см. [`docs/features/feed-image-viewer.md`](../features/feed-image-viewer.md)).
 - [`frontend/src/components/feed/feedCardUtils.ts`](../../frontend/src/components/feed/feedCardUtils.ts) — подписи enum’ов, палитра оценки, форматирование.
 - [`frontend/src/components/feed/FeedCardIcons.tsx`](../../frontend/src/components/feed/FeedCardIcons.tsx) — локальные SVG-иконки (отправка, шеврон).
+
 
 ## Типы для Telegram UI
 
@@ -41,6 +44,7 @@
 
 ## Связанная продуктовая документация
 
+- Fullscreen viewer для изображений ленты/карточек: [`docs/features/feed-image-viewer.md`](../features/feed-image-viewer.md)
 - Реакции API и поведение: [`docs/features/movie-card-custom-reactions.md`](../features/movie-card-custom-reactions.md).
 
 ## Проверка после правок

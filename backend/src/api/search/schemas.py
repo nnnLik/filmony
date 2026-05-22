@@ -5,19 +5,21 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class SearchFilmItemResponse(BaseModel):
-    id: int
-    kinopoisk_id: int
-    genres: list[str] = Field(default_factory=list)
+class SearchCardItemResponse(BaseModel):
+    card_id: int
     title: str
     year: int | None
     poster_url: str | None
-    my_card_id: int | None = Field(
-        default=None,
-        description='Id карточки текущего пользователя, если тайтл уже оценён',
-    )
+    summary: str | None = None
+    rating: float
+    author_profile_slug: str
+    author_display_name: str | None = None
+    author_username: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+SearchFilmItemResponse = SearchCardItemResponse
 
 
 class SearchUserItemResponse(BaseModel):
@@ -33,7 +35,8 @@ class SearchUserItemResponse(BaseModel):
 
 
 class SearchCatalogResponse(BaseModel):
-    films: list[SearchFilmItemResponse] = Field(default_factory=list)
+    cards: list[SearchCardItemResponse] = Field(default_factory=list)
+    films: list[SearchCardItemResponse] = Field(default_factory=list)
     users: list[SearchUserItemResponse] = Field(default_factory=list)
 
 

@@ -8,7 +8,7 @@
 |-------|------------|
 | S1 | `GET /api/search` + сервисы + тесты |
 | S2 | `GET /api/search/suggestions` + дедуп + тесты |
-| S3 | Фронт: `SearchPage`, `BottomNav`, routes, API |
+| S3 | Фронт: `SearchPage`, `BottomNav`, routes, API (в т.ч. выдача `cards` → `/cards/:id`, fallback `films`) |
 | S4 | `docs/features/catalog-search-tab.md`, `result.md`, action-log |
 
 ## AGENT_QUEUE

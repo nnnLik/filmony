@@ -6,30 +6,32 @@
 
 ## Что сделано
 
-- **S1:** `GET /api/search`, сервисы `SearchCatalogFilmsService`, `SearchCatalogUsersService`, экранирование шаблонов ILIKE, лимиты, ответные схемы, роутер подключён к `api/router.py`.
-- **S2:** `GET /api/search/suggestions`, `SearchUserSuggestionsService` (mutual / popular за 7 дней по `created_at` / random), дедуп между секциями, pytest на графе подписок и карточках.
-- **S3:** страница `SearchPage`, маршрут `/search`, третий пункт `BottomNav`, `searchApi.ts`, debounce, тексты пустых состояний и CTA.
-- **Документация:** `docs/features/catalog-search-tab.md`, спека в `.cursor/features/catalog-search-tab/feature.md`.
+- Поиск переведён на карточки: `GET /api/search` возвращает `cards` как основной список и оставляет `films` как alias для совместимости.
+- Бэкенд ищет только по локальным данным Filmony: карточки находятся по `UserCard.display_title` и связанному `Film.title`, без обращений к внешним провайдерам.
+- Результаты поиска теперь показывают описание/summary, автора, год и рейтинг, а переход идёт на `/cards/:cardId`.
+- Поиск пользователей и `GET /api/search/suggestions` сохранены, чтобы вкладка продолжала показывать людей и подсказки.
 
-## Изменённые файлы (основные)
+## Изменённые файлы
 
-- `backend/src/api/search/` (routes, schemas, `__init__`)
-- `backend/src/api/router.py`
-- `backend/src/services/search/`
+- `backend/src/api/search/routes.py`
+- `backend/src/api/search/schemas.py`
+- `backend/src/services/search/search_catalog_cards.py`
 - `backend/src/tests/api/test_search_routes.py`
+- `backend/src/tests/services/test_search_catalog_cards_service.py`
 - `frontend/src/api/searchApi.ts`
 - `frontend/src/pages/SearchPage.tsx`
-- `frontend/src/routes.tsx`
-- `frontend/src/components/navigation/BottomNav.tsx`
-- `.cursor/features/catalog-search-tab/feature.md`
-- `.cursor/active/catalog-search-tab/{plan,progress,result}.md`
+- `docs/features/catalog-search-tab.md`
+- `.cursor/active/catalog-search-tab/progress.md`
+- `.cursor/memory/logs/2026-05-22T134900Z-catalog-search-tab-test.md`
+- `.cursor/memory/logs/2026-05-22T135000Z-catalog-search-tab-docs.md`
 
 ## Верификация
 
-- `make backend-test-one target=src/tests/api/test_search_routes.py` — OK (8 passed).
-- `make backend-test` — OK (141 passed).
+- `docker compose -f docker-compose.yml exec -T backend pytest src/tests/services/test_search_catalog_cards_service.py` — OK.
+- `docker compose -f docker-compose.yml exec -T backend pytest src/tests/api/test_search_routes.py -q` — OK.
+- `docker compose -f docker-compose.yml exec -T backend pytest -q` — OK.
 - `cd frontend && npm run lint && npm run build` — OK.
 
 ## Ограничения
 
-- Поиск по MVP на `ILIKE`; `pg_trgm` не внедрялся (опционально позже).
+- Поиск карточек пока использует `ILIKE` и ищет только по локальному каталогу; внешние провайдеры не вызываются.

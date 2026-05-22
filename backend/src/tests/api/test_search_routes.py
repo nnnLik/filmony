@@ -45,9 +45,13 @@ async def test_search_rejects_short_query_after_trim(async_client: AsyncClient) 
 
 
 @pytest.mark.asyncio
-async def test_search_returns_films_and_users(async_client: AsyncClient) -> None:
-    data = await _login(async_client, telegram_user_id=7102)
-    uid = UUID(str(data['id']))
+async def test_search_returns_matching_cards_users_and_film_alias(async_client: AsyncClient) -> None:
+    viewer = await _login(async_client, telegram_user_id=7102)
+    owner_a = await _login(async_client, telegram_user_id=7103)
+    owner_b = await _login(async_client, telegram_user_id=7104)
+    viewer_id = UUID(str(viewer['id']))
+    owner_a_id = UUID(str(owner_a['id']))
+    owner_b_id = UUID(str(owner_b['id']))
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -55,16 +59,19 @@ async def test_search_returns_films_and_users(async_client: AsyncClient) -> None
             kinopoisk_id=910_001,
             title='УникальныйТайтлПоиска',
             year=2020,
-            poster_url=None,
-            genres=[],
+            poster_url='https://example.com/poster.jpg',
+            genres=['драма'],
+            short_description='Краткий синопсис карточки фильма',
+            description='Полное описание карточки фильма',
         )
         session.add(film)
         await session.flush()
-        cat_id = await ensure_default_category(session, uid)
-        my_card = UserCard(
-            user_id=uid,
+        cat_a = await ensure_default_category(session, owner_a_id)
+        cat_b = await ensure_default_category(session, owner_b_id)
+        film_card = UserCard(
+            user_id=owner_a_id,
             film_id=film.id,
-            category_id=cat_id,
+            category_id=cat_a,
             provider=CatalogProvider.kinopoisk,
             external_id=str(film.kinopoisk_id),
             rating=7.5,
@@ -72,23 +79,75 @@ async def test_search_returns_films_and_users(async_client: AsyncClient) -> None
             mood_before='relax',
             mood_after='enjoyed',
         )
-        session.add(my_card)
-        res = await session.execute(select(User).where(User.id == uid))
-        me = res.scalar_one()
-        me.display_name = 'УникальноеИмяПоиска'
-        session.add(me)
+        manual_card = UserCard(
+            user_id=owner_b_id,
+            film_id=None,
+            catalog_item_id=None,
+            category_id=cat_b,
+            provider=CatalogProvider.no_provider,
+            external_id=None,
+            display_title='РучнойТайтлПоиска',
+            display_cover_url='https://example.com/manual.jpg',
+            display_summary='Ручное описание карточки',
+            rating=8.0,
+            company='friends',
+            mood_before='laugh',
+            mood_after='enjoyed',
+        )
+        session.add_all([film_card, manual_card])
         await session.flush()
-        my_card_id = my_card.id
+        film_card_id = film_card.id
+        manual_card_id = manual_card.id
+        viewer_row = await session.execute(select(User).where(User.id == viewer_id))
+        me = viewer_row.scalar_one()
+        me.display_name = 'УникальныйТайтлПоиска Пользователь'
+        session.add(me)
         await session.commit()
 
-    r = await async_client.get('/api/search', params={'q': 'Уникальн'})
+    r = await async_client.get('/api/search', params={'q': 'ТайтлПоиска'})
     assert r.status_code == 200
     body = r.json()
-    film_hits = [f for f in body['films'] if 'Уникальный' in f['title']]
-    assert len(film_hits) >= 1
-    assert film_hits[0]['my_card_id'] == my_card_id
-    assert any(body['users'][i]['id'] == str(uid) for i in range(len(body['users'])))
+    card_ids = {c['card_id'] for c in body['cards']}
+    assert {film_card_id, manual_card_id}.issubset(card_ids)
+    assert body['films'] == body['cards']
+    manual_hit = next(c for c in body['cards'] if c['card_id'] == manual_card_id)
+    assert manual_hit['title'] == 'РучнойТайтлПоиска'
+    assert manual_hit['summary'] == 'Ручное описание карточки'
+    assert manual_hit['poster_url'] == 'https://example.com/manual.jpg'
+    assert manual_hit['author_profile_slug']
+    assert any(u['id'] == str(viewer_id) for u in body['users'])
 
+
+@pytest.mark.asyncio
+async def test_search_matches_manual_card_display_title_without_film(async_client: AsyncClient) -> None:
+    data = await _login(async_client, telegram_user_id=7110)
+    uid = UUID(str(data['id']))
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        cat_id = await ensure_default_category(session, uid)
+        manual = UserCard(
+            user_id=uid,
+            film_id=None,
+            catalog_item_id=None,
+            category_id=cat_id,
+            provider=CatalogProvider.no_provider,
+            external_id=None,
+            display_title='РучнойТайтлПоискаXyz',
+            rating=8.0,
+            company='alone',
+            mood_before='relax',
+            mood_after='enjoyed',
+        )
+        session.add(manual)
+        await session.flush()
+        card_id = manual.id
+        await session.commit()
+
+    r = await async_client.get('/api/search', params={'q': 'РучнойТай'})
+    assert r.status_code == 200
+    body = r.json()
+    assert any(c['card_id'] == card_id for c in body['cards'])
+    assert any(f['card_id'] == card_id for f in body['films'])
 
 @pytest.mark.asyncio
 async def test_suggestions_mutual_dedup_and_popular(async_client: AsyncClient) -> None:

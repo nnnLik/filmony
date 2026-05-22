@@ -86,6 +86,8 @@ import { movieCardCommentImageSrc } from '../lib/movieCardCommentMedia'
 import { movieCardCommentDerivedFields } from '../lib/movieCardCommentDerivedFields'
 import type { OpenComposeFeedPostPayload } from '../compose/feedComposeTypes'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
+import { FeedOpenableContainedImageThumbnail } from '../components/feed/FeedOpenableContainedImage'
+import { useFullscreenImageActivator } from '../hooks/useFullscreenImageActivator'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',
@@ -981,16 +983,29 @@ function MovieCardDetailLoadedBody({
   const hasCardAudio = card.audio_url != null && card.audio_url.trim() !== ''
   const cardAudioUrlTrimmed = (card.audio_url ?? '').trim()
 
+  const posterFs = useFullscreenImageActivator({
+    enabled: Boolean(primaryPoster),
+    imageSrc: primaryPoster ?? '',
+    imageAlt: primaryTitle,
+    onSingleNavigate: null,
+  })
+
   return (
     <>
       <div className="space-y-3">
             <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
               <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
+                <div
+                  {...posterFs.bindings}
+                  aria-hidden
+                  tabIndex={-1}
+                  className="relative isolate w-full outline-none!"
+                >
                 {primaryPoster ? (
                   <img
                     src={primaryPoster}
                     alt={primaryTitle}
-                    className="filmony-detail-poster-img block h-auto w-full max-w-full motion-safe:transition-transform motion-safe:duration-1100 motion-safe:ease-out motion-safe:group-hover/poster:scale-[1.02]"
+                    className="filmony-detail-poster-img mx-auto box-border block h-auto max-h-[min(92vw,560px)] w-full max-w-full object-contain motion-safe:transition-transform motion-safe:duration-1100 motion-safe:ease-out motion-safe:group-hover/poster:scale-[1.02]"
                   />
                 ) : (
                   <div className="flex min-h-40 items-center justify-center px-4 py-12 text-sm text-(--tgui--hint_color)">
@@ -1040,6 +1055,8 @@ function MovieCardDetailLoadedBody({
                     </div>
                   </div>
                 ) : null}
+                </div>
+                {posterFs.overlay}
               </div>
               <div className="px-3.5 pb-3 pt-4 sm:px-4">
                 <div className="flex items-start gap-2">
@@ -1361,10 +1378,10 @@ function MovieCardDetailLoadedBody({
                 </div>
                 {commentImageUrl != null && commentImageUrl.trim() !== '' ? (
                   <div className="relative mt-2 overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--card_bg_color)">
-                    <img
+                    <FeedOpenableContainedImageThumbnail
                       src={movieCardCommentImageSrc(commentImageUrl)}
-                      alt=""
-                      className="max-h-[min(50vw,14rem)] w-full object-cover object-center"
+                      wrapperClassName="relative block"
+                      imgClassName="max-h-[min(50vw,14rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
                     />
                     <IconButton
                       mode="gray"
@@ -1493,13 +1510,11 @@ function MovieCardDetailLoadedBody({
                             ) : null}
 
                             {d.imageSrc != null ? (
-                              <div className="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
-                                <img
-                                  src={movieCardCommentImageSrc(d.imageSrc)}
-                                  alt=""
-                                  className="max-h-[min(60vw,16rem)] w-full object-cover object-center"
-                                />
-                              </div>
+                              <FeedOpenableContainedImageThumbnail
+                                src={movieCardCommentImageSrc(d.imageSrc)}
+                                wrapperClassName="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)"
+                                imgClassName="max-h-[min(60vw,16rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
+                              />
                             ) : null}
 
                             {d.textTrimmed !== '' ? (

@@ -7,16 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.search.schemas import (
+    SearchCardItemResponse,
     SearchCatalogResponse,
-    SearchFilmItemResponse,
     SearchSuggestionsResponse,
     SearchUserItemResponse,
 )
 from core.database import get_db
 from deps.auth import CurrentUser
-from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
-from services.search.search_catalog_films import SearchCatalogFilmsService
 from services.search.search_catalog_users import SearchCatalogUsersService
+from services.search.search_catalog_cards import SearchCatalogCardsService
 from services.search.search_user_suggestions import SearchUserSuggestionsService
 
 router = APIRouter(prefix='/search', tags=['search'])
@@ -38,6 +37,7 @@ async def search_catalog(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     q: Annotated[str, Query(min_length=1, max_length=128)],
+    limit_cards: Annotated[int | None, Query(ge=1, le=_LIMIT_MAX)] = None,
     limit_films: Annotated[int | None, Query(ge=1, le=_LIMIT_MAX)] = None,
     limit_users: Annotated[int | None, Query(ge=1, le=_LIMIT_MAX)] = None,
 ) -> SearchCatalogResponse:
@@ -53,26 +53,16 @@ async def search_catalog(
             detail=f'query must be at most {_SEARCH_Q_MAX} characters after trimming',
         )
 
-    lf = _clamp_limit(limit_films)
+    lc = _clamp_limit(limit_cards if limit_cards is not None else limit_films)
     lu = _clamp_limit(limit_users)
 
-    films = await SearchCatalogFilmsService.build(db).execute(query, lf)
+    cards = await SearchCatalogCardsService.build(db).execute(query, lc)
     users = await SearchCatalogUsersService.build(db).execute(query, lu)
-
-    card_by_film: dict[int, int] = {}
-    if films:
-        card_by_film = await GetMyUserCardIdForLinkedFilmService.build(db).execute_many(
-            user.id, [f.id for f in films]
-        )
+    serialized_cards = [SearchCardItemResponse(**asdict(c)) for c in cards]
 
     return SearchCatalogResponse(
-        films=[
-            SearchFilmItemResponse(
-                **asdict(f),
-                my_card_id=card_by_film.get(f.id),
-            )
-            for f in films
-        ],
+        cards=serialized_cards,
+        films=serialized_cards,
         users=[SearchUserItemResponse(**asdict(u)) for u in users],
     )
 

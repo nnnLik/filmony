@@ -1,7 +1,7 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
 import { Music } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
@@ -45,6 +45,10 @@ import {
 import { MovieCardAudioPlayer } from '../cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVisualizer'
 import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
+import { useFullscreenImageActivator } from '../../hooks/useFullscreenImageActivator'
+import {
+  FeedOpenableContainedImageThumbnail,
+} from './FeedOpenableContainedImage'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -57,6 +61,7 @@ export type FeedCardProps = {
 }
 
 export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCardProps) {
+  const navigate = useNavigate()
   const draftInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState('')
   const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
@@ -108,6 +113,15 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const primaryTitle = movieCardPrimaryTitle(card)
   const primaryPoster = movieCardPrimaryPoster(card)
   const releaseSuffix = movieCardReleaseCompactSuffix(card)
+  const navigateToCard = useCallback(() => {
+    void navigate(cardHref, { state: { fromFeed: true } })
+  }, [navigate, cardHref])
+  const posterFullscreen = useFullscreenImageActivator({
+    enabled: true,
+    imageSrc: primaryPoster ?? '',
+    imageAlt: primaryTitle ? `Постер: ${primaryTitle}` : 'Постер карточки',
+    onSingleNavigate: navigateToCard,
+  })
   useEffect(() => {
     let cancelled = false
     if (!commentsPreviewOpen || card.comments_count === 0) {
@@ -312,18 +326,19 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       </div>
       {/* Главная зона: постер — кликом открываем карточку; аудио-кнопки вне ссылки */}
       <div className="group relative isolate block w-full shrink-0 overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color) transition-shadow active:opacity-95 group-hover:ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]">
-        <Link
-          to={cardHref}
-          state={{ fromFeed: true }}
-          className="block w-full no-underline"
+        <div
+          {...posterFullscreen.bindings}
+          role="link"
+          tabIndex={0}
+          className="block w-full cursor-pointer rounded-xl no-underline outline-offset-4 outline-(--tgui--link_color) focus-visible:outline-2"
           aria-label={`Открыть карточку «${primaryTitle}»`}
         >
-          <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full sm:max-h-64">
+          <div className="relative aspect-2/3 max-h-[min(52vw,14rem)] w-full overflow-hidden rounded-xl sm:max-h-64">
             {primaryPoster ? (
               <img
                 src={primaryPoster}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
               />
             ) : (
               <div className="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-(--tgui--hint_color)">
@@ -359,7 +374,8 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               </div>
             </div>
           </div>
-        </Link>
+        </div>
+        {posterFullscreen.overlay}
         {hasAttachedAudio ? (
           <div className="pointer-events-auto absolute bottom-3 right-3 z-10">
             <MovieCardAudioPlayer
@@ -550,13 +566,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                               ) : null}
 
                               {comment.image_url != null && comment.image_url.trim() !== '' ? (
-                                <div className="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
-                                  <img
-                                    src={movieCardCommentImageSrc(comment.image_url)}
-                                    alt=""
-                                    className="max-h-[min(55vw,12rem)] w-full object-cover object-center"
-                                  />
-                                </div>
+                                <FeedOpenableContainedImageThumbnail
+                                  src={movieCardCommentImageSrc(comment.image_url)}
+                                  wrapperClassName="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)"
+                                  imgClassName="max-h-[min(55vw,12rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
+                                />
                               ) : null}
 
                               {comment.text.trim() !== '' ? (

@@ -31,6 +31,10 @@ import { ReactionStrip } from '../reactions/ReactionStrip'
 import { formatCommentTime, formatRating } from './feedCardUtils'
 import { feedPostSourceBadge } from './feedPostSourceBadge'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
+import {
+  FeedOpenableContainedImage,
+  FeedOpenableContainedImageThumbnail,
+} from './FeedOpenableContainedImage'
 
 export type FeedPostCardProps = {
   post: FeedPostInFeed
@@ -208,6 +212,9 @@ export function FeedPostCard({
     referenced_card != null ? movieCardReleaseCompactSuffix(referenced_card) : null
   const name = useMemo(() => displayNameFromAuthorFields(author), [author])
   const postHref = `/feed-posts/${id}`
+  const navigateToPost = useCallback(() => {
+    void navigate(postHref, { state: { fromFeed: true } })
+  }, [navigate, postHref])
   const bodyInlineRefMap = useMemo(
     () => inlineMovieCardRefMapFromSnippets(body_referenced_movie_cards),
     [body_referenced_movie_cards],
@@ -773,7 +780,11 @@ export function FeedPostCard({
             >
               <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)">
                 {referencedCardPoster ? (
-                  <img src={referencedCardPoster} alt="" className="h-full w-full object-cover" />
+                  <FeedOpenableContainedImageThumbnail
+                    src={referencedCardPoster}
+                    wrapperClassName="relative block h-full w-full"
+                    imgClassName="h-full w-full object-contain bg-(--tgui--divider_color)"
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[9px] text-(--tgui--hint_color)">
                     н/д
@@ -800,14 +811,14 @@ export function FeedPostCard({
           ) : null}
 
           {image_url != null && image_url.trim() !== '' ? (
-            <div className="mt-1 overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)">
-              <img
-                src={feedPostImageSrc(image_url)}
-                alt=""
-                className="max-h-[min(70vw,18rem)] w-full object-cover object-center"
-                loading="lazy"
-              />
-            </div>
+            <FeedOpenableContainedImage
+              src={feedPostImageSrc(image_url)}
+              ariaLabel={`Открыть пост из ленты`}
+              wrapperClassName="mt-1 overflow-hidden rounded-xl bg-(--tgui--divider_color) ring-1 ring-(--tgui--divider_color)"
+              imgClassName="max-h-[min(70vw,18rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
+              loading="lazy"
+              onSingleNavigate={linkToDetail ? navigateToPost : null}
+            />
           ) : null}
         </div>
 

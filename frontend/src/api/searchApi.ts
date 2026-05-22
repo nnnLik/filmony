@@ -1,14 +1,18 @@
 import { apiJson } from './client'
 
-export type SearchFilmItem = {
-  id: number
-  kinopoisk_id: number
-  genres: string[]
+export type SearchCardItem = {
+  card_id: number
   title: string
   year: number | null
   poster_url: string | null
-  my_card_id?: number | null
+  summary: string | null
+  rating: number
+  author_profile_slug: string
+  author_display_name: string | null
+  author_username: string | null
 }
+
+export type SearchFilmItem = SearchCardItem
 
 export type SearchUserItem = {
   id: string
@@ -21,7 +25,8 @@ export type SearchUserItem = {
 }
 
 export type SearchCatalogResponse = {
-  films: SearchFilmItem[]
+  cards?: SearchCardItem[]
+  films?: SearchFilmItem[]
   users: SearchUserItem[]
 }
 
@@ -33,10 +38,13 @@ export type SearchSuggestionsResponse = {
 
 export async function searchCatalog(
   q: string,
-  params?: { limit_films?: number; limit_users?: number },
+  params?: { limit_cards?: number; limit_films?: number; limit_users?: number },
 ): Promise<SearchCatalogResponse> {
   const trimmed = q.trim()
   const sp = new URLSearchParams({ q: trimmed })
+  if (params?.limit_cards != null) {
+    sp.set('limit_cards', String(params.limit_cards))
+  }
   if (params?.limit_films != null) {
     sp.set('limit_films', String(params.limit_films))
   }
