@@ -708,6 +708,7 @@ export function ProfilePage() {
                 <FavoriteMoviesStrip items={favoriteStripItems} />
                 <ProfileRatedCardsFilters
                   profileUserId={profile.id}
+                  viewerUserId={profile.id}
                   cardsQuery={ratedQuery}
                   onChange={setRatedQuery}
                   enableCategoryFilter

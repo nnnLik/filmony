@@ -21,7 +21,8 @@
 | PATCH | `/api/me/profile` | Частичное обновление: `display_name`, `bio`, `profile_slug` (JSON; неизвестные поля — 422). |
 | GET | `/api/users/{user_id}` | Публичный профиль по UUID (без `telegram_user_id`). |
 | GET | `/api/users/by-slug/{slug}` | Публичный профиль по slug. |
-| GET | `/api/users/{user_id}/cards` | Карточки пользователя; query: `limit` (по умолчанию из env), `cursor` (опционально). |
+| GET | `/api/users/{user_id}/cards` | Карточки пользователя; query: `limit` (по умолчанию из env), `cursor` (опционально); фильтры (теги, год, компания, настроение, **`category_id` полки** и др.). |
+| GET | `/api/users/{user_id}/card-categories` | Полки пользователя (**только для фильтров в профиле**): те же поля, что `/api/me/card-categories`, без создания полки по умолчанию для владельца; несуществующий пользователь — **404**. |
 
 ### Коды ошибок (фрагмент)
 
@@ -52,6 +53,7 @@
 - Маршруты: `/` (обзор), `/profile` (мой профиль), `/u/:identifier` (UUID или slug).
 - Стили и компоненты: `@telegram-apps/telegram-ui`, обёртка `AppRoot`.
 - Сессия: при открытии в TMA отправляется `Telegram.WebApp.initData` на `POST /api/auth/telegram` с `credentials: 'include'`.
+- Публичный профиль другого пользователя: фильтр **«Полка»** в блоке «Оценённые карточки» подгружает `GET /api/users/{user_id}/card-categories`; свой профиль (в том числе через `/u/...`) по-прежнему использует `GET /api/me/card-categories`, чтобы сохранить гарантированную дефолтную полку и совместимость с редактированием.
 
 ## Тесты
 

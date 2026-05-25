@@ -654,9 +654,10 @@ export function PublicProfilePage() {
                 <div className="mx-4">
                   <ProfileRatedCardsFilters
                     profileUserId={profile.id}
+                    viewerUserId={myUserId}
                     cardsQuery={ratedQuery}
                     onChange={setRatedQuery}
-                    enableCategoryFilter={isOwnPublicProfile}
+                    enableCategoryFilter
                   />
                 </div>
                 {ratedCardsLoading ? (
@@ -756,7 +757,7 @@ export function PublicProfilePage() {
               userId={profile.id}
               cardsQuery={ratedQuery}
               onCardsQueryChange={setRatedQuery}
-              enableCategoryFilter={isOwnPublicProfile}
+              enableCategoryFilter
               onDrillToRatedCards={drillToRatedCards}
             />
           </div>

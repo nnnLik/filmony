@@ -842,3 +842,52 @@ async def test_list_user_cards_filter_by_category_id(async_client: AsyncClient) 
         params={'category_id': 9_999_888, 'limit': 10},
     )
     assert bad.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_public_user_card_categories_requires_auth(async_client: AsyncClient) -> None:
+    r = await async_client.get(f'/api/users/{uuid4()}/card-categories')
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_public_user_card_categories_404_unknown_user(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=5230)
+    r = await async_client.get(f'/api/users/{uuid4()}/card-categories')
+    assert r.status_code == 404
+    assert r.json()['detail'] == 'user not found'
+
+
+@pytest.mark.asyncio
+async def test_public_user_card_categories_returns_owner_shelves(async_client: AsyncClient) -> None:
+    owner = await _login(async_client, telegram_user_id=5231)
+    created = await async_client.post('/api/me/card-categories', json={'name': 'ShelfZeta'})
+    assert created.status_code == 200
+    shelf_zeta_id = created.json()['id']
+
+    viewer = await _login(async_client, telegram_user_id=5232)
+
+    assert viewer['id'] != owner['id']
+
+    r = await async_client.get(f'/api/users/{owner["id"]}/card-categories')
+    assert r.status_code == 200
+    body = r.json()
+    ids = [row['id'] for row in body['items']]
+    names = [row['name'] for row in body['items']]
+    assert shelf_zeta_id in ids
+    assert 'ShelfZeta' in names
+    assert names == sorted(names, key=str.casefold)
+
+
+@pytest.mark.asyncio
+async def test_public_user_card_categories_lists_committed_shelves(async_client: AsyncClient) -> None:
+    """Публичный список видит полки, зафиксированные в БД (POST /me/card-categories коммитит)."""
+    me = await _login(async_client, telegram_user_id=5234)
+    created = await async_client.post('/api/me/card-categories', json={'name': 'ShelfCommitted'})
+    assert created.status_code == 200
+    shelf_id = created.json()['id']
+
+    via_public = await async_client.get(f'/api/users/{me["id"]}/card-categories')
+    assert via_public.status_code == 200
+    ids = {row['id'] for row in via_public.json()['items']}
+    assert shelf_id in ids

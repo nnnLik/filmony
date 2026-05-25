@@ -129,6 +129,15 @@ export async function getMyCardCategories(): Promise<MyUserCardCategoryListRespo
   return apiJson<MyUserCardCategoryListResponse>('/api/me/card-categories')
 }
 
+/** Полки пользователя для фильтра в чужом (и своём через публичный URL) профиле. */
+export async function getUserPublicCardCategories(
+  userId: string,
+): Promise<MyUserCardCategoryListResponse> {
+  return apiJson<MyUserCardCategoryListResponse>(
+    `/api/users/${encodeURIComponent(userId)}/card-categories`,
+  )
+}
+
 export async function createMyCardCategory(body: { name: string }): Promise<MyUserCardCategory> {
   return apiJson<MyUserCardCategory>('/api/me/card-categories', {
     method: 'POST',

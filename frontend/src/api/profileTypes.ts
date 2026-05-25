@@ -206,6 +206,7 @@ export type MyUserCardCategory = {
   created_at: string
 }
 
+/** Полки: `GET /api/me/card-categories` и публичный `GET /api/users/:userId/card-categories`. */
 export type MyUserCardCategoryListResponse = {
   items: MyUserCardCategory[]
 }

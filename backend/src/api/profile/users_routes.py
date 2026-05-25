@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
 from api.cards.schemas import UserFeedPostsPageResponse
 from api.profile.schemas import (
+    MyUserCardCategoryListResponse,
+    MyUserCardCategoryResponse,
     MyUserCardTagStatItem,
     MyUserCardTagStatsResponse,
     PublicProfileResponse,
@@ -54,6 +56,9 @@ from services.subscriptions.list_user_subscriptions import (
 )
 from services.subscriptions.list_user_subscriptions import (
     TargetUserNotFoundError as SubscriptionTargetUserNotFoundListError,
+)
+from services.user_card_categories.list_public_user_card_categories import (
+    ListPublicUserCardCategoriesService,
 )
 from services.watchlist.list_user_watchlist_films import ListUserWatchlistFilmsService
 
@@ -134,6 +139,32 @@ async def list_user_movie_card_tags(
     rows = await ListMyUserCardTagStatsService(db).execute(user_id, limit=cap)
     return MyUserCardTagStatsResponse(
         items=[MyUserCardTagStatItem(tag=r.tag, use_count=r.use_count) for r in rows]
+    )
+
+
+@router.get(
+    '/{user_id}/card-categories',
+    response_model=MyUserCardCategoryListResponse,
+    summary='Полки/категории карточек пользователя (для фильтра в публичном профиле)',
+    description=(
+        _PRIVACY_DOC
+        + ' Возвращает только существующие полки пользователя без создания полки по умолчанию.'
+    ),
+)
+async def list_public_user_card_categories(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MyUserCardCategoryListResponse:
+    exists = await GetPublicUserByIdService(db).execute(user_id)
+    if exists is None:
+        raise _not_found()
+    rows = await ListPublicUserCardCategoriesService.build(db).execute(user_id)
+    return MyUserCardCategoryListResponse(
+        items=[
+            MyUserCardCategoryResponse(id=r.id, name=r.name, created_at=r.created_at)
+            for r in rows
+        ]
     )
 
 

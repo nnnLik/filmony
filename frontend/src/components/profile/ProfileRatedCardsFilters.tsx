@@ -3,7 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
 
-import { getMyCardCategories, getUserMovieCardTags } from '../../api/profileApi'
+import {
+  getMyCardCategories,
+  getUserMovieCardTags,
+  getUserPublicCardCategories,
+} from '../../api/profileApi'
 import type { ProfileCardsSort } from '../../api/profileApi'
 import type {
   CardCompany,
@@ -14,7 +18,11 @@ import type {
   MyUserCardCategoryListResponse,
 } from '../../api/profileTypes'
 import { ApiError, formatApiDetail } from '../../api/client'
-import { userMovieCardTagStatsQueryKey, myCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
+import {
+  userMovieCardTagStatsQueryKey,
+  myCardCategoriesQueryKey,
+  publicProfileCardCategoriesQueryKey,
+} from '../../feed/feedQueryKeys'
 import {
   DEFAULT_RATED_CARDS_QUERY,
   type RatedCardsListQuery,
@@ -41,22 +49,30 @@ function ratedListTitleInputValue(q: RatedCardsListQuery): string {
 
 type ProfileRatedCardsFiltersProps = {
   profileUserId: string
+  /** Текущий зритель (вы); для совпадения с `profileUserId` грузим `/api/me/card-categories` (гарантирует дефолтную полку). */
+  viewerUserId?: string | null
   cardsQuery: RatedCardsListQuery
   onChange: (next: RatedCardsListQuery) => void
   /**
-   * При `true`: показывает фильтр по полкам и грузит `GET /api/me/card-categories`
-   * (имеет смысл только если список — ваш профиль; иначе id полок недоступны).
+   * При `true`: показывает фильтр по полкам — через `/api/me/...`, если профиль свой, иначе `GET /api/users/:id/card-categories`.
    */
   enableCategoryFilter?: boolean
 }
 
 export function ProfileRatedCardsFilters({
   profileUserId,
+  viewerUserId = null,
   cardsQuery,
   onChange,
   enableCategoryFilter = false,
 }: ProfileRatedCardsFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  const useMyCardCategoriesLookup =
+    enableCategoryFilter &&
+    viewerUserId != null &&
+    viewerUserId !== '' &&
+    viewerUserId === profileUserId
 
   const tagsQuery = useQuery<MyMovieCardTagStatsResponse>({
     queryKey: userMovieCardTagStatsQueryKey(profileUserId),
@@ -73,9 +89,12 @@ export function ProfileRatedCardsFilters({
   })
 
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
-    queryKey: myCardCategoriesQueryKey(),
-    queryFn: getMyCardCategories,
-    enabled: enableCategoryFilter,
+    queryKey: useMyCardCategoriesLookup
+      ? myCardCategoriesQueryKey()
+      : publicProfileCardCategoriesQueryKey(profileUserId),
+    queryFn: () =>
+      useMyCardCategoriesLookup ? getMyCardCategories() : getUserPublicCardCategories(profileUserId),
+    enabled: enableCategoryFilter && profileUserId !== '',
     staleTime: 60_000,
     gcTime: 30 * 60_000,
   })

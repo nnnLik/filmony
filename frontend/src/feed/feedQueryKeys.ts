@@ -15,3 +15,7 @@ export const userMovieCardTagStatsQueryKey = (userId: string) =>
 
 /** Полки текущего пользователя (`GET /api/me/card-categories`). */
 export const myCardCategoriesQueryKey = () => ['myCardCategories'] as const
+
+/** Полки выбранного пользователя для публичного профиля (`GET /api/users/:id/card-categories`). */
+export const publicProfileCardCategoriesQueryKey = (userId: string) =>
+  ['publicProfileCardCategories', userId] as const

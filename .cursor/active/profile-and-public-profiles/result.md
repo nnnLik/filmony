@@ -2,40 +2,55 @@
 
 ## Feature
 - Slug: `profile-and-public-profiles`
-- Final status: **done** (ожидается локальный прогон `make backend-test` / `npm run build` у разработчика)
+- Final status: **done** (включая публичные полки; полный backend suite не гонялся в этой сессии)
 
 ## Implemented
-- Расширена модель пользователя: `profile_slug`, `display_name`, `bio`; уникальный индекс по slug; миграция от `ac3f8989b766` с backfill slug для существующих строк.
-- При создании пользователя выдаётся уникальный opaque slug (`AllocateDefaultProfileSlugService`); при логине защитно восстанавливается slug, если отсутствует.
-- `GET/PATCH /api/me/profile` — полный редактируемый профиль и счётчики-заглушки (карточки, друзья).
-- `GET /api/users/{user_id}`, `GET /api/users/by-slug/{slug}` — публичный профиль для авторизованного зрителя; несуществующий пользователь — **404** (без раскрытия деталей).
-- `GET /api/users/{user_id}/cards` — пагинация с параметрами `limit` / `cursor`; v1 — пустой `items`, `next_cursor: null`.
-- Настройки `ProfileSettings`: лимиты размера страницы карточек.
-- Фронт: `AppRoot` + маршрутизация, экран редактирования своего профиля, экран чужого профиля с кнопкой «Загрузить ещё», вход по `Telegram.WebApp.initData` → `POST /api/auth/telegram`.
 
-## Changed Files
-- `backend/src/migrations/versions/110da8652616_enchant_user.py` — корректный upgrade/downgrade для колонок профиля.
-- `backend/src/models/user.py`, `backend/src/services/auth/upsert_telegram_user.py`, `backend/src/services/profile/*`, `backend/src/api/profile/*`, `backend/src/api/router.py`, `backend/src/conf/settings.py`
+### Базовый контур (исторический)
+- Расширена модель пользователя: `profile_slug`, `display_name`, `bio`; уникальный индекс по slug; миграция с backfill slug для существующих строк.
+- `GET/PATCH /api/me/profile` — полный редактируемый профиль и счётчики; `GET /api/users/{user_id}` — публичный профиль (404 если нет).
+- Фронт: маршруты `/profile`, `/u/:identifier`, TMA-сессия через cookie.
+
+### Срез 2026-05-25: полки на публичном профиле
+- **`GET /api/users/{user_id}/card-categories`** — авторизованный зритель получает те же формы объектов (`id`, `name`, `created_at`), что и в `/api/me/card-categories`, но **без побочного создания дефолтной полки**; только чтение уже существующих строк для `owner_user_id`. Несуществующий пользователь — **404**.
+- **`ListPublicUserCardCategoriesService`** — сервис-оркестратор: сортировка по имени, затем по `id`; без транспортной логики.
+- **Фронт:** `getUserPublicCardCategories(userId)`, ключ `publicProfileCardCategoriesQueryKey(userId)`. В `ProfileRatedCardsFilters`: если включён фильтр по полке и **зритель = владелец профиля** → `GET /api/me/card-categories` (как раньше); иначе → публичная ручка для `profileUserId`. На **`PublicProfilePage`** фильтр полок включён для всех; на **`ProfilePage`** передаётся `viewerUserId={profile.id}`.
+
+## Changed Files (срез 2026-05-25)
+
+- `backend/src/services/user_card_categories/list_public_user_card_categories.py` (новый)
+- `backend/src/services/user_card_categories/__init__.py`
+- `backend/src/api/profile/users_routes.py`
 - `backend/src/tests/api/test_profile_routes.py`
-- `frontend/package.json`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, новые модули под `frontend/src/api`, `frontend/src/pages`, `frontend/src/hooks`, `frontend/src/components/profile`, `frontend/src/lib`
-- `vars/.env.example`, `docs/features/profile-and-public-profiles.md`, `.cursor/features/profile-and-public-profiles/feature.md`, `.cursor/active/profile-and-public-profiles/*`
+- `frontend/src/api/profileApi.ts`
+- `frontend/src/api/profileTypes.ts`
+- `frontend/src/feed/feedQueryKeys.ts`
+- `frontend/src/components/profile/ProfileRatedCardsFilters.tsx`
+- `frontend/src/pages/PublicProfilePage.tsx`
+- `frontend/src/pages/ProfilePage.tsx`
+- `docs/features/profile-and-public-profiles.md`
+- `.cursor/active/profile-and-public-profiles/plan.md`, `progress.md`, `result.md`
+- `.cursor/memory/logs/2026-05-25T190530Z-profile-and-public-profiles-code.md`
+- `.cursor/memory/logs/2026-05-25T190545Z-profile-and-public-profiles-test.md`
+- `.cursor/memory/logs/2026-05-25T190600Z-profile-and-public-profiles-docs.md`
 
 ## Verification
-- Commands/checks executed: **не выполнялись** (по запросу пользователя без запуска команд).
-- Рекомендуется: `make backend-test`, `make backend-lint`, в каталоге `frontend`: `npm install`, `npm run build`, `npm run lint`.
 
-## Automated tests (backend)
-- `backend/src/tests/api/test_profile_routes.py` — покрывает 401 без сессии, свой профиль, PATCH (текст, slug, конфликт slug, лишние поля), публичный профиль по id/slug, 404, пустой список карточек.
-- Прогон: `make backend-test` или `make backend-test-one target=src/tests/api/test_profile_routes.py` (в Docker, см. `.cursor/tech.md`).
+Commands executed in this session:
 
-## Known Limitations
-- Счётчики и список карточек — заглушки до фич карточек и друзей.
-- Redis-кеш для профиля не подключён (опционально по 002).
-- Неавторизованный просмотр профиля не поддерживается (только с httpOnly-сессией).
+- `docker exec -w /opt/app/src filmony-backend pytest tests/api/test_profile_routes.py::test_public_user_card_categories_requires_auth tests/api/test_profile_routes.py::test_public_user_card_categories_404_unknown_user tests/api/test_profile_routes.py::test_public_user_card_categories_returns_owner_shelves tests/api/test_profile_routes.py::test_public_user_card_categories_lists_committed_shelves -q` — passed
+- `docker exec -w /opt/app/src filmony-backend ruff check --fix --config /opt/app/pyproject.toml api/profile/users_routes.py` — OK
+- `cd frontend && npm run lint && npm run build && npm test` — passed (`vitest`: 1 file)
 
-## Next Steps
-- Подключить реальные `movie_cards` и счётчики в сервисах.
-- При необходимости — публичные профили без сессии или матрица приватности.
+Recommended before merge: `make backend-test`, `make backend-lint`.
+
+## Automated tests
+
+- **`backend/src/tests/api/test_profile_routes.py`** — новые случаи: `test_public_user_card_categories_*`.
+
+## Known limitations
+
+- Ответ `/api/me/card-categories` может показывать дефолтную полку в рамках одного запроса до отката сессии, если приложение не коммитает в конце запроса; публичный список отражает **закоммиченное** состояние. Тест документирует ожидание после `POST`-создания полки.
 
 ## Архив: фронт Mini App (2026-05-06)
 

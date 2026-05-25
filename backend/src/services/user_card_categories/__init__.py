@@ -10,6 +10,9 @@ from services.user_card_categories.list_my_user_card_categories import (
     ListMyUserCardCategoriesService,
     UserCardCategoryListRow,
 )
+from services.user_card_categories.list_public_user_card_categories import (
+    ListPublicUserCardCategoriesService,
+)
 from services.user_card_categories.rename_user_card_category import (
     RenameUserCardCategoryService,
 )
@@ -21,6 +24,7 @@ __all__ = (
     'CreateUserCardCategoryService',
     'EnsureDefaultUserCardCategoryService',
     'ListMyUserCardCategoriesService',
+    'ListPublicUserCardCategoriesService',
     'RenameUserCardCategoryService',
     'ResolveUserCardCategoryIdForOwnerService',
     'UserCardCategoryListRow',

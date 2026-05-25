@@ -18,6 +18,7 @@
 4. Тесты: `backend/src/tests/api/test_profile_routes.py` (auth, валидация, 404, пустые карточки).
 5. Фронт: `react-router-dom`, `@telegram-apps/telegram-ui`, страницы и API-клиент с `credentials: 'include'`.
 6. Документация: `docs/features/profile-and-public-profiles.md`; артефакты `.cursor/active/...`; запись во фрагмент action-log (индекс `action-log.md`).
+7. **Полки в чужом профиле:** `GET /api/users/{user_id}/card-categories` + клиент `getUserPublicCardCategories`; в UI — `ProfileRatedCardsFilters` с источником `/me`, если профиль свой, иначе публичная ручка; `GET /api/me/card-categories` без удаления логики.
 
 ## Files Expected To Change
 - `backend/src/migrations/versions/110da8652616_enchant_user.py`
