@@ -26,7 +26,7 @@ def test_movie_card_kinopoisk_external_partial_unique_index() -> None:
         for ix in UserCard.__table__.indexes
         if ix.dialect_options.get('postgresql', {}).get('where') is not None
     }
-    assert 'uq_movie_card_user_provider_external_kinopoisk_partial' in partial_names
+    assert 'uq_user_card_user_provider_external_kinopoisk_partial' in partial_names
 
 
 def test_movie_card_film_and_catalog_columns_nullable() -> None:
@@ -40,8 +40,8 @@ def test_movie_card_partial_unique_index_definitions() -> None:
         for ix in UserCard.__table__.indexes
         if ix.dialect_options.get('postgresql', {}).get('where') is not None
     }
-    assert 'uq_movie_card_user_catalog_item_id_partial' in partial_names
-    assert 'uq_movie_card_user_film_id_partial' in partial_names
+    assert 'uq_user_card_user_catalog_item_id_partial' in partial_names
+    assert 'uq_user_card_user_film_id_partial' in partial_names
 
 
 def test_movie_card_legacy_global_unique_removed() -> None:

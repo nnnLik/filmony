@@ -33,6 +33,12 @@ import {
   writeCachedUserMovieCardTagStats,
 } from '../../lib/movieCardTagStatsStorage'
 import {
+  readCachedMyCardCategories,
+  readCachedPublicCardCategories,
+  writeCachedMyCardCategories,
+  writeCachedPublicCardCategories,
+} from '../../lib/userCardCategoriesStorage'
+import {
   PROFILE_RATED_COMPANY_OPTIONS,
   PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS,
   PROFILE_RATED_MOOD_AFTER_OPTIONS,
@@ -88,19 +94,41 @@ export function ProfileRatedCardsFilters({
       readCachedUserMovieCardTagStats(profileUserId) ?? undefined,
   })
 
+  const fetchShelvesEnabled =
+    enableCategoryFilter && profileUserId !== '' && filtersOpen
+
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
     queryKey: useMyCardCategoriesLookup
       ? myCardCategoriesQueryKey()
       : publicProfileCardCategoriesQueryKey(profileUserId),
-    queryFn: () =>
-      useMyCardCategoriesLookup ? getMyCardCategories() : getUserPublicCardCategories(profileUserId),
-    enabled: enableCategoryFilter && profileUserId !== '',
-    staleTime: 60_000,
-    gcTime: 30 * 60_000,
+    queryFn: async (): Promise<MyUserCardCategoryListResponse> => {
+      const res = useMyCardCategoriesLookup
+        ? await getMyCardCategories()
+        : await getUserPublicCardCategories(profileUserId)
+      if (useMyCardCategoriesLookup) {
+        writeCachedMyCardCategories(res)
+      } else {
+        writeCachedPublicCardCategories(profileUserId, res)
+      }
+      return res
+    },
+    enabled: fetchShelvesEnabled,
+    staleTime: 15 * 60_000,
+    gcTime: 60 * 60_000,
+    placeholderData: (): MyUserCardCategoryListResponse | undefined => {
+      if (!fetchShelvesEnabled) {
+        return undefined
+      }
+      if (useMyCardCategoriesLookup) {
+        return readCachedMyCardCategories() ?? undefined
+      }
+      return readCachedPublicCardCategories(profileUserId) ?? undefined
+    },
   })
 
   const shelfItems = shelvesQuery.data?.items ?? []
-  const shelvesErr: string | null = enableCategoryFilter && shelvesQuery.isError
+  const shelvesErr: string | null =
+    enableCategoryFilter && filtersOpen && shelvesQuery.isError
     ? shelvesQuery.error instanceof ApiError
       ? formatApiDetail(shelvesQuery.error.detail)
       : 'Не удалось загрузить полки'
@@ -236,7 +264,7 @@ export function ProfileRatedCardsFilters({
               </select>
               {shelvesErr != null ? (
                 <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{shelvesErr}</p>
-              ) : shelvesQuery.isLoading && shelfItems.length === 0 ? (
+              ) : shelvesQuery.isFetching && shelfItems.length === 0 ? (
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка полок…</p>
               ) : null}
             </label>

@@ -1588,9 +1588,9 @@ async def test_card_model_uses_partial_unique_indexes_for_film_and_catalog() -> 
     constraint_names = {c.name for c in UserCard.__table__.constraints}
     assert 'uq_movie_card_user_film' not in constraint_names
     index_names = {ix.name for ix in UserCard.__table__.indexes}
-    assert 'uq_movie_card_user_film_id_partial' in index_names
-    assert 'uq_movie_card_user_catalog_item_id_partial' in index_names
-    assert 'uq_movie_card_user_provider_external_kinopoisk_partial' in index_names
+    assert 'uq_user_card_user_film_id_partial' in index_names
+    assert 'uq_user_card_user_catalog_item_id_partial' in index_names
+    assert 'uq_user_card_user_provider_external_kinopoisk_partial' in index_names
 
 
 @pytest.mark.asyncio

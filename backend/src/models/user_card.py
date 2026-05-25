@@ -27,9 +27,7 @@ from .catalog_item import CatalogProvider
 
 
 class UserCard(Base):
-    """End-user-owned card (film/catalog/manual); persists in legacy `movie_card` table."""
-
-    __tablename__ = 'movie_card'
+    """End-user-owned card (film/catalog/manual)."""
 
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
@@ -95,21 +93,21 @@ class UserCard(Base):
 
     __table_args__ = (
         Index(
-            'uq_movie_card_user_catalog_item_id_partial',
+            'uq_user_card_user_catalog_item_id_partial',
             'user_id',
             'catalog_item_id',
             unique=True,
             postgresql_where=text('catalog_item_id IS NOT NULL'),
         ),
         Index(
-            'uq_movie_card_user_film_id_partial',
+            'uq_user_card_user_film_id_partial',
             'user_id',
             'film_id',
             unique=True,
             postgresql_where=text('film_id IS NOT NULL'),
         ),
         Index(
-            'uq_movie_card_user_provider_external_kinopoisk_partial',
+            'uq_user_card_user_provider_external_kinopoisk_partial',
             'user_id',
             'provider',
             'external_id',
@@ -117,20 +115,20 @@ class UserCard(Base):
             postgresql_where=text("provider = 'kinopoisk' AND external_id IS NOT NULL"),
         ),
         Index(
-            'ix_movie_card_user_id_created_at_id',
+            'ix_user_card_user_id_created_at_id',
             'user_id',
             'created_at',
             'id',
             postgresql_ops={'created_at': 'DESC', 'id': 'DESC'},
         ),
         Index(
-            'ix_movie_card_created_at_id',
+            'ix_user_card_created_at_id',
             'created_at',
             'id',
             postgresql_ops={'created_at': 'DESC', 'id': 'DESC'},
         ),
         Index(
-            'ix_movie_card_user_favorites_order',
+            'ix_user_card_user_favorites_order',
             'user_id',
             'favorite_marked_at',
             'id',

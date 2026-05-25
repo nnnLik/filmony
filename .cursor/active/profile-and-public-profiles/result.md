@@ -2,7 +2,7 @@
 
 ## Feature
 - Slug: `profile-and-public-profiles`
-- Final status: **done** (включая публичные полки; полный backend suite не гонялся в этой сессии)
+- Final status: **done** (публичные полки + ленивая загрузка и клиентский кеш списка полок; см. ниже).
 
 ## Implemented
 
@@ -16,7 +16,12 @@
 - **`ListPublicUserCardCategoriesService`** — сервис-оркестратор: сортировка по имени, затем по `id`; без транспортной логики.
 - **Фронт:** `getUserPublicCardCategories(userId)`, ключ `publicProfileCardCategoriesQueryKey(userId)`. В `ProfileRatedCardsFilters`: если включён фильтр по полке и **зритель = владелец профиля** → `GET /api/me/card-categories` (как раньше); иначе → публичная ручка для `profileUserId`. На **`PublicProfilePage`** фильтр полок включён для всех; на **`ProfilePage`** передаётся `viewerUserId={profile.id}`.
 
-## Changed Files (срез 2026-05-25)
+### Срез 2026-05-25 (кеш полок на клиенте)
+- Полки запрашиваются **только** после раскрытия панели фильтров (`ProfileRatedCardsFilters`, `filtersOpen`) или блока доп. фильтров в статистике (`ProfileStatsFilters`, `moreOpen`); ключи React Query те же (`myCardCategoriesQueryKey`, `publicProfileCardCategoriesQueryKey`).
+- React Query: `staleTime` **15 мин**, `gcTime` **60 мин**, запись успешных ответов в **sessionStorage** (`frontend/src/lib/userCardCategoriesStorage.ts`) как `placeholderData` (аналог паттерна тегов карточек).
+- При сбросе сессии/ошибках входа — `clearUserCardCategoriesSessionCaches()` вместе с очисткой кеша статистики тегов (`AuthProvider`).
+
+## Changed Files (исторический срез API + документация 2026-05-25)
 
 - `backend/src/services/user_card_categories/list_public_user_card_categories.py` (новый)
 - `backend/src/services/user_card_categories/__init__.py`
@@ -34,13 +39,28 @@
 - `.cursor/memory/logs/2026-05-25T190545Z-profile-and-public-profiles-test.md`
 - `.cursor/memory/logs/2026-05-25T190600Z-profile-and-public-profiles-docs.md`
 
+## Changed Files (клиентский кеш полок, 2026-05-25)
+
+- `frontend/src/lib/userCardCategoriesStorage.ts` (новый)
+- `frontend/src/components/profile/ProfileRatedCardsFilters.tsx`
+- `frontend/src/components/profile/ProfileStatsFilters.tsx`
+- `frontend/src/auth/AuthProvider.tsx`
+- `docs/features/profile-and-public-profiles.md`
+- `.cursor/active/profile-and-public-profiles/progress.md`, `result.md`
+- `.cursor/memory/logs/2026-05-25T201200Z-profile-and-public-profiles-code.md`
+- `.cursor/memory/logs/2026-05-25T201210Z-profile-and-public-profiles-docs.md`
+- `.cursor/memory/logs/action-log.md`
+
 ## Verification
 
-Commands executed in this session:
+Последний прогон (сессия кеша полок, без изменений API):
 
-- `docker exec -w /opt/app/src filmony-backend pytest tests/api/test_profile_routes.py::test_public_user_card_categories_requires_auth tests/api/test_profile_routes.py::test_public_user_card_categories_404_unknown_user tests/api/test_profile_routes.py::test_public_user_card_categories_returns_owner_shelves tests/api/test_profile_routes.py::test_public_user_card_categories_lists_committed_shelves -q` — passed
-- `docker exec -w /opt/app/src filmony-backend ruff check --fix --config /opt/app/pyproject.toml api/profile/users_routes.py` — OK
-- `cd frontend && npm run lint && npm run build && npm test` — passed (`vitest`: 1 file)
+- `cd frontend && npm run lint && npm run build` — OK
+- `cd frontend && npm test -- --run` — OK (1 файл)
+
+Исторически для ручки `GET .../card-categories`:
+
+- Ранее: `pytest` по `tests/api/test_profile_routes.py` для `card-categories` — passed (контракт API в этом изменении не трогали).
 
 Recommended before merge: `make backend-test`, `make backend-lint`.
 

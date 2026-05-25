@@ -9,13 +9,10 @@ from .base import Base
 
 
 class CardComment(Base):
-    """Comment on a user card; persists in legacy `movie_card_comment` table."""
-
-    __tablename__ = 'movie_card_comment'
+    """Comment on a user card."""
 
     card_id: Mapped[int] = mapped_column(
-        'movie_card_id',
-        ForeignKey('movie_card.id', ondelete='CASCADE'),
+        ForeignKey('user_card.id', ondelete='CASCADE'),
         nullable=False,
         index=True,
     )
@@ -26,7 +23,7 @@ class CardComment(Base):
         index=True,
     )
     parent_comment_id: Mapped[int | None] = mapped_column(
-        ForeignKey('movie_card_comment.id', ondelete='CASCADE'),
+        ForeignKey('card_comment.id', ondelete='CASCADE'),
         nullable=True,
         index=True,
     )
@@ -35,8 +32,8 @@ class CardComment(Base):
 
     __table_args__ = (
         Index(
-            'ix_movie_card_comment_card_parent_id',
-            'movie_card_id',
+            'ix_card_comment_card_parent_id',
+            'card_id',
             'parent_comment_id',
             'id',
         ),

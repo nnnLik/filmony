@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-25T201210Z-profile-and-public-profiles-docs.md`
+- `2026-05-25T201200Z-profile-and-public-profiles-code.md`
 - `2026-05-25T190600Z-profile-and-public-profiles-docs.md`
 - `2026-05-25T190545Z-profile-and-public-profiles-test.md`
 - `2026-05-25T190530Z-profile-and-public-profiles-code.md`

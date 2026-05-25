@@ -20,15 +20,14 @@ class FeedPost(Base):
     body: Mapped[str] = mapped_column(String(2000), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     referenced_card_id: Mapped[int | None] = mapped_column(
-        'referenced_movie_card_id',
         Integer,
-        ForeignKey('movie_card.id', ondelete='SET NULL'),
+        ForeignKey('user_card.id', ondelete='SET NULL'),
         nullable=True,
         index=True,
     )
     source_comment_id: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey('movie_card_comment.id', ondelete='SET NULL'),
+        ForeignKey('card_comment.id', ondelete='SET NULL'),
         nullable=True,
         index=True,
     )

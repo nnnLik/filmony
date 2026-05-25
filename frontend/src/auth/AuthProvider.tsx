@@ -6,6 +6,7 @@ import { authTelegram } from '../api/profileApi'
 import { AuthStateContext, type AuthStatus } from './auth-context'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { clearMovieCardTagStatsSessionCaches } from '../lib/movieCardTagStatsStorage'
+import { clearUserCardCategoriesSessionCaches } from '../lib/userCardCategoriesStorage'
 import {
   readAccessToken,
   readAuthSessionFlag,
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         writeAccessToken(null)
         clearMyProfileBundleCache()
         clearMovieCardTagStatsSessionCaches()
+        clearUserCardCategoriesSessionCaches()
         setState({
           kind: 'error',
           message: 'Пустой initData — откройте приложение из Telegram.',
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           writeAccessToken(null)
           clearMyProfileBundleCache()
           clearMovieCardTagStatsSessionCaches()
+          clearUserCardCategoriesSessionCaches()
           setState({
             kind: 'error',
             message: t.trim() || `Ошибка входа (HTTP ${res.status})`,
@@ -161,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           writeAccessToken(null)
           clearMyProfileBundleCache()
           clearMovieCardTagStatsSessionCaches()
+          clearUserCardCategoriesSessionCaches()
           setState({
             kind: 'error',
             message: 'Ответ входа без access_token',
@@ -178,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         writeAccessToken(null)
         clearMyProfileBundleCache()
         clearMovieCardTagStatsSessionCaches()
+        clearUserCardCategoriesSessionCaches()
         setState({
           kind: 'error',
           message: e instanceof Error ? e.message : 'Сеть недоступна',

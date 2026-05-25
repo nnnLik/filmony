@@ -24,6 +24,7 @@ import {
   readCachedUserMovieCardTagStats,
   writeCachedUserMovieCardTagStats,
 } from '../../lib/movieCardTagStatsStorage'
+import { readCachedMyCardCategories, writeCachedMyCardCategories } from '../../lib/userCardCategoriesStorage'
 import {
   PROFILE_RATED_COMPANY_OPTIONS,
   PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS,
@@ -67,16 +68,24 @@ export function ProfileStatsFilters({
       readCachedUserMovieCardTagStats(profileUserId) ?? undefined,
   })
 
+  const fetchShelvesEnabled = enableCategoryFilter && moreOpen
+
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
     queryKey: myCardCategoriesQueryKey(),
-    queryFn: getMyCardCategories,
-    enabled: enableCategoryFilter,
-    staleTime: 60_000,
-    gcTime: 30 * 60_000,
+    queryFn: async (): Promise<MyUserCardCategoryListResponse> => {
+      const res = await getMyCardCategories()
+      writeCachedMyCardCategories(res)
+      return res
+    },
+    enabled: fetchShelvesEnabled,
+    staleTime: 15 * 60_000,
+    gcTime: 60 * 60_000,
+    placeholderData: (): MyUserCardCategoryListResponse | undefined =>
+      fetchShelvesEnabled ? readCachedMyCardCategories() ?? undefined : undefined,
   })
 
   const shelfItems = shelvesQuery.data?.items ?? []
-  const shelvesErr: string | null = enableCategoryFilter && shelvesQuery.isError
+  const shelvesErr: string | null = enableCategoryFilter && moreOpen && shelvesQuery.isError
     ? shelvesQuery.error instanceof ApiError
       ? formatApiDetail(shelvesQuery.error.detail)
       : 'Не удалось загрузить полки'
@@ -210,7 +219,7 @@ export function ProfileStatsFilters({
               </select>
               {shelvesErr != null ? (
                 <p className="mt-0.5 text-[11px] text-(--tgui--destructive_text_color)">{shelvesErr}</p>
-              ) : shelvesQuery.isLoading && shelfItems.length === 0 ? (
+              ) : shelvesQuery.isFetching && shelfItems.length === 0 ? (
                 <p className="mt-0.5 text-[11px] text-(--tgui--hint_color)">Загрузка полок…</p>
               ) : null}
             </label>
