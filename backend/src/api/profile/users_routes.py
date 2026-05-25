@@ -162,8 +162,7 @@ async def list_public_user_card_categories(
     rows = await ListPublicUserCardCategoriesService.build(db).execute(user_id)
     return MyUserCardCategoryListResponse(
         items=[
-            MyUserCardCategoryResponse(id=r.id, name=r.name, created_at=r.created_at)
-            for r in rows
+            MyUserCardCategoryResponse(id=r.id, name=r.name, created_at=r.created_at) for r in rows
         ]
     )
 

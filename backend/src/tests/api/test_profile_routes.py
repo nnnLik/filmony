@@ -420,7 +420,9 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     me = await _login(async_client, telegram_user_id=526)
     user_id = UUID(str(me['id']))
 
-    art_id, block_id, default_id, foreign_cat_id = await _seed_user_stats_shelf_ids(user_id, peer_id)
+    art_id, block_id, default_id, foreign_cat_id = await _seed_user_stats_shelf_ids(
+        user_id, peer_id
+    )
 
     await _seed_user_stats_movie_cards(
         user_id=user_id,
@@ -880,7 +882,9 @@ async def test_public_user_card_categories_returns_owner_shelves(async_client: A
 
 
 @pytest.mark.asyncio
-async def test_public_user_card_categories_lists_committed_shelves(async_client: AsyncClient) -> None:
+async def test_public_user_card_categories_lists_committed_shelves(
+    async_client: AsyncClient,
+) -> None:
     """Публичный список видит полки, зафиксированные в БД (POST /me/card-categories коммитит)."""
     me = await _login(async_client, telegram_user_id=5234)
     created = await async_client.post('/api/me/card-categories', json={'name': 'ShelfCommitted'})

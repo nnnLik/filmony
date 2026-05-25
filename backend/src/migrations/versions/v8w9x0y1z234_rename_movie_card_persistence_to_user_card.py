@@ -96,7 +96,9 @@ def upgrade() -> None:
     op.rename_table('movie_card_comment', 'card_comment')
 
     # --- card_tag ---
-    _rename_unique_constraint(bind, 'movie_card_tag', 'uq_movie_card_tag_unique', 'uq_card_tag_card_id_tag')
+    _rename_unique_constraint(
+        bind, 'movie_card_tag', 'uq_movie_card_tag_unique', 'uq_card_tag_card_id_tag'
+    )
     _rename_index('ix_movie_card_tag_movie_card_id', 'ix_card_tag_card_id')
     op.alter_column(
         'movie_card_tag',
@@ -140,7 +142,9 @@ def downgrade() -> None:
         existing_nullable=False,
     )
     _rename_index('ix_card_tag_card_id', 'ix_movie_card_tag_movie_card_id')
-    _rename_unique_constraint(bind, 'movie_card_tag', 'uq_card_tag_card_id_tag', 'uq_movie_card_tag_unique')
+    _rename_unique_constraint(
+        bind, 'movie_card_tag', 'uq_card_tag_card_id_tag', 'uq_movie_card_tag_unique'
+    )
 
     op.rename_table('card_comment', 'movie_card_comment')
     op.alter_column(
