@@ -366,6 +366,13 @@ export type TagDistributionItem = {
   count: number
 }
 
+/** Срез оценённых карточек по пользовательской полке (GET /stats). */
+export type CategoryDistributionItem = {
+  category_id: number | null
+  name: string
+  count: number
+}
+
 export type ProfileStatsMovieItem = {
   card_id: number
   film_id: number | null
@@ -382,6 +389,7 @@ export type UserMovieCardStats = {
   average_rating: number
   rating_distribution: RatingDistributionItem[]
   year_distribution: YearDistributionItem[]
+  category_distribution: CategoryDistributionItem[]
   popular_tags: TagDistributionItem[]
   watch_with_distribution: ValueDistributionItem[]
   mood_after_distribution: ValueDistributionItem[]

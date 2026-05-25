@@ -268,7 +268,7 @@ async def get_user_movie_card_stats(
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
-    stats = await GetUserCardStatsService(db).execute(user_id)
+    stats = await GetUserCardStatsService.build(db).execute(user_id)
     return build_user_card_stats_response(stats)
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import floor
+from typing import Self
 from uuid import UUID
 
 from sqlalchemy import desc, func, select
@@ -10,6 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.card_tag import CardTag
 from models.film import Film
 from models.user_card import UserCard
+from models.user_card_category import UserCardCategory
+
+UNCATEGORIZED_SHELF_NAME = 'Без полки'
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +41,13 @@ class TagDistributionItem:
 
 
 @dataclass(frozen=True, slots=True)
+class CategoryDistributionItem:
+    category_id: int | None
+    name: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class ProfileMovieStatsItem:
     card_id: int
     film_id: int
@@ -55,13 +66,20 @@ class UserCardStats:
     popular_tags: list[TagDistributionItem]
     watch_with_distribution: list[ValueDistributionItem]
     mood_after_distribution: list[ValueDistributionItem]
+    category_distribution: list[CategoryDistributionItem]
     top_movies: list[ProfileMovieStatsItem]
     worst_movies: list[ProfileMovieStatsItem]
 
 
+@dataclass
 class GetUserCardStatsService:
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
+    """Loads per-user card aggregates for profile stats (ratings, tags, shelves, top/worst)."""
+
+    _session: AsyncSession
+
+    @classmethod
+    def build(cls, session: AsyncSession) -> Self:
+        return cls(_session=session)
 
     async def execute(self, user_id: UUID) -> UserCardStats:
         card_rows = (
@@ -75,8 +93,15 @@ class GetUserCardStatsService:
                     Film.title,
                     Film.year,
                     Film.poster_url,
+                    UserCardCategory.id.label('shelf_category_id'),
+                    UserCardCategory.name.label('shelf_category_name'),
                 )
                 .join(Film, Film.id == UserCard.film_id)
+                .outerjoin(
+                    UserCardCategory,
+                    (UserCardCategory.id == UserCard.category_id)
+                    & (UserCardCategory.user_id == UserCard.user_id),
+                )
                 .where(UserCard.user_id == user_id)
             )
         ).all()
@@ -87,6 +112,8 @@ class GetUserCardStatsService:
         year_counts: dict[int, int] = {}
         company_counts: dict[str, int] = {}
         mood_after_counts: dict[str, int] = {}
+        category_counts: dict[int | None, int] = {}
+        category_names: dict[int, str] = {}
         movies: list[ProfileMovieStatsItem] = []
 
         for row in card_rows:
@@ -98,6 +125,12 @@ class GetUserCardStatsService:
                 year_counts[int(row.year)] = year_counts.get(int(row.year), 0) + 1
             company_counts[row.company] = company_counts.get(row.company, 0) + 1
             mood_after_counts[row.mood_after] = mood_after_counts.get(row.mood_after, 0) + 1
+            if row.shelf_category_id is not None:
+                cid = int(row.shelf_category_id)
+                category_names[cid] = str(row.shelf_category_name)
+                category_counts[cid] = category_counts.get(cid, 0) + 1
+            else:
+                category_counts[None] = category_counts.get(None, 0) + 1
             movies.append(
                 ProfileMovieStatsItem(
                     card_id=int(row.id),
@@ -128,6 +161,23 @@ class GetUserCardStatsService:
                 mood_after_counts.items(), key=lambda item: (-item[1], item[0])
             )
         ]
+        category_distribution = [
+            CategoryDistributionItem(
+                category_id=None,
+                name=UNCATEGORIZED_SHELF_NAME,
+                count=count,
+            )
+            if category_id is None
+            else CategoryDistributionItem(
+                category_id=category_id,
+                name=category_names[category_id],
+                count=count,
+            )
+            for category_id, count in sorted(
+                category_counts.items(),
+                key=lambda item: (-item[1], item[0] is not None, item[0] or 0),
+            )
+        ]
 
         tag_rows = (
             await self._session.execute(
@@ -152,6 +202,7 @@ class GetUserCardStatsService:
             popular_tags=popular_tags,
             watch_with_distribution=watch_with_distribution,
             mood_after_distribution=mood_after_distribution,
+            category_distribution=category_distribution,
             top_movies=sorted_by_top[:5],
             worst_movies=sorted_by_worst[:5],
         )

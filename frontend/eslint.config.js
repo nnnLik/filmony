@@ -47,4 +47,15 @@ export default defineConfig([
       globals: globals.node,
     },
   },
+  {
+    files: ['vitest.config.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: {
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+      globals: globals.node,
+    },
+  },
 ])

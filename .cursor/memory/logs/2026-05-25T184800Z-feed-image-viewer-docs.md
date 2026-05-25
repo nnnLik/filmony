@@ -1,0 +1,10 @@
+- **Timestamp**: 2026-05-25T184800Z
+- **Feature slug**: feed-image-viewer
+- **Action type**: docs
+- **Summary**: Extended feature spec acceptance (pinch-zoom), updated `.cursor/active/feed-image-viewer` plan/progress/result and `docs/features/feed-image-viewer.md` with root cause note and verification commands (`npm run test`).
+- **Files**:
+  - `.cursor/features/feed-image-viewer/feature.md`
+  - `.cursor/active/feed-image-viewer/plan.md`
+  - `.cursor/active/feed-image-viewer/progress.md`
+  - `.cursor/active/feed-image-viewer/result.md`
+  - `docs/features/feed-image-viewer.md`

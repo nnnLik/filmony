@@ -10,6 +10,7 @@ from models.card_tag import CardTag
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
+from models.user_card_category import UserCardCategory
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 
@@ -32,6 +33,7 @@ async def _seed_movie_card(
     mood_before: str = 'relax',
     mood_after: str,
     tags: list[str],
+    category_id: int | None = None,
 ) -> int:
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -44,7 +46,11 @@ async def _seed_movie_card(
         )
         session.add(film)
         await session.flush()
-        cat_id = await ensure_default_category(session, user_id)
+        cat_id = (
+            category_id
+            if category_id is not None
+            else await ensure_default_category(session, user_id)
+        )
         card = UserCard(
             user_id=user_id,
             film_id=film.id,
@@ -316,10 +322,29 @@ async def test_user_stats_unknown_user_returns_404(async_client: AsyncClient) ->
     assert r.status_code == 404
 
 
-@pytest.mark.asyncio
-async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
-    me = await _login(async_client, telegram_user_id=526)
-    user_id = UUID(str(me['id']))
+async def _seed_user_stats_shelf_ids(user_id: UUID, peer_id: UUID) -> tuple[int, int, int, int]:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        art = UserCardCategory(user_id=user_id, name='Артхаус')
+        block = UserCardCategory(user_id=user_id, name='Блокбастеры')
+        session.add(art)
+        session.add(block)
+        await session.flush()
+        art_id, block_id = art.id, block.id
+        default_id = await ensure_default_category(session, user_id)
+        foreign_cat_id = await ensure_default_category(session, peer_id)
+        await session.commit()
+    return art_id, block_id, default_id, foreign_cat_id
+
+
+async def _seed_user_stats_movie_cards(
+    *,
+    user_id: UUID,
+    art_id: int,
+    block_id: int,
+    default_id: int,
+    foreign_cat_id: int,
+) -> None:
     await _seed_movie_card(
         user_id=user_id,
         kinopoisk_id=200001,
@@ -329,6 +354,7 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         company='alone',
         mood_after='cried',
         tags=['Шедевр', 'Ноланомания'],
+        category_id=art_id,
     )
     await _seed_movie_card(
         user_id=user_id,
@@ -339,6 +365,7 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         company='friends',
         mood_after='laughed',
         tags=['Шедевр'],
+        category_id=art_id,
     )
     await _seed_movie_card(
         user_id=user_id,
@@ -349,6 +376,7 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         company='friends',
         mood_after='laughed',
         tags=['Эпик'],
+        category_id=block_id,
     )
     await _seed_movie_card(
         user_id=user_id,
@@ -359,6 +387,7 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         company='partner',
         mood_after='enjoyed',
         tags=['Яркий'],
+        category_id=block_id,
     )
     await _seed_movie_card(
         user_id=user_id,
@@ -369,6 +398,7 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         company='partner',
         mood_after='wasted_time',
         tags=['Фемповестка'],
+        category_id=default_id,
     )
     await _seed_movie_card(
         user_id=user_id,
@@ -379,6 +409,25 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         company='alone',
         mood_after='cried',
         tags=['Визуал'],
+        category_id=foreign_cat_id,
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
+    peer = await _login(async_client, telegram_user_id=528)
+    peer_id = UUID(str(peer['id']))
+    me = await _login(async_client, telegram_user_id=526)
+    user_id = UUID(str(me['id']))
+
+    art_id, block_id, default_id, foreign_cat_id = await _seed_user_stats_shelf_ids(user_id, peer_id)
+
+    await _seed_user_stats_movie_cards(
+        user_id=user_id,
+        art_id=art_id,
+        block_id=block_id,
+        default_id=default_id,
+        foreign_cat_id=foreign_cat_id,
     )
 
     r = await async_client.get(f'/api/users/{user_id}/stats')
@@ -433,6 +482,14 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         'Фильм B',
         'Фильм C',
     ]
+
+    cat_dist = body['category_distribution']
+    assert sum(item['count'] for item in cat_dist) == 6
+    by_key = {(item['category_id'], item['name']): item['count'] for item in cat_dist}
+    assert by_key[(art_id, 'Артхаус')] == 2
+    assert by_key[(block_id, 'Блокбастеры')] == 2
+    assert by_key[(default_id, 'Фильмы')] == 1
+    assert by_key[(None, 'Без полки')] == 1
 
 
 @pytest.mark.asyncio

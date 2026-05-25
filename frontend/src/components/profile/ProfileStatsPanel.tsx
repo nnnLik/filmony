@@ -169,6 +169,35 @@ export function ProfileStatsPanel({
     [stats],
   )
 
+  const shelfDistributionUi = useMemo(() => {
+    const rows = stats?.category_distribution ?? []
+    if (rows.length === 0) {
+      return {
+        hasShelves: false,
+        shelfMax: 0,
+        shelfUncatBarItems: [] as { label: string; count: number }[],
+        shelfCatBarItems: [] as { label: string; count: number }[],
+      }
+    }
+    const shelfMax = Math.max(0, ...rows.map((item) => item.count))
+    const nameHits = new Map<string, number>()
+    for (const row of rows) {
+      nameHits.set(row.name, (nameHits.get(row.name) ?? 0) + 1)
+    }
+    const shelfUncatBarItems: { label: string; count: number }[] = []
+    const shelfCatBarItems: { label: string; count: number }[] = []
+    for (const row of rows) {
+      if (row.category_id == null) {
+        shelfUncatBarItems.push({ label: row.name, count: row.count })
+      } else {
+        const label =
+          (nameHits.get(row.name) ?? 0) > 1 ? `${row.name} (#${row.category_id})` : row.name
+        shelfCatBarItems.push({ label, count: row.count })
+      }
+    }
+    return { hasShelves: true, shelfMax, shelfUncatBarItems, shelfCatBarItems }
+  }, [stats])
+
   const ratingBarItems = useMemo(() => {
     const list = stats?.rating_distribution ?? []
     return [...list]
@@ -257,6 +286,27 @@ export function ProfileStatsPanel({
     onDrillToRatedCards?.()
   }
 
+  const handleShelfDistributionDrill = (label: string) => {
+    const rows = stats?.category_distribution ?? []
+    if (rows.length === 0) return
+    const nameHits = new Map<string, number>()
+    for (const row of rows) {
+      nameHits.set(row.name, (nameHits.get(row.name) ?? 0) + 1)
+    }
+    const hit = rows.find((row) => {
+      if (row.category_id == null) return false
+      const rowLabel =
+        (nameHits.get(row.name) ?? 0) > 1 ? `${row.name} (#${row.category_id})` : row.name
+      return rowLabel === label
+    })
+    if (hit == null || hit.category_id == null) return
+    onCardsQueryChange({
+      ...cardsQuery,
+      categoryId: String(hit.category_id),
+    })
+    onDrillToRatedCards?.()
+  }
+
   const prioritizedPopularTags = useMemo(() => {
     const base = stats?.popular_tags ?? []
     return splitPopularTags(base, cardsQuery.tags)
@@ -340,6 +390,29 @@ export function ProfileStatsPanel({
                 </button>
               )
             })}
+          </div>
+        ) : (
+          <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+        )}
+      </ProfileStatsSectionCard>
+
+      <ProfileStatsSectionCard title="По полкам">
+        {shelfDistributionUi.hasShelves ? (
+          <div className="flex w-full min-w-0 flex-col gap-2.5">
+            {shelfDistributionUi.shelfUncatBarItems.length > 0 ? (
+              <StatsDistributionBars
+                items={shelfDistributionUi.shelfUncatBarItems}
+                maxCount={shelfDistributionUi.shelfMax}
+              />
+            ) : null}
+            {shelfDistributionUi.shelfCatBarItems.length > 0 ? (
+              <StatsDistributionBars
+                items={shelfDistributionUi.shelfCatBarItems}
+                maxCount={shelfDistributionUi.shelfMax}
+                onItemActivate={handleShelfDistributionDrill}
+                itemActionHint="Показать карточки на полке"
+              />
+            ) : null}
           </div>
         ) : (
           <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>

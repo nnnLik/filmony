@@ -197,6 +197,14 @@ class TagDistributionItemResponse(BaseModel):
     count: int
 
 
+class CategoryDistributionItemResponse(BaseModel):
+    category_id: int | None
+    name: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class ProfileStatsMovieItemResponse(BaseModel):
     card_id: int
     film_id: int
@@ -214,6 +222,7 @@ class UserCardStatsApiResponse(BaseModel):
     popular_tags: list[TagDistributionItemResponse] = Field(default_factory=list)
     watch_with_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
     mood_after_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
+    category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
 
@@ -346,6 +355,14 @@ def build_user_card_stats_response(stats: UserCardStats) -> UserCardStatsApiResp
         mood_after_distribution=[
             ValueDistributionItemResponse(value=item.value, count=item.count)
             for item in stats.mood_after_distribution
+        ],
+        category_distribution=[
+            CategoryDistributionItemResponse(
+                category_id=item.category_id,
+                name=item.name,
+                count=item.count,
+            )
+            for item in stats.category_distribution
         ],
         top_movies=[
             ProfileStatsMovieItemResponse(

@@ -14,6 +14,8 @@ export type FullscreenImageOverlayProps = {
 /**
  * Full-viewport overlay for viewing one image without cropping (`object-contain`).
  * Closes via backdrop click, Escape, or the close button.
+ * Uses `touch-manipulation` so pinch-zoom gestures are allowed (avoid `touch-pan-y`,
+ * which sets `touch-action: pan-y` and blocks pinch-zoom in WebKit/Telegram).
  */
 export function FullscreenImageOverlay({ open, src, alt = '', onClose }: FullscreenImageOverlayProps) {
   const onKeyDown = useCallback(
@@ -50,7 +52,7 @@ export function FullscreenImageOverlay({ open, src, alt = '', onClose }: Fullscr
       <button
         type="button"
         aria-label="Закрыть просмотр (нажатие по фону)"
-        className="relative mx-auto mb-6 min-h-0 w-full flex-1 touch-pan-y px-4 outline-none!"
+        className="relative mx-auto mb-6 min-h-0 w-full flex-1 touch-manipulation px-4 outline-none!"
         onClick={onClose}
       >
         <span className="pointer-events-none flex h-full max-h-[min(100vh,720px)] w-full items-center justify-center px-2 sm:max-h-[85dvh]">

@@ -12,4 +12,5 @@
 - Feed post embedded images (and referenced card thumbnails inside post rows) behave the same relative to existing navigation.
 - Movie card detail hero poster and comment/draft attachments open on double activation; bounded `object-contain` preview frames (no visual overflow cropping in card chrome).
 - Overlay: dark backdrop, large contained image, close via X, Escape, tapping backdrop.
+- In the fullscreen overlay (expanded image card viewer), pinch-zoom gestures work on touch devices (viewport / image zoom via browser handling).
 - `npm run lint` and `npm run build` succeed in `frontend/`.

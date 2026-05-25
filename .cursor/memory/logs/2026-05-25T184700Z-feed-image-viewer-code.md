@@ -1,0 +1,13 @@
+- **Timestamp**: 2026-05-25T184700Z
+- **Feature slug**: feed-image-viewer
+- **Action type**: code
+- **Summary**: Fixed fullscreen overlay pinch-zoom by replacing `touch-pan-y` with `touch-manipulation` on `FullscreenImageOverlay` (root cause: `touch-action: pan-y` blocks pinch-zoom in WebKit/Telegram webviews); added Vitest + Testing Library regression test and `npm run test` script.
+- **Files**:
+  - `frontend/src/components/media/FullscreenImageOverlay.tsx`
+  - `frontend/src/components/media/FullscreenImageOverlay.test.tsx`
+  - `frontend/src/test/setup.ts`
+  - `frontend/vitest.config.ts`
+  - `frontend/package.json`
+  - `frontend/package-lock.json`
+  - `frontend/eslint.config.js`
+- **Verification**: `cd frontend && npm run lint && npm run test && npm run build` (pass)

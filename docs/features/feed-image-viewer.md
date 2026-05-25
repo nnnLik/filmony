@@ -18,6 +18,8 @@ Primary **movie posters**, **feed post attachments**, and the **card detail hero
 
 Close the overlay via **backdrop tap**, **`X`**, or **Escape**.
 
+On **touch**, the fullscreen image area uses **`touch-manipulation`** so the browser/WebView may handle **pinch-zoom** while still allowing normal panning (avoid **`touch-pan-y`** alone, which maps to **`touch-action: pan-y`** and disables pinch-zoom in WebKit-backed clients such as Telegram).
+
 ## Implementation map
 
 | Piece | Responsibility |
@@ -29,7 +31,7 @@ Close the overlay via **backdrop tap**, **`X`**, or **Escape**.
 ## Verification
 
 ```bash
-cd frontend && npm run lint && npm run build
+cd frontend && npm run lint && npm run test && npm run build
 ```
 
 ## Related docs

@@ -2,11 +2,12 @@
 
 ## Status
 
-Complete.
+Complete (including fullscreen pinch-zoom follow-up).
 
 ## Implemented
 
 - Fullscreen overlay with backdrop (`z-200`), **`object-contain`** preview inside the overlay, Telegram UI close `IconButton`, Escape, backdrop tap.
+- **Pinch-zoom (2026-05-25):** the image-area control uses **`touch-manipulation`** (`touch-action: manipulation`) instead of **`touch-pan-y`** (**`touch-action: pan-y`**, which disables browser pinch-zoom on WebKit / Telegram Mini App webviews).
 - **Primary imagery** (**`FeedCard`** poster, **`FeedPostCard`** attachment via `FeedOpenableContainedImage`, **`MovieCardDetailPage`** hero) uses a **full-bleed** layout: **`img`** as **`block`**, **`w-full`**, **`h-auto`**, **`max-w-none`** so **width spans the tile** and **height follows intrinsic aspect ratio** — **no empty side gutters or letterboxing inside the image region**. No stretching (`object-cover` / `object-contain`) on these heroes; cropping is avoided in-feed; **fullscreen overlay** keeps **`object-contain`** for full view.
 - Referenced-card **thumbnail** in **`FeedPostCard`** remains a small fixed box with **`object-cover`**.
 - Optional **`backdropFill`** / **`FeedContainedImageBackdrop`** remain for **`object-contain`** thumbnails and nested surfaces (`FeedOpenableContainedImage`).
@@ -17,28 +18,26 @@ Complete.
 
 ## Files touched
 
-- `frontend/src/components/media/FullscreenImageOverlay.tsx` (new)
-- `frontend/src/hooks/useFullscreenImageActivator.ts` (new)
-- `frontend/src/components/feed/FeedOpenableContainedImage.tsx` (backdrop stack + optional `backdropFill`)
-- `frontend/src/components/feed/FeedCard.tsx`
-- `frontend/src/components/feed/FeedPostCard.tsx`
-- `frontend/src/pages/MovieCardDetailPage.tsx`
+- `frontend/src/components/media/FullscreenImageOverlay.tsx` — **`touch-manipulation`**, docstring on pinch-zoom rationale
+- `frontend/src/components/media/FullscreenImageOverlay.test.tsx` (new) — class regression guard
+- `frontend/src/test/setup.ts` (new) — jest-dom matchers for Vitest
+- `frontend/vitest.config.ts` (new)
+- `frontend/package.json` — `npm run test`; devDependencies Vitest / RTL / jsdom / `@testing-library/dom`
+- `frontend/eslint.config.js` — lint **`vitest.config.ts`** without type-aware project coupling
 - `.cursor/features/feed-image-viewer/feature.md`
 - `.cursor/active/feed-image-viewer/{plan,progress,result}.md`
 - `docs/features/feed-image-viewer.md`
-- `docs/frontend/ui-conventions.md`
-- `.cursor/memory/logs/*` (+ index), including `2026-05-22T160500Z-feed-image-viewer-code.md`
+- `.cursor/memory/logs/action-log.md` (+ new log fragment)
 
 ## Verification
 
 ```bash
-cd frontend && npm run lint && npm run build
+cd frontend && npm run lint && npm run test && npm run build
 ```
 
-- ESLint: pass (after full-width natural-height poster change)
-- `tsc -b` + `vite build`: pass
-
-Frontend has no bundled test runner; no automated UI tests added.
+- ESLint: pass  
+- Vitest (`FullscreenImageOverlay` touch-action contract): pass  
+- `tsc -b` + `vite build`: pass  
 
 ## Notes / limitations
 

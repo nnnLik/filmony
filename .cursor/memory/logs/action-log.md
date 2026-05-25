@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-05-25T184800Z-feed-image-viewer-docs.md`
+- `2026-05-25T184700Z-feed-image-viewer-code.md`
 - `2026-05-22T200000Z-feed-image-viewer-code.md`
 - `2026-05-22T190000Z-feed-image-viewer-code.md`
 - `2026-05-22T180500Z-feed-image-viewer-code.md`
