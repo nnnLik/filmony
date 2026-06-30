@@ -4,16 +4,16 @@ overview: "Finish the unified watchlist feature end-to-end: mutual watch-with se
 todos:
   - id: backend-watchwith
     content: Finish backend watch-with validation, tag plumbing, and provider-aware shims
-    status: in_progress
+    status: completed
   - id: backend-feed
     content: Replace placeholder watchlist feed posts with real snapshot content
-    status: pending
+    status: completed
   - id: frontend-create
     content: Add watch-with picker, tag selector, and provider-aware watchlist create UI
-    status: pending
+    status: completed
   - id: legacy-cleanup
     content: Remove or deprecate legacy watchlist film-only endpoints and finish migration cleanup
-    status: pending
+    status: in_progress
   - id: delivery-artifacts
     content: Update progress, result, docs, and action log; run final verification
     status: pending
