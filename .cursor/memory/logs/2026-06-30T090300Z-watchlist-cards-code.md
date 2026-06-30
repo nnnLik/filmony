@@ -1,0 +1,22 @@
+# Action Log Entry
+
+- Timestamp: 2026-06-30T09:03:00Z
+- Feature: watchlist-cards
+- Action: code
+- Summary: Added provider-aware watchlist entries, new watchlist API routes, invite/feed services, and migrated legacy data usage.
+- Files:
+  - backend/src/models/watchlist_entry.py
+  - backend/src/services/watchlist/create_watchlist_entry.py
+  - backend/src/services/feed_posts/create_watchlist_feed_post.py
+  - backend/src/services/telegram/send_watchlist_invite_notification.py
+  - backend/src/api/watchlist/routes.py
+  - backend/src/api/watchlist/schemas.py
+  - backend/src/services/cards/create_user_card.py
+  - backend/src/migrations/versions/w1x2y3z4a01_watchlist_entry.py
+  - backend/src/migrations/versions/w1x2y3z4a02_migrate_watchlist_films.py
+  - backend/src/tests/services/test_create_watchlist_entry_service.py
+  - backend/src/tests/services/test_create_watchlist_feed_post_service.py
+  - backend/src/tests/services/test_send_watchlist_invite_notification_service.py
+  - backend/src/tests/api/test_watchlist_routes.py
+  - backend/src/tests/migrations/test_watchlist_migration.py
+- Verification: make DEXEC="docker exec -w /opt/app/src" backend-test
