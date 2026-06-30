@@ -263,12 +263,10 @@ class GetUserCardDetailsService:
                 .all()
             )
             for partner_card in partner_cards:
-                if self._is_planned_user_card(partner_card):
-                    if partner_card.user_id not in planned_by_user:
-                        planned_by_user[partner_card.user_id] = partner_card
-                elif self._is_rated_user_card(partner_card):
-                    if partner_card.user_id not in rated_by_user:
-                        rated_by_user[partner_card.user_id] = partner_card
+                if self._is_planned_user_card(partner_card) and partner_card.user_id not in planned_by_user:
+                    planned_by_user[partner_card.user_id] = partner_card
+                elif self._is_rated_user_card(partner_card) and partner_card.user_id not in rated_by_user:
+                    rated_by_user[partner_card.user_id] = partner_card
 
         partners: list[PlannedWatchPartner] = []
         for partner_id in partner_ids:
