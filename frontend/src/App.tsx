@@ -7,6 +7,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { MentionProfileLookupBootstrap } from './components/MentionProfileLookupBootstrap'
 import { ComposeFeedPostProvider } from './compose/ComposeFeedPostProvider'
 import { ScrollToTopFab } from './components/navigation/ScrollToTopFab'
+import { ScrollRestoreProvider } from './features/scrollRestore/ScrollRestoreProvider'
 import { QueryProvider } from './providers/QueryProvider'
 import { AppRoutes } from './routes'
 
@@ -19,7 +20,9 @@ export default function App() {
           <AuthProvider>
             <MentionProfileLookupBootstrap>
               <ComposeFeedPostProvider>
-                <AppRoutes />
+                <ScrollRestoreProvider>
+                  <AppRoutes />
+                </ScrollRestoreProvider>
               </ComposeFeedPostProvider>
             </MentionProfileLookupBootstrap>
           </AuthProvider>
