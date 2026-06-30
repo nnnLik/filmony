@@ -1,27 +1,36 @@
 import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { NavigationType, type Location } from 'react-router-dom';
+import type * as ReactRouterDom from 'react-router-dom';
 
 import { ScrollRestoreProvider } from '../ScrollRestoreProvider';
 import { buildRouteKey } from '../routeKey';
 import { ScrollRestoreService } from '../service';
 
-let navigationType = 'PUSH';
+type ReactRouterDomModule = typeof ReactRouterDom;
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+let navigationType: NavigationType = NavigationType.Push;
 
-  return {
+vi.mock('react-router-dom', async (): Promise<ReactRouterDomModule> => {
+  const actual = await Promise.resolve(
+    vi.importActual<ReactRouterDomModule>('react-router-dom'),
+  );
+  const location: Location = {
+    pathname: '/feed',
+    search: '',
+    hash: '',
+    state: null,
+    key: 'scroll-restore-key',
+  };
+
+  const mockedModule: ReactRouterDomModule = {
     ...actual,
-    useLocation: () => ({
-      pathname: '/feed',
-      search: '',
-      hash: '',
-      state: null,
-      key: 'scroll-restore-key',
-    }),
+    useLocation: () => location,
     useNavigationType: () => navigationType,
   };
+
+  return mockedModule;
 });
 
 const setScrollRestoreFlag = (enabled: boolean) => {
@@ -37,14 +46,14 @@ const clearScrollRestoreFlag = () => {
 afterEach(() => {
   vi.restoreAllMocks();
   sessionStorage.clear();
-  navigationType = 'PUSH';
+  navigationType = NavigationType.Push;
   clearScrollRestoreFlag();
 });
 
 describe('ScrollRestoreProvider', () => {
   it('restores scroll on POP navigation only', async () => {
     setScrollRestoreFlag(true);
-    navigationType = 'POP';
+    navigationType = NavigationType.Pop;
 
     const routeKey = buildRouteKey({ pathname: '/feed', search: '' });
     sessionStorage.setItem(
@@ -56,7 +65,7 @@ describe('ScrollRestoreProvider', () => {
 
     const restoreSpy = vi
       .spyOn(ScrollRestoreService.prototype, 'restore')
-      .mockImplementation(() => undefined);
+      .mockImplementation(() => Promise.resolve(undefined));
 
     const { unmount } = render(
       <MemoryRouter initialEntries={['/feed']}>
@@ -71,7 +80,7 @@ describe('ScrollRestoreProvider', () => {
     });
 
     restoreSpy.mockClear();
-    navigationType = 'PUSH';
+    navigationType = NavigationType.Push;
     unmount();
 
     render(
@@ -82,10 +91,8 @@ describe('ScrollRestoreProvider', () => {
       </MemoryRouter>,
     );
 
-    await act(async () => {
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
     });
 
     await waitFor(() => {
@@ -95,7 +102,7 @@ describe('ScrollRestoreProvider', () => {
 
   it('restores scroll after POP navigation asynchronously', async () => {
     setScrollRestoreFlag(true);
-    navigationType = 'PUSH';
+    navigationType = NavigationType.Push;
 
     const routeKey = buildRouteKey({ pathname: '/feed', search: '' });
     sessionStorage.setItem(
@@ -107,7 +114,7 @@ describe('ScrollRestoreProvider', () => {
 
     const restoreSpy = vi
       .spyOn(ScrollRestoreService.prototype, 'restore')
-      .mockImplementation(() => undefined);
+      .mockImplementation(() => Promise.resolve(undefined));
 
     const { unmount } = render(
       <MemoryRouter initialEntries={['/feed']}>
@@ -117,20 +124,19 @@ describe('ScrollRestoreProvider', () => {
       </MemoryRouter>,
     );
 
-    await act(async () => {
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
     });
 
     await waitFor(() => {
       expect(restoreSpy).not.toHaveBeenCalled();
     });
 
-    navigationType = 'POP';
+    navigationType = NavigationType.Pop;
 
     await act(async () => {
       window.history.back();
+      await Promise.resolve();
     });
 
     unmount();

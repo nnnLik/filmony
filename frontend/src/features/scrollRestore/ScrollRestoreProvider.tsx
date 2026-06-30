@@ -1,5 +1,5 @@
 import { type PropsWithChildren, useEffect } from 'react';
-import { useLocation, useNavigationType } from 'react-router-dom';
+import { NavigationType, useLocation, useNavigationType } from 'react-router-dom';
 
 import { getScrollContainer } from './containers';
 import { isScrollRestoreEnabled, scrollRestoreConfig } from './flags';
@@ -16,7 +16,7 @@ export const ScrollRestoreProvider = ({ children }: PropsWithChildren) => {
       return;
     }
 
-    if (navigationType !== 'POP') {
+    if (navigationType !== NavigationType.Pop) {
       return;
     }
 
