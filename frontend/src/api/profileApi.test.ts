@@ -140,6 +140,56 @@ describe('postCreateWatchlistEntry', () => {
       }),
     })
   })
+
+  it('sends watchlist detail fields when provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          entry_id: 4,
+          card_id: 'kp:42',
+          provider: 'kinopoisk',
+          title: 'Shared Film',
+          poster_url: null,
+          year: 2020,
+          watch_tag: 'watch_later',
+          watch_with_user_id: 'friend-1',
+          watch_with_user_ids: ['friend-1', 'friend-2'],
+          created_at: '2026-06-30T12:00:00Z',
+          film_id: 42,
+          film_kinopoisk_id: 999,
+          film_genres: [],
+          catalog_item_id: null,
+          external_id: '999',
+        }),
+        {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await postCreateWatchlistEntry({
+      film_id: 42,
+      company: 'friends',
+      category_id: 3,
+      watch_note: 'weekend plan',
+      watch_with_user_ids: ['friend-1', 'friend-2'],
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/watchlist', {
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      method: 'POST',
+      body: JSON.stringify({
+        film_id: 42,
+        company: 'friends',
+        category_id: 3,
+        watch_note: 'weekend plan',
+        watch_with_user_ids: ['friend-1', 'friend-2'],
+      }),
+    })
+  })
 })
 
 describe('patchMyWatchlistEntry', () => {

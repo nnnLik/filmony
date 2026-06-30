@@ -110,9 +110,7 @@ async def test_create_watchlist_entry_creates_feed_post_with_referenced_card(
     session_factory = get_session_factory()
     async with session_factory() as session:
         feed_post = (
-            await session.execute(
-                select(FeedPost).order_by(FeedPost.id.desc())
-            )
+            await session.execute(select(FeedPost).order_by(FeedPost.id.desc()))
         ).scalar_one()
         assert feed_post.body == ''
         assert feed_post.referenced_card_id is not None
@@ -381,3 +379,37 @@ async def test_create_watchlist_rejects_unknown_watch_with_user(
 
     assert response.status_code == 404
     assert response.json()['detail'] == 'watch with user not found'
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_with_company_note_and_multi_watch_with(
+    async_client: AsyncClient,
+) -> None:
+    actor = await _create_user(telegram_user_id=910150, slug='wl-details-actor')
+    partner_a = await _create_user(telegram_user_id=910151, slug='wl-details-a')
+    partner_b = await _create_user(telegram_user_id=910152, slug='wl-details-b')
+    await _add_mutual_subscription(actor, partner_a)
+    await _add_mutual_subscription(actor, partner_b)
+    film = await _create_film(kinopoisk_id=701_040)
+    await _login(async_client, telegram_user_id=910150)
+
+    response = await async_client.post(
+        '/api/me/watchlist',
+        json={
+            'film_id': film.id,
+            'company': 'friends',
+            'watch_note': 'weekend binge',
+            'watch_with_user_ids': [str(partner_a.id), str(partner_b.id)],
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body['watch_with_user_id'] == str(partner_a.id)
+    assert body['watch_with_user_ids'] == [str(partner_a.id), str(partner_b.id)]
+
+    planned = await async_client.get(f'/api/me/planned-card?film_id={film.id}')
+    assert planned.status_code == 200
+    planned_body = planned.json()
+    assert planned_body['company'] == 'friends'
+    assert planned_body['watch_note'] == 'weekend binge'

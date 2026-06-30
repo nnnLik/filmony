@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.card_enums import CardCompany
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
@@ -53,7 +54,11 @@ class CreateWatchlistEntryFromCatalogService:
         actor_user_id: UUID,
         catalog_item_id: int,
         watch_tag: str = 'watch_later',
+        company: CardCompany = CardCompany.alone,
+        category_id: int | None = None,
+        watch_note: str = '',
         watch_with_user_id: UUID | None = None,
+        watch_with_user_ids: list[UUID] | None = None,
         created_at: dt.datetime,
     ) -> CreateWatchlistEntryFromCatalogResult:
         ci = (
@@ -64,15 +69,16 @@ class CreateWatchlistEntryFromCatalogService:
         if ci is None:
             raise self.CatalogItemNotFoundError
 
-        has_card = (
+        has_rated_card = (
             await self._session.execute(
                 select(func.count(UserCard.id)).where(
                     UserCard.user_id == actor_user_id,
                     UserCard.catalog_item_id == catalog_item_id,
+                    UserCard.is_planned.is_(False),
                 )
             )
         ).scalar_one()
-        if int(has_card or 0) > 0:
+        if int(has_rated_card or 0) > 0:
             raise self.MovieAlreadyRatedForCatalogError
 
         film: Film | None = None
@@ -100,7 +106,11 @@ class CreateWatchlistEntryFromCatalogService:
             card_id=card_id,
             provider_meta=provider_meta,
             watch_tag=watch_tag,
+            company=company,
+            category_id=category_id,
+            watch_note=watch_note,
             watch_with_user_id=watch_with_user_id,
+            watch_with_user_ids=watch_with_user_ids,
             created_at=created_at,
         )
         return CreateWatchlistEntryFromCatalogResult(

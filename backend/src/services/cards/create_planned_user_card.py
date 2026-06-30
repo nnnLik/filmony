@@ -53,21 +53,61 @@ class CreatePlannedUserCardService:
         user_id: UUID,
         card_id: str,
         provider_meta: dict,
+        *,
+        company: CardCompany = CardCompany.alone,
+        category_id: int | None = None,
+        watch_note: str = '',
     ) -> UserCard:
         provider = _provider_from_meta(provider_meta, card_id)
         data = provider_meta.get('data') or {}
         if not isinstance(data, dict):
             data = {}
 
-        category_id = await ResolveUserCardCategoryIdForOwnerService.build(
+        resolved_category_id = await ResolveUserCardCategoryIdForOwnerService.build(
             self._session
-        ).execute(user_id, None)
+        ).execute(user_id, category_id)
+
+        normalized_note = (watch_note or '').strip()[:500]
 
         if provider == CatalogProvider.kinopoisk.value:
-            return await self._upsert_kinopoisk(user_id, card_id, data, category_id)
+            return await self._upsert_kinopoisk(
+                user_id,
+                card_id,
+                data,
+                resolved_category_id,
+                company,
+                normalized_note,
+            )
         if provider == CatalogProvider.rawg.value:
-            return await self._upsert_rawg(user_id, card_id, data, category_id)
-        return await self._upsert_custom(user_id, card_id, data, category_id)
+            return await self._upsert_rawg(
+                user_id,
+                card_id,
+                data,
+                resolved_category_id,
+                company,
+                normalized_note,
+            )
+        return await self._upsert_custom(
+            user_id,
+            card_id,
+            data,
+            resolved_category_id,
+            company,
+            normalized_note,
+        )
+
+    def _apply_planned_fields(
+        self,
+        entity: UserCard,
+        *,
+        category_id: int,
+        company: CardCompany,
+        watch_note: str,
+    ) -> UserCard:
+        entity.category_id = category_id
+        entity.company = company.value
+        entity.watch_note = watch_note
+        return entity
 
     async def _find_planned(
         self,
@@ -107,6 +147,8 @@ class CreatePlannedUserCardService:
         card_id: str,
         data: dict,
         category_id: int,
+        company: CardCompany,
+        watch_note: str,
     ) -> UserCard:
         kp_raw = data.get('kp_id')
         kp_id = int(kp_raw) if kp_raw is not None else int(card_id.removeprefix('kp:'))
@@ -135,6 +177,13 @@ class CreatePlannedUserCardService:
             external_id=external_id if film_id is None else None,
         )
         if existing is not None:
+            self._apply_planned_fields(
+                existing,
+                category_id=category_id,
+                company=company,
+                watch_note=watch_note,
+            )
+            await self._session.flush()
             return existing
 
         entity = UserCard(
@@ -145,10 +194,10 @@ class CreatePlannedUserCardService:
             provider=CatalogProvider.kinopoisk,
             external_id=external_id,
             rating=0.0,
-            company=CardCompany.alone.value,
+            company=company.value,
             mood_before=CardMoodBefore.relax.value,
             mood_after=CardMoodAfter.enjoyed.value,
-            watch_note='',
+            watch_note=watch_note,
             is_planned=True,
         )
         if film is not None:
@@ -171,6 +220,8 @@ class CreatePlannedUserCardService:
         card_id: str,
         data: dict,
         category_id: int,
+        company: CardCompany,
+        watch_note: str,
     ) -> UserCard:
         slug = data.get('slug') or data.get('external_id')
         if not isinstance(slug, str) or slug.strip() == '':
@@ -200,6 +251,13 @@ class CreatePlannedUserCardService:
             external_id=external_id if catalog_item_id is None else None,
         )
         if existing is not None:
+            self._apply_planned_fields(
+                existing,
+                category_id=category_id,
+                company=company,
+                watch_note=watch_note,
+            )
+            await self._session.flush()
             return existing
 
         ci: CatalogItem | None = None
@@ -218,10 +276,10 @@ class CreatePlannedUserCardService:
             provider=provider,
             external_id=resolved_external_id,
             rating=0.0,
-            company=CardCompany.alone.value,
+            company=company.value,
             mood_before=CardMoodBefore.relax.value,
             mood_after=CardMoodAfter.enjoyed.value,
-            watch_note='',
+            watch_note=watch_note,
             is_planned=True,
         )
 
@@ -251,12 +309,21 @@ class CreatePlannedUserCardService:
         card_id: str,
         data: dict,
         category_id: int,
+        company: CardCompany,
+        watch_note: str,
     ) -> UserCard:
         title = str(
             data.get('title') or data.get('display_title') or card_id.removeprefix('custom:')
         )
         existing = await self._find_planned(user_id, display_title=title)
         if existing is not None:
+            self._apply_planned_fields(
+                existing,
+                category_id=category_id,
+                company=company,
+                watch_note=watch_note,
+            )
+            await self._session.flush()
             return existing
 
         entity = UserCard(
@@ -267,13 +334,15 @@ class CreatePlannedUserCardService:
             provider=CatalogProvider.no_provider,
             external_id=None,
             rating=0.0,
-            company=CardCompany.alone.value,
+            company=company.value,
             mood_before=CardMoodBefore.relax.value,
             mood_after=CardMoodAfter.enjoyed.value,
-            watch_note='',
+            watch_note=watch_note,
             is_planned=True,
             display_title=title,
-            display_cover_url=_optional_str(data.get('poster_url') or data.get('display_cover_url')),
+            display_cover_url=_optional_str(
+                data.get('poster_url') or data.get('display_cover_url')
+            ),
             display_summary=_optional_str(data.get('description')),
             source_url=card_id,
         )

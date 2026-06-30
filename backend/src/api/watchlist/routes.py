@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,20 @@ from services.watchlist.create_watchlist_entry import CreateWatchlistEntryServic
 router = APIRouter(prefix='/watchlist', tags=['watchlist'])
 
 
+def _entry_response(entry: WatchlistEntry) -> WatchlistEntryResponse:
+    stored_ids = entry.watch_with_user_ids or []
+    partner_ids = [UUID(str(raw)) for raw in stored_ids]
+    return WatchlistEntryResponse(
+        id=entry.id,
+        user_id=entry.user_id,
+        card_id=entry.card_id,
+        provider_meta=entry.provider_meta,
+        watch_tag=entry.watch_tag,
+        watch_with_user_id=entry.watch_with_user_id,
+        watch_with_user_ids=partner_ids,
+    )
+
+
 @router.post('', response_model=WatchlistEntryResponse, status_code=status.HTTP_201_CREATED)
 async def create_watchlist_entry(
     body: WatchlistEntryCreate,
@@ -31,20 +46,16 @@ async def create_watchlist_entry(
             card_id=body.card_id,
             provider_meta=body.provider_meta,
             watch_tag=body.watch_tag.value,
+            company=body.company,
+            category_id=body.category_id,
+            watch_note=body.watch_note,
             watch_with_user_id=body.watch_with_user_id,
+            watch_with_user_ids=body.watch_with_user_ids,
             created_at=dt.datetime.now(dt.UTC),
         )
     except CreateWatchlistEntryService.WatchlistEntryAlreadyExistsError:
         raise HTTPException(status_code=409, detail='watchlist entry already exists') from None
-    entry = result.actor_entry
-    return WatchlistEntryResponse(
-        id=entry.id,
-        user_id=entry.user_id,
-        card_id=entry.card_id,
-        provider_meta=entry.provider_meta,
-        watch_tag=entry.watch_tag,
-        watch_with_user_id=entry.watch_with_user_id,
-    )
+    return _entry_response(result.actor_entry)
 
 
 @router.patch('/{entry_id}', response_model=WatchlistEntryResponse)
@@ -62,11 +73,4 @@ async def update_watchlist_entry(
     entry.watch_tag = body.watch_tag.value
     await db.commit()
     await db.refresh(entry)
-    return WatchlistEntryResponse(
-        id=entry.id,
-        user_id=entry.user_id,
-        card_id=entry.card_id,
-        provider_meta=entry.provider_meta,
-        watch_tag=entry.watch_tag,
-        watch_with_user_id=entry.watch_with_user_id,
-    )
+    return _entry_response(entry)

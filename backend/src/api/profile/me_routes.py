@@ -16,6 +16,7 @@ from api.profile.schemas import (
     MyUserCardCategoryResponse,
     MyUserCardTagStatItem,
     MyUserCardTagStatsResponse,
+    PlannedUserCardResponse,
     ProfileUpdateRequest,
     UserCardsExportCsvResponse,
     WatchlistEntryItemResponse,
@@ -29,6 +30,7 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from models.catalog_item import CatalogProvider
 from models.film import Film
+from services.cards.get_planned_user_card import GetPlannedUserCardService
 from services.profile.export_my_user_cards_csv_telegram import ExportMyUserCardsCsvTelegramService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_my_user_card_tag_stats import ListMyUserCardTagStatsService
@@ -193,14 +195,21 @@ async def post_my_watchlist_entry(
 ) -> WatchlistEntryItemResponse:
     created_at = dt.datetime.now(dt.UTC)
     watch_tag = body.watch_tag.value
+    watchlist_opts = {
+        'company': body.company,
+        'category_id': body.category_id,
+        'watch_note': body.watch_note,
+        'watch_with_user_id': body.watch_with_user_id,
+        'watch_with_user_ids': body.watch_with_user_ids,
+    }
     try:
         if body.film_id is not None:
             result = await CreateWatchlistEntryFromFilmService.build(db).execute(
                 actor_user_id=user.id,
                 film_id=body.film_id,
                 watch_tag=watch_tag,
-                watch_with_user_id=body.watch_with_user_id,
                 created_at=created_at,
+                **watchlist_opts,
             )
             entry_id = int(result.entry.actor_entry.id)
         elif body.catalog_item_id is not None:
@@ -208,8 +217,8 @@ async def post_my_watchlist_entry(
                 actor_user_id=user.id,
                 catalog_item_id=body.catalog_item_id,
                 watch_tag=watch_tag,
-                watch_with_user_id=body.watch_with_user_id,
                 created_at=created_at,
+                **watchlist_opts,
             )
             entry_id = int(result.entry.actor_entry.id)
         elif body.card_id is not None and body.provider_meta is not None:
@@ -218,8 +227,8 @@ async def post_my_watchlist_entry(
                 card_id=body.card_id,
                 provider_meta=body.provider_meta,
                 watch_tag=watch_tag,
-                watch_with_user_id=body.watch_with_user_id,
                 created_at=created_at,
+                **watchlist_opts,
             )
             entry_id = int(result.actor_entry.id)
         else:
@@ -249,6 +258,39 @@ async def post_my_watchlist_entry(
         ) from None
 
     return await _hydrated_entry_response(db, user.id, entry_id)
+
+
+@router.get(
+    '/planned-card',
+    response_model=PlannedUserCardResponse,
+    summary='Planned card metadata for prefill when rating from «Позже»',
+)
+async def get_my_planned_card(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    card_id: str | None = Query(default=None, min_length=1, max_length=128),
+    film_id: int | None = Query(default=None, ge=1),
+    catalog_item_id: int | None = Query(default=None, ge=1),
+) -> PlannedUserCardResponse:
+    if card_id is None and film_id is None and catalog_item_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail='provide card_id, film_id, or catalog_item_id',
+        )
+    planned = await GetPlannedUserCardService.build(db).execute(
+        user.id,
+        card_id=card_id,
+        film_id=film_id,
+        catalog_item_id=catalog_item_id,
+    )
+    if planned is None:
+        raise HTTPException(status_code=404, detail='planned card not found')
+    return PlannedUserCardResponse(
+        user_card_id=planned.user_card_id,
+        company=planned.company,
+        category_id=planned.category_id,
+        watch_note=planned.watch_note,
+    )
 
 
 @router.get(

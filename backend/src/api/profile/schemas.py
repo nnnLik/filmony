@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from api.cards.schemas import UserCardCategorySnippet
 from api.watchlist.schemas import WatchTag
+from models.card_enums import CardCompany
 from models.catalog_item import CatalogProvider
 from models.user import User
 from services.profile.get_user_card_stats import UserCardStats
@@ -60,7 +61,27 @@ class WatchlistFilmCreateRequest(BaseModel):
     card_id: str | None = Field(default=None, min_length=1, max_length=128)
     provider_meta: dict | None = None
     watch_tag: WatchTag = WatchTag.watch_later
+    company: CardCompany = CardCompany.alone
+    category_id: int | None = Field(default=None, ge=1)
+    watch_note: str = Field(default='', max_length=500)
     watch_with_user_id: UUID | None = None
+    watch_with_user_ids: list[UUID] = Field(default_factory=list, max_length=20)
+
+    model_config = ConfigDict(extra='forbid')
+
+    @field_validator('watch_with_user_ids')
+    @classmethod
+    def _validate_partner_count(cls, value: list[UUID]) -> list[UUID]:
+        if len(value) > 20:
+            raise ValueError('max 20 watch partners allowed')
+        return value
+
+
+class PlannedUserCardResponse(BaseModel):
+    user_card_id: int
+    company: CardCompany
+    category_id: int
+    watch_note: str
 
     model_config = ConfigDict(extra='forbid')
 
@@ -74,6 +95,7 @@ class WatchlistEntryItemResponse(BaseModel):
     year: int | None
     watch_tag: str
     watch_with_user_id: UUID | None
+    watch_with_user_ids: list[UUID] = Field(default_factory=list)
     created_at: datetime
     film_id: int | None = None
     film_kinopoisk_id: int | None = None
@@ -275,6 +297,7 @@ def build_watchlist_entry_item_response(item: WatchlistEntryListItem) -> Watchli
         year=item.year,
         watch_tag=item.watch_tag,
         watch_with_user_id=item.watch_with_user_id,
+        watch_with_user_ids=list(item.watch_with_user_ids or []),
         created_at=item.created_at,
         film_id=item.film_id,
         film_kinopoisk_id=item.film_kinopoisk_id,

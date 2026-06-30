@@ -85,6 +85,7 @@ export type WatchlistEntryItem = {
   year: number | null
   watch_tag: string
   watch_with_user_id: string | null
+  watch_with_user_ids?: string[]
   created_at: string
   film_id: number | null
   film_kinopoisk_id: number | null
@@ -110,6 +111,13 @@ export type WatchlistFilmPage = WatchlistEntryPage
 
 export type WatchlistMembership = {
   in_watchlist: boolean
+}
+
+export type PlannedUserCard = {
+  user_card_id: number
+  company: CardCompany
+  category_id: number
+  watch_note: string
 }
 
 export type WatchTag = 'watch_later'

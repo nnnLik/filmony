@@ -2,6 +2,15 @@
 
 Status: complete
 
+## Watchlist wizard details (2026-06-30)
+- Extended watchlist create API: `company`, `category_id`, `watch_note`, `watch_with_user_ids[]`.
+- Migration `w1x2y3z4a05`: JSONB `watchlist_entry.watch_with_user_ids`.
+- Planned card stores company/shelf/note; upsert updates existing planned rows.
+- Rated create upgrades planned card in place (preserves feed snippet id + note carryover).
+- `GET /api/me/planned-card` for prefill when rating from «Позже».
+- Frontend: dedicated wizard step «Детали для «Позже»» (company, multi-friends, shelf, note).
+- FilmDetailPage «Позже» opens create wizard with `branch=watchlist`.
+
 ## Completion phase (2026-06-30)
 - Added mutual watch partner validation (`AssertMutualWatchPartnerService`) for watch-with invites.
 - Forwarded `watch_tag` and `watch_with_user_id` through film/catalog create shims.

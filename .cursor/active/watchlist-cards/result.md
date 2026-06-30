@@ -3,47 +3,42 @@
 Status: complete
 
 ## Summary
-- Unified watchlist for Kinopoisk, RAWG, and custom cards with provider-aware create/list/delete/presence APIs.
-- Watch-with invites: mutual subscription validation, independent entries for both users, Telegram push notification.
-- Feed post created on every watchlist add with title, description, and poster (no personal rating).
-- Legacy `user_watchlist_film` data migrated and table dropped; film_id shims retained for compatibility.
-- Frontend: mutual-friend picker, watch tag selector, profile «Позже» grid with delete and provider-aware navigation, invite deeplinks.
+- Unified «Позже» watchlist for all providers with optional company, shelf, watch note, and multi-friend invites.
+- Dedicated create wizard branch collects details only when user chooses «Позже»; rated flow unchanged on steps 3–4.
+- Planned `UserCard` stores watchlist metadata; upgrading to rated card preserves card id and pre-fills note/company/shelf.
+- Multi-invite: each mutual friend gets own watchlist entry + Telegram push; actor entry stores full `watch_with_user_ids`.
 
-## Changed Files (completion phase)
+## Changed Files (wizard details phase)
 ### Backend
-- `backend/src/services/watchlist/assert_mutual_watch_partner.py`
+- `backend/src/migrations/versions/w1x2y3z4a05_watchlist_watch_with_user_ids.py`
+- `backend/src/models/watchlist_entry.py`
+- `backend/src/api/profile/schemas.py`, `backend/src/api/profile/me_routes.py`
+- `backend/src/api/watchlist/schemas.py`, `backend/src/api/watchlist/routes.py`
 - `backend/src/services/watchlist/create_watchlist_entry.py`
 - `backend/src/services/watchlist/create_watchlist_entry_from_film.py`
 - `backend/src/services/watchlist/create_watchlist_entry_from_catalog.py`
-- `backend/src/services/feed_posts/create_watchlist_feed_post.py`
-- `backend/src/services/feed_posts/watchlist_provider_snapshot.py`
-- `backend/src/api/profile/me_routes.py`
-- `backend/src/api/profile/schemas.py`
-- `backend/src/migrations/versions/w1x2y3z4a03_drop_user_watchlist_film.py`
-- `backend/src/tests/services/test_create_watchlist_entry_service.py`
+- `backend/src/services/watchlist/normalize_watch_with_partners.py`
+- `backend/src/services/watchlist/list_user_watchlist_entries.py`
+- `backend/src/services/cards/create_planned_user_card.py`
+- `backend/src/services/cards/get_planned_user_card.py`
+- `backend/src/services/cards/create_user_card.py`
 - `backend/src/tests/api/test_watchlist_routes.py`
-- `backend/src/tests/services/test_create_watchlist_feed_post_service.py`
-- `backend/src/tests/migrations/test_watchlist_migration.py`
+- `backend/src/tests/services/test_create_watchlist_entry_service.py`
 
 ### Frontend
 - `frontend/src/pages/CreateCardPage.tsx`
-- `frontend/src/pages/ProfilePage.tsx`
 - `frontend/src/pages/FilmDetailPage.tsx`
+- `frontend/src/components/watchlist/MutualWatchFriendsMultiPicker.tsx`
 - `frontend/src/components/profile/WatchlistPosterGrid.tsx`
-- `frontend/src/components/watchlist/MutualWatchFriendPicker.tsx`
-- `frontend/src/lib/mutualSubscriptionFilter.ts`
-- `frontend/src/api/profileApi.ts`
-- `frontend/src/api/profileTypes.ts`
-- `frontend/src/navigation/TelegramMiniAppStartParamRedirect.tsx`
-- `frontend/src/lib/miniAppCardDeepLink.ts`
+- `frontend/src/api/profileApi.ts`, `frontend/src/api/profileTypes.ts`
 - `frontend/src/api/profileApi.test.ts`
 
 ## Verification
-- `docker exec -w /opt/app filmony-backend pytest -o addopts= src/tests/api/test_watchlist_routes.py src/tests/services/test_create_watchlist_entry_service.py src/tests/services/test_create_watchlist_feed_post_service.py src/tests/migrations/test_watchlist_migration.py` — 22 passed
-- `cd frontend && npm test -- src/api/profileApi.test.ts` — 4 passed
+- `docker compose exec backend alembic upgrade head` — applied `w1x2y3z4a05`
+- `docker exec -w /opt/app filmony-backend pytest -o addopts= src/tests/api/test_watchlist_routes.py src/tests/services/test_create_watchlist_entry_service.py` — 21 passed
+- `cd frontend && npm test -- src/api/profileApi.test.ts` — 5 passed
 - `cd frontend && npm run lint && npm run build` — passed
 
 ## Known limitations
-- `WatchTag` enum currently exposes only `watch_later`; UI is ready for future tags.
-- Legacy film-specific delete/presence routes kept for FilmDetailPage compatibility.
-- Feed posts use `body` + `image_url` rather than `referenced_card_id` (no rated card yet).
+- Re-adding the same title to «Позже» still returns 409 (no PATCH for planned metadata).
+- `WatchTag` enum still only `watch_later`.

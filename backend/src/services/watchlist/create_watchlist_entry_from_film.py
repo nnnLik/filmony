@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.card_enums import CardCompany
 from models.film import Film
 from models.user_card import UserCard
 from services.watchlist.create_watchlist_entry import (
@@ -48,22 +49,27 @@ class CreateWatchlistEntryFromFilmService:
         actor_user_id: UUID,
         film_id: int,
         watch_tag: str = 'watch_later',
+        company: CardCompany = CardCompany.alone,
+        category_id: int | None = None,
+        watch_note: str = '',
         watch_with_user_id: UUID | None = None,
+        watch_with_user_ids: list[UUID] | None = None,
         created_at: dt.datetime,
     ) -> CreateWatchlistEntryFromFilmResult:
         film = await self._session.get(Film, film_id)
         if film is None:
             raise self.FilmNotFoundError
 
-        has_card = (
+        has_rated_card = (
             await self._session.execute(
                 select(func.count(UserCard.id)).where(
                     UserCard.user_id == actor_user_id,
                     UserCard.film_id == film_id,
+                    UserCard.is_planned.is_(False),
                 )
             )
         ).scalar_one()
-        if int(has_card or 0) > 0:
+        if int(has_rated_card or 0) > 0:
             raise self.MovieAlreadyRatedForFilmError
 
         card_id = f'kp:{film.kinopoisk_id}'
@@ -80,7 +86,11 @@ class CreateWatchlistEntryFromFilmService:
             card_id=card_id,
             provider_meta=provider_meta,
             watch_tag=watch_tag,
+            company=company,
+            category_id=category_id,
+            watch_note=watch_note,
             watch_with_user_id=watch_with_user_id,
+            watch_with_user_ids=watch_with_user_ids,
             created_at=created_at,
         )
         return CreateWatchlistEntryFromFilmResult(entry=entry, film=film)

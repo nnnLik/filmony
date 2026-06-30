@@ -7,7 +7,6 @@ import { ApiError, formatApiDetail } from '../api/client'
 import {
   deleteMyWatchlistFilm,
   getMyWatchlistPresence,
-  postCreateWatchlistEntry,
 } from '../api/profileApi'
 import type {
   CardCompany,
@@ -28,8 +27,6 @@ import { displayNameFromAuthorFields } from '../lib/authorDisplayName'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { profileInitials } from '../lib/profileDisplay'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
-import { safeHapticSuccess } from '../lib/safeHaptic'
-
 function companyLabel(c: string): string {
   return c in COMPANY_SHORT ? COMPANY_SHORT[c as CardCompany] : c
 }
@@ -54,7 +51,6 @@ export function FilmDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [inWatchlist, setInWatchlist] = useState<boolean | null>(null)
   const [removeBusy, setRemoveBusy] = useState(false)
-  const [addWatchlistBusy, setAddWatchlistBusy] = useState(false)
   const [watchlistActionErr, setWatchlistActionErr] = useState<string | null>(null)
 
   const [community, setCommunity] = useState<FilmCommunityCardItem[]>([])
@@ -163,38 +159,10 @@ export function FilmDetailPage() {
 
   const hasMyRatedCard = film != null && film.my_card_id != null && film.my_card_id > 0
 
-  const onAddToWatchlist = useCallback(async () => {
+  const onAddToWatchlist = useCallback(() => {
     if (filmId < 1 || film == null) return
-    setAddWatchlistBusy(true)
-    setWatchlistActionErr(null)
-    try {
-      await postCreateWatchlistEntry({
-        film_id: film.id,
-        watch_tag: 'watch_later',
-      })
-      setInWatchlist(true)
-      clearMyProfileBundleCache()
-      safeHapticSuccess()
-    } catch (e) {
-      if (e instanceof ApiError) {
-        if (e.status === 409) {
-          setWatchlistActionErr('Уже в списке «Позже».')
-          setInWatchlist(true)
-          return
-        }
-        const msg = formatApiDetail(e.detail).toLowerCase()
-        if (msg.includes('movie card already exists')) {
-          setWatchlistActionErr('У вас уже есть оценённая карточка для этой темы.')
-          return
-        }
-        setWatchlistActionErr(formatApiDetail(e.detail))
-      } else {
-        setWatchlistActionErr('Не удалось добавить в список')
-      }
-    } finally {
-      setAddWatchlistBusy(false)
-    }
-  }, [film, filmId])
+    void navigate(`/cards/new?filmId=${encodeURIComponent(String(film.id))}&branch=watchlist`)
+  }, [film, filmId, navigate])
 
   const onRemoveFromWatchlist = useCallback(async () => {
     if (filmId < 1) return
@@ -355,13 +323,8 @@ export function FilmDetailPage() {
                           <Button stretched>Добавить карточку с оценкой</Button>
                         </Link>
                         {inWatchlist === false ? (
-                          <Button
-                            mode="gray"
-                            stretched
-                            disabled={addWatchlistBusy}
-                            onClick={() => void onAddToWatchlist()}
-                          >
-                            {addWatchlistBusy ? 'Добавляем…' : 'В список «Позже»'}
+                          <Button mode="gray" stretched onClick={onAddToWatchlist}>
+                            В список «Позже»
                           </Button>
                         ) : null}
                         {inWatchlist === true ? (

@@ -26,6 +26,11 @@ class WatchlistEntry(Base):
         ForeignKey('user.id', ondelete='SET NULL'),
         nullable=True,
     )
+    watch_with_user_ids: Mapped[list] = mapped_column(
+        JSON,
+        nullable=False,
+        server_default='[]',
+    )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

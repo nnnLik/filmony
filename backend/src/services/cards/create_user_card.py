@@ -290,6 +290,77 @@ class CreateUserCardService:
             payload.mood_after,
         )
 
+    async def _find_planned_film(self, user_id: UUID, film_id: int) -> UserCard | None:
+        return (
+            await self._session.execute(
+                select(UserCard).where(
+                    UserCard.user_id == user_id,
+                    UserCard.is_planned.is_(True),
+                    UserCard.film_id == film_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+    async def _find_planned_catalog(self, user_id: UUID, catalog_item_id: int) -> UserCard | None:
+        return (
+            await self._session.execute(
+                select(UserCard).where(
+                    UserCard.user_id == user_id,
+                    UserCard.is_planned.is_(True),
+                    UserCard.catalog_item_id == catalog_item_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+    async def _find_planned_manual(self, user_id: UUID, title: str) -> UserCard | None:
+        return (
+            await self._session.execute(
+                select(UserCard).where(
+                    UserCard.user_id == user_id,
+                    UserCard.is_planned.is_(True),
+                    UserCard.provider == CatalogProvider.no_provider,
+                    UserCard.display_title == title,
+                )
+            )
+        ).scalar_one_or_none()
+
+    async def _finalize_upgraded_planned(
+        self,
+        entity: UserCard,
+        *,
+        user_id: UUID,
+        category_id: int,
+        rating: float,
+        custom_tags: list[str],
+        watch_note: str,
+        company: CardCompany,
+        mood_before: CardMoodBefore,
+        mood_after: CardMoodAfter,
+        watchlist_card_id: str | None,
+    ) -> UserCard:
+        entity.is_planned = False
+        entity.category_id = category_id
+        entity.rating = rating
+        entity.company = company.value
+        entity.mood_before = mood_before.value
+        entity.mood_after = mood_after.value
+        entity.watch_note = watch_note
+
+        if watchlist_card_id is not None:
+            await self._session.execute(
+                delete(WatchlistEntry).where(
+                    WatchlistEntry.user_id == user_id,
+                    WatchlistEntry.card_id == watchlist_card_id,
+                )
+            )
+
+        await self._session.execute(delete(CardTag).where(CardTag.card_id == entity.id))
+        if custom_tags:
+            self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
+        await self._session.commit()
+        await self._session.refresh(entity)
+        return entity
+
     async def _create_film_backed(
         self,
         user_id: UUID,
@@ -315,13 +386,25 @@ class CreateUserCardService:
         if genres != (film.genres or []):
             film.genres = genres
 
-        await self._session.execute(
-            delete(UserCard).where(
-                UserCard.user_id == user_id,
-                UserCard.is_planned.is_(True),
-                UserCard.film_id == payload.film_id,
+        planned = await self._find_planned_film(user_id, payload.film_id)
+        if planned is not None:
+            _apply_display_from_film(planned, film)
+            if display_cover_url is not None:
+                planned.display_cover_url = display_cover_url
+            if display_summary is not None:
+                planned.display_summary = display_summary
+            return await self._finalize_upgraded_planned(
+                planned,
+                user_id=user_id,
+                category_id=category_id,
+                rating=rating,
+                custom_tags=custom_tags,
+                watch_note=watch_note,
+                company=payload.company,
+                mood_before=payload.mood_before,
+                mood_after=payload.mood_after,
+                watchlist_card_id=f'kp:{payload.kinopoisk_id}',
             )
-        )
 
         ci_id = (
             await self._session.execute(
@@ -400,13 +483,31 @@ class CreateUserCardService:
             if genres != (film.genres or []):
                 film.genres = genres
 
-        await self._session.execute(
-            delete(UserCard).where(
-                UserCard.user_id == user_id,
-                UserCard.is_planned.is_(True),
-                UserCard.catalog_item_id == payload.catalog_item_id,
+        planned = await self._find_planned_catalog(user_id, payload.catalog_item_id)
+        if planned is not None:
+            if film is not None:
+                _apply_display_from_film(planned, film)
+            if display_cover_url is not None:
+                planned.display_cover_url = display_cover_url
+            if display_summary is not None:
+                planned.display_summary = display_summary
+            watchlist_card_id = (
+                _watchlist_card_id_for_provider(ci.provider, ci.external_id)
+                if ci.external_id is not None
+                else None
             )
-        )
+            return await self._finalize_upgraded_planned(
+                planned,
+                user_id=user_id,
+                category_id=category_id,
+                rating=rating,
+                custom_tags=custom_tags,
+                watch_note=watch_note,
+                company=payload.company,
+                mood_before=payload.mood_before,
+                mood_after=payload.mood_after,
+                watchlist_card_id=watchlist_card_id,
+            )
 
         entity = UserCard(
             user_id=user_id,
@@ -478,6 +579,23 @@ class CreateUserCardService:
     ) -> UserCard:
         if len(title) > 255:
             raise UserCardValidationError('display_title max length is 255')
+
+        planned = await self._find_planned_manual(user_id, title)
+        if planned is not None:
+            planned.display_cover_url = display_cover_url
+            planned.display_summary = display_summary
+            return await self._finalize_upgraded_planned(
+                planned,
+                user_id=user_id,
+                category_id=category_id,
+                rating=rating,
+                custom_tags=custom_tags,
+                watch_note=watch_note,
+                company=company,
+                mood_before=mood_before,
+                mood_after=mood_after,
+                watchlist_card_id=planned.source_url,
+            )
 
         entity = UserCard(
             user_id=user_id,

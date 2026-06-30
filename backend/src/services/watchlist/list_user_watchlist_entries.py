@@ -68,6 +68,7 @@ class WatchlistEntryListItem:
     year: int | None
     watch_tag: str
     watch_with_user_id: UUID | None
+    watch_with_user_ids: list[UUID]
     created_at: dt.datetime
     film_id: int | None = None
     film_kinopoisk_id: int | None = None
@@ -221,7 +222,11 @@ class ListUserWatchlistEntriesService:
         films_by_kp: dict[int, Film] = {}
         if keys.kp_ids:
             film_rows = (
-                (await self._session.execute(select(Film).where(Film.kinopoisk_id.in_(keys.kp_ids))))
+                (
+                    await self._session.execute(
+                        select(Film).where(Film.kinopoisk_id.in_(keys.kp_ids))
+                    )
+                )
                 .scalars()
                 .all()
             )
@@ -284,6 +289,7 @@ class ListUserWatchlistEntriesService:
             provider=provider,
             watch_tag=entry.watch_tag,
             watch_with_user_id=entry.watch_with_user_id,
+            watch_with_user_ids=[UUID(str(raw)) for raw in (entry.watch_with_user_ids or [])],
             created_at=entry.created_at,
             **fields,
         )
@@ -323,7 +329,9 @@ class ListUserWatchlistEntriesService:
         data = (entry.provider_meta or {}).get('data') or {}
         slug = data.get('slug') or data.get('external_id')
         if not isinstance(slug, str) or slug.strip() == '':
-            slug = entry.card_id.removeprefix('rawg:') if entry.card_id.startswith('rawg:') else None
+            slug = (
+                entry.card_id.removeprefix('rawg:') if entry.card_id.startswith('rawg:') else None
+            )
         external_id = str(slug) if slug is not None else None
 
         catalog_item_id: int | None = None

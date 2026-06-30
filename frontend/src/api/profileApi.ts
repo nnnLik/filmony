@@ -16,6 +16,7 @@ import type {
   WatchlistEntryItem,
   WatchlistEntryPage,
   WatchlistMembership,
+  PlannedUserCard,
   WatchTag,
 } from './profileTypes'
 
@@ -48,7 +49,11 @@ export type CreateWatchlistEntryBody = {
   card_id?: string
   provider_meta?: Record<string, unknown>
   watch_tag?: WatchTag
+  company?: CardCompany
+  category_id?: number | null
+  watch_note?: string
   watch_with_user_id?: string | null
+  watch_with_user_ids?: string[]
 }
 
 async function readActionErrorDetail(res: Response): Promise<unknown> {
@@ -248,6 +253,26 @@ export async function postCreateWatchlistEntry(body: CreateWatchlistEntryBody): 
     body: JSON.stringify(body),
   })
   return normalizeWatchlistEntry(raw)
+}
+
+export type GetMyPlannedCardParams = {
+  card_id?: string
+  film_id?: number
+  catalog_item_id?: number
+}
+
+export async function getMyPlannedCard(params: GetMyPlannedCardParams): Promise<PlannedUserCard> {
+  const q = new URLSearchParams()
+  if (params.card_id != null && params.card_id !== '') {
+    q.set('card_id', params.card_id)
+  }
+  if (params.film_id != null && params.film_id > 0) {
+    q.set('film_id', String(params.film_id))
+  }
+  if (params.catalog_item_id != null && params.catalog_item_id > 0) {
+    q.set('catalog_item_id', String(params.catalog_item_id))
+  }
+  return apiJson<PlannedUserCard>(`/api/me/planned-card?${q.toString()}`)
 }
 
 /** @deprecated Use postCreateWatchlistEntry({ film_id }) */

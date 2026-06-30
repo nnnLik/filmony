@@ -5,10 +5,10 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
-
 from sqlalchemy import select
 
 from core.database import get_session_factory
+from models.card_enums import CardCompany
 from models.feed_post import FeedPost
 from models.user import User
 from models.user_subscription import UserSubscription
@@ -70,9 +70,7 @@ async def test_create_watchlist_entry_persists_provider_meta(
     async with session_factory() as session:
         feed_post = (
             await session.execute(
-                select(FeedPost)
-                .where(FeedPost.user_id == user.id)
-                .order_by(FeedPost.id.desc())
+                select(FeedPost).where(FeedPost.user_id == user.id).order_by(FeedPost.id.desc())
             )
         ).scalar_one()
         assert feed_post.body == ''
@@ -182,6 +180,50 @@ async def test_create_watchlist_entry_rejects_non_mutual_watch_partner(
                 watch_with_user_id=other.id,
                 created_at=created_at,
             )
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_entry_multi_invite(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import services.watchlist.create_watchlist_entry as create_watchlist_entry_module
+
+    actor = await _create_user(telegram_user_id=910160, slug_suffix='actor-multi')
+    invited_a = await _create_user(telegram_user_id=910161, slug_suffix='invited-a')
+    invited_b = await _create_user(telegram_user_id=910162, slug_suffix='invited-b')
+    await _add_mutual_subscription(actor, invited_a)
+    await _add_mutual_subscription(actor, invited_b)
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
+
+    class _FakeInviteService:
+        async def execute(self, **kwargs) -> dict:
+            return kwargs
+
+    def _build_fake_invite_service() -> _FakeInviteService:
+        return _FakeInviteService()
+
+    monkeypatch.setattr(
+        create_watchlist_entry_module.SendWatchlistInviteNotificationService,
+        'build',
+        _build_fake_invite_service,
+    )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        service = CreateWatchlistEntryService.build(session)
+        result = await service.execute(
+            actor_user_id=actor.id,
+            card_id='kp:55555',
+            provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 55555}},
+            watch_tag='watch_later',
+            company=CardCompany.friends,
+            watch_note='note',
+            watch_with_user_ids=[invited_a.id, invited_b.id],
+            created_at=created_at,
+        )
+
+    assert result.actor_entry.watch_with_user_ids == [str(invited_a.id), str(invited_b.id)]
+    assert len(result.invited_entries) == 2
 
 
 @pytest.mark.asyncio

@@ -47,7 +47,9 @@ function WatchlistPosterCell({
   const title = watchlistItemTitle(item)
   const poster = watchlistItemPoster(item)
   const href = watchlistItemHref(item)
-  const hasWatchWith = item.watch_with_user_id != null && item.watch_with_user_id !== ''
+  const hasWatchWith =
+    (item.watch_with_user_ids != null && item.watch_with_user_ids.length > 0) ||
+    (item.watch_with_user_id != null && item.watch_with_user_id !== '')
   const [menuOpen, setMenuOpen] = useState(false)
   const longPressTimer = useRef<number | null>(null)
 
