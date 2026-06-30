@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/r
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
@@ -27,7 +27,6 @@ import { globalFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQue
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
-import { readFeedScrollSnapshot, saveFeedScrollSnapshot } from '../lib/feedScrollRestore'
 import { FeedCardGlobalAudioProvider } from '../context/FeedCardGlobalAudioProvider'
 import { consumeGlobalFeedHeadSse } from '../lib/globalFeedSse'
 import {
@@ -50,11 +49,8 @@ export function FeedPage() {
   const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const location = useLocation()
   const { openCompose } = useComposeFeedPost()
-  const pendingScrollYRef = useRef<number | null>(null)
-  const feedKindRef = useRef<GlobalFeedKind>('all')
   const scrollContainerRef = useRef<HTMLElement | null>(null)
 
   const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
@@ -81,51 +77,10 @@ export function FeedPage() {
   }, [])
 
   useEffect(() => {
-    feedKindRef.current = feedKind
-  }, [feedKind])
-
-  useEffect(() => {
     queueMicrotask(() => {
       setHideMine(readGlobalFeedHideMine(viewerUserId))
     })
   }, [viewerUserId])
-
-  useEffect(() => {
-    if (auth.kind !== 'ready') {
-      return
-    }
-    let timeoutId: number | undefined
-    const onScroll = () => {
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId)
-      }
-      timeoutId = window.setTimeout(() => {
-        saveFeedScrollSnapshot(feedKindRef.current, window.scrollY)
-      }, 200)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [auth.kind])
-
-  useEffect(() => {
-    const st = location.state as { restoreFeedScroll?: boolean } | undefined
-    if (!st?.restoreFeedScroll || auth.kind !== 'ready') {
-      return
-    }
-    const snapshot = readFeedScrollSnapshot()
-    void navigate('.', { replace: true, state: {} })
-    queueMicrotask(() => {
-      if (snapshot != null) {
-        setFeedKind(snapshot.kind)
-        pendingScrollYRef.current = snapshot.y
-      }
-    })
-  }, [location.state, navigate, auth.kind])
 
   const refreshRecentStrip = useCallback(() => {
     const uid = readMyProfileBundleCache()?.profile.id
@@ -298,18 +253,6 @@ export function FeedPage() {
       return next
     })
   }, [viewerUserId])
-
-  useEffect(() => {
-    const y = pendingScrollYRef.current
-    if (y == null) return
-    if (auth.kind !== 'ready') return
-    if (feedQuery.isPending && items.length === 0) return
-
-    pendingScrollYRef.current = null
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: y, behavior: 'auto' })
-    })
-  }, [auth.kind, feedQuery.isPending, items.length, feedKind])
 
   const onRefetchFeed = useCallback(async () => {
     await feedQuery.refetch()
