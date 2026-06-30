@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.profile.schemas import (
@@ -15,14 +17,18 @@ from api.profile.schemas import (
     MyUserCardTagStatItem,
     MyUserCardTagStatsResponse,
     ProfileUpdateRequest,
-    WatchlistFilmCreateRequest,
-    WatchlistFilmItemResponse,
     UserCardsExportCsvResponse,
+    WatchlistEntryItemResponse,
+    WatchlistFilmCreateRequest,
+    WatchlistMembershipResponse,
     build_my_profile_response,
+    build_watchlist_entry_item_response,
 )
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
+from models.catalog_item import CatalogProvider
+from models.film import Film
 from services.profile.export_my_user_cards_csv_telegram import ExportMyUserCardsCsvTelegramService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_my_user_card_tag_stats import ListMyUserCardTagStatsService
@@ -38,11 +44,29 @@ from services.user_card_categories.rename_user_card_category import (
     RenameUserCardCategoryService,
 )
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
+from services.watchlist.create_watchlist_entry_from_catalog import (
+    CreateWatchlistEntryFromCatalogService,
+)
 from services.watchlist.create_watchlist_entry_from_film import (
     CreateWatchlistEntryFromFilmService,
 )
+from services.watchlist.delete_watchlist_entry import DeleteWatchlistEntryService
+from services.watchlist.get_my_watchlist_presence import GetMyWatchlistPresenceService
+from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
+from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
 
 router = APIRouter(prefix='/me', tags=['profile'])
+
+
+async def _hydrated_entry_response(
+    db: AsyncSession,
+    user_id: UUID,
+    entry_id: int,
+) -> WatchlistEntryItemResponse:
+    item = await ListUserWatchlistEntriesService(db).execute_for_entry(user_id, entry_id)
+    if item is None:
+        raise HTTPException(status_code=500, detail='watchlist entry missing after create')
+    return build_watchlist_entry_item_response(item)
 
 
 @router.get(
@@ -158,35 +182,130 @@ async def patch_my_profile(
 
 @router.post(
     '/watchlist',
-    response_model=WatchlistFilmItemResponse,
+    response_model=WatchlistEntryItemResponse,
     status_code=201,
-    summary='Добавить фильм в список «Посмотреть»',
+    summary='Добавить тему в список «Позже»',
 )
-async def post_my_watchlist_film(
+async def post_my_watchlist_entry(
     body: WatchlistFilmCreateRequest,
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> WatchlistFilmItemResponse:
-    service = CreateWatchlistEntryFromFilmService.build(db)
+) -> WatchlistEntryItemResponse:
+    created_at = dt.datetime.now(dt.UTC)
     try:
-        result = await service.execute(
-            actor_user_id=user.id,
-            film_id=body.film_id,
-            created_at=dt.datetime.now(dt.UTC),
-        )
+        if body.film_id is not None:
+            result = await CreateWatchlistEntryFromFilmService.build(db).execute(
+                actor_user_id=user.id,
+                film_id=body.film_id,
+                created_at=created_at,
+            )
+            entry_id = int(result.entry.actor_entry.id)
+        elif body.catalog_item_id is not None:
+            result = await CreateWatchlistEntryFromCatalogService.build(db).execute(
+                actor_user_id=user.id,
+                catalog_item_id=body.catalog_item_id,
+                created_at=created_at,
+            )
+            entry_id = int(result.entry.actor_entry.id)
+        elif body.card_id is not None and body.provider_meta is not None:
+            result = await CreateWatchlistEntryService.build(db).execute(
+                actor_user_id=user.id,
+                card_id=body.card_id,
+                provider_meta=body.provider_meta,
+                watch_tag=body.watch_tag,
+                watch_with_user_id=body.watch_with_user_id,
+                created_at=created_at,
+            )
+            entry_id = int(result.actor_entry.id)
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail='provide film_id, catalog_item_id, or card_id with provider_meta',
+            )
     except CreateWatchlistEntryFromFilmService.FilmNotFoundError:
         raise HTTPException(status_code=404, detail='film not found') from None
+    except CreateWatchlistEntryFromCatalogService.CatalogItemNotFoundError:
+        raise HTTPException(status_code=404, detail='catalog item not found') from None
+    except (
+        CreateWatchlistEntryFromFilmService.MovieAlreadyRatedForFilmError,
+        CreateWatchlistEntryFromCatalogService.MovieAlreadyRatedForCatalogError,
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail='movie card already exists for this film',
+        ) from None
     except CreateWatchlistEntryService.WatchlistEntryAlreadyExistsError:
         raise HTTPException(status_code=409, detail='watchlist entry already exists') from None
-    film = result.film
-    return WatchlistFilmItemResponse(
-        film_id=film.id,
-        film_kinopoisk_id=film.kinopoisk_id,
-        film_genres=film.genres,
-        film_title=film.title,
-        film_year=film.year,
-        film_poster_url=film.poster_url,
-    )
+
+    return await _hydrated_entry_response(db, user.id, entry_id)
+
+
+@router.get(
+    '/watchlist/presence',
+    response_model=WatchlistMembershipResponse,
+    summary='Проверить наличие темы в моём списке «Позже» по card_id',
+)
+async def get_my_watchlist_presence(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    card_id: str = Query(..., min_length=1, max_length=128),
+) -> WatchlistMembershipResponse:
+    present = await GetMyWatchlistPresenceService.build(db).execute(user.id, card_id)
+    return WatchlistMembershipResponse(in_watchlist=present)
+
+
+@router.get(
+    '/watchlist/films/{film_id}',
+    response_model=WatchlistMembershipResponse,
+    summary='Проверить, есть ли фильм в моём списке «Позже»',
+)
+async def get_my_watchlist_film_presence(
+    film_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> WatchlistMembershipResponse:
+    film = await db.get(Film, film_id)
+    if film is None:
+        return WatchlistMembershipResponse(in_watchlist=False)
+    card_id = watchlist_card_id_for_provider(CatalogProvider.kinopoisk, str(film.kinopoisk_id))
+    present = await GetMyWatchlistPresenceService.build(db).execute(user.id, card_id)
+    return WatchlistMembershipResponse(in_watchlist=present)
+
+
+@router.delete(
+    '/watchlist/{entry_id}',
+    status_code=204,
+    response_class=Response,
+    summary='Удалить запись из списка «Позже» по entry_id',
+)
+async def delete_my_watchlist_entry(
+    entry_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteWatchlistEntryService.build(db).execute_by_entry_id(user.id, entry_id)
+    except DeleteWatchlistEntryService.WatchlistEntryNotFoundError:
+        raise HTTPException(status_code=404, detail='watchlist entry not found') from None
+    return Response(status_code=204)
+
+
+@router.delete(
+    '/watchlist/films/{film_id}',
+    status_code=204,
+    response_class=Response,
+    summary='Убрать фильм из списка «Позже»',
+)
+async def delete_my_watchlist_film(
+    film_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteWatchlistEntryService.build(db).execute_by_film_id(user.id, film_id)
+    except DeleteWatchlistEntryService.WatchlistEntryNotFoundError:
+        raise HTTPException(status_code=404, detail='watchlist entry not found') from None
+    return Response(status_code=204)
 
 
 @router.post(

@@ -14,6 +14,10 @@ from services.profile.list_user_cards import UserCardListPage
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
 )
+from services.watchlist.list_user_watchlist_entries import (
+    WatchlistEntryListItem,
+    WatchlistEntryPage,
+)
 
 
 class MyUserCardCategoryResponse(BaseModel):
@@ -50,7 +54,48 @@ class ProfileUpdateRequest(BaseModel):
 
 
 class WatchlistFilmCreateRequest(BaseModel):
-    film_id: int = Field(..., ge=1)
+    film_id: int | None = Field(default=None, ge=1)
+    catalog_item_id: int | None = Field(default=None, ge=1)
+    card_id: str | None = Field(default=None, min_length=1, max_length=128)
+    provider_meta: dict | None = None
+    watch_tag: str = Field(default='watch_later', max_length=32)
+    watch_with_user_id: UUID | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistEntryItemResponse(BaseModel):
+    entry_id: int
+    card_id: str
+    provider: str
+    title: str
+    poster_url: str | None
+    year: int | None
+    watch_tag: str
+    watch_with_user_id: UUID | None
+    created_at: datetime
+    film_id: int | None = None
+    film_kinopoisk_id: int | None = None
+    film_genres: list[str] = Field(default_factory=list)
+    catalog_item_id: int | None = None
+    external_id: str | None = None
+    # Legacy aliases for Kinopoisk clients
+    film_title: str | None = None
+    film_year: int | None = None
+    film_poster_url: str | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistEntryPageResponse(BaseModel):
+    items: list[WatchlistEntryItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistMembershipResponse(BaseModel):
+    in_watchlist: bool
 
     model_config = ConfigDict(extra='forbid')
 
@@ -217,6 +262,35 @@ class UserCardStatsApiResponse(BaseModel):
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
+
+
+def build_watchlist_entry_item_response(item: WatchlistEntryListItem) -> WatchlistEntryItemResponse:
+    return WatchlistEntryItemResponse(
+        entry_id=item.entry_id,
+        card_id=item.card_id,
+        provider=item.provider,
+        title=item.title,
+        poster_url=item.poster_url,
+        year=item.year,
+        watch_tag=item.watch_tag,
+        watch_with_user_id=item.watch_with_user_id,
+        created_at=item.created_at,
+        film_id=item.film_id,
+        film_kinopoisk_id=item.film_kinopoisk_id,
+        film_genres=list(item.film_genres or []),
+        catalog_item_id=item.catalog_item_id,
+        external_id=item.external_id,
+        film_title=item.title if item.provider == 'kinopoisk' else None,
+        film_year=item.year if item.provider == 'kinopoisk' else None,
+        film_poster_url=item.poster_url if item.provider == 'kinopoisk' else None,
+    )
+
+
+def build_watchlist_entry_page_response(page: WatchlistEntryPage) -> WatchlistEntryPageResponse:
+    return WatchlistEntryPageResponse(
+        items=[build_watchlist_entry_item_response(it) for it in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 def build_my_profile_response(user: User, counts: UserProfileCounts) -> MyProfileResponse:

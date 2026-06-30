@@ -13,8 +13,8 @@ import type {
   SubscriptionListResponse,
   SubscriptionListType,
   UserMovieCardStats,
-  WatchlistFilmItem,
-  WatchlistFilmPage,
+  WatchlistEntryItem,
+  WatchlistEntryPage,
   WatchlistMembership,
 } from './profileTypes'
 import type { UserFeedPostsPage } from './feedInFeedTypes'
@@ -39,6 +39,15 @@ export type GetUserCardsParams = {
   categoryId?: number | null
 }
 
+export type CreateWatchlistEntryBody = {
+  film_id?: number
+  catalog_item_id?: number
+  card_id?: string
+  provider_meta?: Record<string, unknown>
+  watch_tag?: string
+  watch_with_user_id?: string | null
+}
+
 async function readActionErrorDetail(res: Response): Promise<unknown> {
   const ct = res.headers.get('content-type') ?? ''
   if (ct.includes('application/json')) {
@@ -55,6 +64,26 @@ async function readActionErrorDetail(res: Response): Promise<unknown> {
 async function assertActionOk(res: Response): Promise<void> {
   if (!res.ok) {
     throw new ApiError(res.status, await readActionErrorDetail(res))
+  }
+}
+
+function normalizeWatchlistEntry(raw: WatchlistEntryItem): WatchlistEntryItem {
+  const title = raw.title || raw.film_title || 'Untitled'
+  const poster = raw.poster_url ?? raw.film_poster_url ?? null
+  const year = raw.year ?? raw.film_year ?? null
+  return {
+    ...raw,
+    title,
+    poster_url: poster,
+    year,
+    film_genres: raw.film_genres ?? [],
+  }
+}
+
+function normalizeWatchlistPage(body: WatchlistEntryPage): WatchlistEntryPage {
+  return {
+    next_cursor: body.next_cursor,
+    items: body.items.map((it) => normalizeWatchlistEntry(it)),
   }
 }
 
@@ -190,7 +219,7 @@ export async function getUserFeedPosts(
 export async function getUserWatchlist(
   userId: string,
   params: { cursor?: string | null; limit?: number },
-): Promise<WatchlistFilmPage> {
+): Promise<WatchlistEntryPage> {
   const q = new URLSearchParams()
   if (params.cursor) {
     q.set('cursor', params.cursor)
@@ -199,28 +228,35 @@ export async function getUserWatchlist(
     q.set('limit', String(params.limit))
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  try {
-    return await apiJson<WatchlistFilmPage>(
-      `/api/users/${encodeURIComponent(userId)}/watchlist${suffix}`,
-    )
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return { items: [], next_cursor: null }
-    }
-    throw error
-  }
+  const body = await apiJson<WatchlistEntryPage>(
+    `/api/users/${encodeURIComponent(userId)}/watchlist${suffix}`,
+  )
+  return normalizeWatchlistPage(body)
 }
 
 export async function getUserMovieCardStats(userId: string): Promise<UserMovieCardStats> {
   return apiJson<UserMovieCardStats>(`/api/users/${encodeURIComponent(userId)}/stats`)
 }
 
-export async function postMyWatchlistFilm(filmId: number): Promise<WatchlistFilmItem> {
-  return apiJson<WatchlistFilmItem>('/api/me/watchlist', {
+export async function postCreateWatchlistEntry(body: CreateWatchlistEntryBody): Promise<WatchlistEntryItem> {
+  const raw = await apiJson<WatchlistEntryItem>('/api/me/watchlist', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ film_id: filmId }),
+    body: JSON.stringify(body),
   })
+  return normalizeWatchlistEntry(raw)
+}
+
+/** @deprecated Use postCreateWatchlistEntry({ film_id }) */
+export async function postMyWatchlistFilm(filmId: number): Promise<WatchlistEntryItem> {
+  return postCreateWatchlistEntry({ film_id: filmId })
+}
+
+export async function deleteMyWatchlistEntry(entryId: number): Promise<void> {
+  const res = await apiFetch(`/api/me/watchlist/${encodeURIComponent(String(entryId))}`, {
+    method: 'DELETE',
+  })
+  await assertActionOk(res)
 }
 
 export async function deleteMyWatchlistFilm(filmId: number): Promise<void> {
@@ -228,6 +264,11 @@ export async function deleteMyWatchlistFilm(filmId: number): Promise<void> {
     method: 'DELETE',
   })
   await assertActionOk(res)
+}
+
+export async function getMyWatchlistPresence(cardId: string): Promise<WatchlistMembership> {
+  const q = new URLSearchParams({ card_id: cardId })
+  return apiJson<WatchlistMembership>(`/api/me/watchlist/presence?${q.toString()}`)
 }
 
 export async function getMyWatchlistFilmPresence(filmId: number): Promise<WatchlistMembership> {

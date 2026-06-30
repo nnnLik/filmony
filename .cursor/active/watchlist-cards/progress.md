@@ -1,10 +1,9 @@
 # Watchlist Cards Progress
 
-Status: complete
+Status: in_progress
 
-- Created watchlist_entry model and migrations.
-- Added watchlist create/update API and schemas.
-- Implemented feed post and invite notification services.
-- Removed legacy watchlist routes/services and updated profile counts.
-- Added backend tests for services, API routes, and migration SQL.
-- Ran full backend test suite.
+- Added ListUserWatchlistEntriesService with cursor pagination and provider hydration.
+- Added GET /api/users/{user_id}/watchlist, presence/delete routes, universal POST /api/me/watchlist.
+- Added CreateWatchlistEntryFromCatalogService and rated-card guards on film/catalog create.
+- Updated frontend profileApi, CreateCardPage, WatchlistPosterGrid for all providers.
+- Extended backend/frontend tests; verification pending.

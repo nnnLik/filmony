@@ -76,19 +76,37 @@ export type MovieCardPage = {
   next_cursor: string | null
 }
 
-export type WatchlistFilmItem = {
-  film_id: number
-  film_kinopoisk_id: number
+export type WatchlistEntryItem = {
+  entry_id: number
+  card_id: string
+  provider: UserCardProvider | 'custom'
+  title: string
+  poster_url: string | null
+  year: number | null
+  watch_tag: string
+  watch_with_user_id: string | null
+  created_at: string
+  film_id: number | null
+  film_kinopoisk_id: number | null
   film_genres: string[]
-  film_title: string
-  film_year: number | null
-  film_poster_url: string | null
+  catalog_item_id: number | null
+  external_id: string | null
+  /** Legacy Kinopoisk aliases from API */
+  film_title?: string
+  film_year?: number | null
+  film_poster_url?: string | null
 }
 
-export type WatchlistFilmPage = {
-  items: WatchlistFilmItem[]
+/** @deprecated Use WatchlistEntryItem */
+export type WatchlistFilmItem = WatchlistEntryItem
+
+export type WatchlistEntryPage = {
+  items: WatchlistEntryItem[]
   next_cursor: string | null
 }
+
+/** @deprecated Use WatchlistEntryPage */
+export type WatchlistFilmPage = WatchlistEntryPage
 
 export type WatchlistMembership = {
   in_watchlist: boolean

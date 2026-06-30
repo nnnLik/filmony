@@ -25,7 +25,8 @@ import {
   getMyProfile,
   getMyCardCategories,
   getUserSubscriptions,
-  postMyWatchlistFilm,
+  postCreateWatchlistEntry,
+  type CreateWatchlistEntryBody,
 } from '../api/profileApi'
 import type {
   CardCompany,
@@ -127,11 +128,40 @@ type CreationBinding =
       display_summary: string | null
     }
 
-/** Kinopoisk-backed каталог: id `Film` для legacy watchlist API. */
-function watchlistKinopoiskFilmId(binding: CreationBinding): number | null {
-  if (binding.kind === 'manual' || binding.kind === 'catalog_game') return null
-  if (binding.kind === 'catalog_film') return binding.film.id
-  return binding.film.id
+function watchlistCustomCardId(title: string): string {
+  const slug =
+    title
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s-]/gu, '')
+      .replace(/\s+/g, '-')
+      .slice(0, 80) || 'untitled'
+  return `custom:${slug}`
+}
+
+function buildWatchlistCreatePayload(binding: CreationBinding): CreateWatchlistEntryBody | null {
+  if (binding.kind === 'manual') {
+    const title = binding.display_title.trim()
+    if (title === '') return null
+    return {
+      card_id: watchlistCustomCardId(title),
+      provider_meta: {
+        provider: 'custom',
+        data: {
+          title,
+          display_cover_url: binding.display_cover_url,
+          display_summary: binding.display_summary,
+        },
+      },
+    }
+  }
+  if (binding.kind === 'catalog_game') {
+    return { catalog_item_id: binding.catalogItemId }
+  }
+  if (binding.kind === 'catalog_film' || binding.kind === 'film') {
+    return { film_id: binding.film.id }
+  }
+  return null
 }
 
 async function hydrateKinopoiskCatalogFilm(externalId: string): Promise<Film> {
@@ -564,7 +594,7 @@ export function CreateCardPage() {
         genres: [] as string[],
         showDupWarning: false,
         myCardId: null as number | null,
-        showWatchlist: false,
+        showWatchlist: true,
       }
     }
     if (b.kind === 'catalog_game') {
@@ -576,7 +606,7 @@ export function CreateCardPage() {
         genres: [] as string[],
         showDupWarning: false,
         myCardId: null as number | null,
-        showWatchlist: false,
+        showWatchlist: true,
       }
     }
     const f = b.film
@@ -736,17 +766,17 @@ export function CreateCardPage() {
   }
 
   async function handleAddToWatchlist() {
-    if (creationBinding == null || creationBinding.kind === 'manual') {
+    if (creationBinding == null) {
       return
     }
-    const fid = watchlistKinopoiskFilmId(creationBinding)
-    if (fid == null || fid <= 0) {
+    const payload = buildWatchlistCreatePayload(creationBinding)
+    if (payload == null) {
       return
     }
     setWatchlistBusy(true)
     setWatchlistError(null)
     try {
-      await postMyWatchlistFilm(fid)
+      await postCreateWatchlistEntry(payload)
       clearMyProfileBundleCache()
       safeHapticSuccess()
       void navigate('/profile', { replace: true, state: { moviesSegment: 'watchlist' as const } })
