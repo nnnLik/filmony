@@ -69,3 +69,4 @@ vars/.env.*
 
 # --- Прочее ---
 .cache/
+.worktrees/
