@@ -803,7 +803,7 @@ export function FeedPostCard({
                     ) : null}
                   </p>
                   <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-(--tgui--text_color)">
-                    {formatRating(referenced_card.rating)}
+                    {referenced_card.is_planned ? 'Запланировано' : formatRating(referenced_card.rating)}
                   </span>
                 </div>
               </div>

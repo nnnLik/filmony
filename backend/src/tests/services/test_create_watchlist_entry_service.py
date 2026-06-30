@@ -6,7 +6,10 @@ from uuid import UUID
 import pytest
 from httpx import AsyncClient
 
+from sqlalchemy import select
+
 from core.database import get_session_factory
+from models.feed_post import FeedPost
 from models.user import User
 from models.user_subscription import UserSubscription
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
@@ -62,6 +65,18 @@ async def test_create_watchlist_entry_persists_provider_meta(
     assert entry.user_id == user.id
     assert entry.card_id == 'kp:12345'
     assert entry.provider_meta['provider'] == 'kinopoisk'
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        feed_post = (
+            await session.execute(
+                select(FeedPost)
+                .where(FeedPost.user_id == user.id)
+                .order_by(FeedPost.id.desc())
+            )
+        ).scalar_one()
+        assert feed_post.body == ''
+        assert feed_post.referenced_card_id is not None
 
 
 @pytest.mark.asyncio

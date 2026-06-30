@@ -315,6 +315,14 @@ class CreateUserCardService:
         if genres != (film.genres or []):
             film.genres = genres
 
+        await self._session.execute(
+            delete(UserCard).where(
+                UserCard.user_id == user_id,
+                UserCard.is_planned.is_(True),
+                UserCard.film_id == payload.film_id,
+            )
+        )
+
         ci_id = (
             await self._session.execute(
                 select(CatalogItem.id).where(CatalogItem.film_id == payload.film_id)
@@ -391,6 +399,14 @@ class CreateUserCardService:
                 raise FilmNotFoundError
             if genres != (film.genres or []):
                 film.genres = genres
+
+        await self._session.execute(
+            delete(UserCard).where(
+                UserCard.user_id == user_id,
+                UserCard.is_planned.is_(True),
+                UserCard.catalog_item_id == payload.catalog_item_id,
+            )
+        )
 
         entity = UserCard(
             user_id=user_id,

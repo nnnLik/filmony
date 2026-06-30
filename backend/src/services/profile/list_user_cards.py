@@ -305,7 +305,7 @@ class ListUserCardsService:
             .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
             .outerjoin(Film, Film.id == func.coalesce(UserCard.film_id, CatalogItem.film_id))
             .outerjoin(Game, Game.id == CatalogItem.game_id)
-            .where(UserCard.user_id == user_id)
+            .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
         )
         query = self._apply_filters(
             query,
@@ -404,6 +404,7 @@ class ListUserCardsService:
                 UserCard.user_id == user_id,
                 UserCard.is_favorite.is_(True),
                 UserCard.favorite_marked_at.is_not(None),
+                UserCard.is_planned.is_(False),
             )
         )
         query = self._apply_filters(
@@ -524,7 +525,7 @@ class ListUserCardsService:
             .outerjoin(CatalogItem, CatalogItem.id == UserCard.catalog_item_id)
             .outerjoin(Film, Film.id == func.coalesce(UserCard.film_id, CatalogItem.film_id))
             .outerjoin(Game, Game.id == CatalogItem.game_id)
-            .where(UserCard.user_id == user_id)
+            .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
             .order_by(desc(UserCard.id))
         )
         rows = (await self._session.execute(query)).all()

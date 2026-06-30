@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.watchlist_entry import WatchlistEntry
+from services.cards.create_planned_user_card import CreatePlannedUserCardService
 from services.feed_posts.create_watchlist_feed_post import CreateWatchlistFeedPostService
 from services.telegram.send_watchlist_invite_notification import (
     SendWatchlistInviteNotificationService,
@@ -28,6 +29,7 @@ class CreateWatchlistEntryService:
     """Creates a watchlist entry and optional friend invite entry."""
 
     _session: AsyncSession
+    _planned_card_service: CreatePlannedUserCardService
     _feed_post_service: CreateWatchlistFeedPostService
     _invite_notification_service: SendWatchlistInviteNotificationService
     _assert_mutual_watch_partner_service: AssertMutualWatchPartnerService
@@ -42,6 +44,7 @@ class CreateWatchlistEntryService:
     def build(cls, session: AsyncSession) -> Self:
         return cls(
             _session=session,
+            _planned_card_service=CreatePlannedUserCardService.build(session),
             _feed_post_service=CreateWatchlistFeedPostService.build(session),
             _invite_notification_service=SendWatchlistInviteNotificationService.build(),
             _assert_mutual_watch_partner_service=AssertMutualWatchPartnerService.build(session),
@@ -79,10 +82,14 @@ class CreateWatchlistEntryService:
             await self._session.rollback()
             raise self.WatchlistEntryAlreadyExistsError from exc
 
+        planned_card = await self._planned_card_service.execute(
+            actor_user_id,
+            card_id,
+            provider_meta,
+        )
         await self._feed_post_service.execute(
             user_id=actor_user_id,
-            card_id=card_id,
-            provider_meta=provider_meta,
+            referenced_user_card_id=int(planned_card.id),
         )
 
         invited_entry = None

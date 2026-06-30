@@ -388,6 +388,7 @@ class FeedPostReferencedCardSnippet:
     release_date: str | None
     film_poster_url: str | None
     rating: float
+    is_planned: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -1237,6 +1238,7 @@ class ListUserCardFeedService:
                     release_date=release_date,
                     film_poster_url=ref_poster,
                     rating=float(mc.rating),
+                    is_planned=bool(mc.is_planned),
                 )
             author = UserCardCommentAuthor(
                 id=author_user.id,

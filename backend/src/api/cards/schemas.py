@@ -275,6 +275,7 @@ class FeedPostReferencedCardResponse(BaseModel):
     release_date: str | None = None
     film_poster_url: str | None
     rating: float
+    is_planned: bool = False
 
 
 class FeedPostCommentPreviewResponse(BaseModel):

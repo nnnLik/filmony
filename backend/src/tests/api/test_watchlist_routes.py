@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from conf import settings
 from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
+from models.feed_post import FeedPost
 from models.film import Film
 from models.game import Game
 from models.user import User
@@ -93,6 +95,28 @@ async def _add_mutual_subscription(user_a: User, user_b: User) -> None:
         session.add(UserSubscription(follower_user_id=user_a.id, following_user_id=user_b.id))
         session.add(UserSubscription(follower_user_id=user_b.id, following_user_id=user_a.id))
         await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_entry_creates_feed_post_with_referenced_card(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=910150)
+    film = await _create_film(kinopoisk_id=701_040, title='Feed Post Film')
+
+    response = await async_client.post('/api/me/watchlist', json={'film_id': film.id})
+    assert response.status_code == 201
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        feed_post = (
+            await session.execute(
+                select(FeedPost).order_by(FeedPost.id.desc())
+            )
+        ).scalar_one()
+        assert feed_post.body == ''
+        assert feed_post.referenced_card_id is not None
+        assert feed_post.image_url is None
 
 
 @pytest.mark.asyncio
