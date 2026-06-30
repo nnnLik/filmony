@@ -199,9 +199,16 @@ export async function getUserWatchlist(
     q.set('limit', String(params.limit))
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  return apiJson<WatchlistFilmPage>(
-    `/api/users/${encodeURIComponent(userId)}/watchlist${suffix}`,
-  )
+  try {
+    return await apiJson<WatchlistFilmPage>(
+      `/api/users/${encodeURIComponent(userId)}/watchlist${suffix}`,
+    )
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return { items: [], next_cursor: null }
+    }
+    throw error
+  }
 }
 
 export async function getUserMovieCardStats(userId: string): Promise<UserMovieCardStats> {
