@@ -139,6 +139,7 @@ class ListUserFeedPostsService:
                     release_date=release_date,
                     film_poster_url=ref_poster,
                     rating=float(mc.rating),
+                    is_planned=bool(mc.is_planned),
                 )
             author = UserCardCommentAuthor(
                 id=author_user.id,

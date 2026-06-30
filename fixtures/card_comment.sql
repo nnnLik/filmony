@@ -1,4 +1,31 @@
-INSERT INTO public.movie_card_comment (movie_card_id,user_id,parent_comment_id,text,created_at) VALUES
+WITH base AS (
+  SELECT COALESCE(MAX(id), 0) AS base_id
+  FROM public.card_comment
+),
+card_map AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS idx
+  FROM public.user_card
+)
+INSERT INTO public.card_comment (
+  id,
+  card_id,
+  user_id,
+  parent_comment_id,
+  text,
+  created_at
+)
+SELECT
+  base.base_id + ROW_NUMBER() OVER () AS id,
+  cm.id,
+  v.user_id,
+  CASE
+    WHEN v.parent_comment_id IS NULL THEN NULL
+    ELSE base.base_id + v.parent_comment_id
+  END AS parent_comment_id,
+  v.text,
+  v.created_at::timestamptz
+FROM (
+  VALUES
 	 (1,'84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,NULL,'Айо уе?','2026-05-06 21:05:34'),
 	 (1,'5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,NULL,'ахахах да Симба','2026-05-06 21:05:37'),
 	 (1,'5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,1,'ну ляпнул','2026-05-06 21:05:43'),
@@ -124,4 +151,13 @@ INSERT INTO public.movie_card_comment (movie_card_id,user_id,parent_comment_id,t
 	 (5,'f0000007-0000-4000-8000-000000000007'::uuid,20,'Саундтрек лёг в плейлист, спасибо за наводку.','2026-05-10 15:07:00'),
 	 (10,'f0000008-0000-4000-8000-000000000008'::uuid,36,'Спойлеры в отдельном чате, кидайте инвайт.','2026-05-10 15:08:00'),
 	 (15,'f0000009-0000-4000-8000-000000000009'::uuid,NULL,'Звёздный дождь смотрю третий раз с разными людьми.','2026-05-10 15:09:00'),
-	 (20,'f000000a-0000-4000-8000-00000000000a'::uuid,NULL,'Звонок из прошлого — лучшая сцена у окна.','2026-05-10 15:10:00');
+	 (20,'f000000a-0000-4000-8000-00000000000a'::uuid,NULL,'Звонок из прошлого — лучшая сцена у окна.','2026-05-10 15:10:00')
+) AS v(card_idx, user_id, parent_comment_id, text, created_at)
+CROSS JOIN base
+JOIN card_map AS cm ON cm.idx = v.card_idx;
+
+SELECT setval(
+  pg_get_serial_sequence('public.card_comment', 'id'),
+  COALESCE((SELECT MAX(id) FROM public.card_comment), 1),
+  true
+);

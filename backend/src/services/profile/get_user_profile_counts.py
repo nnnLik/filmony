@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user_card import UserCard
 from models.user_subscription import UserSubscription
-from models.user_watchlist_film import UserWatchlistFilm
+from models.watchlist_entry import WatchlistEntry
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,8 +37,8 @@ class GetUserProfileCountsService:
             .scalar_subquery()
         )
         watchlist_films = (
-            select(func.count(UserWatchlistFilm.id))
-            .where(UserWatchlistFilm.user_id == user_id)
+            select(func.count(WatchlistEntry.id))
+            .where(WatchlistEntry.user_id == user_id)
             .scalar_subquery()
         )
         followers_count = (

@@ -96,6 +96,79 @@ async def _seed_movie_card_same_catalog_game(
         return cid
 
 
+async def _seed_planned_movie_card_same_film(
+    *,
+    user_id: UUID,
+    film_id: int,
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = (await session.execute(select(Film).where(Film.id == film_id))).scalar_one()
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
+            user_id=user_id,
+            film_id=film_id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
+            rating=0.0,
+            company='alone',
+            mood_before='relax',
+            mood_after='enjoyed',
+            is_planned=True,
+        )
+        session.add(card)
+        await session.flush()
+        cid = card.id
+        await session.commit()
+        return cid
+
+
+@pytest.mark.asyncio
+async def test_following_ratings_viewer_planned_only_shows_is_planned_without_rating(
+    async_client: AsyncClient,
+) -> None:
+    alice = await _login(async_client, telegram_user_id=93701)
+    frank = await _login(async_client, telegram_user_id=93702)
+
+    await _login(async_client, telegram_user_id=93701)
+    alice_card_id = await _seed_movie_card(
+        user_id=UUID(str(alice['id'])),
+        kinopoisk_id=937010,
+        title='Planned Viewer Film',
+        year=2023,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=['t'],
+    )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        row = (
+            await session.execute(select(UserCard).where(UserCard.id == alice_card_id))
+        ).scalar_one()
+        film_id = row.film_id
+
+    await _login(async_client, telegram_user_id=93702)
+    frank_planned_card_id = await _seed_planned_movie_card_same_film(
+        user_id=UUID(str(frank['id'])),
+        film_id=film_id,
+    )
+
+    await _login(async_client, telegram_user_id=93702)
+    res = await async_client.get(f'/api/cards/{alice_card_id}/following-ratings')
+    assert res.status_code == 200
+    body = res.json()
+    vr = body['viewer_rating']
+    assert vr is not None
+    assert vr['user_id'] == frank['id']
+    assert vr['movie_card_id'] == frank_planned_card_id
+    assert vr['is_planned'] is True
+    assert vr.get('rating') is None
+    assert body['items'] == []
+
+
 @pytest.mark.asyncio
 async def test_following_ratings_lists_subscriptions_same_film_sorted_desc(
     async_client: AsyncClient,

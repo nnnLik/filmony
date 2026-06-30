@@ -1,0 +1,23 @@
+# Action Log Entry
+
+- **Timestamp:** 2026-06-30T21:05:00Z
+- **Feature slug:** watchlist-cards
+- **Action type:** code
+- **Summary:** Fix «Позже» grid navigation (`planned_user_card_id`) and planned-card UI (no rating 0 in feed/detail).
+- **Files:**
+  - `backend/src/services/watchlist/list_user_watchlist_entries.py`
+  - `backend/src/api/profile/schemas.py`
+  - `backend/src/services/cards/get_user_card_details.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/services/cards/list_user_card_feed.py`
+  - `backend/src/api/feed/routes.py`
+  - `backend/src/tests/api/test_watchlist_routes.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/components/profile/WatchlistPosterGrid.tsx`
+  - `frontend/src/components/cards/PlannedCardBadge.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/pages/MovieCardDetailPage.tsx`
+  - `frontend/src/api/profileTypes.ts`
+- **Verification:** `make backend-test-one target=src/tests/api/test_watchlist_routes.py::test_list_user_watchlist_with_mixed_providers`; `cd frontend && npm run lint && npm run build`

@@ -1,6 +1,7 @@
 DC = docker compose -f docker-compose.yml
 DEXEC = docker exec -it -w /opt/app/src
 AEXEC = docker exec -it -w /opt/app
+AEXEC_NO_TTY = docker exec -w /opt/app
 APP = filmony-backend
 BACKEND_SERVICE = backend
 DLOG = docker logs -f -n 50
@@ -41,11 +42,11 @@ backend-fix:
 	$(DEXEC) $(APP) $(RUFF_FIX)
 
 backend-test:
-	$(DEXEC) $(APP) pytest
+	$(AEXEC_NO_TTY) $(APP) uv run pytest
 
 backend-test-one:
 	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/<dir>/test_<name>::<test_name>' >&2; exit 1)
-	$(DEXEC) $(APP) pytest $(target)
+	$(AEXEC_NO_TTY) $(APP) uv run pytest -n0 --no-cov $(target)
 
 logs:
 	$(DLOG) $(APP)

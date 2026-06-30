@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from api.cards.schemas import UserCardCategorySnippet
+from api.watchlist.schemas import WatchTag
+from models.card_enums import CardCompany
 from models.catalog_item import CatalogProvider
 from models.user import User
 from services.profile.get_user_card_stats import UserCardStats
@@ -14,7 +16,10 @@ from services.profile.list_user_cards import UserCardListPage
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
 )
-from services.watchlist.list_user_watchlist_films import WatchlistFilmPage
+from services.watchlist.list_user_watchlist_entries import (
+    WatchlistEntryListItem,
+    WatchlistEntryPage,
+)
 
 
 class MyUserCardCategoryResponse(BaseModel):
@@ -46,6 +51,103 @@ class MyUserCardCategoryRenameRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=120)
     bio: str | None = Field(default=None, max_length=500)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistFilmCreateRequest(BaseModel):
+    film_id: int | None = Field(default=None, ge=1)
+    catalog_item_id: int | None = Field(default=None, ge=1)
+    card_id: str | None = Field(default=None, min_length=1, max_length=128)
+    provider_meta: dict | None = None
+    watch_tag: WatchTag = WatchTag.watch_later
+    company: CardCompany = CardCompany.alone
+    category_id: int | None = Field(default=None, ge=1)
+    watch_note: str = Field(default='', max_length=500)
+    watch_with_user_id: UUID | None = None
+    watch_with_user_ids: list[UUID] = Field(default_factory=list, max_length=20)
+
+    model_config = ConfigDict(extra='forbid')
+
+    @field_validator('watch_with_user_ids')
+    @classmethod
+    def _validate_partner_count(cls, value: list[UUID]) -> list[UUID]:
+        if len(value) > 20:
+            raise ValueError('max 20 watch partners allowed')
+        return value
+
+
+class WatchlistEntryUpdateRequest(BaseModel):
+    company: CardCompany = CardCompany.alone
+    category_id: int | None = Field(default=None, ge=1)
+    watch_note: str = Field(default='', max_length=500)
+    watch_with_user_id: UUID | None = None
+    watch_with_user_ids: list[UUID] = Field(default_factory=list, max_length=20)
+
+    model_config = ConfigDict(extra='forbid')
+
+    @field_validator('watch_with_user_ids')
+    @classmethod
+    def _validate_partner_count(cls, value: list[UUID]) -> list[UUID]:
+        if len(value) > 20:
+            raise ValueError('max 20 watch partners allowed')
+        return value
+
+
+class PlannedUserCardResponse(BaseModel):
+    user_card_id: int
+    company: CardCompany
+    category_id: int
+    watch_note: str
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistEntryItemResponse(BaseModel):
+    entry_id: int
+    card_id: str
+    provider: str
+    title: str
+    poster_url: str | None
+    year: int | None
+    watch_tag: str
+    watch_with_user_id: UUID | None
+    watch_with_user_ids: list[UUID] = Field(default_factory=list)
+    created_at: datetime
+    film_id: int | None = None
+    film_kinopoisk_id: int | None = None
+    film_genres: list[str] = Field(default_factory=list)
+    catalog_item_id: int | None = None
+    external_id: str | None = None
+    planned_user_card_id: int | None = None
+    # Legacy aliases for Kinopoisk clients
+    film_title: str | None = None
+    film_year: int | None = None
+    film_poster_url: str | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistEntryPageResponse(BaseModel):
+    items: list[WatchlistEntryItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistMembershipResponse(BaseModel):
+    in_watchlist: bool
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistFilmItemResponse(BaseModel):
+    film_id: int
+    film_kinopoisk_id: int
+    film_genres: list[str] = Field(default_factory=list)
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
 
     model_config = ConfigDict(extra='forbid')
 
@@ -138,30 +240,6 @@ class UserCardPageResponse(BaseModel):
     next_cursor: str | None = None
 
 
-class WatchlistFilmItemResponse(BaseModel):
-    film_id: int
-    film_kinopoisk_id: int
-    film_genres: list[str] = Field(default_factory=list)
-    film_title: str
-    film_year: int | None
-    film_poster_url: str | None
-
-
-class WatchlistFilmPageResponse(BaseModel):
-    items: list[WatchlistFilmItemResponse] = Field(default_factory=list)
-    next_cursor: str | None = None
-
-
-class WatchlistMembershipResponse(BaseModel):
-    in_watchlist: bool
-
-
-class WatchlistFilmAddRequest(BaseModel):
-    film_id: int = Field(..., ge=1)
-
-    model_config = ConfigDict(extra='forbid')
-
-
 class SubscriptionListItemResponse(BaseModel):
     id: UUID
     profile_slug: str
@@ -225,6 +303,37 @@ class UserCardStatsApiResponse(BaseModel):
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
+
+
+def build_watchlist_entry_item_response(item: WatchlistEntryListItem) -> WatchlistEntryItemResponse:
+    return WatchlistEntryItemResponse(
+        entry_id=item.entry_id,
+        card_id=item.card_id,
+        provider=item.provider,
+        title=item.title,
+        poster_url=item.poster_url,
+        year=item.year,
+        watch_tag=item.watch_tag,
+        watch_with_user_id=item.watch_with_user_id,
+        watch_with_user_ids=list(item.watch_with_user_ids or []),
+        created_at=item.created_at,
+        film_id=item.film_id,
+        film_kinopoisk_id=item.film_kinopoisk_id,
+        film_genres=list(item.film_genres or []),
+        catalog_item_id=item.catalog_item_id,
+        external_id=item.external_id,
+        planned_user_card_id=item.planned_user_card_id,
+        film_title=item.title if item.provider == 'kinopoisk' else None,
+        film_year=item.year if item.provider == 'kinopoisk' else None,
+        film_poster_url=item.poster_url if item.provider == 'kinopoisk' else None,
+    )
+
+
+def build_watchlist_entry_page_response(page: WatchlistEntryPage) -> WatchlistEntryPageResponse:
+    return WatchlistEntryPageResponse(
+        items=[build_watchlist_entry_item_response(it) for it in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 def build_my_profile_response(user: User, counts: UserProfileCounts) -> MyProfileResponse:
@@ -297,21 +406,6 @@ def build_user_card_page_response(page: UserCardListPage) -> UserCardPageRespons
         for item in page.items
     ]
     return UserCardPageResponse(items=items, next_cursor=page.next_cursor)
-
-
-def build_watchlist_film_page_response(page: WatchlistFilmPage) -> WatchlistFilmPageResponse:
-    items = [
-        WatchlistFilmItemResponse(
-            film_id=item.film_id,
-            film_kinopoisk_id=item.film_kinopoisk_id,
-            film_genres=item.film_genres,
-            film_title=item.film_title,
-            film_year=item.film_year,
-            film_poster_url=item.film_poster_url,
-        )
-        for item in page.items
-    ]
-    return WatchlistFilmPageResponse(items=items, next_cursor=page.next_cursor)
 
 
 def build_subscription_list_response(items: list[SubscriptionListItem]) -> SubscriptionListResponse:

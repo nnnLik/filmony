@@ -2,6 +2,8 @@ import { isTMA } from '@telegram-apps/sdk'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { parseMiniAppWatchlistStartParam } from '../lib/miniAppCardDeepLink'
+
 function readTelegramStartParam(): string | undefined {
   const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
   if (fromUnsafe) {
@@ -22,6 +24,25 @@ export function TelegramMiniAppStartParamRedirect() {
     if (sp == null || sp === '') {
       return
     }
+
+    const watchlistCardId = parseMiniAppWatchlistStartParam(sp)
+    if (watchlistCardId != null) {
+      const key = `filmony.handled_start_param.${sp}`
+      if (sessionStorage.getItem(key) === '1') {
+        return
+      }
+      ran.current = true
+      sessionStorage.setItem(key, '1')
+      void navigate('/profile', {
+        replace: true,
+        state: {
+          moviesSegment: 'watchlist' as const,
+          watchlistInviteCardId: watchlistCardId,
+        },
+      })
+      return
+    }
+
     const cardMatch = /^c(\d+)$/i.exec(sp)
     if (cardMatch != null) {
       const cardId = Number(cardMatch[1])

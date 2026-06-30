@@ -128,6 +128,7 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
                 release_date=ref.release_date,
                 film_poster_url=ref.film_poster_url,
                 rating=ref.rating,
+                is_planned=ref.is_planned,
             )
             if ref is not None
             else None

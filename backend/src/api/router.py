@@ -12,6 +12,7 @@ from api.profile.me_routes import router as profile_me_router
 from api.profile.users_routes import router as profile_users_router
 from api.reactions.routes import router as reactions_router
 from api.search.routes import router as search_router
+from api.watchlist.routes import router as watchlist_router
 from deps.auth import CurrentUser
 from models.user import User
 
@@ -28,6 +29,7 @@ router.include_router(search_router)
 router.include_router(notifications_router)
 router.include_router(profile_me_router)
 router.include_router(profile_users_router)
+router.include_router(watchlist_router)
 
 
 @router.get('/hello')

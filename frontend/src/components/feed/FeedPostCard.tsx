@@ -28,6 +28,7 @@ import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../reactions/ReactionStrip'
+import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { formatCommentTime, formatRating } from './feedCardUtils'
 import { feedPostSourceBadge } from './feedPostSourceBadge'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
@@ -691,6 +692,7 @@ export function FeedPostCard({
               Из комментария
             </span>
           ) : null}
+          {referenced_card?.is_planned ? <PlannedCardBadge variant="ribbon" /> : null}
         </div>
 
         <div className="flex min-w-0 flex-col gap-2">
@@ -802,9 +804,13 @@ export function FeedPostCard({
                       </span>
                     ) : null}
                   </p>
-                  <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-(--tgui--text_color)">
-                    {formatRating(referenced_card.rating)}
-                  </span>
+                  {referenced_card.is_planned ? (
+                    <PlannedCardBadge variant="inline" />
+                  ) : (
+                    <span className="shrink-0 rounded-md bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-(--tgui--text_color)">
+                      {formatRating(referenced_card.rating)}
+                    </span>
+                  )}
                 </div>
               </div>
             </Link>

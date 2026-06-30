@@ -18,12 +18,12 @@ from api.profile.schemas import (
     SubscriptionListResponse,
     UserCardPageResponse,
     UserCardStatsApiResponse,
-    WatchlistFilmPageResponse,
+    WatchlistEntryPageResponse,
     build_public_profile_response,
     build_subscription_list_response,
     build_user_card_page_response,
     build_user_card_stats_response,
-    build_watchlist_film_page_response,
+    build_watchlist_entry_page_response,
 )
 from core.database import get_db
 from deps.auth import CurrentUser
@@ -60,7 +60,7 @@ from services.subscriptions.list_user_subscriptions import (
 from services.user_card_categories.list_public_user_card_categories import (
     ListPublicUserCardCategoriesService,
 )
-from services.watchlist.list_user_watchlist_films import ListUserWatchlistFilmsService
+from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
 
 router = APIRouter(prefix='/users', tags=['users'])
 
@@ -241,22 +241,25 @@ async def list_user_cards(
 
 @router.get(
     '/{user_id}/watchlist',
-    response_model=WatchlistFilmPageResponse,
-    summary='Фильмы в списке «к просмотру» (публично)',
+    response_model=WatchlistEntryPageResponse,
+    summary='Список «Позже» пользователя (все провайдеры)',
 )
-async def list_user_watchlist_films(
+async def list_user_watchlist(
     user_id: UUID,
     _viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = None,
-    limit: int = Query(default=20, ge=1),
-) -> WatchlistFilmPageResponse:
+    limit: int = Query(default=20, ge=1, le=50),
+) -> WatchlistEntryPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
     cap = min(limit, 50)
-    page = await ListUserWatchlistFilmsService(db).execute(user_id, cursor, cap)
-    return build_watchlist_film_page_response(page)
+    try:
+        page = await ListUserWatchlistEntriesService(db).execute(user_id, cursor, cap)
+    except ListUserWatchlistEntriesService.InvalidCursor:
+        raise HTTPException(status_code=422, detail='invalid cursor') from None
+    return build_watchlist_entry_page_response(page)
 
 
 @router.get(

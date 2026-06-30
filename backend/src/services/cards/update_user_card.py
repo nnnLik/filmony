@@ -104,6 +104,17 @@ class UpdateUserCardService:
         ):
             raise UserCardValidationError('at least one field must be provided')
 
+        if card.is_planned and (
+            payload.rating is not None
+            or payload.mood_before is not None
+            or payload.mood_after is not None
+            or payload.custom_tags is not None
+            or payload.is_favorite is not None
+        ):
+            raise UserCardValidationError(
+                'cannot update rating, mood, tags, or favorite on planned cards'
+            )
+
         if payload.category_id is not None:
             try:
                 card.category_id = await ResolveUserCardCategoryIdForOwnerService.build(
