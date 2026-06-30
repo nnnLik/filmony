@@ -82,6 +82,12 @@ describe('ScrollRestoreProvider', () => {
       </MemoryRouter>,
     );
 
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
     await waitFor(() => {
       expect(restoreSpy).not.toHaveBeenCalled();
     });
@@ -110,6 +116,12 @@ describe('ScrollRestoreProvider', () => {
         </ScrollRestoreProvider>
       </MemoryRouter>,
     );
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
 
     await waitFor(() => {
       expect(restoreSpy).not.toHaveBeenCalled();
