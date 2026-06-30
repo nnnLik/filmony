@@ -14,7 +14,7 @@ from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
-from models.user_watchlist_film import UserWatchlistFilm
+from models.watchlist_entry import WatchlistEntry
 from services.user_card_categories.resolve_user_card_category_id_for_owner import (
     ResolveUserCardCategoryIdForOwnerService,
 )
@@ -148,6 +148,12 @@ def _apply_display_from_film(entity: UserCard, film: Film) -> None:
     entity.display_cover_url = film.poster_url
     sd = film.short_description or film.description
     entity.display_summary = sd
+
+
+def _watchlist_card_id_for_provider(provider: CatalogProvider, external_id: str) -> str:
+    if provider == CatalogProvider.kinopoisk:
+        return f'kp:{external_id}'
+    return f'{provider.value}:{external_id}'
 
 
 class CreateUserCardService:
@@ -343,9 +349,9 @@ class CreateUserCardService:
             raise UserCardAlreadyExistsError from exc
 
         await self._session.execute(
-            delete(UserWatchlistFilm).where(
-                UserWatchlistFilm.user_id == user_id,
-                UserWatchlistFilm.film_id == payload.film_id,
+            delete(WatchlistEntry).where(
+                WatchlistEntry.user_id == user_id,
+                WatchlistEntry.card_id == f'kp:{payload.kinopoisk_id}',
             )
         )
 
@@ -425,11 +431,12 @@ class CreateUserCardService:
             await self._session.rollback()
             raise UserCardAlreadyExistsError from exc
 
-        if film is not None:
+        if ci.external_id is not None:
             await self._session.execute(
-                delete(UserWatchlistFilm).where(
-                    UserWatchlistFilm.user_id == user_id,
-                    UserWatchlistFilm.film_id == film.id,
+                delete(WatchlistEntry).where(
+                    WatchlistEntry.user_id == user_id,
+                    WatchlistEntry.card_id
+                    == _watchlist_card_id_for_provider(ci.provider, ci.external_id),
                 )
             )
 

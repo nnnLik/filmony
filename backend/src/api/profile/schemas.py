@@ -14,7 +14,6 @@ from services.profile.list_user_cards import UserCardListPage
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
 )
-from services.watchlist.list_user_watchlist_films import WatchlistFilmPage
 
 
 class MyUserCardCategoryResponse(BaseModel):
@@ -138,28 +137,6 @@ class UserCardPageResponse(BaseModel):
     next_cursor: str | None = None
 
 
-class WatchlistFilmItemResponse(BaseModel):
-    film_id: int
-    film_kinopoisk_id: int
-    film_genres: list[str] = Field(default_factory=list)
-    film_title: str
-    film_year: int | None
-    film_poster_url: str | None
-
-
-class WatchlistFilmPageResponse(BaseModel):
-    items: list[WatchlistFilmItemResponse] = Field(default_factory=list)
-    next_cursor: str | None = None
-
-
-class WatchlistMembershipResponse(BaseModel):
-    in_watchlist: bool
-
-
-class WatchlistFilmAddRequest(BaseModel):
-    film_id: int = Field(..., ge=1)
-
-    model_config = ConfigDict(extra='forbid')
 
 
 class SubscriptionListItemResponse(BaseModel):
@@ -299,19 +276,6 @@ def build_user_card_page_response(page: UserCardListPage) -> UserCardPageRespons
     return UserCardPageResponse(items=items, next_cursor=page.next_cursor)
 
 
-def build_watchlist_film_page_response(page: WatchlistFilmPage) -> WatchlistFilmPageResponse:
-    items = [
-        WatchlistFilmItemResponse(
-            film_id=item.film_id,
-            film_kinopoisk_id=item.film_kinopoisk_id,
-            film_genres=item.film_genres,
-            film_title=item.film_title,
-            film_year=item.film_year,
-            film_poster_url=item.film_poster_url,
-        )
-        for item in page.items
-    ]
-    return WatchlistFilmPageResponse(items=items, next_cursor=page.next_cursor)
 
 
 def build_subscription_list_response(items: list[SubscriptionListItem]) -> SubscriptionListResponse:

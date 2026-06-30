@@ -7,6 +7,7 @@ from .create_feed_post import (
     SourceCommentForbiddenError,
     SourceCommentNotFoundError,
 )
+from .create_watchlist_feed_post import CreateWatchlistFeedPostService
 from .get_feed_post_by_id import FeedPostNotFoundError, GetFeedPostByIdService
 from .upload_feed_post_image import (
     FEED_POST_IMAGE_MAX_BYTES,
@@ -20,6 +21,7 @@ __all__ = (
     'CreateFeedPostInput',
     'CreateFeedPostResult',
     'CreateFeedPostService',
+    'CreateWatchlistFeedPostService',
     'FeedPostBodyValidationError',
     'FeedPostImageUploadError',
     'FeedPostNotFoundError',

@@ -18,12 +18,10 @@ from api.profile.schemas import (
     SubscriptionListResponse,
     UserCardPageResponse,
     UserCardStatsApiResponse,
-    WatchlistFilmPageResponse,
     build_public_profile_response,
     build_subscription_list_response,
     build_user_card_page_response,
     build_user_card_stats_response,
-    build_watchlist_film_page_response,
 )
 from core.database import get_db
 from deps.auth import CurrentUser
@@ -60,7 +58,6 @@ from services.subscriptions.list_user_subscriptions import (
 from services.user_card_categories.list_public_user_card_categories import (
     ListPublicUserCardCategoriesService,
 )
-from services.watchlist.list_user_watchlist_films import ListUserWatchlistFilmsService
 
 router = APIRouter(prefix='/users', tags=['users'])
 
@@ -239,24 +236,6 @@ async def list_user_cards(
     return build_user_card_page_response(page)
 
 
-@router.get(
-    '/{user_id}/watchlist',
-    response_model=WatchlistFilmPageResponse,
-    summary='Фильмы в списке «к просмотру» (публично)',
-)
-async def list_user_watchlist_films(
-    user_id: UUID,
-    _viewer: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    cursor: str | None = None,
-    limit: int = Query(default=20, ge=1),
-) -> WatchlistFilmPageResponse:
-    exists = await GetPublicUserByIdService(db).execute(user_id)
-    if exists is None:
-        raise _not_found()
-    cap = min(limit, 50)
-    page = await ListUserWatchlistFilmsService(db).execute(user_id, cursor, cap)
-    return build_watchlist_film_page_response(page)
 
 
 @router.get(

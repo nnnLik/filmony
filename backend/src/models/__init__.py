@@ -14,7 +14,7 @@ from .user_card import UserCard
 from .user_card_category import UserCardCategory
 from .user_reaction import UserReaction
 from .user_subscription import UserSubscription
-from .user_watchlist_film import UserWatchlistFilm
+from .watchlist_entry import WatchlistEntry
 
 __all__ = (
     'Base',
@@ -36,5 +36,5 @@ __all__ = (
     'UserCardCategory',
     'UserReaction',
     'UserSubscription',
-    'UserWatchlistFilm',
+    'WatchlistEntry',
 )
