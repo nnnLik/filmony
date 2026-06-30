@@ -1,3 +1,4 @@
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
+from services.watchlist.create_watchlist_entry_from_film import CreateWatchlistEntryFromFilmService
 
-__all__ = ('CreateWatchlistEntryService',)
+__all__ = ('CreateWatchlistEntryService', 'CreateWatchlistEntryFromFilmService')

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,6 +15,8 @@ from api.profile.schemas import (
     MyUserCardTagStatItem,
     MyUserCardTagStatsResponse,
     ProfileUpdateRequest,
+    WatchlistFilmCreateRequest,
+    WatchlistFilmItemResponse,
     UserCardsExportCsvResponse,
     build_my_profile_response,
 )
@@ -33,6 +36,10 @@ from services.user_card_categories.list_my_user_card_categories import (
 )
 from services.user_card_categories.rename_user_card_category import (
     RenameUserCardCategoryService,
+)
+from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
+from services.watchlist.create_watchlist_entry_from_film import (
+    CreateWatchlistEntryFromFilmService,
 )
 
 router = APIRouter(prefix='/me', tags=['profile'])
@@ -147,6 +154,39 @@ async def patch_my_profile(
 
     counts = await GetUserProfileCountsService(db).execute(updated.id)
     return build_my_profile_response(updated, counts)
+
+
+@router.post(
+    '/watchlist',
+    response_model=WatchlistFilmItemResponse,
+    status_code=201,
+    summary='Добавить фильм в список «Посмотреть»',
+)
+async def post_my_watchlist_film(
+    body: WatchlistFilmCreateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> WatchlistFilmItemResponse:
+    service = CreateWatchlistEntryFromFilmService.build(db)
+    try:
+        result = await service.execute(
+            actor_user_id=user.id,
+            film_id=body.film_id,
+            created_at=dt.datetime.now(dt.UTC),
+        )
+    except CreateWatchlistEntryFromFilmService.FilmNotFoundError:
+        raise HTTPException(status_code=404, detail='film not found') from None
+    except CreateWatchlistEntryService.WatchlistEntryAlreadyExistsError:
+        raise HTTPException(status_code=409, detail='watchlist entry already exists') from None
+    film = result.film
+    return WatchlistFilmItemResponse(
+        film_id=film.id,
+        film_kinopoisk_id=film.kinopoisk_id,
+        film_genres=film.genres,
+        film_title=film.title,
+        film_year=film.year,
+        film_poster_url=film.poster_url,
+    )
 
 
 @router.post(

@@ -49,6 +49,23 @@ class ProfileUpdateRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class WatchlistFilmCreateRequest(BaseModel):
+    film_id: int = Field(..., ge=1)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistFilmItemResponse(BaseModel):
+    film_id: int
+    film_kinopoisk_id: int
+    film_genres: list[str] = Field(default_factory=list)
+    film_title: str
+    film_year: int | None
+    film_poster_url: str | None
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class MyProfileResponse(BaseModel):
     id: UUID
     telegram_user_id: int
