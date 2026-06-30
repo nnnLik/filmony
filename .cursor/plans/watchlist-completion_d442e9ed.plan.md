@@ -13,10 +13,10 @@ todos:
     status: completed
   - id: legacy-cleanup
     content: Remove or deprecate legacy watchlist film-only endpoints and finish migration cleanup
-    status: in_progress
+    status: completed
   - id: delivery-artifacts
     content: Update progress, result, docs, and action log; run final verification
-    status: pending
+    status: completed
 isProject: false
 ---
 
