@@ -26,3 +26,23 @@ describe('ScrollRestoreStorage', () => {
     vi.restoreAllMocks();
   });
 });
+
+describe('ScrollRestoreStorage session backing', () => {
+  it('hydrates from sessionStorage when available', () => {
+    const now = 10;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    sessionStorage.setItem(
+      'scrollRestore:v1',
+      JSON.stringify({ feed: { position: 99, containerId: null, updatedAt: now } }),
+    );
+
+    const storage = ScrollRestoreStorage.hydrate({
+      ttlMs: 1_800_000,
+      maxEntries: 50,
+      storageKey: 'scrollRestore:v1',
+    });
+
+    expect(storage.get('feed')?.position).toBe(99);
+    vi.restoreAllMocks();
+  });
+});

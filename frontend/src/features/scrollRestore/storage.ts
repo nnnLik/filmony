@@ -9,6 +9,10 @@ type StorageOptions = {
   maxEntries: number;
 };
 
+type HydrateOptions = StorageOptions & {
+  storageKey: string;
+};
+
 export class ScrollRestoreStorage {
   private readonly ttlMs: number;
   private readonly maxEntries: number;
@@ -34,6 +38,26 @@ export class ScrollRestoreStorage {
   set(key: string, entry: ScrollRestoreEntry): void {
     this.entries.set(key, entry);
     this.evictIfNeeded();
+  }
+
+  static hydrate({ ttlMs, maxEntries, storageKey }: HydrateOptions): ScrollRestoreStorage {
+    const storage = new ScrollRestoreStorage({ ttlMs, maxEntries });
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) {
+      return storage;
+    }
+    try {
+      const parsed = JSON.parse(raw) as Record<string, ScrollRestoreEntry>;
+      Object.entries(parsed).forEach(([key, entry]) => storage.set(key, entry));
+    } catch {
+      sessionStorage.removeItem(storageKey);
+    }
+    return storage;
+  }
+
+  persist(storageKey: string): void {
+    const payload = Object.fromEntries(this.entries);
+    sessionStorage.setItem(storageKey, JSON.stringify(payload));
   }
 
   private evictIfNeeded(): void {
