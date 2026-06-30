@@ -1,12 +1,12 @@
-# Dependabot Alerts Implementation Plan
+# Dependabot Alerts Dependency Update Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build an admin-facing Dependabot alerts view backed by a cached backend sync from GitHub.
+**Goal:** Clear Dependabot security alerts by applying minor/patch dependency updates in the frontend (npm) and backend (Poetry) with audits and verification.
 
-**Architecture:** Add a persisted `DependabotAlert` model and DAO, plus a sync service that pulls alerts from GitHub and upserts them. Expose admin routes for listing and refreshing alerts; the frontend reads from the list endpoint and offers a manual refresh action.
+**Architecture:** Use audit outputs to identify vulnerable packages, update dependencies within existing semver constraints (no major bumps), refresh lockfiles, and verify results with audits plus frontend lint/build and backend tests in Docker.
 
-**Tech Stack:** FastAPI, Alembic, httpx, PostgreSQL (via Docker), React, @telegram-apps/telegram-ui, TypeScript.
+**Tech Stack:** npm, Poetry, Docker Compose, Makefile, Node.js, Python.
 
 ---
 
@@ -14,435 +14,99 @@ I'm using the writing-plans skill to create the implementation plan.
 
 ## File Structure Map
 
-- Create: `backend/src/models/dependabot_alert.py` (SQLAlchemy model)
-- Create: `backend/src/daos/dependabot_alert_dao.py` (DB access for alerts)
-- Create: `backend/src/services/dependabot/sync_dependabot_alerts.py` (GitHub sync service)
-- Create: `backend/src/api/dependabot/schemas.py` (API DTOs)
-- Create: `backend/src/api/dependabot/routes.py` (admin endpoints)
-- Modify: `backend/src/api/router.py` (register new routes)
-- Create: `backend/src/migrations/versions/<new_revision>_dependabot_alerts.py`
-- Create: `backend/src/tests/api/test_dependabot_alert_routes.py`
-- Create: `frontend/src/api/dependabotApi.ts`
-- Create: `frontend/src/api/dependabotTypes.ts`
-- Create: `frontend/src/pages/admin/DependabotAlertsPage.tsx`
-- Modify: `frontend/src/routes.tsx`
+- Modify: `frontend/package.json`
+- Modify: `frontend/package-lock.json`
+- Modify: `backend/pyproject.toml`
+- Modify: `backend/poetry.lock`
 
-### Task 1: Persist Dependabot alerts
+### Task 1: Frontend npm security updates (minor/patch only)
 
 **Files:**
-- Create: `backend/src/models/dependabot_alert.py`
-- Create: `backend/src/daos/dependabot_alert_dao.py`
-- Create: `backend/src/migrations/versions/<new_revision>_dependabot_alerts.py`
+- Modify: `frontend/package.json`
+- Modify: `frontend/package-lock.json`
 
-- [ ] **Step 1: Add the SQLAlchemy model**
+- [ ] **Step 1: Capture current npm audit findings**
 
-```python
-from __future__ import annotations
+Run: `cd frontend && npm audit --json`
+Expected: JSON output includes `metadata.vulnerabilities` with counts for any current advisories; note package names and ranges from `advisories`/`via` entries.
 
-from datetime import datetime
+- [ ] **Step 2: Review outdated versions within semver constraints**
 
-from sqlalchemy import DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+Run: `cd frontend && npm outdated`
+Expected: Table output with `Current`, `Wanted`, `Latest`; only proceed with updates where `Wanted` stays within the current major version (no major bumps).
 
-from models.base import Base
+- [ ] **Step 3: Apply minor/patch updates within current ranges**
 
+Run: `cd frontend && npm update`
+Expected: npm updates packages to the `Wanted` column without changing major versions; `package-lock.json` is updated.
 
-class DependabotAlert(Base):
-    __tablename__ = "dependabot_alerts"
+- [ ] **Step 4: Apply non-breaking audit fixes**
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    github_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    dependency_name: Mapped[str] = mapped_column(String(255), index=True)
-    severity: Mapped[str] = mapped_column(String(32), index=True)
-    summary: Mapped[str] = mapped_column(Text)
-    advisory_url: Mapped[str] = mapped_column(String(512))
-    state: Mapped[str] = mapped_column(String(32), index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-```
+Run: `cd frontend && npm audit fix`
+Expected: npm applies audit fixes without `--force`, reporting reduced vulnerability counts and no major version upgrades.
 
-- [ ] **Step 2: Create the Alembic migration**
+- [ ] **Step 5: Re-run npm audit to verify fixes**
 
-```python
-from alembic import op
-import sqlalchemy as sa
+Run: `cd frontend && npm audit`
+Expected: `found 0 vulnerabilities` (or only low vulnerabilities with no available minor/patch fixes). If any remaining issue requires a major bump, stop and report it.
 
+- [ ] **Step 6: Run frontend lint**
 
-def upgrade() -> None:
-    op.create_table(
-        "dependabot_alerts",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("github_id", sa.String(length=64), nullable=False),
-        sa.Column("dependency_name", sa.String(length=255), nullable=False),
-        sa.Column("severity", sa.String(length=32), nullable=False),
-        sa.Column("summary", sa.Text(), nullable=False),
-        sa.Column("advisory_url", sa.String(length=512), nullable=False),
-        sa.Column("state", sa.String(length=32), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.UniqueConstraint("github_id", name="uq_dependabot_alerts_github_id"),
-    )
-    op.create_index(
-        "ix_dependabot_alerts_state_updated_at",
-        "dependabot_alerts",
-        ["state", "updated_at"],
-    )
+Run: `cd frontend && npm run lint`
+Expected: Exit code 0 with no ESLint errors.
 
+- [ ] **Step 7: Run frontend build**
 
-def downgrade() -> None:
-    op.drop_index("ix_dependabot_alerts_state_updated_at", table_name="dependabot_alerts")
-    op.drop_table("dependabot_alerts")
-```
+Run: `cd frontend && npm run build`
+Expected: Build completes successfully with exit code 0.
 
-- [ ] **Step 3: Add DAO helpers**
-
-```python
-from __future__ import annotations
-
-from dataclasses import dataclass
-from datetime import datetime
-
-from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
-
-from models.dependabot_alert import DependabotAlert
-
-
-@dataclass
-class DependabotAlertDAO:
-    _session: Session
-
-    def upsert_alerts(self, alerts: list[DependabotAlert]) -> None:
-        for alert in alerts:
-            self._session.merge(alert)
-
-    def list_open_alerts(self) -> list[DependabotAlert]:
-        stmt = (
-            select(DependabotAlert)
-            .where(DependabotAlert.state == "open")
-            .order_by(DependabotAlert.severity.desc(), DependabotAlert.updated_at.desc())
-        )
-        return list(self._session.scalars(stmt))
-
-    def delete_missing(self, github_ids: set[str]) -> None:
-        if not github_ids:
-            return
-        stmt = delete(DependabotAlert).where(DependabotAlert.github_id.notin_(github_ids))
-        self._session.execute(stmt)
-
-    def set_updated_at(self, github_id: str, updated_at: datetime) -> None:
-        alert = self._session.scalar(
-            select(DependabotAlert).where(DependabotAlert.github_id == github_id)
-        )
-        if alert is None:
-            return
-        alert.updated_at = updated_at
-```
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 8: Commit frontend dependency updates**
 
 ```bash
-git add backend/src/models/dependabot_alert.py \
-  backend/src/daos/dependabot_alert_dao.py \
-  backend/src/migrations/versions/<new_revision>_dependabot_alerts.py
-git commit -m "feat: add dependabot alert persistence"
+git add frontend/package.json frontend/package-lock.json
+git commit -m "chore: update frontend deps for dependabot alerts"
 ```
 
-### Task 2: Sync alerts and expose API
+### Task 2: Backend Poetry security updates in Docker (minor/patch only)
 
 **Files:**
-- Create: `backend/src/services/dependabot/sync_dependabot_alerts.py`
-- Create: `backend/src/api/dependabot/schemas.py`
-- Create: `backend/src/api/dependabot/routes.py`
-- Modify: `backend/src/api/router.py`
-- Create: `backend/src/tests/api/test_dependabot_alert_routes.py`
+- Modify: `backend/pyproject.toml`
+- Modify: `backend/poetry.lock`
 
-- [ ] **Step 1: Implement GitHub sync service**
+- [ ] **Step 1: Capture current Python audit findings**
 
-```python
-from __future__ import annotations
+Run: `docker compose -f docker-compose.yml exec backend poetry run pip-audit`
+Expected: Audit report lists vulnerable packages and fixed versions (if any).
 
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Self
+- [ ] **Step 2: Review outdated top-level packages**
 
-import httpx
+Run: `docker compose -f docker-compose.yml exec backend poetry show --outdated --top-level`
+Expected: Table output with `Current` and `Latest` versions; only proceed when updates stay within the current major version.
 
-from daos.dependabot_alert_dao import DependabotAlertDAO
-from models.dependabot_alert import DependabotAlert
-from utils.db import get_session
-from utils.settings import settings
+- [ ] **Step 3: Apply Poetry updates within constraints**
 
+Run: `docker compose -f docker-compose.yml exec backend poetry update`
+Expected: `poetry.lock` updated with minor/patch bumps only; no dependency jumps to a new major version.
 
-@dataclass
-class SyncDependabotAlertsService:
-    """Fetch Dependabot alerts from GitHub and persist them locally."""
+- [ ] **Step 4: Re-run Python audit to verify fixes**
 
-    _dao: DependabotAlertDAO
-    _client: httpx.Client
-
-    @classmethod
-    def build(cls) -> Self:
-        session = get_session()
-        client = httpx.Client(
-            base_url="https://api.github.com",
-            headers={"Authorization": f"Bearer {settings.github_token}"},
-            timeout=20,
-        )
-        return cls(_dao=DependabotAlertDAO(session), _client=client)
-
-    def execute(self, repo: str) -> list[DependabotAlert]:
-        response = self._client.get(f"/repos/{repo}/dependabot/alerts")
-        response.raise_for_status()
-        payload = response.json()
-        alerts: list[DependabotAlert] = []
-        for item in payload:
-            alerts.append(
-                DependabotAlert(
-                    github_id=str(item["number"]),
-                    dependency_name=item["dependency"]["package"]["name"],
-                    severity=item["security_advisory"]["severity"],
-                    summary=item["security_advisory"]["summary"],
-                    advisory_url=item["html_url"],
-                    state=item["state"],
-                    updated_at=datetime.fromisoformat(item["updated_at"].replace("Z", "+00:00")),
-                )
-            )
-        github_ids = {alert.github_id for alert in alerts}
-        self._dao.upsert_alerts(alerts)
-        self._dao.delete_missing(github_ids)
-        return alerts
-```
-
-- [ ] **Step 2: Add API schemas**
-
-```python
-from pydantic import BaseModel
-
-
-class DependabotAlertResponse(BaseModel):
-    github_id: str
-    dependency_name: str
-    severity: str
-    summary: str
-    advisory_url: str
-    state: str
-    updated_at: str
-
-
-class DependabotAlertListResponse(BaseModel):
-    alerts: list[DependabotAlertResponse]
-```
-
-- [ ] **Step 3: Add admin routes**
-
-```python
-from fastapi import APIRouter, Depends
-
-from api.dependabot.schemas import DependabotAlertListResponse, DependabotAlertResponse
-from services.dependabot.sync_dependabot_alerts import SyncDependabotAlertsService
-from services.dependabot.list_dependabot_alerts import ListDependabotAlertsService
-
-router = APIRouter(prefix="/admin/dependabot", tags=["admin", "dependabot"])
-
-
-@router.get("/alerts", response_model=DependabotAlertListResponse)
-async def list_dependabot_alerts() -> DependabotAlertListResponse:
-    alerts = ListDependabotAlertsService.build().execute()
-    return DependabotAlertListResponse(
-        alerts=[
-            DependabotAlertResponse(
-                github_id=alert.github_id,
-                dependency_name=alert.dependency_name,
-                severity=alert.severity,
-                summary=alert.summary,
-                advisory_url=alert.advisory_url,
-                state=alert.state,
-                updated_at=alert.updated_at.isoformat(),
-            )
-            for alert in alerts
-        ]
-    )
-
-
-@router.post("/alerts/refresh", response_model=DependabotAlertListResponse)
-async def refresh_dependabot_alerts() -> DependabotAlertListResponse:
-    alerts = SyncDependabotAlertsService.build().execute(repo="filmony/filmony")
-    return DependabotAlertListResponse(
-        alerts=[
-            DependabotAlertResponse(
-                github_id=alert.github_id,
-                dependency_name=alert.dependency_name,
-                severity=alert.severity,
-                summary=alert.summary,
-                advisory_url=alert.advisory_url,
-                state=alert.state,
-                updated_at=alert.updated_at.isoformat(),
-            )
-            for alert in alerts
-        ]
-    )
-```
-
-- [ ] **Step 4: Wire router and add tests**
-
-```python
-from fastapi.testclient import TestClient
-
-
-async def test_list_dependabot_alerts(async_client: TestClient, db_session):
-    response = await async_client.get("/admin/dependabot/alerts")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["alerts"] == []
-
-
-async def test_refresh_dependabot_alerts(async_client: TestClient, monkeypatch):
-    async def fake_execute(self, repo: str):
-        return []
-
-    monkeypatch.setattr(
-        "services.dependabot.sync_dependabot_alerts.SyncDependabotAlertsService.execute",
-        fake_execute,
-    )
-    response = await async_client.post("/admin/dependabot/alerts/refresh")
-    assert response.status_code == 200
-```
+Run: `docker compose -f docker-compose.yml exec backend poetry run pip-audit`
+Expected: `No known vulnerabilities found` (or only vulnerabilities without a minor/patch fix). If any remaining issue requires a major bump, stop and report it.
 
 - [ ] **Step 5: Run backend tests in Docker**
 
-Run: `make backend-test-one target=src/tests/api/test_dependabot_alert_routes.py`
-Expected: PASS
+Run: `make backend-test`
+Expected: All backend tests pass.
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add backend/src/services/dependabot/sync_dependabot_alerts.py \
-  backend/src/api/dependabot/schemas.py \
-  backend/src/api/dependabot/routes.py \
-  backend/src/api/router.py \
-  backend/src/tests/api/test_dependabot_alert_routes.py
-git commit -m "feat: add dependabot alert endpoints"
-```
-
-### Task 3: Build admin UI
-
-**Files:**
-- Create: `frontend/src/api/dependabotApi.ts`
-- Create: `frontend/src/api/dependabotTypes.ts`
-- Create: `frontend/src/pages/admin/DependabotAlertsPage.tsx`
-- Modify: `frontend/src/routes.tsx`
-
-- [ ] **Step 1: Add API client helpers**
-
-```ts
-import { apiClient } from "./client";
-import type { DependabotAlertList } from "./dependabotTypes";
-
-export const fetchDependabotAlerts = async (): Promise<DependabotAlertList> => {
-  return apiClient.get("/admin/dependabot/alerts");
-};
-
-export const refreshDependabotAlerts = async (): Promise<DependabotAlertList> => {
-  return apiClient.post("/admin/dependabot/alerts/refresh");
-};
-```
-
-- [ ] **Step 2: Define response types**
-
-```ts
-export type DependabotAlert = {
-  githubId: string;
-  dependencyName: string;
-  severity: string;
-  summary: string;
-  advisoryUrl: string;
-  state: string;
-  updatedAt: string;
-};
-
-export type DependabotAlertList = {
-  alerts: DependabotAlert[];
-};
-```
-
-- [ ] **Step 3: Build the admin screen**
-
-```tsx
-import { Button, Cell, Section, Spinner } from "@telegram-apps/telegram-ui";
-import { useEffect, useState } from "react";
-
-import { fetchDependabotAlerts, refreshDependabotAlerts } from "../../api/dependabotApi";
-import type { DependabotAlert } from "../../api/dependabotTypes";
-
-export const DependabotAlertsPage = () => {
-  const [alerts, setAlerts] = useState<DependabotAlert[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadAlerts = async () => {
-    setLoading(true);
-    const response = await fetchDependabotAlerts();
-    setAlerts(response.alerts);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    void loadAlerts();
-  }, []);
-
-  const handleRefresh = async () => {
-    const response = await refreshDependabotAlerts();
-    setAlerts(response.alerts);
-  };
-
-  return (
-    <Section
-      header="Dependabot Alerts"
-      footer={loading ? <Spinner size="s" /> : null}
-    >
-      <Button onClick={handleRefresh} disabled={loading}>
-        Refresh
-      </Button>
-      {alerts.map((alert) => (
-        <Cell
-          key={alert.githubId}
-          subtitle={`${alert.severity.toUpperCase()} • ${alert.state}`}
-          description={alert.summary}
-          href={alert.advisoryUrl}
-        >
-          {alert.dependencyName}
-        </Cell>
-      ))}
-    </Section>
-  );
-};
-```
-
-- [ ] **Step 4: Wire the route**
-
-```tsx
-import { DependabotAlertsPage } from "./pages/admin/DependabotAlertsPage";
-
-const routes = [
-  { path: "/admin/dependabot-alerts", element: <DependabotAlertsPage /> },
-];
-```
-
-- [ ] **Step 5: Run frontend checks**
-
-Run: `cd frontend && npm run lint && npm run build`
-Expected: PASS
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Commit backend dependency updates**
 
 ```bash
-git add frontend/src/api/dependabotApi.ts \
-  frontend/src/api/dependabotTypes.ts \
-  frontend/src/pages/admin/DependabotAlertsPage.tsx \
-  frontend/src/routes.tsx
-git commit -m "feat: add dependabot alerts admin UI"
+git add backend/pyproject.toml backend/poetry.lock
+git commit -m "chore: update backend deps for dependabot alerts"
 ```
 
 ## Self-Review
 
-1. **Spec coverage:** Backend sync/list endpoints, UI screen, and refresh workflow are covered in Tasks 1-3.
-2. **Placeholder scan:** No TBD/TODO markers; commands and code are fully spelled out.
-3. **Type consistency:** API response fields match type names used in frontend mapping.
+1. **Spec coverage:** Plan includes npm and Poetry dependency updates, audit checks, and verification steps for frontend and backend.
+2. **Placeholder scan:** No TBD/TODO placeholders; commands and expected outputs are explicit.
+3. **Type consistency:** Commands and file paths are consistent with project docs and Docker requirements.
