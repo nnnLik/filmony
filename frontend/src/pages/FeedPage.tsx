@@ -36,6 +36,7 @@ import {
 } from '../lib/globalFeedViewedIds'
 import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+import { buildRouteKey, registerScrollContainer } from '../lib/scrollRestore'
 
 import './FeedPage.css'
 
@@ -54,6 +55,7 @@ export function FeedPage() {
   const { openCompose } = useComposeFeedPost()
   const pendingScrollYRef = useRef<number | null>(null)
   const feedKindRef = useRef<GlobalFeedKind>('all')
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
 
   const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
   const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
@@ -72,6 +74,7 @@ export function FeedPage() {
 
   const [liveHeadVersion, setLiveHeadVersion] = useState(0)
   const [ackHeadVersion, setAckHeadVersion] = useState(0)
+  const routeKey = useMemo(() => buildRouteKey(location, ['q', 'filter']), [location])
 
   useEffect(() => {
     void ensureHeaderPepeGifsPreloaded()
@@ -169,6 +172,12 @@ export function FeedPage() {
     }).catch(() => {})
     return () => ac.abort()
   }, [auth.kind])
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return undefined
+    return registerScrollContainer(container, routeKey)
+  }, [routeKey])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -415,7 +424,11 @@ export function FeedPage() {
 
       <RecentCardsStrip items={recentStrip} />
 
-      <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
+      <main
+        ref={scrollContainerRef}
+        data-route-key={routeKey}
+        className="max-w-full overflow-x-hidden px-4 pb-10 pt-3"
+      >
         <div className="flex flex-col gap-5">
           {(authPending || showSkeleton) && items.length === 0 && (
             <div className="flex flex-col gap-4">
