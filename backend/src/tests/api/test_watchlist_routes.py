@@ -323,7 +323,7 @@ async def test_create_watchlist_from_film_forwards_watch_with(
 async def test_create_watchlist_rejects_non_mutual_watch_with(
     async_client: AsyncClient,
 ) -> None:
-    actor = await _create_user(telegram_user_id=910142, slug='wl-nonmutual-actor')
+    await _create_user(telegram_user_id=910142, slug='wl-nonmutual-actor')
     other = await _create_user(telegram_user_id=910143, slug='wl-nonmutual-other')
     film = await _create_film(kinopoisk_id=701_031)
     await _login(async_client, telegram_user_id=910142)
