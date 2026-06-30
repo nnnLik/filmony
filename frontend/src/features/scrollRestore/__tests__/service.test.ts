@@ -18,6 +18,21 @@ describe('ScrollRestoreService', () => {
     expect(container.scrollTop).toBe(200);
   });
 
+  it('clamps negative positions to zero', async () => {
+    const container = document.createElement('div');
+    Object.defineProperty(container, 'scrollHeight', { value: 300, configurable: true });
+    Object.defineProperty(container, 'clientHeight', { value: 100, configurable: true });
+    container.scrollTop = 50;
+
+    const service = new ScrollRestoreService();
+    await service.restore({
+      container,
+      position: -10,
+    });
+
+    expect(container.scrollTop).toBe(0);
+  });
+
   it('retries until content is ready', async () => {
     const container = document.createElement('div');
     Object.defineProperty(container, 'scrollHeight', { value: 0, configurable: true });

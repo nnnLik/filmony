@@ -16,9 +16,10 @@ export class ScrollRestoreService {
 
   async restore({ container, position }: RestoreTarget): Promise<void> {
     const target = container ?? document.documentElement;
-    await this.waitForReady(target, position);
+    const clampedPosition = Math.max(position, 0);
+    await this.waitForReady(target, clampedPosition);
     const maxScroll = Math.max(target.scrollHeight - target.clientHeight, 0);
-    target.scrollTop = Math.min(position, maxScroll);
+    target.scrollTop = Math.min(clampedPosition, maxScroll);
   }
 
   private waitForReady(target: HTMLElement, position: number): Promise<void> {
