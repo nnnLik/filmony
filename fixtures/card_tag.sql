@@ -1,4 +1,14 @@
-INSERT INTO public.movie_card_tag (movie_card_id,tag,created_at) VALUES
+WITH card_map AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS idx
+  FROM public.user_card
+)
+INSERT INTO public.card_tag (card_id,tag,created_at)
+SELECT
+  cm.id,
+  v.tag,
+  v.created_at::timestamptz
+FROM (
+  VALUES
 	 (1,'Оргия','2026-05-06 20:50:11'),
 	 (1,'бобры','2026-05-06 20:50:11'),
 	 (1,'нолан гений','2026-05-06 20:50:11'),
@@ -119,5 +129,7 @@ INSERT INTO public.movie_card_tag (movie_card_id,tag,created_at) VALUES
 	 (63,'офис','2026-05-10 15:20:00'),
 	 (64,'настроение','2026-05-10 15:20:00'),
 	 (65,'метро','2026-05-10 15:20:00')
-ON CONFLICT (movie_card_id, tag) DO UPDATE SET
+) AS v(card_idx, tag, created_at)
+JOIN card_map AS cm ON cm.idx = v.card_idx
+ON CONFLICT (card_id, tag) DO UPDATE SET
   created_at = EXCLUDED.created_at;
