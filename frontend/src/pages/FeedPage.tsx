@@ -1,10 +1,10 @@
 import { Button, IconButton } from '@telegram-apps/telegram-ui'
 import { PenLine, UserRoundX } from 'lucide-react'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, type Location } from 'react-router-dom'
 
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
@@ -27,7 +27,6 @@ import { globalFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQue
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
-import { readFeedScrollSnapshot, saveFeedScrollSnapshot } from '../lib/feedScrollRestore'
 import { FeedCardGlobalAudioProvider } from '../context/FeedCardGlobalAudioProvider'
 import { consumeGlobalFeedHeadSse } from '../lib/globalFeedSse'
 import {
@@ -36,8 +35,39 @@ import {
 } from '../lib/globalFeedViewedIds'
 import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+import { buildRouteKey, registerScrollContainer } from '../features/scrollRestore'
 
 import './FeedPage.css'
+
+type GreetingProfile = Parameters<typeof greetingFirstName>[0]
+type GreetingProfileWithId = GreetingProfile & { id: number }
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const buildRouteKeySafe = buildRouteKey as (loc: Location, keys: string[]) => string
+const registerScrollContainerSafe = registerScrollContainer as (
+  key: string,
+  container: HTMLElement,
+) => void | (() => void)
+
+const isGreetingProfile = (value: unknown): value is GreetingProfile => isRecord(value)
+const hasGreetingProfileId = (
+  value: GreetingProfile | null | undefined,
+): value is GreetingProfileWithId =>
+  isRecord(value) && typeof (value as Record<string, unknown>).id === 'number'
+
+const getProfileFromBundle = (bundle: unknown): GreetingProfile | null => {
+  if (!isRecord(bundle)) return null
+  const profile = bundle.profile
+  if (!isGreetingProfile(profile)) return null
+  return profile
+}
+
+const readViewerUserIdFromCache = () => {
+  const bundle: unknown = readMyProfileBundleCache()
+  const profile = getProfileFromBundle(bundle)
+  return hasGreetingProfileId(profile) ? profile.id : null
+}
 
 const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
   { value: 'all', segmentLabel: 'Всё' },
@@ -45,88 +75,54 @@ const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
   { value: 'cards', segmentLabel: 'Карточки' },
 ]
 
+type RecentCardsStripItems = ComponentProps<typeof RecentCardsStrip>['items']
+const getEmptyRecentStrip = (): RecentCardsStripItems => []
+
 export function FeedPage() {
   const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const location = useLocation()
   const { openCompose } = useComposeFeedPost()
-  const pendingScrollYRef = useRef<number | null>(null)
-  const feedKindRef = useRef<GlobalFeedKind>('all')
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
 
   const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
-  const [myProfileBundle, setMyProfileBundle] = useState(() => readMyProfileBundleCache())
-  const viewerUserId = myProfileBundle?.profile.id ?? null
+  const [myProfileBundle, setMyProfileBundle] = useState<unknown>(() => {
+    const bundle: unknown = readMyProfileBundleCache()
+    return bundle
+  })
+  const profile = useMemo(() => getProfileFromBundle(myProfileBundle), [myProfileBundle])
+  const viewerUserId = hasGreetingProfileId(profile) ? profile.id : null
+  const viewerUserIdString = viewerUserId != null ? String(viewerUserId) : null
   const [hideMine, setHideMine] = useState(() => {
     if (typeof window === 'undefined') return false
-    const uid = readMyProfileBundleCache()?.profile.id ?? null
-    return readGlobalFeedHideMine(uid)
+    const uid = readViewerUserIdFromCache()
+    return readGlobalFeedHideMine(uid != null ? String(uid) : null)
   })
-  const emptyFeedGreeting = greetingFirstName(myProfileBundle?.profile)
+  const emptyFeedGreeting = greetingFirstName(profile ?? undefined)
 
-  const [recentStrip, setRecentStrip] = useState(() => {
-    const uid = readMyProfileBundleCache()?.profile.id
-    return uid != null ? readRecentCardViews(uid) : []
+  const [recentStrip, setRecentStrip] = useState<RecentCardsStripItems>(() => {
+    const uid = readViewerUserIdFromCache()
+    return uid != null ? readRecentCardViews(String(uid)) : getEmptyRecentStrip()
   })
 
   const [liveHeadVersion, setLiveHeadVersion] = useState(0)
   const [ackHeadVersion, setAckHeadVersion] = useState(0)
+  const routeKey = useMemo(() => buildRouteKeySafe(location, ['q', 'filter']), [location])
 
   useEffect(() => {
     void ensureHeaderPepeGifsPreloaded()
   }, [])
 
   useEffect(() => {
-    feedKindRef.current = feedKind
-  }, [feedKind])
-
-  useEffect(() => {
     queueMicrotask(() => {
-      setHideMine(readGlobalFeedHideMine(viewerUserId))
+      setHideMine(readGlobalFeedHideMine(viewerUserIdString))
     })
-  }, [viewerUserId])
-
-  useEffect(() => {
-    if (auth.kind !== 'ready') {
-      return
-    }
-    let timeoutId: number | undefined
-    const onScroll = () => {
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId)
-      }
-      timeoutId = window.setTimeout(() => {
-        saveFeedScrollSnapshot(feedKindRef.current, window.scrollY)
-      }, 200)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [auth.kind])
-
-  useEffect(() => {
-    const st = location.state as { restoreFeedScroll?: boolean } | undefined
-    if (!st?.restoreFeedScroll || auth.kind !== 'ready') {
-      return
-    }
-    const snapshot = readFeedScrollSnapshot()
-    void navigate('.', { replace: true, state: {} })
-    queueMicrotask(() => {
-      if (snapshot != null) {
-        setFeedKind(snapshot.kind)
-        pendingScrollYRef.current = snapshot.y
-      }
-    })
-  }, [location.state, navigate, auth.kind])
+  }, [viewerUserIdString])
 
   const refreshRecentStrip = useCallback(() => {
-    const uid = readMyProfileBundleCache()?.profile.id
-    setRecentStrip(uid != null ? readRecentCardViews(uid) : [])
+    const uid = readViewerUserIdFromCache()
+    setRecentStrip(uid != null ? readRecentCardViews(String(uid)) : getEmptyRecentStrip())
   }, [])
 
   const refreshProfileBundle = useCallback(() => {
@@ -135,16 +131,24 @@ export function FeedPage() {
 
   const excludeOwn = auth.kind === 'ready' && hideMine
 
-  const feedQuery = useInfiniteQuery({
+  const feedQuery = useInfiniteQuery<
+    FeedMovieCardPage,
+    Error,
+    InfiniteData<FeedMovieCardPage, string | null>,
+    ReturnType<typeof globalFeedQueryKey>,
+    string | null
+  >({
     queryKey: globalFeedQueryKey(feedKind, excludeOwn),
-    initialPageParam: null as string | null,
-    queryFn: async ({ pageParam }) =>
-      getGlobalFeedPage({
+    initialPageParam: null,
+    queryFn: async ({ pageParam }) => {
+      const response = await getGlobalFeedPage({
         limit: 20,
         kind: feedKind,
         excludeOwn,
         ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
-      }),
+      })
+      return response
+    },
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
     enabled: auth.kind === 'ready',
     staleTime: 2 * 60_000,
@@ -154,7 +158,7 @@ export function FeedPage() {
   useEffect(() => {
     const p0 = feedQuery.data?.pages[0]
     if (p0 == null) return
-    const v = p0.feed_head_version ?? 0
+    const v = typeof p0.feed_head_version === 'number' ? p0.feed_head_version : 0
     queueMicrotask(() => {
       setAckHeadVersion((prev) => Math.max(prev, v))
       setLiveHeadVersion((prev) => Math.max(prev, v))
@@ -171,6 +175,12 @@ export function FeedPage() {
   }, [auth.kind])
 
   useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return undefined
+    return registerScrollContainerSafe(routeKey, container)
+  }, [routeKey])
+
+  useEffect(() => {
     if (auth.kind !== 'ready') {
       return
     }
@@ -185,7 +195,7 @@ export function FeedPage() {
     })
   }, [auth.kind, queryClient])
 
-  const items = useMemo(
+  const items = useMemo<FeedMovieCardPage['items']>(
     () => feedQuery.data?.pages.flatMap((p) => p.items) ?? [],
     [feedQuery.data],
   )
@@ -285,22 +295,10 @@ export function FeedPage() {
   const onToggleHideMine = useCallback(() => {
     setHideMine((prev) => {
       const next = !prev
-      writeGlobalFeedHideMine(viewerUserId, next)
+      writeGlobalFeedHideMine(viewerUserIdString, next)
       return next
     })
-  }, [viewerUserId])
-
-  useEffect(() => {
-    const y = pendingScrollYRef.current
-    if (y == null) return
-    if (auth.kind !== 'ready') return
-    if (feedQuery.isPending && items.length === 0) return
-
-    pendingScrollYRef.current = null
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: y, behavior: 'auto' })
-    })
-  }, [auth.kind, feedQuery.isPending, items.length, feedKind])
+  }, [viewerUserIdString])
 
   const onRefetchFeed = useCallback(async () => {
     await feedQuery.refetch()
@@ -415,7 +413,11 @@ export function FeedPage() {
 
       <RecentCardsStrip items={recentStrip} />
 
-      <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-3">
+      <main
+        ref={scrollContainerRef}
+        data-route-key={routeKey}
+        className="max-w-full overflow-x-hidden px-4 pb-10 pt-3"
+      >
         <div className="flex flex-col gap-5">
           {(authPending || showSkeleton) && items.length === 0 && (
             <div className="flex flex-col gap-4">
@@ -459,7 +461,7 @@ export function FeedPage() {
                     >
                       <FeedPostCard
                         post={entry}
-                        viewerUserId={viewerUserId}
+                        viewerUserId={viewerUserIdString}
                         onCommentsState={onFeedPostCommentsState}
                       />
                     </div>
@@ -470,7 +472,7 @@ export function FeedPage() {
                   <div key={`card-${entry.id}`} className={dimC ? 'opacity-[0.88]' : undefined}>
                     <FeedCard
                       card={entry}
-                      viewerUserId={viewerUserId}
+                      viewerUserId={viewerUserIdString}
                       onCommentsState={onCommentsState}
                     />
                   </div>
