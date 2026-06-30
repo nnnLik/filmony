@@ -782,6 +782,241 @@ async def test_get_planned_card_partner_watch_status_when_rated(async_client: As
 
 
 @pytest.mark.asyncio
+async def test_get_planned_card_partner_only_planned_card_not_rated(
+    async_client: AsyncClient,
+) -> None:
+    from models.user_subscription import UserSubscription
+    from models.watchlist_entry import WatchlistEntry
+    from tests.support.user_card_category import ensure_default_category
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        actor = User(
+            telegram_user_id=624005,
+            profile_slug='planned-only-partner-act',
+            username='planned_only_actor',
+            first_name='Actor',
+            last_name=None,
+            photo_url=None,
+            display_name='Actor',
+            bio=None,
+            language_code='ru',
+        )
+        partner = User(
+            telegram_user_id=624006,
+            profile_slug='planned-only-partner-fr',
+            username='planned_only_friend',
+            first_name='Friend',
+            last_name=None,
+            photo_url=None,
+            display_name='Friend',
+            bio=None,
+            language_code='ru',
+        )
+        session.add(actor)
+        session.add(partner)
+        await session.flush()
+        session.add(UserSubscription(follower_user_id=actor.id, following_user_id=partner.id))
+        session.add(UserSubscription(follower_user_id=partner.id, following_user_id=actor.id))
+        film = Film(
+            kinopoisk_id=100628,
+            title='Planned Only Partners Film',
+            year=2024,
+            poster_url=None,
+            genres=[],
+        )
+        session.add(film)
+        await session.flush()
+        session.add(
+            CatalogItem(
+                provider=CatalogProvider.kinopoisk,
+                external_id='100628',
+                film_id=film.id,
+            )
+        )
+        actor_cat_id = await ensure_default_category(session, actor.id)
+        partner_cat_id = await ensure_default_category(session, partner.id)
+        actor_planned_card = UserCard(
+            user_id=actor.id,
+            film_id=film.id,
+            category_id=actor_cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id='100628',
+            rating=0.0,
+            company='friends',
+            mood_before='relax',
+            mood_after='enjoyed',
+            is_planned=True,
+        )
+        partner_planned_card = UserCard(
+            user_id=partner.id,
+            film_id=film.id,
+            category_id=partner_cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id='100628',
+            rating=0.0,
+            company='friends',
+            mood_before='relax',
+            mood_after='enjoyed',
+            is_planned=True,
+        )
+        session.add(actor_planned_card)
+        session.add(partner_planned_card)
+        await session.flush()
+        session.add(
+            WatchlistEntry(
+                user_id=actor.id,
+                card_id='kp:100628',
+                provider_meta={
+                    'provider': 'kinopoisk',
+                    'data': {
+                        'kp_id': film.kinopoisk_id,
+                        'title': film.title,
+                        'poster_url': film.poster_url,
+                    },
+                },
+                watch_tag='watch_later',
+                watch_with_user_id=partner.id,
+                watch_with_user_ids=[str(partner.id)],
+            )
+        )
+        await session.commit()
+        partner_id = str(partner.id)
+        actor_planned_card_id = actor_planned_card.id
+        partner_planned_card_id = partner_planned_card.id
+
+    await _login(async_client, telegram_user_id=624005)
+    fetched = await async_client.get(f'/api/cards/{actor_planned_card_id}')
+    assert fetched.status_code == 200
+    body = fetched.json()
+    assert body['is_planned'] is True
+    assert len(body['planned_watch_partners']) == 1
+    partner_body = body['planned_watch_partners'][0]
+    assert partner_body['id'] == partner_id
+    assert partner_body['has_rated'] is False
+    assert partner_body['rating'] is None
+    assert partner_body['rated_user_card_id'] is None
+    assert partner_body['planned_user_card_id'] == partner_planned_card_id
+
+
+@pytest.mark.asyncio
+async def test_get_planned_card_partner_zero_rating_not_rated(
+    async_client: AsyncClient,
+) -> None:
+    from models.user_subscription import UserSubscription
+    from models.watchlist_entry import WatchlistEntry
+    from tests.support.user_card_category import ensure_default_category
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        actor = User(
+            telegram_user_id=624007,
+            profile_slug='planned-zero-rating-act',
+            username='zero_rating_actor',
+            first_name='Actor',
+            last_name=None,
+            photo_url=None,
+            display_name='Actor',
+            bio=None,
+            language_code='ru',
+        )
+        partner = User(
+            telegram_user_id=624008,
+            profile_slug='planned-zero-rating-fr',
+            username='zero_rating_friend',
+            first_name='Friend',
+            last_name=None,
+            photo_url=None,
+            display_name='Friend',
+            bio=None,
+            language_code='ru',
+        )
+        session.add(actor)
+        session.add(partner)
+        await session.flush()
+        session.add(UserSubscription(follower_user_id=actor.id, following_user_id=partner.id))
+        session.add(UserSubscription(follower_user_id=partner.id, following_user_id=actor.id))
+        film = Film(
+            kinopoisk_id=100629,
+            title='Zero Rating Partners Film',
+            year=2024,
+            poster_url=None,
+            genres=[],
+        )
+        session.add(film)
+        await session.flush()
+        session.add(
+            CatalogItem(
+                provider=CatalogProvider.kinopoisk,
+                external_id='100629',
+                film_id=film.id,
+            )
+        )
+        actor_cat_id = await ensure_default_category(session, actor.id)
+        partner_cat_id = await ensure_default_category(session, partner.id)
+        actor_planned_card = UserCard(
+            user_id=actor.id,
+            film_id=film.id,
+            category_id=actor_cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id='100629',
+            rating=0.0,
+            company='friends',
+            mood_before='relax',
+            mood_after='enjoyed',
+            is_planned=True,
+        )
+        partner_zero_rating_card = UserCard(
+            user_id=partner.id,
+            film_id=film.id,
+            category_id=partner_cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id='100629',
+            rating=0.0,
+            company='alone',
+            mood_before='relax',
+            mood_after='enjoyed',
+            is_planned=False,
+        )
+        session.add(actor_planned_card)
+        session.add(partner_zero_rating_card)
+        await session.flush()
+        session.add(
+            WatchlistEntry(
+                user_id=actor.id,
+                card_id='kp:100629',
+                provider_meta={
+                    'provider': 'kinopoisk',
+                    'data': {
+                        'kp_id': film.kinopoisk_id,
+                        'title': film.title,
+                        'poster_url': film.poster_url,
+                    },
+                },
+                watch_tag='watch_later',
+                watch_with_user_id=partner.id,
+                watch_with_user_ids=[str(partner.id)],
+            )
+        )
+        await session.commit()
+        partner_id = str(partner.id)
+        actor_planned_card_id = actor_planned_card.id
+
+    await _login(async_client, telegram_user_id=624007)
+    fetched = await async_client.get(f'/api/cards/{actor_planned_card_id}')
+    assert fetched.status_code == 200
+    body = fetched.json()
+    assert body['is_planned'] is True
+    assert len(body['planned_watch_partners']) == 1
+    partner_body = body['planned_watch_partners'][0]
+    assert partner_body['id'] == partner_id
+    assert partner_body['has_rated'] is False
+    assert partner_body['rating'] is None
+    assert partner_body['rated_user_card_id'] is None
+    assert partner_body['planned_user_card_id'] is None
+
+
+@pytest.mark.asyncio
 async def test_get_planned_card_includes_watchlist_entry_id_for_owner(
     async_client: AsyncClient,
 ) -> None:

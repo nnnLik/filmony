@@ -25,6 +25,7 @@ import {
   reactionTokenFromId,
 } from '../../lib/commentReactionTokens'
 import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
+import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
@@ -362,7 +363,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                 ) : null}
               </Title>
             </div>
-            {!isPlannedCard ? (
+            {hasMeaningfulCardRating(card) ? (
               <div className="pointer-events-none absolute right-2.5 top-2.5 z-3">
                 <div className="relative flex size-12 items-center justify-center">
                   {hasAttachedAudio && isThisCardActive ? (

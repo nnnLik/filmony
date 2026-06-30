@@ -1,3 +1,7 @@
+export function hasMeaningfulCardRating(card: { is_planned?: boolean; rating: number }): boolean {
+  return card.is_planned !== true && card.rating >= 1
+}
+
 export function ratingPalette(value: number): { ring: string; glow: string; text: string } {
   if (value <= 3) return { ring: '#ef4444', glow: 'rgba(239,68,68,0.35)', text: '#fca5a5' }
   if (value <= 5) return { ring: '#f59e0b', glow: 'rgba(245,158,11,0.35)', text: '#fcd34d' }

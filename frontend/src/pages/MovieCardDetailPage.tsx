@@ -39,6 +39,7 @@ import type {
   ReactionSummary,
 } from '../api/profileTypes'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
+import { hasMeaningfulCardRating } from '../lib/ratingDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
@@ -994,6 +995,7 @@ function MovieCardDetailLoadedBody({
   const watchNoteText = movieCardWatchNotePlainText(card)
   const showWatchNote = watchNoteText.trim().length > 0
   const isPlannedCard = card.is_planned === true
+  const showCardRating = hasMeaningfulCardRating(card)
   const hasCardAudio = card.audio_url != null && card.audio_url.trim() !== ''
   const cardAudioUrlTrimmed = (card.audio_url ?? '').trim()
 
@@ -1035,7 +1037,7 @@ function MovieCardDetailLoadedBody({
                   className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] via-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_35%,transparent)] to-transparent"
                   aria-hidden
                 />
-                {!isPlannedCard ? (
+                {showCardRating ? (
                   <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 sm:left-3.5 sm:top-3.5">
                     <div className="relative flex h-21 w-21 items-center justify-center sm:h-21.5 sm:w-21.5">
                       {hasCardAudio ? (
@@ -1085,6 +1087,11 @@ function MovieCardDetailLoadedBody({
                     <Title level="2" weight="2" className="text-[1.15rem]! leading-snug! sm:text-[1.2rem]!">
                       {primaryTitle}
                     </Title>
+                    {isPlannedCard ? (
+                      <p className="mt-1 text-sm leading-snug text-(--tgui--hint_color)">
+                        Ещё не посмотрел — в списке «Позже»
+                      </p>
+                    ) : null}
                     <CardCategoryChip category={card.category} className="mt-2" />
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {detailCardAuthor != null ? <CardAuthorAvatarLink author={detailCardAuthor} /> : null}

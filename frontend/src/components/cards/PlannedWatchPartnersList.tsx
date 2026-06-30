@@ -33,7 +33,8 @@ export function PlannedWatchPartnersList({ partners, className = '' }: PlannedWa
       <ul className="mt-2.5 list-none space-y-1.5 p-0">
         {partners.map((partner) => {
           const name = displayNameFromProfile(partner)
-          const showRating = partner.has_rated && partner.rating != null
+          const showRating =
+            partner.has_rated && partner.rating != null && partner.rating >= 1
           const rp = showRating ? ratingPalette(partner.rating) : null
 
           return (
