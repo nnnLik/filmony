@@ -1,5 +1,6 @@
-import { render, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
 import { ScrollRestoreProvider } from '../ScrollRestoreProvider';
 import { buildRouteKey } from '../routeKey';
@@ -32,6 +33,7 @@ const setScrollRestoreFlag = (enabled: boolean) => {
 afterEach(() => {
   vi.restoreAllMocks();
   sessionStorage.clear();
+  navigationType = 'PUSH';
 });
 
 describe('ScrollRestoreProvider', () => {
@@ -52,9 +54,11 @@ describe('ScrollRestoreProvider', () => {
       .mockImplementation(() => undefined);
 
     render(
-      <ScrollRestoreProvider>
-        <div>Child</div>
-      </ScrollRestoreProvider>,
+      <MemoryRouter initialEntries={['/feed']}>
+        <ScrollRestoreProvider>
+          <div>Child</div>
+        </ScrollRestoreProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -65,13 +69,62 @@ describe('ScrollRestoreProvider', () => {
     navigationType = 'PUSH';
 
     render(
-      <ScrollRestoreProvider>
-        <div>Child</div>
-      </ScrollRestoreProvider>,
+      <MemoryRouter initialEntries={['/feed']}>
+        <ScrollRestoreProvider>
+          <div>Child</div>
+        </ScrollRestoreProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
       expect(restoreSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  it('restores scroll after POP navigation asynchronously', async () => {
+    setScrollRestoreFlag(true);
+    navigationType = 'PUSH';
+
+    const routeKey = buildRouteKey({ pathname: '/feed', search: '' });
+    sessionStorage.setItem(
+      'scrollRestore:v1',
+      JSON.stringify({
+        [routeKey]: { position: 220, containerId: null, updatedAt: Date.now() },
+      }),
+    );
+
+    const restoreSpy = vi
+      .spyOn(ScrollRestoreService.prototype, 'restore')
+      .mockImplementation(() => undefined);
+
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/feed']}>
+        <ScrollRestoreProvider>
+          <div>Child</div>
+        </ScrollRestoreProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(restoreSpy).not.toHaveBeenCalled();
+    });
+
+    navigationType = 'POP';
+
+    await act(async () => {
+      window.history.back();
+    });
+
+    rerender(
+      <MemoryRouter initialEntries={['/feed']}>
+        <ScrollRestoreProvider>
+          <div>Child</div>
+        </ScrollRestoreProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(restoreSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
