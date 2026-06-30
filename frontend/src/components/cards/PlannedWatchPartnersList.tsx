@@ -33,9 +33,9 @@ export function PlannedWatchPartnersList({ partners, className = '' }: PlannedWa
       <ul className="mt-2.5 list-none space-y-1.5 p-0">
         {partners.map((partner) => {
           const name = displayNameFromProfile(partner)
-          const showRating =
-            partner.has_rated && partner.rating != null && partner.rating >= 1
-          const rp = showRating ? ratingPalette(partner.rating) : null
+          const rating = partner.rating
+          const showRating = partner.has_rated && rating != null && rating >= 1
+          const rp = showRating ? ratingPalette(rating) : null
 
           return (
             <li key={partner.id}>
@@ -51,12 +51,12 @@ export function PlannedWatchPartnersList({ partners, className = '' }: PlannedWa
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-(--tgui--text_color)">
                   {name}
                 </span>
-                {showRating && rp != null && partner.rating != null ? (
+                {showRating && rp != null && rating != null ? (
                   <span
                     className="shrink-0 text-lg font-semibold tabular-nums"
                     style={{ color: rp.text }}
                   >
-                    {formatRating(partner.rating)}
+                    {formatRating(rating)}
                   </span>
                 ) : (
                   <span className="shrink-0 text-sm text-(--tgui--hint_color)">В «Позже»</span>
