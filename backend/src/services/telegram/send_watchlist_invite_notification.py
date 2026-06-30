@@ -65,7 +65,7 @@ def _build_caption_html(
         link_text='Открыть запланированную карточку',
     )
     return (
-        f'🎬 <b>{actor_safe}</b> приглашает посмотреть вместе\n\n'
+        f'📋 <b>{actor_safe}</b> приглашает в «Позже» вместе\n\n'
         f'<b>{title_safe}</b>{html.escape(year_part)}'
         f'{together_line}'
         f'{note_line}\n\n'
@@ -78,7 +78,7 @@ def _payload_stub(
     invited_user_id: UUID,
     actor_user_id: UUID,
     planned_user_card_id: int,
-    title: str = 'Приглашение посмотреть вместе',
+    title: str = 'Приглашение в «Позже»',
     body: str | None = None,
 ) -> dict:
     out: dict = {
