@@ -30,10 +30,15 @@ const setScrollRestoreFlag = (enabled: boolean) => {
   };
 };
 
+const clearScrollRestoreFlag = () => {
+  (window as typeof window & { __flags__?: { scrollRestore?: boolean } }).__flags__ = undefined;
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
   sessionStorage.clear();
   navigationType = 'PUSH';
+  clearScrollRestoreFlag();
 });
 
 describe('ScrollRestoreProvider', () => {
@@ -53,7 +58,7 @@ describe('ScrollRestoreProvider', () => {
       .spyOn(ScrollRestoreService.prototype, 'restore')
       .mockImplementation(() => undefined);
 
-    render(
+    const { unmount } = render(
       <MemoryRouter initialEntries={['/feed']}>
         <ScrollRestoreProvider>
           <div>Child</div>
@@ -67,6 +72,7 @@ describe('ScrollRestoreProvider', () => {
 
     restoreSpy.mockClear();
     navigationType = 'PUSH';
+    unmount();
 
     render(
       <MemoryRouter initialEntries={['/feed']}>
@@ -97,7 +103,7 @@ describe('ScrollRestoreProvider', () => {
       .spyOn(ScrollRestoreService.prototype, 'restore')
       .mockImplementation(() => undefined);
 
-    const { rerender } = render(
+    const { unmount } = render(
       <MemoryRouter initialEntries={['/feed']}>
         <ScrollRestoreProvider>
           <div>Child</div>
@@ -115,7 +121,9 @@ describe('ScrollRestoreProvider', () => {
       window.history.back();
     });
 
-    rerender(
+    unmount();
+
+    render(
       <MemoryRouter initialEntries={['/feed']}>
         <ScrollRestoreProvider>
           <div>Child</div>
