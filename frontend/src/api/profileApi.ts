@@ -16,7 +16,10 @@ import type {
   WatchlistEntryItem,
   WatchlistEntryPage,
   WatchlistMembership,
+  WatchTag,
 } from './profileTypes'
+
+export type { WatchTag } from './profileTypes'
 import type { UserFeedPostsPage } from './feedInFeedTypes'
 
 export type ProfileCardsSort = 'recent' | 'rating_desc' | 'rating_asc'
@@ -44,7 +47,7 @@ export type CreateWatchlistEntryBody = {
   catalog_item_id?: number
   card_id?: string
   provider_meta?: Record<string, unknown>
-  watch_tag?: string
+  watch_tag?: WatchTag
   watch_with_user_id?: string | null
 }
 
@@ -250,6 +253,20 @@ export async function postCreateWatchlistEntry(body: CreateWatchlistEntryBody): 
 /** @deprecated Use postCreateWatchlistEntry({ film_id }) */
 export async function postMyWatchlistFilm(filmId: number): Promise<WatchlistEntryItem> {
   return postCreateWatchlistEntry({ film_id: filmId })
+}
+
+export async function patchMyWatchlistEntry(
+  entryId: number,
+  body: { watch_tag: WatchTag },
+): Promise<{ id: number; watch_tag: string }> {
+  return apiJson<{ id: number; watch_tag: string }>(
+    `/api/watchlist/${encodeURIComponent(String(entryId))}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  )
 }
 
 export async function deleteMyWatchlistEntry(entryId: number): Promise<void> {

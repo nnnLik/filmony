@@ -4,7 +4,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
-import { deleteMyWatchlistFilm, getMyWatchlistFilmPresence, postMyWatchlistFilm } from '../api/profileApi'
+import {
+  deleteMyWatchlistFilm,
+  getMyWatchlistPresence,
+  postCreateWatchlistEntry,
+} from '../api/profileApi'
 import type {
   CardCompany,
   CardMoodAfter,
@@ -136,14 +140,15 @@ export function FilmDetailPage() {
   useEffect(() => {
     let alive = true
     void (async () => {
-      if (auth.kind !== 'ready' || filmId < 1) {
+      if (auth.kind !== 'ready' || film == null || film.kinopoisk_id < 1) {
         queueMicrotask(() => {
           if (auth.kind !== 'ready') setInWatchlist(null)
         })
         return
       }
       try {
-        const m = await getMyWatchlistFilmPresence(filmId)
+        const cardId = `kp:${film.kinopoisk_id}`
+        const m = await getMyWatchlistPresence(cardId)
         if (!alive) return
         setInWatchlist(m.in_watchlist)
       } catch {
@@ -154,7 +159,7 @@ export function FilmDetailPage() {
     return () => {
       alive = false
     }
-  }, [auth.kind, filmId])
+  }, [auth.kind, film])
 
   const hasMyRatedCard = film != null && film.my_card_id != null && film.my_card_id > 0
 
@@ -163,7 +168,10 @@ export function FilmDetailPage() {
     setAddWatchlistBusy(true)
     setWatchlistActionErr(null)
     try {
-      await postMyWatchlistFilm(film.id)
+      await postCreateWatchlistEntry({
+        film_id: film.id,
+        watch_tag: 'watch_later',
+      })
       setInWatchlist(true)
       clearMyProfileBundleCache()
       safeHapticSuccess()

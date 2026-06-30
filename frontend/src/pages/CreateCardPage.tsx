@@ -27,6 +27,7 @@ import {
   getUserSubscriptions,
   postCreateWatchlistEntry,
   type CreateWatchlistEntryBody,
+  type WatchTag,
 } from '../api/profileApi'
 import type {
   CardCompany,
@@ -42,6 +43,7 @@ import { CommentDraftMultiline } from '../components/comments/CommentDraftMirror
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
+import { MutualWatchFriendPicker } from '../components/watchlist/MutualWatchFriendPicker'
 import {
   globalFeedQueryRootKey,
   myCardCategoriesQueryKey,
@@ -60,6 +62,7 @@ import {
   movieCardReleaseCompactSuffix,
 } from '../lib/movieCardDisplay'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { filterMutualSubscriptions } from '../lib/mutualSubscriptionFilter'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
@@ -85,6 +88,10 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter; label: string }> = [
   { value: 'enjoyed', label: 'Кайфанул' },
   { value: 'tense', label: 'Был напряжен' },
   { value: 'wasted_time', label: 'Зря потратил время' },
+]
+
+const WATCH_TAG_OPTIONS: Array<{ value: WatchTag; label: string }> = [
+  { value: 'watch_later', label: 'Позже' },
 ]
 
 const CHIP_COLORS = [
@@ -139,7 +146,16 @@ function watchlistCustomCardId(title: string): string {
   return `custom:${slug}`
 }
 
-function buildWatchlistCreatePayload(binding: CreationBinding): CreateWatchlistEntryBody | null {
+function buildWatchlistCreatePayload(
+  binding: CreationBinding,
+  opts?: { watch_tag?: WatchTag; watch_with_user_id?: string | null },
+): CreateWatchlistEntryBody | null {
+  const watchExtras = {
+    watch_tag: opts?.watch_tag ?? 'watch_later',
+    ...(opts?.watch_with_user_id != null && opts.watch_with_user_id !== ''
+      ? { watch_with_user_id: opts.watch_with_user_id }
+      : {}),
+  }
   if (binding.kind === 'manual') {
     const title = binding.display_title.trim()
     if (title === '') return null
@@ -153,13 +169,14 @@ function buildWatchlistCreatePayload(binding: CreationBinding): CreateWatchlistE
           display_summary: binding.display_summary,
         },
       },
+      ...watchExtras,
     }
   }
   if (binding.kind === 'catalog_game') {
-    return { catalog_item_id: binding.catalogItemId }
+    return { catalog_item_id: binding.catalogItemId, ...watchExtras }
   }
   if (binding.kind === 'catalog_film' || binding.kind === 'film') {
-    return { film_id: binding.film.id }
+    return { film_id: binding.film.id, ...watchExtras }
   }
   return null
 }
@@ -272,6 +289,10 @@ export function CreateCardPage() {
   const [shareFollowers, setShareFollowers] = useState<SubscriptionListItem[]>([])
   const [shareFollowersLoading, setShareFollowersLoading] = useState(false)
   const [shareSelected, setShareSelected] = useState<Set<string>>(() => new Set())
+  const [watchlistTag, setWatchlistTag] = useState<WatchTag>('watch_later')
+  const [watchWithUserId, setWatchWithUserId] = useState<string | null>(null)
+  const [mutualFriends, setMutualFriends] = useState<SubscriptionListItem[]>([])
+  const [mutualFriendsLoading, setMutualFriendsLoading] = useState(false)
   /** `null` — не передаём `category_id`, бэкенд подставляет полку по умолчанию. */
   const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null)
   const [newShelfDraft, setNewShelfDraft] = useState('')
@@ -529,6 +550,31 @@ export function CreateCardPage() {
   }, [navigate, searchParams])
 
   useEffect(() => {
+    if (step !== 2 || auth.kind !== 'ready') {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setMutualFriendsLoading(true)
+      try {
+        const me = await getMyProfile()
+        if (!alive) return
+        const subs = await getUserSubscriptions(me.id, 'both')
+        if (!alive) return
+        setMutualFriends(filterMutualSubscriptions(subs.items))
+      } catch {
+        if (!alive) return
+        setMutualFriends([])
+      } finally {
+        if (alive) setMutualFriendsLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [step, auth.kind])
+
+  useEffect(() => {
     if (step !== 4 || auth.kind !== 'ready') {
       return
     }
@@ -769,7 +815,10 @@ export function CreateCardPage() {
     if (creationBinding == null) {
       return
     }
-    const payload = buildWatchlistCreatePayload(creationBinding)
+    const payload = buildWatchlistCreatePayload(creationBinding, {
+      watch_tag: watchlistTag,
+      watch_with_user_id: watchWithUserId,
+    })
     if (payload == null) {
       return
     }
@@ -778,6 +827,7 @@ export function CreateCardPage() {
     try {
       await postCreateWatchlistEntry(payload)
       clearMyProfileBundleCache()
+      void queryClient.invalidateQueries({ queryKey: ['userWatchlist'] })
       safeHapticSuccess()
       void navigate('/profile', { replace: true, state: { moviesSegment: 'watchlist' as const } })
     } catch (e) {
@@ -1483,6 +1533,20 @@ export function CreateCardPage() {
                 </div>
                 {watchlistError != null ? (
                   <p className="mt-3 text-sm text-(--tgui--destructive_text_color)">{watchlistError}</p>
+                ) : null}
+                {!confirmPreview.showDupWarning && confirmPreview.showWatchlist ? (
+                  <div className="mt-5 space-y-4 border-t border-(--tgui--divider_color) pt-5">
+                    <div>
+                      <p className="text-sm font-medium text-(--tgui--text_color)">Метка списка</p>
+                      {renderChoiceChips(WATCH_TAG_OPTIONS, watchlistTag, setWatchlistTag)}
+                    </div>
+                    <MutualWatchFriendPicker
+                      friends={mutualFriends}
+                      loading={mutualFriendsLoading}
+                      selectedUserId={watchWithUserId}
+                      onSelect={setWatchWithUserId}
+                    />
+                  </div>
                 ) : null}
                 <div className="mt-5 flex flex-col gap-2">
                   {confirmPreview.showDupWarning ? (

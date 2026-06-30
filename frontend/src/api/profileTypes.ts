@@ -112,6 +112,8 @@ export type WatchlistMembership = {
   in_watchlist: boolean
 }
 
+export type WatchTag = 'watch_later'
+
 export type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
 export type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
 export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_time'
