@@ -76,23 +76,53 @@ export type MovieCardPage = {
   next_cursor: string | null
 }
 
-export type WatchlistFilmItem = {
-  film_id: number
-  film_kinopoisk_id: number
+export type WatchlistEntryItem = {
+  entry_id: number
+  card_id: string
+  /** Planned snippet card id when the watchlist entry has a rated-card placeholder. */
+  planned_user_card_id?: number | null
+  provider: UserCardProvider | 'custom'
+  title: string
+  poster_url: string | null
+  year: number | null
+  watch_tag: string
+  watch_with_user_id: string | null
+  watch_with_user_ids?: string[]
+  created_at: string
+  film_id: number | null
+  film_kinopoisk_id: number | null
   film_genres: string[]
-  film_title: string
-  film_year: number | null
-  film_poster_url: string | null
+  catalog_item_id: number | null
+  external_id: string | null
+  /** Legacy Kinopoisk aliases from API */
+  film_title?: string
+  film_year?: number | null
+  film_poster_url?: string | null
 }
 
-export type WatchlistFilmPage = {
-  items: WatchlistFilmItem[]
+/** @deprecated Use WatchlistEntryItem */
+export type WatchlistFilmItem = WatchlistEntryItem
+
+export type WatchlistEntryPage = {
+  items: WatchlistEntryItem[]
   next_cursor: string | null
 }
+
+/** @deprecated Use WatchlistEntryPage */
+export type WatchlistFilmPage = WatchlistEntryPage
 
 export type WatchlistMembership = {
   in_watchlist: boolean
 }
+
+export type PlannedUserCard = {
+  user_card_id: number
+  company: CardCompany
+  category_id: number
+  watch_note: string
+}
+
+export type WatchTag = 'watch_later'
 
 export type CardCompany = 'alone' | 'partner' | 'friends' | 'family'
 export type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
@@ -158,6 +188,14 @@ export type MovieCardCommentAuthor = {
   display_name: string | null
 }
 
+/** Partner on a planned card (`GET /api/cards/:id`, `is_planned`). */
+export type PlannedWatchPartner = MovieCardCommentAuthor & {
+  has_rated: boolean
+  rating: number | null
+  rated_user_card_id: number | null
+  planned_user_card_id: number | null
+}
+
 export type MovieCard = {
   id: number
   user_id?: string
@@ -186,6 +224,8 @@ export type MovieCard = {
   film_short_description?: string | null
   film_description?: string | null
   rating: number
+  /** True for watchlist «Позже» snippets without a user rating yet. */
+  is_planned?: boolean
   company: CardCompany
   mood_before: CardMoodBefore
   mood_after: CardMoodAfter
@@ -198,6 +238,10 @@ export type MovieCard = {
   is_favorite?: boolean
   /** Опциональный аудио-слой (деталка / лента / профиль). */
   audio_url?: string | null
+  /** Только GET /api/cards/:id для запланированных карточек. */
+  planned_watch_partners?: PlannedWatchPartner[]
+  /** Связанная запись watchlist; только GET /api/cards/:id для is_planned. */
+  watchlist_entry_id?: number | null
 }
 
 export type MyUserCardCategory = {
@@ -257,7 +301,8 @@ export type FollowingRatingEntry = {
   last_name: string | null
   photo_url: string | null
   display_name: string | null
-  rating: number
+  rating?: number | null
+  is_planned?: boolean
 }
 
 export type FollowingRatingsResponse = {

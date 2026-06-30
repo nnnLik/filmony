@@ -168,6 +168,10 @@ export function EditMovieCardPage() {
       try {
         const item = await getMovieCardById(parsedCardId)
         if (!alive) return
+        if (item.is_planned === true) {
+          void navigate(`/cards/${parsedCardId}/edit-planned`, { replace: true })
+          return
+        }
         setCard(item)
         setRating(item.rating)
         setCompany(item.company)
@@ -193,7 +197,7 @@ export function EditMovieCardPage() {
     return () => {
       alive = false
     }
-  }, [parsedCardId])
+  }, [parsedCardId, navigate])
 
   function renderChoiceChips<T extends string>(
     options: Array<{ value: T; label: string }>,

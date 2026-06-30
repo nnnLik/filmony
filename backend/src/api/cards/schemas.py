@@ -177,8 +177,16 @@ class CardDetailResponse(BaseModel):
     watch_note: str = ''
     category: UserCardCategorySnippet
     is_favorite: bool = False
+    is_planned: bool = False
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
     audio_url: str | None = None
+
+
+class PlannedWatchPartnerResponse(UserCardCommentAuthorResponse):
+    has_rated: bool = False
+    rating: float | None = None
+    rated_user_card_id: int | None = None
+    planned_user_card_id: int | None = None
 
 
 class UserCardDetailResponse(CardDetailResponse):
@@ -186,6 +194,8 @@ class UserCardDetailResponse(CardDetailResponse):
 
     film_short_description: str | None = None
     film_description: str | None = None
+    planned_watch_partners: list[PlannedWatchPartnerResponse] = Field(default_factory=list)
+    watchlist_entry_id: int | None = None
 
 
 class CardUpdateRequest(BaseModel):
@@ -275,6 +285,7 @@ class FeedPostReferencedCardResponse(BaseModel):
     release_date: str | None = None
     film_poster_url: str | None
     rating: float
+    is_planned: bool = False
 
 
 class FeedPostCommentPreviewResponse(BaseModel):
@@ -390,7 +401,8 @@ class FollowingRatingEntryResponse(BaseModel):
     last_name: str | None
     photo_url: str | None
     display_name: str | None
-    rating: float
+    rating: float | None = None
+    is_planned: bool = False
 
 
 class FollowingRatingsListResponse(BaseModel):

@@ -72,6 +72,7 @@ export function AppRoutes() {
         <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
         <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />
         <Route path="/cards/:cardId/edit" element={<EditMovieCardPage />} />
+        <Route path="/cards/:cardId/edit-planned" element={<CreateCardPage />} />
       </Routes>
     </Suspense>
   )

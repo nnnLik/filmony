@@ -1,5 +1,5 @@
--- Любимые карточки авторов (после INSERT в movie_card.sql). По паре user_id + film_id.
-UPDATE public.movie_card AS mc
+-- Любимые карточки авторов (после INSERT в user_card.sql). По паре user_id + film_id.
+UPDATE public.user_card AS mc
 SET is_favorite = true,
     favorite_marked_at = '2026-05-09 14:00:00+03'::timestamptz
 FROM (

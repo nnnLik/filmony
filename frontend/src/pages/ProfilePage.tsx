@@ -37,7 +37,6 @@ import {
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
-
 import './ProfilePage.css'
 
 type ProfileMainTab = 'movies' | 'posts' | 'stats'

@@ -4,7 +4,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
-import { deleteMyWatchlistFilm, getMyWatchlistFilmPresence, postMyWatchlistFilm } from '../api/profileApi'
+import {
+  deleteMyWatchlistFilm,
+  getMyPlannedCard,
+  getMyWatchlistPresence,
+} from '../api/profileApi'
 import type {
   CardCompany,
   CardMoodAfter,
@@ -24,8 +28,6 @@ import { displayNameFromAuthorFields } from '../lib/authorDisplayName'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { profileInitials } from '../lib/profileDisplay'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
-import { safeHapticSuccess } from '../lib/safeHaptic'
-
 function companyLabel(c: string): string {
   return c in COMPANY_SHORT ? COMPANY_SHORT[c as CardCompany] : c
 }
@@ -49,8 +51,8 @@ export function FilmDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [inWatchlist, setInWatchlist] = useState<boolean | null>(null)
+  const [plannedUserCardId, setPlannedUserCardId] = useState<number | null>(null)
   const [removeBusy, setRemoveBusy] = useState(false)
-  const [addWatchlistBusy, setAddWatchlistBusy] = useState(false)
   const [watchlistActionErr, setWatchlistActionErr] = useState<string | null>(null)
 
   const [community, setCommunity] = useState<FilmCommunityCardItem[]>([])
@@ -136,57 +138,46 @@ export function FilmDetailPage() {
   useEffect(() => {
     let alive = true
     void (async () => {
-      if (auth.kind !== 'ready' || filmId < 1) {
+      if (auth.kind !== 'ready' || film == null || film.kinopoisk_id < 1) {
         queueMicrotask(() => {
           if (auth.kind !== 'ready') setInWatchlist(null)
         })
         return
       }
       try {
-        const m = await getMyWatchlistFilmPresence(filmId)
+        const cardId = `kp:${film.kinopoisk_id}`
+        const m = await getMyWatchlistPresence(cardId)
         if (!alive) return
         setInWatchlist(m.in_watchlist)
+        if (m.in_watchlist) {
+          try {
+            const planned = await getMyPlannedCard({ film_id: film.id })
+            if (!alive) return
+            setPlannedUserCardId(planned.user_card_id)
+          } catch {
+            if (!alive) return
+            setPlannedUserCardId(null)
+          }
+        } else {
+          setPlannedUserCardId(null)
+        }
       } catch {
         if (!alive) return
         setInWatchlist(false)
+        setPlannedUserCardId(null)
       }
     })()
     return () => {
       alive = false
     }
-  }, [auth.kind, filmId])
+  }, [auth.kind, film])
 
   const hasMyRatedCard = film != null && film.my_card_id != null && film.my_card_id > 0
 
-  const onAddToWatchlist = useCallback(async () => {
+  const onAddToWatchlist = useCallback(() => {
     if (filmId < 1 || film == null) return
-    setAddWatchlistBusy(true)
-    setWatchlistActionErr(null)
-    try {
-      await postMyWatchlistFilm(film.id)
-      setInWatchlist(true)
-      clearMyProfileBundleCache()
-      safeHapticSuccess()
-    } catch (e) {
-      if (e instanceof ApiError) {
-        if (e.status === 409) {
-          setWatchlistActionErr('Уже в списке «Позже».')
-          setInWatchlist(true)
-          return
-        }
-        const msg = formatApiDetail(e.detail).toLowerCase()
-        if (msg.includes('movie card already exists')) {
-          setWatchlistActionErr('У вас уже есть оценённая карточка для этой темы.')
-          return
-        }
-        setWatchlistActionErr(formatApiDetail(e.detail))
-      } else {
-        setWatchlistActionErr('Не удалось добавить в список')
-      }
-    } finally {
-      setAddWatchlistBusy(false)
-    }
-  }, [film, filmId])
+    void navigate(`/cards/new?filmId=${encodeURIComponent(String(film.id))}&branch=watchlist`)
+  }, [film, filmId, navigate])
 
   const onRemoveFromWatchlist = useCallback(async () => {
     if (filmId < 1) return
@@ -347,24 +338,29 @@ export function FilmDetailPage() {
                           <Button stretched>Добавить карточку с оценкой</Button>
                         </Link>
                         {inWatchlist === false ? (
-                          <Button
-                            mode="gray"
-                            stretched
-                            disabled={addWatchlistBusy}
-                            onClick={() => void onAddToWatchlist()}
-                          >
-                            {addWatchlistBusy ? 'Добавляем…' : 'В список «Позже»'}
+                          <Button mode="gray" stretched onClick={onAddToWatchlist}>
+                            В список «Позже»
                           </Button>
                         ) : null}
                         {inWatchlist === true ? (
-                          <Button
-                            mode="gray"
-                            stretched
-                            disabled={removeBusy}
-                            onClick={() => void onRemoveFromWatchlist()}
-                          >
-                            {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
-                          </Button>
+                          <>
+                            {plannedUserCardId != null && plannedUserCardId > 0 ? (
+                              <Link
+                                to={`/cards/${encodeURIComponent(String(plannedUserCardId))}`}
+                                className="no-underline"
+                              >
+                                <Button stretched>Открыть запланированную карточку</Button>
+                              </Link>
+                            ) : null}
+                            <Button
+                              mode="gray"
+                              stretched
+                              disabled={removeBusy}
+                              onClick={() => void onRemoveFromWatchlist()}
+                            >
+                              {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
+                            </Button>
+                          </>
                         ) : null}
                       </>
                     )}

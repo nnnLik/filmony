@@ -2,7 +2,7 @@ import { Button, Title } from '@telegram-apps/telegram-ui'
 import { Clapperboard, Gamepad2, PenLine } from 'lucide-react'
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useMatch, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import type { CatalogSearchHit, CatalogSearchResponse } from '../api/catalogApi'
@@ -25,7 +25,13 @@ import {
   getMyProfile,
   getMyCardCategories,
   getUserSubscriptions,
-  postMyWatchlistFilm,
+  getMyPlannedCard,
+  patchMyWatchlistEntry,
+  postCreateWatchlistEntry,
+  type CreateWatchlistEntryBody,
+  type GetMyPlannedCardParams,
+  type PatchWatchlistEntryBody,
+  type WatchTag,
 } from '../api/profileApi'
 import type {
   CardCompany,
@@ -41,6 +47,7 @@ import { CommentDraftMultiline } from '../components/comments/CommentDraftMirror
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
+import { MutualWatchFriendsMultiPicker } from '../components/watchlist/MutualWatchFriendsMultiPicker'
 import {
   globalFeedQueryRootKey,
   myCardCategoriesQueryKey,
@@ -59,6 +66,7 @@ import {
   movieCardReleaseCompactSuffix,
 } from '../lib/movieCardDisplay'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { filterMutualSubscriptions } from '../lib/mutualSubscriptionFilter'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
@@ -86,6 +94,36 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter; label: string }> = [
   { value: 'wasted_time', label: 'Зря потратил время' },
 ]
 
+const WATCHLIST_COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
+  { value: 'alone', label: 'Один' },
+  { value: 'partner', label: 'С партнером' },
+  { value: 'friends', label: 'С друзьями' },
+  { value: 'family', label: 'С семьей' },
+]
+
+type WizardStep = 1 | 2 | 'watchlist' | 3 | 4
+const RATED_TOTAL_STEPS = 4
+const STEP_TITLES: Record<WizardStep, string> = {
+  1: 'Что добавляем',
+  2: 'Проверьте тему',
+  watchlist: 'Детали для «Позже»',
+  3: 'Оценка и полка',
+  4: 'Детали и отправка',
+}
+
+function wizardProgressPercent(step: WizardStep): number {
+  if (step === 'watchlist') return 50
+  if (step === 1) return 25
+  if (step === 2) return 50
+  if (step === 3) return 75
+  return 100
+}
+
+function wizardStepLabel(step: WizardStep): string {
+  if (step === 'watchlist') return '«Позже»'
+  return `Шаг ${String(step)} из ${String(RATED_TOTAL_STEPS)}`
+}
+
 const CHIP_COLORS = [
   'bg-[#3B82F633] text-[#60A5FA]',
   'bg-[#F9731633] text-[#FDBA74]',
@@ -96,15 +134,6 @@ const CHIP_COLORS = [
 
 /** Дольше 450 ms — меньше промежуточных запросов при наборе; React Query отменяет in-flight через AbortSignal. */
 const CATALOG_SEARCH_DEBOUNCE_MS = 800
-
-type WizardStep = 1 | 2 | 3 | 4
-const TOTAL_STEPS = 4
-const STEP_TITLES: Record<WizardStep, string> = {
-  1: 'Что добавляем',
-  2: 'Проверьте тему',
-  3: 'Оценка и полка',
-  4: 'Детали и отправка',
-}
 
 /** Экран шага 1: источник темы (каталог или вручную) → поиск / ссылка. */
 type CardAddKind = null | 'film' | 'game' | 'manual'
@@ -127,11 +156,99 @@ type CreationBinding =
       display_summary: string | null
     }
 
-/** Kinopoisk-backed каталог: id `Film` для legacy watchlist API. */
-function watchlistKinopoiskFilmId(binding: CreationBinding): number | null {
-  if (binding.kind === 'manual' || binding.kind === 'catalog_game') return null
-  if (binding.kind === 'catalog_film') return binding.film.id
-  return binding.film.id
+function watchlistCustomCardId(title: string): string {
+  const slug =
+    title
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s-]/gu, '')
+      .replace(/\s+/g, '-')
+      .slice(0, 80) || 'untitled'
+  return `custom:${slug}`
+}
+
+function plannedCardLookupParams(binding: CreationBinding): GetMyPlannedCardParams | null {
+  if (binding.kind === 'film' || binding.kind === 'catalog_film') {
+    return { film_id: binding.film.id }
+  }
+  if (binding.kind === 'catalog_game') {
+    return { catalog_item_id: binding.catalogItemId }
+  }
+  if (binding.kind === 'manual') {
+    const title = binding.display_title.trim()
+    if (title === '') return null
+    return { card_id: watchlistCustomCardId(title) }
+  }
+  return null
+}
+
+async function creationBindingFromMovieCard(card: MovieCard): Promise<CreationBinding | null> {
+  if (card.film_id != null && card.film_id > 0) {
+    const item = await getFilmById(card.film_id)
+    return { kind: 'film', film: item }
+  }
+  if (card.catalog_item_id != null && card.catalog_item_id > 0 && card.provider === 'rawg') {
+    return {
+      kind: 'catalog_game',
+      catalogItemId: card.catalog_item_id,
+      display_title: movieCardPrimaryTitle(card),
+      display_cover_url: movieCardPrimaryPoster(card),
+      display_summary: card.display_summary ?? null,
+      subtitle: movieCardReleaseCompactSuffix(card),
+    }
+  }
+  return {
+    kind: 'manual',
+    display_title: movieCardPrimaryTitle(card),
+    display_cover_url: movieCardPrimaryPoster(card),
+    display_summary: card.display_summary ?? null,
+  }
+}
+
+function buildWatchlistCreatePayload(
+  binding: CreationBinding,
+  opts?: {
+    watch_tag?: WatchTag
+    company?: CardCompany
+    category_id?: number | null
+    watch_note?: string
+    watch_with_user_ids?: string[]
+  },
+): CreateWatchlistEntryBody | null {
+  const watchExtras: Omit<CreateWatchlistEntryBody, 'film_id' | 'catalog_item_id' | 'card_id' | 'provider_meta'> = {
+    watch_tag: opts?.watch_tag ?? 'watch_later',
+    company: opts?.company ?? 'alone',
+    watch_note: opts?.watch_note ?? '',
+  }
+  if (opts?.category_id != null && opts.category_id > 0) {
+    watchExtras.category_id = opts.category_id
+  }
+  if (opts?.watch_with_user_ids != null && opts.watch_with_user_ids.length > 0) {
+    watchExtras.watch_with_user_ids = opts.watch_with_user_ids
+  }
+  if (binding.kind === 'manual') {
+    const title = binding.display_title.trim()
+    if (title === '') return null
+    return {
+      card_id: watchlistCustomCardId(title),
+      provider_meta: {
+        provider: 'custom',
+        data: {
+          title,
+          display_cover_url: binding.display_cover_url,
+          display_summary: binding.display_summary,
+        },
+      },
+      ...watchExtras,
+    }
+  }
+  if (binding.kind === 'catalog_game') {
+    return { catalog_item_id: binding.catalogItemId, ...watchExtras }
+  }
+  if (binding.kind === 'catalog_film' || binding.kind === 'film') {
+    return { film_id: binding.film.id, ...watchExtras }
+  }
+  return null
 }
 
 async function hydrateKinopoiskCatalogFilm(externalId: string): Promise<Film> {
@@ -205,11 +322,22 @@ export function CreateCardPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const editPlannedMatch = useMatch('/cards/:cardId/edit-planned')
+  const editPlannedCardId = useMemo(() => {
+    const raw = editPlannedMatch?.params.cardId
+    if (raw == null) return null
+    const value = Number(raw)
+    return Number.isInteger(value) && value > 0 ? value : null
+  }, [editPlannedMatch?.params.cardId])
+  const isEditPlannedMode = editPlannedCardId != null
   const initialFilmId = searchParams.get('filmId')
   const fromCardQuery = searchParams.get('fromCard')
-  const [fromCardPrefillDone, setFromCardPrefillDone] = useState(() => fromCardQuery == null || fromCardQuery === '')
+  const [fromCardPrefillDone, setFromCardPrefillDone] = useState(
+    () => !isEditPlannedMode && (fromCardQuery == null || fromCardQuery === ''),
+  )
+  const [editPlannedEntryId, setEditPlannedEntryId] = useState<number | null>(null)
   const [remixFromCard, setRemixFromCard] = useState(false)
-  const [step, setStep] = useState<WizardStep>(1)
+  const [step, setStep] = useState<WizardStep>(() => (isEditPlannedMode ? 'watchlist' : 1))
   const [addKind, setAddKind] = useState<CardAddKind>(null)
   /** Поиск в каталоге: порог длины зависит от провайдера (Кинопоиск ≥3, RAWG ≥4), плюс debounce. */
   const [catalogSearchDraft, setCatalogSearchDraft] = useState('')
@@ -242,6 +370,13 @@ export function CreateCardPage() {
   const [shareFollowers, setShareFollowers] = useState<SubscriptionListItem[]>([])
   const [shareFollowersLoading, setShareFollowersLoading] = useState(false)
   const [shareSelected, setShareSelected] = useState<Set<string>>(() => new Set())
+  const [watchlistTag] = useState<WatchTag>('watch_later')
+  const [watchWithUserIds, setWatchWithUserIds] = useState<string[]>([])
+  const [watchlistCompany, setWatchlistCompany] = useState<CardCompany>('alone')
+  const [watchlistShelfId, setWatchlistShelfId] = useState<number | null>(null)
+  const [watchlistNote, setWatchlistNote] = useState('')
+  const [mutualFriends, setMutualFriends] = useState<SubscriptionListItem[]>([])
+  const [mutualFriendsLoading, setMutualFriendsLoading] = useState(false)
   /** `null` — не передаём `category_id`, бэкенд подставляет полку по умолчанию. */
   const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null)
   const [newShelfDraft, setNewShelfDraft] = useState('')
@@ -418,6 +553,7 @@ export function CreateCardPage() {
     const cleanCreatePath = cardsNewPathPreserveReturnTo(returnToParam)
 
     const raw = searchParams.get('fromCard')
+    const rateIntent = searchParams.get('intent') === 'rate'
     if (raw == null || raw === '') {
       queueMicrotask(() => {
         setFromCardPrefillDone(true)
@@ -442,6 +578,27 @@ export function CreateCardPage() {
       try {
         const [card, me] = await Promise.all([getMovieCardById(cardId), getMyProfile()])
         if (!alive || seq !== fromCardBootstrapSeq.current) return
+        if (card.user_id != null && card.user_id === me.id && card.is_planned === true) {
+          if (!rateIntent) {
+            void navigate(`/cards/${cardId}`, { replace: true })
+            return
+          }
+          const binding = await creationBindingFromMovieCard(card)
+          if (!alive || seq !== fromCardBootstrapSeq.current) return
+          if (binding == null) {
+            setError('Не удалось подготовить карточку для оценки')
+            void navigate(cleanCreatePath, { replace: true })
+            return
+          }
+          setCreationBinding(binding)
+          setRemixFromCard(false)
+          setCompany(card.company)
+          setSelectedShelfId(card.category?.id ?? null)
+          setWatchNote(card.watch_note ?? '')
+          setStep(3)
+          void navigate(cleanCreatePath, { replace: true })
+          return
+        }
         if (card.user_id != null && card.user_id === me.id) {
           setError('Свою карточку нельзя взять за основу — отредактируйте её или создайте новую из каталога по ссылке.')
           void navigate(cleanCreatePath, { replace: true })
@@ -499,6 +656,107 @@ export function CreateCardPage() {
   }, [navigate, searchParams])
 
   useEffect(() => {
+    if (!isEditPlannedMode || editPlannedCardId == null) {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setResolutionBusy(true)
+      setError(null)
+      try {
+        const [card, me] = await Promise.all([
+          getMovieCardById(editPlannedCardId),
+          getMyProfile(),
+        ])
+        if (!alive) return
+        if (card.user_id == null || card.user_id !== me.id) {
+          setError('Редактировать карточку может только её владелец')
+          return
+        }
+        if (card.is_planned !== true) {
+          void navigate(`/cards/${editPlannedCardId}/edit`, { replace: true })
+          return
+        }
+        const binding = await creationBindingFromMovieCard(card)
+        if (!alive) return
+        if (binding == null) {
+          setError('Не удалось подготовить карточку для редактирования')
+          return
+        }
+        const entryId = card.watchlist_entry_id
+        if (typeof entryId !== 'number' || entryId < 1) {
+          setError('Не удалось определить запись списка «Позже»')
+          return
+        }
+        setCreationBinding(binding)
+        setEditPlannedEntryId(entryId)
+        setWatchlistCompany(card.company)
+        const shelfId = card.category?.id
+        setWatchlistShelfId(typeof shelfId === 'number' && shelfId >= 1 ? shelfId : null)
+        setWatchlistNote(card.watch_note ?? '')
+        const partnerIds = (card.planned_watch_partners ?? [])
+          .map((p) => p.id)
+          .filter((id) => id.trim() !== '')
+        setWatchWithUserIds(partnerIds)
+        setStep('watchlist')
+      } catch (e) {
+        if (!alive) return
+        if (e instanceof ApiError) {
+          setError(formatApiDetail(e.detail))
+        } else {
+          setError('Не удалось загрузить карточку')
+        }
+      } finally {
+        if (alive) {
+          setResolutionBusy(false)
+          setFromCardPrefillDone(true)
+        }
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [editPlannedCardId, isEditPlannedMode, navigate])
+
+  useEffect(() => {
+    if (step !== 'watchlist' || auth.kind !== 'ready') {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setMutualFriendsLoading(true)
+      try {
+        const me = await getMyProfile()
+        if (!alive) return
+        const subs = await getUserSubscriptions(me.id, 'both')
+        if (!alive) return
+        setMutualFriends(filterMutualSubscriptions(subs.items))
+      } catch {
+        if (!alive) return
+        setMutualFriends([])
+      } finally {
+        if (alive) setMutualFriendsLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [step, auth.kind])
+
+  const branchWatchlist = searchParams.get('branch') === 'watchlist'
+
+  useEffect(() => {
+    if (!branchWatchlist || step !== 2 || creationBinding == null) {
+      return
+    }
+    queueMicrotask(() => {
+      setStep('watchlist')
+    })
+    const returnToParam = searchParams.get('returnTo')
+    void navigate(cardsNewPathPreserveReturnTo(returnToParam), { replace: true })
+  }, [branchWatchlist, creationBinding, navigate, searchParams, step])
+
+  useEffect(() => {
     if (step !== 4 || auth.kind !== 'ready') {
       return
     }
@@ -551,6 +809,7 @@ export function CreateCardPage() {
 
   const tagInputTooLong = tagInput.trim().length > MAX_CUSTOM_TAG_LEN
   const watchNoteTooLong = watchNote.length > MAX_WATCH_NOTE_LEN
+  const watchlistNoteTooLong = watchlistNote.length > MAX_WATCH_NOTE_LEN
   const canSubmitFinal = !tagInputTooLong && !watchNoteTooLong && creationBinding != null
 
   const confirmPreview = useMemo(() => {
@@ -564,7 +823,7 @@ export function CreateCardPage() {
         genres: [] as string[],
         showDupWarning: false,
         myCardId: null as number | null,
-        showWatchlist: false,
+        showWatchlist: true,
       }
     }
     if (b.kind === 'catalog_game') {
@@ -576,7 +835,7 @@ export function CreateCardPage() {
         genres: [] as string[],
         showDupWarning: false,
         myCardId: null as number | null,
-        showWatchlist: false,
+        showWatchlist: true,
       }
     }
     const f = b.film
@@ -709,7 +968,7 @@ export function CreateCardPage() {
     setStep(2)
   }
 
-  async function submitNewShelf() {
+  async function submitNewShelf(onPickShelf: (id: number) => void = setSelectedShelfId) {
     const name = newShelfDraft.trim()
     if (name === '') {
       setShelfError('Введите название полки')
@@ -720,7 +979,7 @@ export function CreateCardPage() {
     try {
       const row = await createMyCardCategory({ name })
       setNewShelfDraft('')
-      setSelectedShelfId(row.id)
+      onPickShelf(row.id)
       setShelfCreateExpanded(false)
       void queryClient.invalidateQueries({ queryKey: myCardCategoriesQueryKey() })
       safeHapticSuccess()
@@ -735,19 +994,53 @@ export function CreateCardPage() {
     }
   }
 
+  function toggleWatchWithUser(userId: string) {
+    setWatchWithUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
+    )
+  }
+
+  async function prefillFromPlannedCard() {
+    if (creationBinding == null) return
+    const params = plannedCardLookupParams(creationBinding)
+    if (params == null) return
+    try {
+      const planned = await getMyPlannedCard(params)
+      queueMicrotask(() => {
+        setCompany(planned.company)
+        setSelectedShelfId(planned.category_id)
+        setWatchNote(planned.watch_note)
+      })
+    } catch {
+      // no planned card — normal create flow
+    }
+  }
+
+  async function proceedToRateStep() {
+    await prefillFromPlannedCard()
+    setStep(3)
+  }
+
   async function handleAddToWatchlist() {
-    if (creationBinding == null || creationBinding.kind === 'manual') {
+    if (creationBinding == null) {
       return
     }
-    const fid = watchlistKinopoiskFilmId(creationBinding)
-    if (fid == null || fid <= 0) {
+    const payload = buildWatchlistCreatePayload(creationBinding, {
+      watch_tag: watchlistTag,
+      company: watchlistCompany,
+      category_id: watchlistShelfId,
+      watch_note: watchlistNote,
+      watch_with_user_ids: watchlistCompany === 'alone' ? [] : watchWithUserIds,
+    })
+    if (payload == null) {
       return
     }
     setWatchlistBusy(true)
     setWatchlistError(null)
     try {
-      await postMyWatchlistFilm(fid)
+      await postCreateWatchlistEntry(payload)
       clearMyProfileBundleCache()
+      void queryClient.invalidateQueries({ queryKey: ['userWatchlist'] })
       safeHapticSuccess()
       void navigate('/profile', { replace: true, state: { moviesSegment: 'watchlist' as const } })
     } catch (e) {
@@ -764,6 +1057,38 @@ export function CreateCardPage() {
         setWatchlistError(formatApiDetail(e.detail))
       } else {
         setWatchlistError('Не удалось добавить в список')
+      }
+    } finally {
+      setWatchlistBusy(false)
+    }
+  }
+
+  async function handleSavePlannedEdit() {
+    if (editPlannedEntryId == null || editPlannedCardId == null) {
+      setWatchlistError('Не удалось определить запись списка «Позже»')
+      return
+    }
+    const body: PatchWatchlistEntryBody = {
+      company: watchlistCompany,
+      watch_note: watchlistNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
+      watch_with_user_ids: watchlistCompany === 'alone' ? [] : watchWithUserIds,
+    }
+    if (watchlistShelfId != null && watchlistShelfId > 0) {
+      body.category_id = watchlistShelfId
+    }
+    setWatchlistBusy(true)
+    setWatchlistError(null)
+    try {
+      await patchMyWatchlistEntry(editPlannedEntryId, body)
+      clearMyProfileBundleCache()
+      void queryClient.invalidateQueries({ queryKey: ['userWatchlist'] })
+      safeHapticSuccess()
+      void navigate(`/cards/${editPlannedCardId}`, { replace: true })
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setWatchlistError(formatApiDetail(e.detail))
+      } else {
+        setWatchlistError('Не удалось сохранить изменения')
       }
     } finally {
       setWatchlistBusy(false)
@@ -812,6 +1137,10 @@ export function CreateCardPage() {
   }
 
   function goBack() {
+    if (isEditPlannedMode && editPlannedCardId != null) {
+      void navigate(`/cards/${editPlannedCardId}`)
+      return
+    }
     if (step === 1) {
       if (addKind != null) {
         setAddKind(null)
@@ -825,17 +1154,27 @@ export function CreateCardPage() {
     }
     setError(null)
     setSubmitError(null)
-    setStep((prev) => {
-      const next = (prev - 1) as WizardStep
-      if (next === 1) {
-        setCreationBinding(null)
-        setAddKind(null)
-        setResolveInlineError(null)
-        setManualFieldError(null)
-        setKinopoiskUrl('')
-      }
-      return next
-    })
+    if (step === 'watchlist') {
+      setWatchlistError(null)
+      setStep(2)
+      return
+    }
+    if (step === 3) {
+      setStep(2)
+      return
+    }
+    if (step === 4) {
+      setStep(3)
+      return
+    }
+    if (step === 2) {
+      setCreationBinding(null)
+      setAddKind(null)
+      setResolveInlineError(null)
+      setManualFieldError(null)
+      setKinopoiskUrl('')
+      setStep(1)
+    }
   }
 
   function renderChoiceChips<T extends string>(
@@ -1013,22 +1352,28 @@ export function CreateCardPage() {
             ←
           </button>
           <div className="text-center">
-            <h1 className="text-base font-semibold tracking-tight text-(--tgui--text_color)">Новая карточка</h1>
-            <p className="text-xs text-(--tgui--hint_color)">
-              {remixFromCard ? 'По мотивам чужой карточки · ' : null}
-              Шаг {step} из {TOTAL_STEPS}: {STEP_TITLES[step]}
-            </p>
+            <h1 className="text-base font-semibold tracking-tight text-(--tgui--text_color)">
+              {isEditPlannedMode ? 'Редактировать «Позже»' : 'Новая карточка'}
+            </h1>
+            {!isEditPlannedMode ? (
+              <p className="text-xs text-(--tgui--hint_color)">
+                {remixFromCard ? 'По мотивам чужой карточки · ' : null}
+                {wizardStepLabel(step)}: {STEP_TITLES[step]}
+              </p>
+            ) : null}
           </div>
           <span className="w-10" />
         </div>
-        <div className="px-4 pb-3">
-          <div className="h-1.5 overflow-hidden rounded-full bg-(--tgui--secondary_bg_color)">
-            <div
-              className="h-full rounded-full bg-(--tgui--link_color) transition-all duration-300"
-              style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-            />
+        {!isEditPlannedMode ? (
+          <div className="px-4 pb-3">
+            <div className="h-1.5 overflow-hidden rounded-full bg-(--tgui--secondary_bg_color)">
+              <div
+                className="h-full rounded-full bg-(--tgui--link_color) transition-all duration-300"
+                style={{ width: `${wizardProgressPercent(step)}%` }}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </header>
 
       <main className="space-y-4 px-4 py-6">
@@ -1040,11 +1385,11 @@ export function CreateCardPage() {
 
         {!fromCardPrefillDone ? (
           <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
-            Загружаем данные из карточки…
+            {isEditPlannedMode ? 'Загружаем карточку…' : 'Загружаем данные из карточки…'}
           </p>
         ) : null}
 
-        {fromCardPrefillDone && step === 1 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 1 ? (
           <WizardStepPanel title="1. Что добавляем?">
             <div className="filmony-text-panel flex flex-col gap-4">
               {addKind === null ? (
@@ -1411,7 +1756,7 @@ export function CreateCardPage() {
           </WizardStepPanel>
         ) : null}
 
-        {fromCardPrefillDone && step === 2 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 2 ? (
           <WizardStepPanel title="2. Это нужная тема?">
             {confirmPreview != null ? (
               <div className="filmony-text-panel">
@@ -1494,17 +1839,23 @@ export function CreateCardPage() {
                     </>
                   ) : (
                     <>
-                      <Button stretched onClick={() => setStep(3)}>
+                      <Button stretched onClick={() => void proceedToRateStep()}>
                         Всё верно, дальше
                       </Button>
                       {confirmPreview.showWatchlist ? (
                         <Button
                           mode="gray"
                           stretched
-                          disabled={watchlistBusy}
-                          onClick={() => void handleAddToWatchlist()}
+                          onClick={() => {
+                            setWatchlistError(null)
+                            setWatchlistCompany('alone')
+                            setWatchWithUserIds([])
+                            setWatchlistShelfId(null)
+                            setWatchlistNote('')
+                            setStep('watchlist')
+                          }}
                         >
-                          {watchlistBusy ? 'Добавляем…' : 'Только в список «Позже»'}
+                          В список «Позже»
                         </Button>
                       ) : null}
                       <Button
@@ -1549,7 +1900,170 @@ export function CreateCardPage() {
           </WizardStepPanel>
         ) : null}
 
-        {fromCardPrefillDone && step === 3 ? (
+        {fromCardPrefillDone && step === 'watchlist' ? (
+          <WizardStepPanel title={isEditPlannedMode ? 'Редактировать «Позже»' : 'Детали для «Позже»'}>
+            <div className="filmony-text-panel">
+              <div>
+                <p className="text-sm font-medium text-(--tgui--text_color)">С кем планируете смотреть</p>
+                {renderChoiceChips(WATCHLIST_COMPANY_OPTIONS, watchlistCompany, (value) => {
+                  setWatchlistCompany(value)
+                  if (value === 'alone') {
+                    setWatchWithUserIds([])
+                  }
+                })}
+              </div>
+
+              {watchlistCompany !== 'alone' ? (
+                <div className="mt-5 border-t border-(--tgui--divider_color) pt-5">
+                  <MutualWatchFriendsMultiPicker
+                    friends={mutualFriends}
+                    loading={mutualFriendsLoading}
+                    selectedUserIds={watchWithUserIds}
+                    onToggle={toggleWatchWithUser}
+                  />
+                </div>
+              ) : null}
+
+              <div className="mt-5 border-t border-(--tgui--divider_color) pt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Полка в коллекции</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  Можно оставить автоматическую полку или выбрать свою.
+                </p>
+                {shelvesQuery.isLoading ? (
+                  <p className="mt-2 text-xs text-(--tgui--hint_color)">Загрузка полок…</p>
+                ) : shelvesQuery.isError ? (
+                  <p className="filmony-text-panel mt-2 text-xs text-(--tgui--hint_color)">
+                    Полки временно недоступны — сервер подставит полку по умолчанию.
+                  </p>
+                ) : (
+                  <>
+                    <label htmlFor="watchlist-card-shelf" className="sr-only">
+                      Полка коллекции
+                    </label>
+                    <select
+                      id="watchlist-card-shelf"
+                      className={`mt-3 ${WIZARD_TEXT_FIELD_CLASS}`}
+                      value={watchlistShelfId === null ? '' : String(watchlistShelfId)}
+                      onChange={(e) => {
+                        const raw = e.currentTarget.value
+                        setWatchlistShelfId(raw === '' ? null : Number(raw))
+                        setShelfError(null)
+                      }}
+                    >
+                      <option value="">Авто (полка по умолчанию)</option>
+                      {(shelvesQuery.data?.items ?? []).map((row) => (
+                        <option key={row.id} value={String(row.id)}>
+                          {row.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        className="text-sm font-medium text-(--tgui--link_color) active:opacity-80"
+                        onClick={() => {
+                          setShelfCreateExpanded((v) => !v)
+                          setShelfError(null)
+                        }}
+                      >
+                        {shelfCreateExpanded ? 'Скрыть создание полки' : '+ Новая полка'}
+                      </button>
+                      {shelfCreateExpanded ? (
+                        <div className="mt-2 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-3">
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                            <input
+                              type="text"
+                              maxLength={120}
+                              placeholder="Например: Триллеры 2025"
+                              autoComplete="off"
+                              value={newShelfDraft}
+                              onChange={(e) => {
+                                setNewShelfDraft(e.currentTarget.value)
+                                setShelfError(null)
+                              }}
+                              className={`min-w-0 flex-1 ${WIZARD_TEXT_FIELD_CLASS}`}
+                            />
+                            <Button
+                              mode="gray"
+                              className="shrink-0 sm:self-stretch"
+                              disabled={createShelfBusy}
+                              type="button"
+                              onClick={() => void submitNewShelf(setWatchlistShelfId)}
+                            >
+                              {createShelfBusy ? '…' : 'Создать'}
+                            </Button>
+                          </div>
+                          {shelfError != null ? (
+                            <p className="mt-2 text-xs text-(--tgui--destructive_text_color)">{shelfError}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">
+                <p className="text-sm font-medium text-(--tgui--text_color)">Заметка</p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                  По желанию — до {MAX_WATCH_NOTE_LEN} символов. Перенесётся, когда поставите оценку.
+                </p>
+                <div className="mt-2">
+                  <CommentDraftMultiline
+                    value={watchlistNote}
+                    onChange={(v) => {
+                      setWatchlistNote(v)
+                      setWatchlistError(null)
+                    }}
+                    placeholder="Например: посмотреть в выходные с друзьями…"
+                    ariaLabel="Заметка для списка «Позже»"
+                    maxLength={MAX_WATCH_NOTE_LEN}
+                    rows={4}
+                    wrapperClassName={`min-h-24 ${WIZARD_TEXT_FIELD_CLASS}`}
+                  />
+                </div>
+                {watchlistNoteTooLong ? (
+                  <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">
+                    Не больше {MAX_WATCH_NOTE_LEN} символов
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-(--tgui--hint_color)">
+                    {watchlistNote.length}/{MAX_WATCH_NOTE_LEN}
+                  </p>
+                )}
+              </div>
+
+              {watchlistError != null ? (
+                <p className="mt-4 text-sm text-(--tgui--destructive_text_color)">{watchlistError}</p>
+              ) : null}
+
+              <div className="mt-5 flex flex-col gap-2">
+                <Button
+                  stretched
+                  disabled={watchlistBusy || watchlistNoteTooLong}
+                  onClick={() =>
+                    void (isEditPlannedMode ? handleSavePlannedEdit() : handleAddToWatchlist())
+                  }
+                >
+                  {watchlistBusy
+                    ? isEditPlannedMode
+                      ? 'Сохраняем…'
+                      : 'Добавляем…'
+                    : isEditPlannedMode
+                      ? 'Сохранить'
+                      : 'Добавить в «Позже»'}
+                </Button>
+                {!isEditPlannedMode ? (
+                  <Button mode="gray" stretched onClick={() => setStep(2)}>
+                    Назад к превью
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </WizardStepPanel>
+        ) : null}
+
+        {!isEditPlannedMode && fromCardPrefillDone && step === 3 ? (
           <WizardStepPanel title="3. Оценка, настроение и полка">
             <div className="filmony-text-panel">
               <div className="filmony-text-panel text-center">
@@ -1682,7 +2196,7 @@ export function CreateCardPage() {
           </WizardStepPanel>
         ) : null}
 
-        {fromCardPrefillDone && step === 4 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 4 ? (
           <WizardStepPanel title="4. Теги, заметка и публикация">
             <div className="filmony-text-panel">
               <div>

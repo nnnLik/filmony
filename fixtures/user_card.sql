@@ -1,4 +1,32 @@
-INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_after,watch_note,updated_at,created_at) VALUES
+INSERT INTO public.user_card (
+  id,
+  user_id,
+  user_card_category_id,
+  film_id,
+  rating,
+  company,
+  mood_before,
+  mood_after,
+  watch_note,
+  provider,
+  updated_at,
+  created_at
+)
+SELECT
+  ROW_NUMBER() OVER () AS id,
+  v.user_id,
+  ucc.id,
+  v.film_id,
+  v.rating,
+  v.company,
+  v.mood_before,
+  v.mood_after,
+  v.watch_note,
+  'kinopoisk',
+  v.updated_at::timestamptz,
+  v.created_at::timestamptz
+FROM (
+  VALUES
 	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,1,6.0,'partner','relax','laughed','','2026-05-06 23:50:11.661915+03','2026-05-06 20:49:43'),
 	 ('84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,2,8.5,'friends','sad','enjoyed','','2026-05-07 11:00:00+03','2026-05-07 10:30:00'),
 	 ('f0000001-0000-4000-8000-000000000001'::uuid,1,5.5,'alone','relax','wasted_time','','2026-05-07 11:05:00+03','2026-05-07 10:32:00'),
@@ -44,17 +72,65 @@ INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_a
 	 ('f0000006-0000-4000-8000-000000000006'::uuid,20,5.7,'friends','relax','wasted_time','','2026-05-08 14:40:00+03','2026-05-08 12:54:00'),
 	 ('84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,20,9.0,'alone','laugh','enjoyed','','2026-05-08 14:45:00+03','2026-05-08 12:56:00'),
 	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,21,7.0,'family','relax','enjoyed','','2026-05-08 14:50:00+03','2026-05-08 12:58:00')
-ON CONFLICT (user_id, film_id) DO UPDATE SET
+) AS v(
+  user_id,
+  film_id,
+  rating,
+  company,
+  mood_before,
+  mood_after,
+  watch_note,
+  updated_at,
+  created_at
+)
+JOIN public.user_card_category AS ucc
+  ON ucc.user_id = v.user_id
+  AND ucc.name = 'Фильмы'
+ON CONFLICT (user_id, film_id) WHERE film_id IS NOT NULL DO UPDATE SET
   rating = EXCLUDED.rating,
   company = EXCLUDED.company,
   mood_before = EXCLUDED.mood_before,
   mood_after = EXCLUDED.mood_after,
   watch_note = EXCLUDED.watch_note,
+  provider = EXCLUDED.provider,
+  user_card_category_id = EXCLUDED.user_card_category_id,
   updated_at = EXCLUDED.updated_at,
   created_at = EXCLUDED.created_at;
 
 -- Доп. карточки: общие фильмы (обсуждения), любимые, пересечения для ленты/оценок друзей
-INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_after,watch_note,is_favorite,favorite_marked_at,updated_at,created_at) VALUES
+INSERT INTO public.user_card (
+  id,
+  user_id,
+  user_card_category_id,
+  film_id,
+  rating,
+  company,
+  mood_before,
+  mood_after,
+  watch_note,
+  provider,
+  is_favorite,
+  favorite_marked_at,
+  updated_at,
+  created_at
+)
+SELECT
+  ROW_NUMBER() OVER () + 45 AS id,
+  v.user_id,
+  ucc.id,
+  v.film_id,
+  v.rating,
+  v.company,
+  v.mood_before,
+  v.mood_after,
+  v.watch_note,
+  'kinopoisk',
+  v.is_favorite,
+  v.favorite_marked_at::timestamptz,
+  v.updated_at::timestamptz,
+  v.created_at::timestamptz
+FROM (
+  VALUES
 	 ('f0000001-0000-4000-8000-000000000001'::uuid,22,8.1,'partner','relax','enjoyed','',true,'2026-05-10 10:15:00+03','2026-05-10 12:00:00+03','2026-05-10 11:00:00'),
 	 ('f0000002-0000-4000-8000-000000000002'::uuid,22,7.4,'friends','laugh','enjoyed','',false,NULL,'2026-05-10 12:05:00+03','2026-05-10 11:05:00'),
 	 ('f0000003-0000-4000-8000-000000000003'::uuid,22,6.9,'alone','thrill','tense','',false,NULL,'2026-05-10 12:10:00+03','2026-05-10 11:10:00'),
@@ -75,13 +151,37 @@ INSERT INTO public.movie_card (user_id,film_id,rating,company,mood_before,mood_a
 	 ('84d5d773-465f-4194-bd78-d94b9f3de41d'::uuid,28,9.1,'alone','thrill','enjoyed','',false,NULL,'2026-05-10 13:25:00+03','2026-05-10 12:25:00'),
 	 ('5f1370d8-8150-49b5-bafe-2d757636d64b'::uuid,29,7.3,'friends','relax','enjoyed','',false,NULL,'2026-05-10 13:30:00+03','2026-05-10 12:30:00'),
 	 ('f0000004-0000-4000-8000-000000000004'::uuid,29,6.0,'partner','sad','wasted_time','',false,NULL,'2026-05-10 13:35:00+03','2026-05-10 12:35:00')
-ON CONFLICT (user_id, film_id) DO UPDATE SET
+) AS v(
+  user_id,
+  film_id,
+  rating,
+  company,
+  mood_before,
+  mood_after,
+  watch_note,
+  is_favorite,
+  favorite_marked_at,
+  updated_at,
+  created_at
+)
+JOIN public.user_card_category AS ucc
+  ON ucc.user_id = v.user_id
+  AND ucc.name = 'Фильмы'
+ON CONFLICT (user_id, film_id) WHERE film_id IS NOT NULL DO UPDATE SET
   rating = EXCLUDED.rating,
   company = EXCLUDED.company,
   mood_before = EXCLUDED.mood_before,
   mood_after = EXCLUDED.mood_after,
   watch_note = EXCLUDED.watch_note,
+  provider = EXCLUDED.provider,
+  user_card_category_id = EXCLUDED.user_card_category_id,
   is_favorite = EXCLUDED.is_favorite,
   favorite_marked_at = EXCLUDED.favorite_marked_at,
   updated_at = EXCLUDED.updated_at,
   created_at = EXCLUDED.created_at;
+
+SELECT setval(
+  pg_get_serial_sequence('public.user_card', 'id'),
+  COALESCE((SELECT MAX(id) FROM public.user_card), 1),
+  true
+);

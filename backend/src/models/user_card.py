@@ -80,6 +80,11 @@ class UserCard(Base):
         default='',
         server_default=text("''"),
     )
+    is_planned: Mapped[bool] = mapped_column(
+        Boolean(),
+        server_default=false(),
+        nullable=False,
+    )
     is_favorite: Mapped[bool] = mapped_column(
         Boolean(),
         server_default=false(),

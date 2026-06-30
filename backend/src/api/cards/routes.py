@@ -23,6 +23,7 @@ from api.cards.schemas import (
     FeedPostFeedItemResponse,
     FollowingRatingEntryResponse,
     FollowingRatingsListResponse,
+    PlannedWatchPartnerResponse,
     ShareCardRequest,
     ShareCardResponse,
     UserCardAudioTelegramResponse,
@@ -500,6 +501,7 @@ async def list_user_card_feed(
                 comments_count=item.comments_count,
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
                 is_favorite=item.is_favorite,
+                is_planned=item.is_planned,
                 audio_url=item.audio_url,
             )
         )
@@ -532,6 +534,7 @@ async def list_following_ratings_for_user_card(
             photo_url=r.photo_url,
             display_name=r.display_name,
             rating=r.rating,
+            is_planned=r.is_planned,
         )
 
     return FollowingRatingsListResponse(
@@ -694,7 +697,25 @@ async def get_card(
         category=UserCardCategorySnippet(id=card.category_id, name=card.category_name),
         reactions=reaction_target_summary_to_response(card.reactions),
         is_favorite=card.is_favorite,
+        is_planned=card.is_planned,
         audio_url=card.audio_url,
+        watchlist_entry_id=card.watchlist_entry_id,
+        planned_watch_partners=[
+            PlannedWatchPartnerResponse(
+                id=partner.id,
+                profile_slug=partner.profile_slug,
+                username=partner.username,
+                first_name=partner.first_name,
+                last_name=partner.last_name,
+                photo_url=partner.photo_url,
+                display_name=partner.display_name,
+                has_rated=partner.has_rated,
+                rating=partner.rating,
+                rated_user_card_id=partner.rated_user_card_id,
+                planned_user_card_id=partner.planned_user_card_id,
+            )
+            for partner in card.planned_watch_partners
+        ],
     )
 
 

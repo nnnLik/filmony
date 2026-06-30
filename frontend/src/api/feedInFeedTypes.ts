@@ -49,6 +49,7 @@ export type FeedPostReferencedCard = {
   display_title?: string | null
   display_cover_url?: string | null
   rating: number
+  is_planned?: boolean
 }
 
 export type FeedPostInFeed = {

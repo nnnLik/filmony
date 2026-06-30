@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -35,9 +36,15 @@ def async_engine_connect_url() -> str:
     return settings.database.async_sqlalchemy_url
 
 
+def _test_db_schema() -> str:
+    return os.environ.get('PYTEST_DB_SCHEMA', 'pytest_master')
+
+
 def _connect_args() -> dict[str, str] | None:
     if settings.app.is_test:
-        return None
+        return {
+            'server_settings': {'search_path': _test_db_schema()},
+        }
     return {
         'server_settings': {'search_path': 'public'},
     }

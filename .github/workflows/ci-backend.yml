@@ -70,4 +70,35 @@ jobs:
 
       - run: uv sync --frozen --group dev --group prod
 
-      - run: uv run pytest
+      - name: Run backend tests
+        run: uv run pytest
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.xml
+            backend/htmlcov/
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          python3 <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          summary_path = os.environ["GITHUB_STEP_SUMMARY"]
+          cov_path = Path("coverage.xml")
+
+          with open(summary_path, "a", encoding="utf-8") as summary:
+              summary.write("## Backend test coverage\n\n")
+              if not cov_path.is_file():
+                  summary.write("No `coverage.xml` report was generated.\n")
+              else:
+                  root = ET.parse(cov_path).getroot()
+                  line_rate = float(root.attrib.get("line-rate", 0)) * 100
+                  summary.write(f"**Total line coverage:** {line_rate:.2f}%\n")
+          PY

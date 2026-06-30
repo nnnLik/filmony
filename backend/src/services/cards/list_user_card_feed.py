@@ -9,7 +9,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 import orjson
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import const.feed
@@ -374,6 +374,7 @@ class UserCardFeedItem:
     reactions: ReactionTargetSummary
     feed_source: const.feed.StreamName
     is_favorite: bool
+    is_planned: bool
     category_id: int
     category_name: str
     audio_url: str | None
@@ -388,6 +389,7 @@ class FeedPostReferencedCardSnippet:
     release_date: str | None
     film_poster_url: str | None
     rating: float
+    is_planned: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -1160,6 +1162,7 @@ class ListUserCardFeedService:
                     reactions=card_summaries[card.id],
                     feed_source=source_by_id[card.id],
                     is_favorite=bool(card.is_favorite),
+                    is_planned=bool(card.is_planned),
                     category_id=cid,
                     category_name=cat_names.get(cid, DEFAULT_USER_CARD_CATEGORY_NAME),
                     audio_url=card.audio_url,
@@ -1237,6 +1240,7 @@ class ListUserCardFeedService:
                     release_date=release_date,
                     film_poster_url=ref_poster,
                     rating=float(mc.rating),
+                    is_planned=bool(mc.is_planned),
                 )
             author = UserCardCommentAuthor(
                 id=author_user.id,
