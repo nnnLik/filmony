@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-06-30T184000Z-backend-parallel-test-coverage-docs.md`
 - `2026-06-30T183200Z-feature-registry-docs.md`
 - `2026-06-30T210500Z-watchlist-cards-code.md`
 - `2026-06-30T202000Z-watchlist-cards-code.md`

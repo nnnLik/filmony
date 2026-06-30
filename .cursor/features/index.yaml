@@ -6,6 +6,13 @@ status_legend:
   blocked: work exists but is blocked
   cancelled: intentionally dropped
 features:
+  - slug: backend-parallel-test-coverage
+    title: Backend Parallel Test Execution and Coverage Reporting
+    status: planned
+    source_path: .cursor/features/backend-parallel-test-coverage/feature.md
+    active_path: null
+    docs_path: null
+
   - slug: profile-taste-match
     title: Taste Match Between Profiles
     status: planned
