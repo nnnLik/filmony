@@ -301,7 +301,8 @@ export type FollowingRatingEntry = {
   last_name: string | null
   photo_url: string | null
   display_name: string | null
-  rating: number
+  rating?: number | null
+  is_planned?: boolean
 }
 
 export type FollowingRatingsResponse = {

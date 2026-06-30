@@ -534,6 +534,7 @@ async def list_following_ratings_for_user_card(
             photo_url=r.photo_url,
             display_name=r.display_name,
             rating=r.rating,
+            is_planned=r.is_planned,
         )
 
     return FollowingRatingsListResponse(

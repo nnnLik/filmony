@@ -401,7 +401,8 @@ class FollowingRatingEntryResponse(BaseModel):
     last_name: str | None
     photo_url: str | None
     display_name: str | None
-    rating: float
+    rating: float | None = None
+    is_planned: bool = False
 
 
 class FollowingRatingsListResponse(BaseModel):

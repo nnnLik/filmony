@@ -168,8 +168,13 @@ type FollowingRatingRow = {
   last_name: string | null
   photo_url: string | null
   display_name: string | null
-  rating: number
+  rating?: number | null
+  is_planned?: boolean
   is_viewer?: boolean
+}
+
+function followingRowShowsPlannedLabel(row: FollowingRatingRow): boolean {
+  return row.is_planned === true || row.rating == null || row.rating < 1
 }
 
 function buildFollowingRatingDisplayRows(
@@ -1278,7 +1283,8 @@ function MovieCardDetailLoadedBody({
               ) : (
                 <ul className="mt-3 list-none space-y-1.5 p-0">
                   {followingRatings.map((row: FollowingRatingRow) => {
-                    const rp = ratingPalette(row.rating)
+                    const showsPlanned = followingRowShowsPlannedLabel(row)
+                    const rp = showsPlanned ? null : ratingPalette(row.rating ?? 0)
                     return (
                       <li key={row.movie_card_id}>
                         <Link
@@ -1293,12 +1299,18 @@ function MovieCardDetailLoadedBody({
                           <span className="min-w-0 flex-1 truncate text-sm font-medium text-(--tgui--text_color)">
                             {followingRowDisplayName(row)}
                           </span>
-                          <span
-                            className="shrink-0 text-lg font-semibold tabular-nums"
-                            style={{ color: rp.text }}
-                          >
-                            {formatRating(row.rating)}
-                          </span>
+                          {showsPlanned ? (
+                            <span className="shrink-0 text-sm font-medium text-(--tgui--hint_color)">
+                              {row.is_viewer ? 'У вас в планах' : 'В «Позже»'}
+                            </span>
+                          ) : (
+                            <span
+                              className="shrink-0 text-lg font-semibold tabular-nums"
+                              style={{ color: rp?.text }}
+                            >
+                              {formatRating(row.rating ?? 0)}
+                            </span>
+                          )}
                         </Link>
                       </li>
                     )

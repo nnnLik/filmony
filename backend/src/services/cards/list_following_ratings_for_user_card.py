@@ -25,7 +25,8 @@ class FollowingRatingRow:
     last_name: str | None
     photo_url: str | None
     display_name: str | None
-    rating: float
+    is_planned: bool
+    rating: float | None
 
 
 class UserCardAnchorNotFoundError(Exception):
@@ -70,41 +71,35 @@ class ListFollowingRatingsForUserCardService:
         if viewer_user_id != owner_id:
             if film_id is not None:
                 viewer_stmt = (
-                    select(User, UserCard.rating, UserCard.id)
+                    select(User, UserCard.rating, UserCard.id, UserCard.is_planned)
                     .join(UserCard, UserCard.user_id == User.id)
                     .where(UserCard.film_id == film_id)
                     .where(UserCard.user_id == viewer_user_id)
                     .order_by(UserCard.id.desc())
-                    .limit(1)
                 )
             elif catalog_id is not None:
                 viewer_stmt = (
-                    select(User, UserCard.rating, UserCard.id)
+                    select(User, UserCard.rating, UserCard.id, UserCard.is_planned)
                     .join(UserCard, UserCard.user_id == User.id)
                     .where(UserCard.catalog_item_id == catalog_id)
                     .where(UserCard.user_id == viewer_user_id)
                     .order_by(UserCard.id.desc())
-                    .limit(1)
                 )
             else:
                 viewer_stmt = None
 
             if viewer_stmt is not None:
-                vr = (await self._session.execute(viewer_stmt)).one_or_none()
+                viewer_rows = (await self._session.execute(viewer_stmt)).all()
             else:
-                vr = None
-            if vr is not None:
-                u, rating, user_card_id = vr
-                viewer_row = FollowingRatingRow(
-                    user_id=u.id,
+                viewer_rows = []
+            picked = _pick_viewer_card_row(viewer_rows)
+            if picked is not None:
+                u, rating, user_card_id, is_planned = picked
+                viewer_row = _following_rating_row_from_parts(
+                    u=u,
                     user_card_id=int(user_card_id),
-                    profile_slug=u.profile_slug,
-                    username=u.username,
-                    first_name=u.first_name,
-                    last_name=u.last_name,
-                    photo_url=u.photo_url,
-                    display_name=u.display_name,
                     rating=float(rating),
+                    is_planned=bool(is_planned),
                 )
 
         if film_id is not None:
@@ -115,7 +110,7 @@ class ListFollowingRatingsForUserCardService:
             return ListFollowingRatingsResult(viewer_row=viewer_row, items=[])
 
         stmt = (
-            select(User, UserCard.rating, UserCard.id)
+            select(User, UserCard.rating, UserCard.id, UserCard.is_planned)
             .join(UserCard, UserCard.user_id == User.id)
             .join(
                 UserSubscription,
@@ -125,22 +120,54 @@ class ListFollowingRatingsForUserCardService:
             .where(match_on_film)
             .where(UserCard.user_id != viewer_user_id)
             .where(UserCard.user_id != owner_id)
+            .where(UserCard.is_planned.is_(False))
+            .where(UserCard.rating >= 1)
             .order_by(UserCard.rating.desc(), UserCard.id.desc())
             .limit(FOLLOWING_RATINGS_TOP_LIMIT)
         )
         rows = (await self._session.execute(stmt)).all()
         items = [
-            FollowingRatingRow(
-                user_id=u.id,
+            _following_rating_row_from_parts(
+                u=u,
                 user_card_id=int(user_card_id),
-                profile_slug=u.profile_slug,
-                username=u.username,
-                first_name=u.first_name,
-                last_name=u.last_name,
-                photo_url=u.photo_url,
-                display_name=u.display_name,
                 rating=float(rating),
+                is_planned=bool(is_planned),
             )
-            for u, rating, user_card_id in rows
+            for u, rating, user_card_id, is_planned in rows
         ]
         return ListFollowingRatingsResult(viewer_row=viewer_row, items=items)
+
+
+def _pick_viewer_card_row(
+    rows: list[tuple[User, float, int, bool]],
+) -> tuple[User, float, int, bool] | None:
+    """Prefer rated card over planned-only snippet for the same title."""
+    for u, rating, user_card_id, is_planned in rows:
+        if not is_planned and float(rating) >= 1:
+            return u, rating, user_card_id, is_planned
+    for u, rating, user_card_id, is_planned in rows:
+        if is_planned:
+            return u, rating, user_card_id, is_planned
+    return None
+
+
+def _following_rating_row_from_parts(
+    *,
+    u: User,
+    user_card_id: int,
+    rating: float,
+    is_planned: bool,
+) -> FollowingRatingRow:
+    planned_only = is_planned or rating < 1
+    return FollowingRatingRow(
+        user_id=u.id,
+        user_card_id=user_card_id,
+        profile_slug=u.profile_slug,
+        username=u.username,
+        first_name=u.first_name,
+        last_name=u.last_name,
+        photo_url=u.photo_url,
+        display_name=u.display_name,
+        is_planned=planned_only,
+        rating=None if planned_only else rating,
+    )
