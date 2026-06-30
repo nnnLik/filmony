@@ -258,8 +258,10 @@ class ListUserWatchlistEntriesService:
         films_by_kp: dict[int, Film] = {}
         if kp_ids:
             film_rows = (
-                await self._session.execute(select(Film).where(Film.kinopoisk_id.in_(kp_ids)))
-            ).scalars().all()
+                (await self._session.execute(select(Film).where(Film.kinopoisk_id.in_(kp_ids))))
+                .scalars()
+                .all()
+            )
             for film in film_rows:
                 films_by_kp[int(film.kinopoisk_id)] = film
         catalog_by_id: dict[int, CatalogItem] = {}
@@ -277,8 +279,10 @@ class ListUserWatchlistEntriesService:
                     )
                 )
             catalog_rows = (
-                await self._session.execute(select(CatalogItem).where(or_(*cq_parts)))
-            ).scalars().all()
+                (await self._session.execute(select(CatalogItem).where(or_(*cq_parts))))
+                .scalars()
+                .all()
+            )
             game_ids: set[int] = set()
             for ci in catalog_rows:
                 catalog_by_id[int(ci.id)] = ci
@@ -287,11 +291,15 @@ class ListUserWatchlistEntriesService:
                     game_ids.add(int(ci.game_id))
             if game_ids:
                 game_rows = (
-                    await self._session.execute(select(Game).where(Game.id.in_(game_ids)))
-                ).scalars().all()
+                    (await self._session.execute(select(Game).where(Game.id.in_(game_ids))))
+                    .scalars()
+                    .all()
+                )
                 for game in game_rows:
                     games_by_id[int(game.id)] = game
-        return self._hydrate_entry(entry, films_by_kp, catalog_by_id, catalog_by_external, games_by_id)
+        return self._hydrate_entry(
+            entry, films_by_kp, catalog_by_id, catalog_by_external, games_by_id
+        )
 
     def _hydrate_entry(
         self,

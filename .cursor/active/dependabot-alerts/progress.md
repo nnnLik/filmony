@@ -1,8 +1,5 @@
-status: in_progress
+status: complete
 
-- Updated plan to focus on minor/patch dependency updates (npm + uv).
-- Frontend: `npm update`, `npm audit fix`, added `valibot` override `^1.2.0` → **0 vulnerabilities**.
-- Frontend verification: `npm run lint` ✅, `npm run build` ✅.
-- Backend: bumped `pydantic-settings`, `pyjwt`, `python-multipart`, pinned `starlette`, `urllib3`, `idna`; regenerated `uv.lock`.
-- Backend verification: `pytest` 306 passed ✅; `ruff check` has 2 pre-existing PLR0915 in watchlist service (unchanged by this work).
-- Pending: `result.md`, `docs/features/dependabot-alerts.md`, action-log entry.
+- Updated frontend and backend dependency manifests to resolve Dependabot advisories with minor/patch-only changes.
+- Verified the fix with frontend lint/build, `npm audit`, backend pytest, and Docker-backed backend verification already recorded in `result.md`.
+- Published the final feature doc and synced the closure state across the planning artifacts.

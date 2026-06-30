@@ -1,6 +1,6 @@
 # Dependabot Alerts — Result
 
-status: in_progress
+status: complete
 
 ## Implemented
 
@@ -8,6 +8,7 @@ status: in_progress
 - Added npm override for `valibot@^1.2.0` to fix transitive `@telegram-apps/*` advisories without major SDK downgrade.
 - Backend `pyproject.toml` bumped vulnerable direct deps and pinned safe transitive minimums.
 - Regenerated `backend/uv.lock` and rebuilt backend Docker image.
+- Published `docs/features/dependabot-alerts.md` and closed the planning artifacts.
 
 ## Changed files
 
@@ -15,6 +16,9 @@ status: in_progress
 - `frontend/package-lock.json`
 - `backend/pyproject.toml`
 - `backend/uv.lock`
+- `docs/features/dependabot-alerts.md`
+- `.cursor/active/dependabot-alerts/progress.md`
+- `.cursor/active/dependabot-alerts/result.md`
 
 ## Verification
 
@@ -34,4 +38,3 @@ status: in_progress
 ## Next steps
 
 - Merge changes and wait for Dependabot rescan.
-- Publish `docs/features/dependabot-alerts.md`.
