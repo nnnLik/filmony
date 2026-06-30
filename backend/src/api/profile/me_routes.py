@@ -183,5 +183,3 @@ async def post_export_my_movie_cards_csv(
         ) from e
 
     return UserCardsExportCsvResponse(status='sent')
-
-

@@ -236,8 +236,6 @@ async def list_user_cards(
     return build_user_card_page_response(page)
 
 
-
-
 @router.get(
     '/{user_id}/feed-posts',
     response_model=UserFeedPostsPageResponse,

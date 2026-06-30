@@ -25,14 +25,17 @@ async def create_watchlist_entry(
     db: AsyncSession = Depends(get_db),
 ) -> WatchlistEntryResponse:
     service = CreateWatchlistEntryService.build(db)
-    result = await service.execute(
-        actor_user_id=user.id,
-        card_id=body.card_id,
-        provider_meta=body.provider_meta,
-        watch_tag=body.watch_tag.value,
-        watch_with_user_id=body.watch_with_user_id,
-        created_at=dt.datetime.now(dt.timezone.utc),
-    )
+    try:
+        result = await service.execute(
+            actor_user_id=user.id,
+            card_id=body.card_id,
+            provider_meta=body.provider_meta,
+            watch_tag=body.watch_tag.value,
+            watch_with_user_id=body.watch_with_user_id,
+            created_at=dt.datetime.now(dt.UTC),
+        )
+    except CreateWatchlistEntryService.WatchlistEntryAlreadyExistsError:
+        raise HTTPException(status_code=409, detail='watchlist entry already exists') from None
     entry = result.actor_entry
     return WatchlistEntryResponse(
         id=entry.id,

@@ -35,7 +35,7 @@ async def test_create_watchlist_entry_persists_provider_meta(
     async_client: AsyncClient,
 ) -> None:
     user = await _create_user(telegram_user_id=910000, slug_suffix='actor')
-    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.timezone.utc)
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
     session_factory = get_session_factory()
     async with session_factory() as session:
         service = CreateWatchlistEntryService.build(session)
@@ -62,7 +62,7 @@ async def test_create_watchlist_entry_creates_invited_entry(
 
     actor = await _create_user(telegram_user_id=910001, slug_suffix='actor2')
     invited = await _create_user(telegram_user_id=910002, slug_suffix='invited')
-    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.timezone.utc)
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
     called: dict[str, object] = {}
 
     class _FakeInviteService:
@@ -80,10 +80,13 @@ async def test_create_watchlist_entry_creates_invited_entry(
             called['provider_meta'] = provider_meta
             return {}
 
+    def _build_fake_invite_service() -> _FakeInviteService:
+        return _FakeInviteService()
+
     monkeypatch.setattr(
         create_watchlist_entry_module.SendWatchlistInviteNotificationService,
         'build',
-        lambda: _FakeInviteService(),
+        _build_fake_invite_service,
     )
 
     session_factory = get_session_factory()
@@ -103,3 +106,32 @@ async def test_create_watchlist_entry_creates_invited_entry(
     assert result.invited_entry.user_id == invited.id
     assert result.invited_entry.card_id == 'rawg:elden-ring'
     assert called['invited_user_id'] == invited.id
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_entry_duplicate_raises_conflict(
+    async_client: AsyncClient,
+) -> None:
+    user = await _create_user(telegram_user_id=910003, slug_suffix='duplicate')
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        service = CreateWatchlistEntryService.build(session)
+        await service.execute(
+            actor_user_id=user.id,
+            card_id='kp:99999',
+            provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 99999}},
+            watch_tag='watch_later',
+            watch_with_user_id=None,
+            created_at=created_at,
+        )
+
+        with pytest.raises(CreateWatchlistEntryService.WatchlistEntryAlreadyExistsError):
+            await service.execute(
+                actor_user_id=user.id,
+                card_id='kp:99999',
+                provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 99999}},
+                watch_tag='watch_later',
+                watch_with_user_id=None,
+                created_at=created_at,
+            )

@@ -21,6 +21,7 @@ class CreateWatchlistFeedPostService:
 
     async def execute(self, *, user_id: UUID, card_id: str, provider_meta: dict) -> FeedPost:
         body = f'Added to watchlist: {card_id}'
+        _ = provider_meta
         post = FeedPost(
             user_id=user_id,
             body=body,

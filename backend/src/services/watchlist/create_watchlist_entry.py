@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.watchlist_entry import WatchlistEntry
@@ -28,6 +30,9 @@ class CreateWatchlistEntryService:
     _feed_post_service: CreateWatchlistFeedPostService
     _invite_notification_service: SendWatchlistInviteNotificationService
 
+    class WatchlistEntryAlreadyExistsError(Exception):
+        pass
+
     @classmethod
     def build(cls, session: AsyncSession) -> Self:
         return cls(
@@ -47,7 +52,7 @@ class CreateWatchlistEntryService:
         created_at: dt.datetime,
     ) -> CreateWatchlistEntryResult:
         if created_at.tzinfo is not None:
-            created_at = created_at.astimezone(dt.timezone.utc).replace(tzinfo=None)
+            created_at = created_at.astimezone(dt.UTC).replace(tzinfo=None)
         actor_entry = WatchlistEntry(
             user_id=actor_user_id,
             card_id=card_id,
@@ -57,7 +62,11 @@ class CreateWatchlistEntryService:
             created_at=created_at,
         )
         self._session.add(actor_entry)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise self.WatchlistEntryAlreadyExistsError from exc
 
         await self._feed_post_service.execute(
             user_id=actor_user_id,
@@ -66,17 +75,31 @@ class CreateWatchlistEntryService:
         )
 
         invited_entry = None
-        if watch_with_user_id is not None:
-            invited_entry = WatchlistEntry(
-                user_id=watch_with_user_id,
-                card_id=card_id,
-                provider_meta=provider_meta,
-                watch_tag=watch_tag,
-                watch_with_user_id=actor_user_id,
-                created_at=created_at,
-            )
-            self._session.add(invited_entry)
-            await self._session.flush()
+        if watch_with_user_id is not None and watch_with_user_id != actor_user_id:
+            existing_invited = (
+                await self._session.execute(
+                    select(WatchlistEntry.id).where(
+                        WatchlistEntry.user_id == watch_with_user_id,
+                        WatchlistEntry.card_id == card_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing_invited is None:
+                invited_entry = WatchlistEntry(
+                    user_id=watch_with_user_id,
+                    card_id=card_id,
+                    provider_meta=provider_meta,
+                    watch_tag=watch_tag,
+                    watch_with_user_id=actor_user_id,
+                    created_at=created_at,
+                )
+                try:
+                    async with self._session.begin_nested():
+                        self._session.add(invited_entry)
+                        await self._session.flush()
+                except IntegrityError:
+                    self._session.expunge(invited_entry)
+                    invited_entry = None
 
         await self._session.commit()
         await self._session.refresh(actor_entry)

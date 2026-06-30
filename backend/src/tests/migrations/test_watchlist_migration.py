@@ -6,9 +6,7 @@ import pytest
 
 
 def test_legacy_watchlist_migration_creates_entries(monkeypatch: pytest.MonkeyPatch) -> None:
-    migration = importlib.import_module(
-        'migrations.versions.w1x2y3z4a02_migrate_watchlist_films'
-    )
+    migration = importlib.import_module('migrations.versions.w1x2y3z4a02_migrate_watchlist_films')
 
     statements: list[str] = []
 
@@ -21,3 +19,4 @@ def test_legacy_watchlist_migration_creates_entries(monkeypatch: pytest.MonkeyPa
 
     assert any('INSERT INTO watchlist_entry' in stmt for stmt in statements)
     assert any('FROM user_watchlist_film' in stmt for stmt in statements)
+    assert any('ON CONFLICT' in stmt for stmt in statements)

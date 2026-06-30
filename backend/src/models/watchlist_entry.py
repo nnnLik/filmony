@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, Uuid, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -25,6 +25,11 @@ class WatchlistEntry(Base):
         Uuid(as_uuid=True),
         ForeignKey('user.id', ondelete='SET NULL'),
         nullable=True,
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
     updated_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True),

@@ -137,8 +137,6 @@ class UserCardPageResponse(BaseModel):
     next_cursor: str | None = None
 
 
-
-
 class SubscriptionListItemResponse(BaseModel):
     id: UUID
     profile_slug: str
@@ -274,8 +272,6 @@ def build_user_card_page_response(page: UserCardListPage) -> UserCardPageRespons
         for item in page.items
     ]
     return UserCardPageResponse(items=items, next_cursor=page.next_cursor)
-
-
 
 
 def build_subscription_list_response(items: list[SubscriptionListItem]) -> SubscriptionListResponse:

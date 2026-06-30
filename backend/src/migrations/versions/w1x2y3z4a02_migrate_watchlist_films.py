@@ -41,6 +41,7 @@ def upgrade() -> None:
             uwf.created_at
         FROM user_watchlist_film AS uwf
         JOIN film AS f ON f.id = uwf.film_id
+        ON CONFLICT (user_id, card_id) DO NOTHING
         """
     )
 
