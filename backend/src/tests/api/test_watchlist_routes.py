@@ -9,6 +9,7 @@ from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
 from models.user import User
+from models.user_subscription import UserSubscription
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -86,6 +87,18 @@ async def _create_rawg_catalog(*, slug: str = 'elden-ring') -> CatalogItem:
         return ci
 
 
+async def _add_mutual_subscription(user_a: User, user_b: User) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            UserSubscription(follower_user_id=user_a.id, following_user_id=user_b.id)
+        )
+        session.add(
+            UserSubscription(follower_user_id=user_b.id, following_user_id=user_a.id)
+        )
+        await session.commit()
+
+
 @pytest.mark.asyncio
 async def test_create_watchlist_entry_with_provider_meta(
     async_client: AsyncClient,
@@ -145,7 +158,9 @@ async def test_list_user_watchlist_with_mixed_providers(async_client: AsyncClien
     rawg_ci = await _create_rawg_catalog(slug='mixed-game')
     await _login(async_client, telegram_user_id=910131)
 
-    assert (await async_client.post('/api/me/watchlist', json={'film_id': film.id})).status_code == 201
+    assert (
+        await async_client.post('/api/me/watchlist', json={'film_id': film.id})
+    ).status_code == 201
     assert (
         await async_client.post('/api/me/watchlist', json={'catalog_item_id': rawg_ci.id})
     ).status_code == 201
@@ -241,7 +256,9 @@ async def test_delete_watchlist_by_film_id(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=910135)
     film = await _create_film(kinopoisk_id=701_021)
 
-    assert (await async_client.post('/api/me/watchlist', json={'film_id': film.id})).status_code == 201
+    assert (
+        await async_client.post('/api/me/watchlist', json={'film_id': film.id})
+    ).status_code == 201
 
     deleted = await async_client.delete(f'/api/me/watchlist/films/{film.id}')
     assert deleted.status_code == 204
@@ -253,9 +270,7 @@ async def test_delete_watchlist_by_film_id(async_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_list_user_watchlist_unknown_user_returns_404(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=910136)
-    response = await async_client.get(
-        '/api/users/f0000000-0000-4000-8000-000000000099/watchlist'
-    )
+    response = await async_client.get('/api/users/f0000000-0000-4000-8000-000000000099/watchlist')
     assert response.status_code == 404
 
 
@@ -281,3 +296,68 @@ async def test_user_cannot_edit_other_watchlist_entry(
     )
 
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_from_film_forwards_watch_with(
+    async_client: AsyncClient,
+) -> None:
+    actor = await _create_user(telegram_user_id=910140, slug='wl-film-watchwith')
+    partner = await _create_user(telegram_user_id=910141, slug='wl-partner')
+    await _add_mutual_subscription(actor, partner)
+    film = await _create_film(kinopoisk_id=701_030)
+    await _login(async_client, telegram_user_id=910140)
+
+    response = await async_client.post(
+        '/api/me/watchlist',
+        json={
+            'film_id': film.id,
+            'watch_tag': 'watch_later',
+            'watch_with_user_id': str(partner.id),
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body['watch_with_user_id'] == str(partner.id)
+    assert body['watch_tag'] == 'watch_later'
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_rejects_non_mutual_watch_with(
+    async_client: AsyncClient,
+) -> None:
+    actor = await _create_user(telegram_user_id=910142, slug='wl-nonmutual-actor')
+    other = await _create_user(telegram_user_id=910143, slug='wl-nonmutual-other')
+    film = await _create_film(kinopoisk_id=701_031)
+    await _login(async_client, telegram_user_id=910142)
+
+    response = await async_client.post(
+        '/api/me/watchlist',
+        json={
+            'film_id': film.id,
+            'watch_with_user_id': str(other.id),
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()['detail'] == 'watch with user is not a mutual friend'
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_rejects_unknown_watch_with_user(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=910144)
+    film = await _create_film(kinopoisk_id=701_032)
+
+    response = await async_client.post(
+        '/api/me/watchlist',
+        json={
+            'film_id': film.id,
+            'watch_with_user_id': 'f0000000-0000-4000-8000-000000000099',
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()['detail'] == 'watch with user not found'

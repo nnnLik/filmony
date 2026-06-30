@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import datetime as dt
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
 
 from core.database import get_session_factory
 from models.user import User
+from models.user_subscription import UserSubscription
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
 
 
@@ -28,6 +30,18 @@ async def _create_user(*, telegram_user_id: int, slug_suffix: str) -> User:
         await session.commit()
         await session.refresh(user)
         return user
+
+
+async def _add_mutual_subscription(user_a: User, user_b: User) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            UserSubscription(follower_user_id=user_a.id, following_user_id=user_b.id)
+        )
+        session.add(
+            UserSubscription(follower_user_id=user_b.id, following_user_id=user_a.id)
+        )
+        await session.commit()
 
 
 @pytest.mark.asyncio
@@ -62,6 +76,7 @@ async def test_create_watchlist_entry_creates_invited_entry(
 
     actor = await _create_user(telegram_user_id=910001, slug_suffix='actor2')
     invited = await _create_user(telegram_user_id=910002, slug_suffix='invited')
+    await _add_mutual_subscription(actor, invited)
     created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
     called: dict[str, object] = {}
 
@@ -133,5 +148,47 @@ async def test_create_watchlist_entry_duplicate_raises_conflict(
                 provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 99999}},
                 watch_tag='watch_later',
                 watch_with_user_id=None,
+                created_at=created_at,
+            )
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_entry_rejects_non_mutual_watch_partner(
+    async_client: AsyncClient,
+) -> None:
+    actor = await _create_user(telegram_user_id=910004, slug_suffix='actor-nonmutual')
+    other = await _create_user(telegram_user_id=910005, slug_suffix='other-nonmutual')
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        service = CreateWatchlistEntryService.build(session)
+        with pytest.raises(CreateWatchlistEntryService.NotMutualWatchPartnerError):
+            await service.execute(
+                actor_user_id=actor.id,
+                card_id='kp:88888',
+                provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 88888}},
+                watch_tag='watch_later',
+                watch_with_user_id=other.id,
+                created_at=created_at,
+            )
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_entry_rejects_unknown_watch_with_user(
+    async_client: AsyncClient,
+) -> None:
+    actor = await _create_user(telegram_user_id=910006, slug_suffix='actor-unknown')
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
+    missing_user_id = UUID('f0000000-0000-4000-8000-000000000099')
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        service = CreateWatchlistEntryService.build(session)
+        with pytest.raises(CreateWatchlistEntryService.WatchWithUserNotFoundError):
+            await service.execute(
+                actor_user_id=actor.id,
+                card_id='kp:77777',
+                provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 77777}},
+                watch_tag='watch_later',
+                watch_with_user_id=missing_user_id,
                 created_at=created_at,
             )

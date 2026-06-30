@@ -192,11 +192,14 @@ async def post_my_watchlist_entry(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> WatchlistEntryItemResponse:
     created_at = dt.datetime.now(dt.UTC)
+    watch_tag = body.watch_tag.value
     try:
         if body.film_id is not None:
             result = await CreateWatchlistEntryFromFilmService.build(db).execute(
                 actor_user_id=user.id,
                 film_id=body.film_id,
+                watch_tag=watch_tag,
+                watch_with_user_id=body.watch_with_user_id,
                 created_at=created_at,
             )
             entry_id = int(result.entry.actor_entry.id)
@@ -204,6 +207,8 @@ async def post_my_watchlist_entry(
             result = await CreateWatchlistEntryFromCatalogService.build(db).execute(
                 actor_user_id=user.id,
                 catalog_item_id=body.catalog_item_id,
+                watch_tag=watch_tag,
+                watch_with_user_id=body.watch_with_user_id,
                 created_at=created_at,
             )
             entry_id = int(result.entry.actor_entry.id)
@@ -212,7 +217,7 @@ async def post_my_watchlist_entry(
                 actor_user_id=user.id,
                 card_id=body.card_id,
                 provider_meta=body.provider_meta,
-                watch_tag=body.watch_tag,
+                watch_tag=watch_tag,
                 watch_with_user_id=body.watch_with_user_id,
                 created_at=created_at,
             )
@@ -236,6 +241,10 @@ async def post_my_watchlist_entry(
         ) from None
     except CreateWatchlistEntryService.WatchlistEntryAlreadyExistsError:
         raise HTTPException(status_code=409, detail='watchlist entry already exists') from None
+    except CreateWatchlistEntryService.WatchWithUserNotFoundError:
+        raise HTTPException(status_code=404, detail='watch with user not found') from None
+    except CreateWatchlistEntryService.NotMutualWatchPartnerError:
+        raise HTTPException(status_code=422, detail='watch with user is not a mutual friend') from None
 
     return await _hydrated_entry_response(db, user.id, entry_id)
 

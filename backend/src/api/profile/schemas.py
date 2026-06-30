@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.cards.schemas import UserCardCategorySnippet
+from api.watchlist.schemas import WatchTag
 from models.catalog_item import CatalogProvider
 from models.user import User
 from services.profile.get_user_card_stats import UserCardStats
@@ -58,7 +59,7 @@ class WatchlistFilmCreateRequest(BaseModel):
     catalog_item_id: int | None = Field(default=None, ge=1)
     card_id: str | None = Field(default=None, min_length=1, max_length=128)
     provider_meta: dict | None = None
-    watch_tag: str = Field(default='watch_later', max_length=32)
+    watch_tag: WatchTag = WatchTag.watch_later
     watch_with_user_id: UUID | None = None
 
     model_config = ConfigDict(extra='forbid')

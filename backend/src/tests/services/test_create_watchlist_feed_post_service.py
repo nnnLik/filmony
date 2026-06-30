@@ -37,9 +37,42 @@ async def test_watchlist_feed_post_payload(async_client: AsyncClient) -> None:
         post = await service.execute(
             user_id=user.id,
             card_id='kp:321',
-            provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 321}},
+            provider_meta={
+                'provider': 'kinopoisk',
+                'data': {
+                    'kp_id': 321,
+                    'title': 'Inception',
+                    'poster_url': 'https://example.com/inception.jpg',
+                },
+            },
         )
         await session.commit()
 
     assert post.user_id == user.id
-    assert 'kp:321' in post.body
+    assert post.body == 'Inception'
+    assert post.image_url == 'https://example.com/inception.jpg'
+    assert 'rating' not in post.body.lower()
+
+
+@pytest.mark.asyncio
+async def test_watchlist_feed_post_includes_description(async_client: AsyncClient) -> None:
+    user = await _create_user(telegram_user_id=920001, slug_suffix='desc')
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        service = CreateWatchlistFeedPostService.build(session)
+        post = await service.execute(
+            user_id=user.id,
+            card_id='custom:concert',
+            provider_meta={
+                'provider': 'custom',
+                'data': {
+                    'title': 'Summer Concert',
+                    'description': 'Outdoor venue at sunset',
+                    'display_cover_url': 'https://example.com/concert.jpg',
+                },
+            },
+        )
+        await session.commit()
+
+    assert post.body == 'Summer Concert\n\nOutdoor venue at sunset'
+    assert post.image_url == 'https://example.com/concert.jpg'

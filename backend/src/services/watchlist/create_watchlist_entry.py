@@ -14,6 +14,7 @@ from services.feed_posts.create_watchlist_feed_post import CreateWatchlistFeedPo
 from services.telegram.send_watchlist_invite_notification import (
     SendWatchlistInviteNotificationService,
 )
+from services.watchlist.assert_mutual_watch_partner import AssertMutualWatchPartnerService
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,9 +30,13 @@ class CreateWatchlistEntryService:
     _session: AsyncSession
     _feed_post_service: CreateWatchlistFeedPostService
     _invite_notification_service: SendWatchlistInviteNotificationService
+    _assert_mutual_watch_partner_service: AssertMutualWatchPartnerService
 
     class WatchlistEntryAlreadyExistsError(Exception):
         pass
+
+    WatchWithUserNotFoundError = AssertMutualWatchPartnerService.WatchWithUserNotFoundError
+    NotMutualWatchPartnerError = AssertMutualWatchPartnerService.NotMutualWatchPartnerError
 
     @classmethod
     def build(cls, session: AsyncSession) -> Self:
@@ -39,6 +44,7 @@ class CreateWatchlistEntryService:
             _session=session,
             _feed_post_service=CreateWatchlistFeedPostService.build(session),
             _invite_notification_service=SendWatchlistInviteNotificationService.build(),
+            _assert_mutual_watch_partner_service=AssertMutualWatchPartnerService.build(session),
         )
 
     async def execute(
@@ -53,6 +59,11 @@ class CreateWatchlistEntryService:
     ) -> CreateWatchlistEntryResult:
         if created_at.tzinfo is not None:
             created_at = created_at.astimezone(dt.UTC).replace(tzinfo=None)
+        if watch_with_user_id is not None and watch_with_user_id != actor_user_id:
+            await self._assert_mutual_watch_partner_service.execute(
+                actor_user_id=actor_user_id,
+                watch_with_user_id=watch_with_user_id,
+            )
         actor_entry = WatchlistEntry(
             user_id=actor_user_id,
             card_id=card_id,

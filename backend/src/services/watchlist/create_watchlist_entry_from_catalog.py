@@ -52,6 +52,8 @@ class CreateWatchlistEntryFromCatalogService:
         *,
         actor_user_id: UUID,
         catalog_item_id: int,
+        watch_tag: str = 'watch_later',
+        watch_with_user_id: UUID | None = None,
         created_at: dt.datetime,
     ) -> CreateWatchlistEntryFromCatalogResult:
         ci = (
@@ -97,8 +99,8 @@ class CreateWatchlistEntryFromCatalogService:
             actor_user_id=actor_user_id,
             card_id=card_id,
             provider_meta=provider_meta,
-            watch_tag='watch_later',
-            watch_with_user_id=None,
+            watch_tag=watch_tag,
+            watch_with_user_id=watch_with_user_id,
             created_at=created_at,
         )
         return CreateWatchlistEntryFromCatalogResult(
