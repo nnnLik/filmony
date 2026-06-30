@@ -244,7 +244,9 @@ async def post_my_watchlist_entry(
     except CreateWatchlistEntryService.WatchWithUserNotFoundError:
         raise HTTPException(status_code=404, detail='watch with user not found') from None
     except CreateWatchlistEntryService.NotMutualWatchPartnerError:
-        raise HTTPException(status_code=422, detail='watch with user is not a mutual friend') from None
+        raise HTTPException(
+            status_code=422, detail='watch with user is not a mutual friend'
+        ) from None
 
     return await _hydrated_entry_response(db, user.id, entry_id)
 

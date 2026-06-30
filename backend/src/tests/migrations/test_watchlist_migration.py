@@ -23,9 +23,7 @@ def test_legacy_watchlist_migration_creates_entries(monkeypatch: pytest.MonkeyPa
 
 
 def test_drop_legacy_watchlist_table_migration(monkeypatch: pytest.MonkeyPatch) -> None:
-    migration = importlib.import_module(
-        'migrations.versions.w1x2y3z4a03_drop_user_watchlist_film'
-    )
+    migration = importlib.import_module('migrations.versions.w1x2y3z4a03_drop_user_watchlist_film')
 
     statements: list[str] = []
 

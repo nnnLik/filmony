@@ -90,12 +90,8 @@ async def _create_rawg_catalog(*, slug: str = 'elden-ring') -> CatalogItem:
 async def _add_mutual_subscription(user_a: User, user_b: User) -> None:
     session_factory = get_session_factory()
     async with session_factory() as session:
-        session.add(
-            UserSubscription(follower_user_id=user_a.id, following_user_id=user_b.id)
-        )
-        session.add(
-            UserSubscription(follower_user_id=user_b.id, following_user_id=user_a.id)
-        )
+        session.add(UserSubscription(follower_user_id=user_a.id, following_user_id=user_b.id))
+        session.add(UserSubscription(follower_user_id=user_b.id, following_user_id=user_a.id))
         await session.commit()
 
 
