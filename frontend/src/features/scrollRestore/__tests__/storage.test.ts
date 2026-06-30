@@ -45,4 +45,26 @@ describe('ScrollRestoreStorage session backing', () => {
     expect(storage.get('feed')?.position).toBe(99);
     vi.restoreAllMocks();
   });
+
+  it('drops stale entries during hydrate', () => {
+    const now = 10_000;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    sessionStorage.setItem(
+      'scrollRestore:v1',
+      JSON.stringify({
+        feed: { position: 120, containerId: null, updatedAt: now - 1_000 },
+      }),
+    );
+
+    const storage = ScrollRestoreStorage.hydrate({
+      ttlMs: 500,
+      maxEntries: 50,
+      storageKey: 'scrollRestore:v1',
+    });
+
+    storage.persist('scrollRestore:v1');
+    const raw = sessionStorage.getItem('scrollRestore:v1');
+    expect(raw).toBe(JSON.stringify({}));
+    vi.restoreAllMocks();
+  });
 });

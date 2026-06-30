@@ -48,7 +48,12 @@ export class ScrollRestoreStorage {
     }
     try {
       const parsed = JSON.parse(raw) as Record<string, ScrollRestoreEntry>;
-      Object.entries(parsed).forEach(([key, entry]) => storage.set(key, entry));
+      Object.entries(parsed).forEach(([key, entry]) => {
+        if (Date.now() - entry.updatedAt > ttlMs) {
+          return;
+        }
+        storage.set(key, entry);
+      });
     } catch {
       sessionStorage.removeItem(storageKey);
     }
