@@ -198,16 +198,25 @@ describe('patchMyWatchlistEntry', () => {
     vi.unstubAllGlobals()
   })
 
-  it('patches watch_tag for an owned entry', async () => {
+  it('patches watchlist entry fields for an owned entry', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          id: 7,
-          user_id: 'me-id',
+          entry_id: 7,
           card_id: 'kp:1',
-          provider_meta: {},
+          provider: 'kinopoisk',
+          title: 'Test',
+          poster_url: null,
+          year: null,
           watch_tag: 'watch_later',
           watch_with_user_id: null,
+          watch_with_user_ids: [],
+          created_at: '2026-01-01T00:00:00Z',
+          film_id: 1,
+          film_kinopoisk_id: 1,
+          film_genres: [],
+          catalog_item_id: null,
+          external_id: '1',
         }),
         {
           status: 200,
@@ -217,15 +226,24 @@ describe('patchMyWatchlistEntry', () => {
     )
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await patchMyWatchlistEntry(7, { watch_tag: 'watch_later' })
+    const result = await patchMyWatchlistEntry(7, {
+      company: 'friends',
+      watch_note: 'updated',
+      watch_with_user_ids: ['u1'],
+      category_id: 3,
+    })
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/watchlist/7', {
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/watchlist/7', {
       credentials: 'include',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       method: 'PATCH',
-      body: JSON.stringify({ watch_tag: 'watch_later' }),
+      body: JSON.stringify({
+        company: 'friends',
+        watch_note: 'updated',
+        watch_with_user_ids: ['u1'],
+        category_id: 3,
+      }),
     })
-    expect(result.id).toBe(7)
-    expect(result.watch_tag).toBe('watch_later')
+    expect(result.entry_id).toBe(7)
   })
 })

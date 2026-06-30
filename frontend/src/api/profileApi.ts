@@ -280,18 +280,27 @@ export async function postMyWatchlistFilm(filmId: number): Promise<WatchlistEntr
   return postCreateWatchlistEntry({ film_id: filmId })
 }
 
+export type PatchWatchlistEntryBody = {
+  watch_tag?: WatchTag
+  company?: CardCompany
+  category_id?: number | null
+  watch_note?: string
+  watch_with_user_ids?: string[]
+}
+
 export async function patchMyWatchlistEntry(
   entryId: number,
-  body: { watch_tag: WatchTag },
-): Promise<{ id: number; watch_tag: string }> {
-  return apiJson<{ id: number; watch_tag: string }>(
-    `/api/watchlist/${encodeURIComponent(String(entryId))}`,
+  body: PatchWatchlistEntryBody,
+): Promise<WatchlistEntryItem> {
+  const raw = await apiJson<WatchlistEntryItem>(
+    `/api/me/watchlist/${encodeURIComponent(String(entryId))}`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     },
   )
+  return normalizeWatchlistEntry(raw)
 }
 
 export async function deleteMyWatchlistEntry(entryId: number): Promise<void> {

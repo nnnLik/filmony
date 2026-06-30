@@ -23,6 +23,7 @@ from api.cards.schemas import (
     FeedPostFeedItemResponse,
     FollowingRatingEntryResponse,
     FollowingRatingsListResponse,
+    PlannedWatchPartnerResponse,
     ShareCardRequest,
     ShareCardResponse,
     UserCardAudioTelegramResponse,
@@ -697,8 +698,9 @@ async def get_card(
         is_favorite=card.is_favorite,
         is_planned=card.is_planned,
         audio_url=card.audio_url,
+        watchlist_entry_id=card.watchlist_entry_id,
         planned_watch_partners=[
-            UserCardCommentAuthorResponse(
+            PlannedWatchPartnerResponse(
                 id=partner.id,
                 profile_slug=partner.profile_slug,
                 username=partner.username,
@@ -706,6 +708,10 @@ async def get_card(
                 last_name=partner.last_name,
                 photo_url=partner.photo_url,
                 display_name=partner.display_name,
+                has_rated=partner.has_rated,
+                rating=partner.rating,
+                rated_user_card_id=partner.rated_user_card_id,
+                planned_user_card_id=partner.planned_user_card_id,
             )
             for partner in card.planned_watch_partners
         ],

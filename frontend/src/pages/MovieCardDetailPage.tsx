@@ -752,7 +752,9 @@ export function MovieCardDetailPage() {
                     onClick={() => {
                       setActionMenuOpen(false)
                       if (parsedCardId != null) {
-                        void navigate(`/cards/${parsedCardId}/edit`)
+                        void navigate(
+                          `/cards/${parsedCardId}/${card?.is_planned === true ? 'edit-planned' : 'edit'}`,
+                        )
                       }
                     }}
                     className="flex w-full items-center rounded-xl px-3 py-2 text-left text-base hover:bg-(--tgui--secondary_bg_color)"

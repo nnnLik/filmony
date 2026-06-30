@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.card_tag import CardTag
@@ -20,6 +20,14 @@ from services.cards.list_user_card_comments import UserCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 from services.watchlist.watchlist_card_id import watchlist_card_id_from_user_card
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedWatchPartner(UserCardCommentAuthor):
+    has_rated: bool
+    rating: float | None
+    rated_user_card_id: int | None
+    planned_user_card_id: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,7 +63,8 @@ class UserCardDetails:
     is_favorite: bool
     is_planned: bool
     audio_url: str | None
-    planned_watch_partners: list[UserCardCommentAuthor]
+    planned_watch_partners: list[PlannedWatchPartner]
+    watchlist_entry_id: int | None
 
 
 class UserCardNotFoundError(Exception):
@@ -114,7 +123,10 @@ class GetUserCardDetailsService:
             film_year=film_year_val,
             game_released=game.released if game is not None else None,
         )
-        planned_watch_partners = await self._load_planned_watch_partners(card)
+        planned_watch_partners, watchlist_entry_id = await self._load_planned_watchlist_context(
+            card,
+            viewer_user_id,
+        )
         return UserCardDetails(
             id=card.id,
             user_id=card.user_id,
@@ -156,14 +168,32 @@ class GetUserCardDetailsService:
             is_planned=bool(card.is_planned),
             audio_url=card.audio_url,
             planned_watch_partners=planned_watch_partners,
+            watchlist_entry_id=watchlist_entry_id,
         )
 
-    async def _load_planned_watch_partners(self, card: UserCard) -> list[UserCardCommentAuthor]:
+    def _partner_title_match(self, card: UserCard):
+        if card.film_id is not None:
+            return UserCard.film_id == card.film_id
+        if card.catalog_item_id is not None:
+            return UserCard.catalog_item_id == card.catalog_item_id
+        display_title = (card.display_title or '').strip()
+        if display_title:
+            return (
+                UserCard.provider == card.provider,
+                UserCard.display_title == display_title,
+            )
+        return None
+
+    async def _load_planned_watchlist_context(
+        self,
+        card: UserCard,
+        viewer_user_id: UUID,
+    ) -> tuple[list[PlannedWatchPartner], int | None]:
         if not card.is_planned:
-            return []
+            return [], None
         watchlist_card_id = watchlist_card_id_from_user_card(card)
         if watchlist_card_id is None:
-            return []
+            return [], None
         entry = (
             await self._session.execute(
                 select(WatchlistEntry).where(
@@ -173,7 +203,11 @@ class GetUserCardDetailsService:
             )
         ).scalar_one_or_none()
         if entry is None:
-            return []
+            return [], None
+
+        watchlist_entry_id: int | None = None
+        if card.user_id == viewer_user_id:
+            watchlist_entry_id = int(entry.id)
 
         partner_ids: list[UUID] = []
         seen: set[UUID] = {card.user_id}
@@ -190,7 +224,7 @@ class GetUserCardDetailsService:
             partner_ids.append(entry.watch_with_user_id)
 
         if not partner_ids:
-            return []
+            return [], watchlist_entry_id
 
         users = (
             (
@@ -202,13 +236,41 @@ class GetUserCardDetailsService:
             .all()
         )
         users_by_id = {user.id: user for user in users}
-        partners: list[UserCardCommentAuthor] = []
+
+        title_match = self._partner_title_match(card)
+        rated_by_user: dict[UUID, UserCard] = {}
+        planned_by_user: dict[UUID, UserCard] = {}
+        if title_match is not None:
+            match_cond = title_match if not isinstance(title_match, tuple) else and_(*title_match)
+            partner_cards = (
+                (
+                    await self._session.execute(
+                        select(UserCard)
+                        .where(UserCard.user_id.in_(partner_ids))
+                        .where(match_cond)
+                        .order_by(UserCard.id.desc()),
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for partner_card in partner_cards:
+                if partner_card.is_planned:
+                    if partner_card.user_id not in planned_by_user:
+                        planned_by_user[partner_card.user_id] = partner_card
+                elif partner_card.user_id not in rated_by_user:
+                    rated_by_user[partner_card.user_id] = partner_card
+
+        partners: list[PlannedWatchPartner] = []
         for partner_id in partner_ids:
             user = users_by_id.get(partner_id)
             if user is None:
                 continue
+            rated = rated_by_user.get(partner_id)
+            planned = planned_by_user.get(partner_id)
+            has_rated = rated is not None
             partners.append(
-                UserCardCommentAuthor(
+                PlannedWatchPartner(
                     id=user.id,
                     profile_slug=user.profile_slug,
                     username=user.username,
@@ -216,6 +278,12 @@ class GetUserCardDetailsService:
                     last_name=user.last_name,
                     photo_url=user.photo_url,
                     display_name=user.display_name,
+                    has_rated=has_rated,
+                    rating=float(rated.rating) if rated is not None else None,
+                    rated_user_card_id=int(rated.id) if rated is not None else None,
+                    planned_user_card_id=(
+                        int(planned.id) if planned is not None and not has_rated else None
+                    ),
                 )
             )
-        return partners
+        return partners, watchlist_entry_id

@@ -255,7 +255,7 @@ async def test_create_watchlist_entry_invitee_planned_card_uses_default_shelf(
     monkeypatch.setattr(
         create_watchlist_entry_module.SendWatchlistInviteNotificationService,
         'build',
-        lambda: _FakeInviteService(),
+        _FakeInviteService,
     )
 
     async with session_factory() as session:

@@ -1,15 +1,10 @@
-import { IconButton } from '@telegram-apps/telegram-ui'
-import { MoreVertical, Users } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { WatchlistEntryItem } from '../../api/profileTypes'
 
 type WatchlistPosterGridProps = {
   items: WatchlistEntryItem[]
-  /** When true, entries can be removed via long-press or menu. */
-  canManage?: boolean
-  onDeleteEntry?: (entryId: number) => void | Promise<void>
 }
 
 function watchlistNewCardHref(item: WatchlistEntryItem): string {
@@ -53,49 +48,13 @@ function watchlistItemPoster(item: WatchlistEntryItem): string | null {
   return item.poster_url ?? item.film_poster_url ?? null
 }
 
-const LONG_PRESS_MS = 450
-
-function WatchlistPosterCell({
-  item,
-  canManage,
-  onDeleteEntry,
-}: {
-  item: WatchlistEntryItem
-  canManage: boolean
-  onDeleteEntry?: (entryId: number) => void | Promise<void>
-}) {
+function WatchlistPosterCell({ item }: { item: WatchlistEntryItem }) {
   const title = watchlistItemTitle(item)
   const poster = watchlistItemPoster(item)
   const href = watchlistItemHref(item)
   const hasWatchWith =
     (item.watch_with_user_ids != null && item.watch_with_user_ids.length > 0) ||
     (item.watch_with_user_id != null && item.watch_with_user_id !== '')
-  const [menuOpen, setMenuOpen] = useState(false)
-  const longPressTimer = useRef<number | null>(null)
-
-  const clearLongPress = useCallback(() => {
-    if (longPressTimer.current != null) {
-      window.clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
-    }
-  }, [])
-
-  const requestDelete = useCallback(() => {
-    setMenuOpen(false)
-    if (onDeleteEntry == null) return
-    const ok = window.confirm(`Убрать «${title}» из списка «Позже»?`)
-    if (!ok) return
-    void onDeleteEntry(item.entry_id)
-  }, [item.entry_id, onDeleteEntry, title])
-
-  const onPointerDown = useCallback(() => {
-    if (!canManage || onDeleteEntry == null) return
-    clearLongPress()
-    longPressTimer.current = window.setTimeout(() => {
-      longPressTimer.current = null
-      requestDelete()
-    }, LONG_PRESS_MS)
-  }, [canManage, clearLongPress, onDeleteEntry, requestDelete])
 
   const badge = hasWatchWith ? (
     <span
@@ -107,49 +66,8 @@ function WatchlistPosterCell({
     </span>
   ) : null
 
-  const manageMenu =
-    canManage && onDeleteEntry != null ? (
-      <div className="absolute right-1 top-1 z-10">
-        <IconButton
-          type="button"
-          size="s"
-          mode="plain"
-          aria-label="Действия со списком «Позже»"
-          className="rounded-lg! bg-[color-mix(in_srgb,var(--tgui--bg_color)_75%,transparent)] backdrop-blur-sm"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setMenuOpen((v) => !v)
-          }}
-        >
-          <MoreVertical className="block" size={16} strokeWidth={2} />
-        </IconButton>
-        {menuOpen ? (
-          <div className="absolute right-0 mt-1 min-w-[9rem] overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-lg">
-            <button
-              type="button"
-              className="w-full px-3 py-2 text-left text-xs text-(--tgui--destructive_text_color) active:bg-(--tgui--secondary_bg_color)"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                requestDelete()
-              }}
-            >
-              Убрать из «Позже»
-            </button>
-          </div>
-        ) : null}
-      </div>
-    ) : null
-
   const inner = (
-    <div
-      className="relative aspect-2/3 w-full"
-      onPointerDown={onPointerDown}
-      onPointerUp={clearLongPress}
-      onPointerLeave={clearLongPress}
-      onPointerCancel={clearLongPress}
-    >
+    <div className="relative aspect-2/3 w-full">
       {poster ? (
         <img src={poster} alt={title} className="h-full w-full object-cover" />
       ) : (
@@ -158,7 +76,6 @@ function WatchlistPosterCell({
         </div>
       )}
       {badge}
-      {manageMenu}
     </div>
   )
 
@@ -174,27 +91,17 @@ function WatchlistPosterCell({
   }
 
   return (
-    <Link
-      to={href}
-      className={`${shellClass} no-underline`}
-      aria-label={`Открыть «${title}»`}
-      onClick={() => setMenuOpen(false)}
-    >
+    <Link to={href} className={`${shellClass} no-underline`} aria-label={`Открыть «${title}»`}>
       {inner}
     </Link>
   )
 }
 
-export function WatchlistPosterGrid({ items, canManage = false, onDeleteEntry }: WatchlistPosterGridProps) {
+export function WatchlistPosterGrid({ items }: WatchlistPosterGridProps) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {items.map((item) => (
-        <WatchlistPosterCell
-          key={item.entry_id}
-          item={item}
-          canManage={canManage}
-          onDeleteEntry={onDeleteEntry}
-        />
+        <WatchlistPosterCell key={item.entry_id} item={item} />
       ))}
     </div>
   )

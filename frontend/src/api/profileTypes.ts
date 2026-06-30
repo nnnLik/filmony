@@ -188,6 +188,14 @@ export type MovieCardCommentAuthor = {
   display_name: string | null
 }
 
+/** Partner on a planned card (`GET /api/cards/:id`, `is_planned`). */
+export type PlannedWatchPartner = MovieCardCommentAuthor & {
+  has_rated: boolean
+  rating: number | null
+  rated_user_card_id: number | null
+  planned_user_card_id: number | null
+}
+
 export type MovieCard = {
   id: number
   user_id?: string
@@ -231,7 +239,9 @@ export type MovieCard = {
   /** Опциональный аудио-слой (деталка / лента / профиль). */
   audio_url?: string | null
   /** Только GET /api/cards/:id для запланированных карточек. */
-  planned_watch_partners?: MovieCardCommentAuthor[]
+  planned_watch_partners?: PlannedWatchPartner[]
+  /** Связанная запись watchlist; только GET /api/cards/:id для is_planned. */
+  watchlist_entry_id?: number | null
 }
 
 export type MyUserCardCategory = {

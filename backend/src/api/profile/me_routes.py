@@ -20,6 +20,7 @@ from api.profile.schemas import (
     ProfileUpdateRequest,
     UserCardsExportCsvResponse,
     WatchlistEntryItemResponse,
+    WatchlistEntryUpdateRequest,
     WatchlistFilmCreateRequest,
     WatchlistMembershipResponse,
     build_my_profile_response,
@@ -55,6 +56,7 @@ from services.watchlist.create_watchlist_entry_from_film import (
 from services.watchlist.delete_watchlist_entry import DeleteWatchlistEntryService
 from services.watchlist.get_my_watchlist_presence import GetMyWatchlistPresenceService
 from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
+from services.watchlist.update_watchlist_entry import UpdateWatchlistEntryService
 from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
 
 router = APIRouter(prefix='/me', tags=['profile'])
@@ -258,6 +260,41 @@ async def post_my_watchlist_entry(
         ) from None
 
     return await _hydrated_entry_response(db, user.id, entry_id)
+
+
+@router.patch(
+    '/watchlist/{entry_id}',
+    response_model=WatchlistEntryItemResponse,
+    summary='Обновить метаданные записи «Позже»',
+)
+async def patch_my_watchlist_entry(
+    entry_id: int,
+    body: WatchlistEntryUpdateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> WatchlistEntryItemResponse:
+    try:
+        result = await UpdateWatchlistEntryService.build(db).execute(
+            actor_user_id=user.id,
+            entry_id=entry_id,
+            company=body.company,
+            category_id=body.category_id,
+            watch_note=body.watch_note,
+            watch_with_user_id=body.watch_with_user_id,
+            watch_with_user_ids=body.watch_with_user_ids,
+        )
+    except UpdateWatchlistEntryService.WatchlistEntryNotFoundError:
+        raise HTTPException(status_code=404, detail='watchlist entry not found') from None
+    except UpdateWatchlistEntryService.WatchWithUserNotFoundError:
+        raise HTTPException(status_code=404, detail='watch with user not found') from None
+    except UpdateWatchlistEntryService.NotMutualWatchPartnerError:
+        raise HTTPException(
+            status_code=422, detail='watch with user is not a mutual friend'
+        ) from None
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    return await _hydrated_entry_response(db, user.id, int(result.actor_entry.id))
 
 
 @router.get(

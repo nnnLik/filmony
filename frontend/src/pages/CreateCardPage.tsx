@@ -2,7 +2,7 @@ import { Button, Title } from '@telegram-apps/telegram-ui'
 import { Clapperboard, Gamepad2, PenLine } from 'lucide-react'
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useMatch, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import type { CatalogSearchHit, CatalogSearchResponse } from '../api/catalogApi'
@@ -26,9 +26,11 @@ import {
   getMyCardCategories,
   getUserSubscriptions,
   getMyPlannedCard,
+  patchMyWatchlistEntry,
   postCreateWatchlistEntry,
   type CreateWatchlistEntryBody,
   type GetMyPlannedCardParams,
+  type PatchWatchlistEntryBody,
   type WatchTag,
 } from '../api/profileApi'
 import type {
@@ -320,11 +322,22 @@ export function CreateCardPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const editPlannedMatch = useMatch('/cards/:cardId/edit-planned')
+  const editPlannedCardId = useMemo(() => {
+    const raw = editPlannedMatch?.params.cardId
+    if (raw == null) return null
+    const value = Number(raw)
+    return Number.isInteger(value) && value > 0 ? value : null
+  }, [editPlannedMatch?.params.cardId])
+  const isEditPlannedMode = editPlannedCardId != null
   const initialFilmId = searchParams.get('filmId')
   const fromCardQuery = searchParams.get('fromCard')
-  const [fromCardPrefillDone, setFromCardPrefillDone] = useState(() => fromCardQuery == null || fromCardQuery === '')
+  const [fromCardPrefillDone, setFromCardPrefillDone] = useState(
+    () => !isEditPlannedMode && (fromCardQuery == null || fromCardQuery === ''),
+  )
+  const [editPlannedEntryId, setEditPlannedEntryId] = useState<number | null>(null)
   const [remixFromCard, setRemixFromCard] = useState(false)
-  const [step, setStep] = useState<WizardStep>(1)
+  const [step, setStep] = useState<WizardStep>(() => (isEditPlannedMode ? 'watchlist' : 1))
   const [addKind, setAddKind] = useState<CardAddKind>(null)
   /** Поиск в каталоге: порог длины зависит от провайдера (Кинопоиск ≥3, RAWG ≥4), плюс debounce. */
   const [catalogSearchDraft, setCatalogSearchDraft] = useState('')
@@ -641,6 +654,69 @@ export function CreateCardPage() {
       alive = false
     }
   }, [navigate, searchParams])
+
+  useEffect(() => {
+    if (!isEditPlannedMode || editPlannedCardId == null) {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setResolutionBusy(true)
+      setError(null)
+      try {
+        const [card, me] = await Promise.all([
+          getMovieCardById(editPlannedCardId),
+          getMyProfile(),
+        ])
+        if (!alive) return
+        if (card.user_id == null || card.user_id !== me.id) {
+          setError('Редактировать карточку может только её владелец')
+          return
+        }
+        if (card.is_planned !== true) {
+          void navigate(`/cards/${editPlannedCardId}/edit`, { replace: true })
+          return
+        }
+        const binding = await creationBindingFromMovieCard(card)
+        if (!alive) return
+        if (binding == null) {
+          setError('Не удалось подготовить карточку для редактирования')
+          return
+        }
+        const entryId = card.watchlist_entry_id
+        if (typeof entryId !== 'number' || entryId < 1) {
+          setError('Не удалось определить запись списка «Позже»')
+          return
+        }
+        setCreationBinding(binding)
+        setEditPlannedEntryId(entryId)
+        setWatchlistCompany(card.company)
+        const shelfId = card.category?.id
+        setWatchlistShelfId(typeof shelfId === 'number' && shelfId >= 1 ? shelfId : null)
+        setWatchlistNote(card.watch_note ?? '')
+        const partnerIds = (card.planned_watch_partners ?? [])
+          .map((p) => p.id)
+          .filter((id) => id.trim() !== '')
+        setWatchWithUserIds(partnerIds)
+        setStep('watchlist')
+      } catch (e) {
+        if (!alive) return
+        if (e instanceof ApiError) {
+          setError(formatApiDetail(e.detail))
+        } else {
+          setError('Не удалось загрузить карточку')
+        }
+      } finally {
+        if (alive) {
+          setResolutionBusy(false)
+          setFromCardPrefillDone(true)
+        }
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [editPlannedCardId, isEditPlannedMode, navigate])
 
   useEffect(() => {
     if (step !== 'watchlist' || auth.kind !== 'ready') {
@@ -987,6 +1063,38 @@ export function CreateCardPage() {
     }
   }
 
+  async function handleSavePlannedEdit() {
+    if (editPlannedEntryId == null || editPlannedCardId == null) {
+      setWatchlistError('Не удалось определить запись списка «Позже»')
+      return
+    }
+    const body: PatchWatchlistEntryBody = {
+      company: watchlistCompany,
+      watch_note: watchlistNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
+      watch_with_user_ids: watchlistCompany === 'alone' ? [] : watchWithUserIds,
+    }
+    if (watchlistShelfId != null && watchlistShelfId > 0) {
+      body.category_id = watchlistShelfId
+    }
+    setWatchlistBusy(true)
+    setWatchlistError(null)
+    try {
+      await patchMyWatchlistEntry(editPlannedEntryId, body)
+      clearMyProfileBundleCache()
+      void queryClient.invalidateQueries({ queryKey: ['userWatchlist'] })
+      safeHapticSuccess()
+      void navigate(`/cards/${editPlannedCardId}`, { replace: true })
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setWatchlistError(formatApiDetail(e.detail))
+      } else {
+        setWatchlistError('Не удалось сохранить изменения')
+      }
+    } finally {
+      setWatchlistBusy(false)
+    }
+  }
+
   function addTag() {
     const trimmed = tagInput.trim()
     if (trimmed === '') {
@@ -1029,6 +1137,10 @@ export function CreateCardPage() {
   }
 
   function goBack() {
+    if (isEditPlannedMode && editPlannedCardId != null) {
+      void navigate(`/cards/${editPlannedCardId}`)
+      return
+    }
     if (step === 1) {
       if (addKind != null) {
         setAddKind(null)
@@ -1240,22 +1352,28 @@ export function CreateCardPage() {
             ←
           </button>
           <div className="text-center">
-            <h1 className="text-base font-semibold tracking-tight text-(--tgui--text_color)">Новая карточка</h1>
-            <p className="text-xs text-(--tgui--hint_color)">
-              {remixFromCard ? 'По мотивам чужой карточки · ' : null}
-              {wizardStepLabel(step)}: {STEP_TITLES[step]}
-            </p>
+            <h1 className="text-base font-semibold tracking-tight text-(--tgui--text_color)">
+              {isEditPlannedMode ? 'Редактировать «Позже»' : 'Новая карточка'}
+            </h1>
+            {!isEditPlannedMode ? (
+              <p className="text-xs text-(--tgui--hint_color)">
+                {remixFromCard ? 'По мотивам чужой карточки · ' : null}
+                {wizardStepLabel(step)}: {STEP_TITLES[step]}
+              </p>
+            ) : null}
           </div>
           <span className="w-10" />
         </div>
-        <div className="px-4 pb-3">
-          <div className="h-1.5 overflow-hidden rounded-full bg-(--tgui--secondary_bg_color)">
-            <div
-              className="h-full rounded-full bg-(--tgui--link_color) transition-all duration-300"
-              style={{ width: `${wizardProgressPercent(step)}%` }}
-            />
+        {!isEditPlannedMode ? (
+          <div className="px-4 pb-3">
+            <div className="h-1.5 overflow-hidden rounded-full bg-(--tgui--secondary_bg_color)">
+              <div
+                className="h-full rounded-full bg-(--tgui--link_color) transition-all duration-300"
+                style={{ width: `${wizardProgressPercent(step)}%` }}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </header>
 
       <main className="space-y-4 px-4 py-6">
@@ -1267,11 +1385,11 @@ export function CreateCardPage() {
 
         {!fromCardPrefillDone ? (
           <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
-            Загружаем данные из карточки…
+            {isEditPlannedMode ? 'Загружаем карточку…' : 'Загружаем данные из карточки…'}
           </p>
         ) : null}
 
-        {fromCardPrefillDone && step === 1 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 1 ? (
           <WizardStepPanel title="1. Что добавляем?">
             <div className="filmony-text-panel flex flex-col gap-4">
               {addKind === null ? (
@@ -1638,7 +1756,7 @@ export function CreateCardPage() {
           </WizardStepPanel>
         ) : null}
 
-        {fromCardPrefillDone && step === 2 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 2 ? (
           <WizardStepPanel title="2. Это нужная тема?">
             {confirmPreview != null ? (
               <div className="filmony-text-panel">
@@ -1783,7 +1901,7 @@ export function CreateCardPage() {
         ) : null}
 
         {fromCardPrefillDone && step === 'watchlist' ? (
-          <WizardStepPanel title="Детали для «Позже»">
+          <WizardStepPanel title={isEditPlannedMode ? 'Редактировать «Позже»' : 'Детали для «Позже»'}>
             <div className="filmony-text-panel">
               <div>
                 <p className="text-sm font-medium text-(--tgui--text_color)">С кем планируете смотреть</p>
@@ -1923,19 +2041,29 @@ export function CreateCardPage() {
                 <Button
                   stretched
                   disabled={watchlistBusy || watchlistNoteTooLong}
-                  onClick={() => void handleAddToWatchlist()}
+                  onClick={() =>
+                    void (isEditPlannedMode ? handleSavePlannedEdit() : handleAddToWatchlist())
+                  }
                 >
-                  {watchlistBusy ? 'Добавляем…' : 'Добавить в «Позже»'}
+                  {watchlistBusy
+                    ? isEditPlannedMode
+                      ? 'Сохраняем…'
+                      : 'Добавляем…'
+                    : isEditPlannedMode
+                      ? 'Сохранить'
+                      : 'Добавить в «Позже»'}
                 </Button>
-                <Button mode="gray" stretched onClick={() => setStep(2)}>
-                  Назад к превью
-                </Button>
+                {!isEditPlannedMode ? (
+                  <Button mode="gray" stretched onClick={() => setStep(2)}>
+                    Назад к превью
+                  </Button>
+                ) : null}
               </div>
             </div>
           </WizardStepPanel>
         ) : null}
 
-        {fromCardPrefillDone && step === 3 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 3 ? (
           <WizardStepPanel title="3. Оценка, настроение и полка">
             <div className="filmony-text-panel">
               <div className="filmony-text-panel text-center">
@@ -2068,7 +2196,7 @@ export function CreateCardPage() {
           </WizardStepPanel>
         ) : null}
 
-        {fromCardPrefillDone && step === 4 ? (
+        {!isEditPlannedMode && fromCardPrefillDone && step === 4 ? (
           <WizardStepPanel title="4. Теги, заметка и публикация">
             <div className="filmony-text-panel">
               <div>

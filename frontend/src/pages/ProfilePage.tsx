@@ -4,7 +4,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'rea
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { getMyProfile, getUserCards, getUserFeedPosts, getUserWatchlist, postExportMyCardsCsv, deleteMyWatchlistEntry } from '../api/profileApi'
+import { getMyProfile, getUserCards, getUserFeedPosts, getUserWatchlist, postExportMyCardsCsv } from '../api/profileApi'
 import type {
   MovieCard,
   MovieCardPage,
@@ -20,7 +20,7 @@ import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCard
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
-import { readMyProfileBundleCache, writeMyProfileBundleCache, clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import {
   DEFAULT_RATED_CARDS_QUERY,
   type RatedCardsListQuery,
@@ -37,8 +37,6 @@ import {
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
-import { safeHapticSuccess } from '../lib/safeHaptic'
-
 import './ProfilePage.css'
 
 type ProfileMainTab = 'movies' | 'posts' | 'stats'
@@ -345,43 +343,6 @@ export function ProfilePage() {
       setWatchlistLoadingMore(false)
     }
   }, [profile, myWatchlist])
-
-  const refetchWatchlist = useCallback(async () => {
-    if (profile == null) return
-    setWatchlistLoading(true)
-    setWatchlistErr(null)
-    try {
-      const [page, freshProfile] = await Promise.all([
-        getUserWatchlist(profile.id, { limit: 20 }),
-        getMyProfile(),
-      ])
-      setMyWatchlist(page)
-      setProfile(freshProfile)
-      clearMyProfileBundleCache()
-    } catch (e) {
-      setWatchlistErr(
-        e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось обновить список',
-      )
-    } finally {
-      setWatchlistLoading(false)
-    }
-  }, [profile])
-
-  const handleDeleteWatchlistEntry = useCallback(
-    async (entryId: number) => {
-      setWatchlistErr(null)
-      try {
-        await deleteMyWatchlistEntry(entryId)
-        safeHapticSuccess()
-        await refetchWatchlist()
-      } catch (e) {
-        setWatchlistErr(
-          e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось убрать из списка',
-        )
-      }
-    },
-    [refetchWatchlist],
-  )
 
   const loadMorePosts = useCallback(async () => {
     if (profile == null || feedPosts?.next_cursor == null || feedPosts.next_cursor === '') {
@@ -808,11 +769,7 @@ export function ProfilePage() {
                 ) : null}
                 {!watchlistLoading && myWatchlist != null && myWatchlist.items.length > 0 ? (
                   <div className="px-1">
-                    <WatchlistPosterGrid
-                      items={myWatchlist.items}
-                      canManage
-                      onDeleteEntry={(entryId) => void handleDeleteWatchlistEntry(entryId)}
-                    />
+                    <WatchlistPosterGrid items={myWatchlist.items} />
                   </div>
                 ) : null}
                 {canLoadMoreWatchlist ? (

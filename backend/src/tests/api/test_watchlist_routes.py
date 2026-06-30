@@ -419,3 +419,36 @@ async def test_create_watchlist_with_company_note_and_multi_watch_with(
     planned_body = planned.json()
     assert planned_body['company'] == 'friends'
     assert planned_body['watch_note'] == 'weekend binge'
+
+
+@pytest.mark.asyncio
+async def test_patch_my_watchlist_entry_updates_metadata(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=910180)
+    film = await _create_film(kinopoisk_id=701_050)
+    created = await async_client.post(
+        '/api/me/watchlist',
+        json={
+            'film_id': film.id,
+            'company': 'alone',
+            'watch_note': 'before',
+        },
+    )
+    assert created.status_code == 201
+    entry_id = created.json()['entry_id']
+
+    patched = await async_client.patch(
+        f'/api/me/watchlist/{entry_id}',
+        json={
+            'company': 'friends',
+            'watch_note': 'after patch',
+            'watch_with_user_ids': [],
+        },
+    )
+    assert patched.status_code == 200
+    body = patched.json()
+    assert body['entry_id'] == entry_id
+
+    planned = await async_client.get(f'/api/me/planned-card?film_id={film.id}')
+    assert planned.status_code == 200
+    assert planned.json()['watch_note'] == 'after patch'
+    assert planned.json()['company'] == 'friends'

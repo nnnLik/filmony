@@ -182,12 +182,20 @@ class CardDetailResponse(BaseModel):
     audio_url: str | None = None
 
 
+class PlannedWatchPartnerResponse(UserCardCommentAuthorResponse):
+    has_rated: bool = False
+    rating: float | None = None
+    rated_user_card_id: int | None = None
+    planned_user_card_id: int | None = None
+
+
 class UserCardDetailResponse(CardDetailResponse):
     """Полная карточка (GET /cards/:id): синопсис из БД, не отдаётся в ленте."""
 
     film_short_description: str | None = None
     film_description: str | None = None
-    planned_watch_partners: list[UserCardCommentAuthorResponse] = Field(default_factory=list)
+    planned_watch_partners: list[PlannedWatchPartnerResponse] = Field(default_factory=list)
+    watchlist_entry_id: int | None = None
 
 
 class CardUpdateRequest(BaseModel):
