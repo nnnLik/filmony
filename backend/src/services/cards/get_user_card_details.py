@@ -14,10 +14,12 @@ from models.game import Game
 from models.user import User
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
+from models.watchlist_entry import WatchlistEntry
 from services.cards.card_catalog_release_fields import universal_release_year_date
 from services.cards.list_user_card_comments import UserCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
+from services.watchlist.watchlist_card_id import watchlist_card_id_from_user_card
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,7 +53,9 @@ class UserCardDetails:
     category_name: str
     reactions: ReactionTargetSummary
     is_favorite: bool
+    is_planned: bool
     audio_url: str | None
+    planned_watch_partners: list[UserCardCommentAuthor]
 
 
 class UserCardNotFoundError(Exception):
@@ -110,6 +114,7 @@ class GetUserCardDetailsService:
             film_year=film_year_val,
             game_released=game.released if game is not None else None,
         )
+        planned_watch_partners = await self._load_planned_watch_partners(card)
         return UserCardDetails(
             id=card.id,
             user_id=card.user_id,
@@ -148,5 +153,69 @@ class GetUserCardDetailsService:
             category_name=category_name,
             reactions=summaries[card.id],
             is_favorite=bool(card.is_favorite),
+            is_planned=bool(card.is_planned),
             audio_url=card.audio_url,
+            planned_watch_partners=planned_watch_partners,
         )
+
+    async def _load_planned_watch_partners(self, card: UserCard) -> list[UserCardCommentAuthor]:
+        if not card.is_planned:
+            return []
+        watchlist_card_id = watchlist_card_id_from_user_card(card)
+        if watchlist_card_id is None:
+            return []
+        entry = (
+            await self._session.execute(
+                select(WatchlistEntry).where(
+                    WatchlistEntry.user_id == card.user_id,
+                    WatchlistEntry.card_id == watchlist_card_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if entry is None:
+            return []
+
+        partner_ids: list[UUID] = []
+        seen: set[UUID] = {card.user_id}
+        for raw in entry.watch_with_user_ids or []:
+            try:
+                partner_id = UUID(str(raw))
+            except (TypeError, ValueError):
+                continue
+            if partner_id in seen:
+                continue
+            seen.add(partner_id)
+            partner_ids.append(partner_id)
+        if entry.watch_with_user_id is not None and entry.watch_with_user_id not in seen:
+            partner_ids.append(entry.watch_with_user_id)
+
+        if not partner_ids:
+            return []
+
+        users = (
+            (
+                await self._session.execute(
+                    select(User).where(User.id.in_(partner_ids)),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        users_by_id = {user.id: user for user in users}
+        partners: list[UserCardCommentAuthor] = []
+        for partner_id in partner_ids:
+            user = users_by_id.get(partner_id)
+            if user is None:
+                continue
+            partners.append(
+                UserCardCommentAuthor(
+                    id=user.id,
+                    profile_slug=user.profile_slug,
+                    username=user.username,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    photo_url=user.photo_url,
+                    display_name=user.display_name,
+                )
+            )
+        return partners

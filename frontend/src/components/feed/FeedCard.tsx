@@ -28,6 +28,7 @@ import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
+import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
 import { FeedRatingRing } from './FeedRatingRing'
@@ -93,6 +94,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
 
   const isOwnCard =
     viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
+  const isPlannedCard = card.is_planned === true
   /** Карточка с `is_favorite`: второй бейдж «Особая карточка» в шапке (свои и чужие в ленте). */
   const authorFavoriteRibbon = Boolean(card.is_favorite)
   const hasAttachedAudio = card.audio_url != null && card.audio_url.trim() !== ''
@@ -198,8 +200,9 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     }
   }, [card.id, draft, mergedPreviewAfterCreate])
 
-  const remainder = card.custom_tags.length > 2 ? card.custom_tags.length - 2 : 0
-  const shownTags = card.custom_tags.slice(0, 2)
+  const remainder =
+    !isPlannedCard && card.custom_tags.length > 2 ? card.custom_tags.length - 2 : 0
+  const shownTags = isPlannedCard ? [] : card.custom_tags.slice(0, 2)
   const charsLeft = COMMENT_BODY_MAX_LEN - draft.length
 
   const mentionProfileRows = useMemo(() => {
@@ -310,6 +313,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             Особая карточка
           </span>
         ) : null}
+        {isPlannedCard ? <PlannedCardBadge variant="ribbon" /> : null}
         {hasAttachedAudio ? (
           <span
             role="img"
@@ -358,22 +362,24 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                 ) : null}
               </Title>
             </div>
-            <div className="pointer-events-none absolute right-2.5 top-2.5 z-3">
-              <div className="relative flex size-12 items-center justify-center">
-                {hasAttachedAudio && isThisCardActive ? (
-                  <MovieCardRatingAudioVisualizer
-                    audio={feedAudio.audioRef.current}
-                    audioUrl={audioUrlTrimmed}
-                    ringColor={ratingRingPalette.ring}
-                    compact
+            {!isPlannedCard ? (
+              <div className="pointer-events-none absolute right-2.5 top-2.5 z-3">
+                <div className="relative flex size-12 items-center justify-center">
+                  {hasAttachedAudio && isThisCardActive ? (
+                    <MovieCardRatingAudioVisualizer
+                      audio={feedAudio.audioRef.current}
+                      audioUrl={audioUrlTrimmed}
+                      ringColor={ratingRingPalette.ring}
+                      compact
+                    />
+                  ) : null}
+                  <FeedRatingRing
+                    rating={card.rating}
+                    positionClassName="relative z-10"
                   />
-                ) : null}
-                <FeedRatingRing
-                  rating={card.rating}
-                  positionClassName="relative z-10"
-                />
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
         {posterFullscreen.overlay}
@@ -413,12 +419,16 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             <span className="rounded-full border border-transparent bg-[color-mix(in_srgb,var(--tgui--accent_text_color)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--tgui--text_color)">
               {COMPANY_SHORT[card.company]}
             </span>
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,transparent)] px-2 py-0.5 text-[10px] font-medium text-(--tgui--text_color)">
-              {MOOD_BEFORE_SHORT[card.mood_before]}
-            </span>
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_16%,transparent)] px-2 py-0.5 text-[10px] font-medium text-(--tgui--text_color)">
-              {MOOD_AFTER_SHORT[card.mood_after]}
-            </span>
+            {!isPlannedCard ? (
+              <>
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,transparent)] px-2 py-0.5 text-[10px] font-medium text-(--tgui--text_color)">
+                  {MOOD_BEFORE_SHORT[card.mood_before]}
+                </span>
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_16%,transparent)] px-2 py-0.5 text-[10px] font-medium text-(--tgui--text_color)">
+                  {MOOD_AFTER_SHORT[card.mood_after]}
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
 

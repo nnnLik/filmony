@@ -563,6 +563,100 @@ async def test_create_card_watch_note_roundtrip(async_client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_get_planned_card_returns_is_planned_true(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=623)
+    film = await _create_film(kinopoisk_id=100623)
+    created = await async_client.post('/api/me/watchlist', json={'film_id': film.id})
+    assert created.status_code == 201
+
+    planned = await async_client.get(f'/api/me/planned-card?film_id={film.id}')
+    assert planned.status_code == 200
+    card_id = planned.json()['user_card_id']
+
+    fetched = await async_client.get(f'/api/cards/{card_id}')
+    assert fetched.status_code == 200
+    body = fetched.json()
+    assert body['is_planned'] is True
+    assert body['planned_watch_partners'] == []
+
+
+@pytest.mark.asyncio
+async def test_get_planned_card_includes_watch_partners(async_client: AsyncClient) -> None:
+    from models.user_subscription import UserSubscription
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        actor = User(
+            telegram_user_id=624001,
+            profile_slug='planned-partners-actor',
+            username='planned_actor',
+            first_name='Actor',
+            last_name=None,
+            photo_url=None,
+            display_name='Actor',
+            bio=None,
+            language_code='ru',
+        )
+        partner = User(
+            telegram_user_id=624002,
+            profile_slug='planned-partners-friend',
+            username='planned_friend',
+            first_name='Friend',
+            last_name=None,
+            photo_url=None,
+            display_name='Friend',
+            bio=None,
+            language_code='ru',
+        )
+        session.add(actor)
+        session.add(partner)
+        await session.flush()
+        session.add(UserSubscription(follower_user_id=actor.id, following_user_id=partner.id))
+        session.add(UserSubscription(follower_user_id=partner.id, following_user_id=actor.id))
+        film = Film(
+            kinopoisk_id=100624,
+            title='Partners Film',
+            year=2024,
+            poster_url=None,
+            genres=[],
+        )
+        session.add(film)
+        await session.flush()
+        session.add(
+            CatalogItem(
+                provider=CatalogProvider.kinopoisk,
+                external_id='100624',
+                film_id=film.id,
+            )
+        )
+        await session.commit()
+        partner_id = str(partner.id)
+        film_id = film.id
+
+    await _login(async_client, telegram_user_id=624001)
+    created = await async_client.post(
+        '/api/me/watchlist',
+        json={
+            'film_id': film_id,
+            'company': 'friends',
+            'watch_with_user_ids': [partner_id],
+        },
+    )
+    assert created.status_code == 201
+
+    planned = await async_client.get(f'/api/me/planned-card?film_id={film_id}')
+    card_id = planned.json()['user_card_id']
+
+    fetched = await async_client.get(f'/api/cards/{card_id}')
+    assert fetched.status_code == 200
+    body = fetched.json()
+    assert body['is_planned'] is True
+    assert len(body['planned_watch_partners']) == 1
+    assert body['planned_watch_partners'][0]['id'] == partner_id
+    assert body['planned_watch_partners'][0]['display_name'] == 'Friend'
+
+
+@pytest.mark.asyncio
 async def test_get_card_not_found(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=622)
     r = await async_client.get('/api/cards/999999')

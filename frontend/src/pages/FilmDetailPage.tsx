@@ -6,6 +6,7 @@ import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import {
   deleteMyWatchlistFilm,
+  getMyPlannedCard,
   getMyWatchlistPresence,
 } from '../api/profileApi'
 import type {
@@ -50,6 +51,7 @@ export function FilmDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [inWatchlist, setInWatchlist] = useState<boolean | null>(null)
+  const [plannedUserCardId, setPlannedUserCardId] = useState<number | null>(null)
   const [removeBusy, setRemoveBusy] = useState(false)
   const [watchlistActionErr, setWatchlistActionErr] = useState<string | null>(null)
 
@@ -147,9 +149,22 @@ export function FilmDetailPage() {
         const m = await getMyWatchlistPresence(cardId)
         if (!alive) return
         setInWatchlist(m.in_watchlist)
+        if (m.in_watchlist) {
+          try {
+            const planned = await getMyPlannedCard({ film_id: film.id })
+            if (!alive) return
+            setPlannedUserCardId(planned.user_card_id)
+          } catch {
+            if (!alive) return
+            setPlannedUserCardId(null)
+          }
+        } else {
+          setPlannedUserCardId(null)
+        }
       } catch {
         if (!alive) return
         setInWatchlist(false)
+        setPlannedUserCardId(null)
       }
     })()
     return () => {
@@ -328,14 +343,24 @@ export function FilmDetailPage() {
                           </Button>
                         ) : null}
                         {inWatchlist === true ? (
-                          <Button
-                            mode="gray"
-                            stretched
-                            disabled={removeBusy}
-                            onClick={() => void onRemoveFromWatchlist()}
-                          >
-                            {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
-                          </Button>
+                          <>
+                            {plannedUserCardId != null && plannedUserCardId > 0 ? (
+                              <Link
+                                to={`/cards/${encodeURIComponent(String(plannedUserCardId))}`}
+                                className="no-underline"
+                              >
+                                <Button stretched>Открыть запланированную карточку</Button>
+                              </Link>
+                            ) : null}
+                            <Button
+                              mode="gray"
+                              stretched
+                              disabled={removeBusy}
+                              onClick={() => void onRemoveFromWatchlist()}
+                            >
+                              {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
+                            </Button>
+                          </>
                         ) : null}
                       </>
                     )}

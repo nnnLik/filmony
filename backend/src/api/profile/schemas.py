@@ -102,6 +102,7 @@ class WatchlistEntryItemResponse(BaseModel):
     film_genres: list[str] = Field(default_factory=list)
     catalog_item_id: int | None = None
     external_id: str | None = None
+    planned_user_card_id: int | None = None
     # Legacy aliases for Kinopoisk clients
     film_title: str | None = None
     film_year: int | None = None
@@ -304,6 +305,7 @@ def build_watchlist_entry_item_response(item: WatchlistEntryListItem) -> Watchli
         film_genres=list(item.film_genres or []),
         catalog_item_id=item.catalog_item_id,
         external_id=item.external_id,
+        planned_user_card_id=item.planned_user_card_id,
         film_title=item.title if item.provider == 'kinopoisk' else None,
         film_year=item.year if item.provider == 'kinopoisk' else None,
         film_poster_url=item.poster_url if item.provider == 'kinopoisk' else None,

@@ -2,6 +2,12 @@
 
 Status: complete
 
+## Bugfix: «Позже» navigation + planned card UI (2026-06-30)
+- Watchlist list API: `planned_user_card_id` → grid links to `/cards/{id}` (not bare `/cards/new`).
+- GET `/api/cards/:id` + feed mappers: `is_planned`; planned cards back in card feed (no feed post on add).
+- Telegram invite: poster + title + «Вместе» + deep link to planned card; invitees get planned UserCard.
+- Frontend: ribbon badge «Запланировано» (indigo, top row); FilmDetailPage → planned card; «Поставить оценку» → step 3.
+
 ## Watchlist wizard details (2026-06-30)
 - Extended watchlist create API: `company`, `category_id`, `watch_note`, `watch_with_user_ids[]`.
 - Migration `w1x2y3z4a05`: JSONB `watchlist_entry.watch_with_user_ids`.

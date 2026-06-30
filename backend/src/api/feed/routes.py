@@ -110,6 +110,7 @@ def _global_feed_domain_to_response(
                 comments_count=item.comments_count,
                 comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
                 is_favorite=item.is_favorite,
+                is_planned=item.is_planned,
                 audio_url=item.audio_url,
             )
         )

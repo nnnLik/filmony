@@ -9,8 +9,9 @@ from sqlalchemy import select
 
 from core.database import get_session_factory
 from models.card_enums import CardCompany
-from models.feed_post import FeedPost
 from models.user import User
+from models.user_card import UserCard
+from models.user_card_category import UserCardCategory
 from models.user_subscription import UserSubscription
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
 
@@ -68,13 +69,15 @@ async def test_create_watchlist_entry_persists_provider_meta(
 
     session_factory = get_session_factory()
     async with session_factory() as session:
-        feed_post = (
+        planned_card = (
             await session.execute(
-                select(FeedPost).where(FeedPost.user_id == user.id).order_by(FeedPost.id.desc())
+                select(UserCard).where(
+                    UserCard.user_id == user.id,
+                    UserCard.is_planned.is_(True),
+                )
             )
         ).scalar_one()
-        assert feed_post.body == ''
-        assert feed_post.referenced_card_id is not None
+        assert planned_card.film_id is not None or planned_card.display_title
 
 
 @pytest.mark.asyncio
@@ -95,13 +98,13 @@ async def test_create_watchlist_entry_creates_invited_entry(
             *,
             actor_user_id,
             invited_user_id,
+            planned_user_card_id,
             card_id,
-            provider_meta,
         ) -> dict:
             called['actor_user_id'] = actor_user_id
             called['invited_user_id'] = invited_user_id
+            called['planned_user_card_id'] = planned_user_card_id
             called['card_id'] = card_id
-            called['provider_meta'] = provider_meta
             return {}
 
     def _build_fake_invite_service() -> _FakeInviteService:
@@ -224,6 +227,69 @@ async def test_create_watchlist_entry_multi_invite(
 
     assert result.actor_entry.watch_with_user_ids == [str(invited_a.id), str(invited_b.id)]
     assert len(result.invited_entries) == 2
+
+
+@pytest.mark.asyncio
+async def test_create_watchlist_entry_invitee_planned_card_uses_default_shelf(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import services.watchlist.create_watchlist_entry as create_watchlist_entry_module
+
+    actor = await _create_user(telegram_user_id=910170, slug_suffix='actor-cat')
+    invited = await _create_user(telegram_user_id=910171, slug_suffix='invited-cat')
+    await _add_mutual_subscription(actor, invited)
+    created_at = dt.datetime(2026, 6, 30, 9, 0, 0, tzinfo=dt.UTC)
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        actor_shelf = UserCardCategory(user_id=actor.id, name='Actor shelf only')
+        session.add(actor_shelf)
+        await session.commit()
+        await session.refresh(actor_shelf)
+        actor_category_id = int(actor_shelf.id)
+
+    class _FakeInviteService:
+        async def execute(self, **kwargs) -> dict:
+            return kwargs
+
+    monkeypatch.setattr(
+        create_watchlist_entry_module.SendWatchlistInviteNotificationService,
+        'build',
+        lambda: _FakeInviteService(),
+    )
+
+    async with session_factory() as session:
+        service = CreateWatchlistEntryService.build(session)
+        result = await service.execute(
+            actor_user_id=actor.id,
+            card_id='kp:44444',
+            provider_meta={'provider': 'kinopoisk', 'data': {'kp_id': 44444}},
+            watch_tag='watch_later',
+            category_id=actor_category_id,
+            watch_with_user_id=invited.id,
+            created_at=created_at,
+        )
+
+    assert result.invited_entry is not None
+    async with session_factory() as session:
+        actor_planned = (
+            await session.execute(
+                select(UserCard).where(
+                    UserCard.user_id == actor.id,
+                    UserCard.is_planned.is_(True),
+                )
+            )
+        ).scalar_one()
+        invitee_planned = (
+            await session.execute(
+                select(UserCard).where(
+                    UserCard.user_id == invited.id,
+                    UserCard.is_planned.is_(True),
+                )
+            )
+        ).scalar_one()
+        assert int(actor_planned.category_id) == actor_category_id
+        assert int(invitee_planned.category_id) != actor_category_id
 
 
 @pytest.mark.asyncio

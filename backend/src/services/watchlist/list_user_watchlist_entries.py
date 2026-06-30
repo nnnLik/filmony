@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
+from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
 
 _CURSOR_PREFIX = 'wle1'
@@ -49,6 +50,16 @@ def _provider_from_entry(entry: WatchlistEntry) -> str:
     return 'unknown'
 
 
+def _planned_user_card_lookup_key(card: UserCard) -> str | None:
+    if card.provider == CatalogProvider.kinopoisk and card.external_id:
+        return f'kp:{card.external_id}'
+    if card.provider == CatalogProvider.rawg and card.external_id:
+        return f'rawg:{card.external_id}'
+    if card.source_url:
+        return card.source_url
+    return None
+
+
 def _year_from_released(released: str | None) -> int | None:
     if released is None or released.strip() == '':
         return None
@@ -75,6 +86,7 @@ class WatchlistEntryListItem:
     film_genres: list[str] | None = None
     catalog_item_id: int | None = None
     external_id: str | None = None
+    planned_user_card_id: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,7 +172,8 @@ class ListUserWatchlistEntriesService:
         has_more = len(slice_rows) > cap
         page_rows = slice_rows[:cap] if has_more else slice_rows
         maps = await self._load_hydration_maps(_collect_hydration_keys(page_rows))
-        items = [self._hydrate_entry(entry, maps) for entry in page_rows]
+        planned_by_key = await self._load_planned_user_card_ids_by_key(user_id)
+        items = [self._hydrate_entry(entry, maps, planned_by_key) for entry in page_rows]
 
         next_cursor: str | None = None
         if has_more:
@@ -185,7 +198,8 @@ class ListUserWatchlistEntriesService:
         if entry is None:
             return None
         maps = await self._load_hydration_maps(_collect_hydration_keys([entry]))
-        return self._hydrate_entry(entry, maps)
+        planned_by_key = await self._load_planned_user_card_ids_by_key(user_id)
+        return self._hydrate_entry(entry, maps, planned_by_key)
 
     def _parse_cursor(self, cursor: str | None) -> tuple[dt.datetime | None, int | None]:
         if cursor is None or cursor.strip() == '':
@@ -274,7 +288,32 @@ class ListUserWatchlistEntriesService:
             games_by_id=games_by_id,
         )
 
-    def _hydrate_entry(self, entry: WatchlistEntry, maps: _HydrationMaps) -> WatchlistEntryListItem:
+    async def _load_planned_user_card_ids_by_key(self, user_id: UUID) -> dict[str, int]:
+        rows = (
+            (
+                await self._session.execute(
+                    select(UserCard).where(
+                        UserCard.user_id == user_id,
+                        UserCard.is_planned.is_(True),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        out: dict[str, int] = {}
+        for card in rows:
+            key = _planned_user_card_lookup_key(card)
+            if key is not None:
+                out[key] = int(card.id)
+        return out
+
+    def _hydrate_entry(
+        self,
+        entry: WatchlistEntry,
+        maps: _HydrationMaps,
+        planned_by_key: dict[str, int],
+    ) -> WatchlistEntryListItem:
         provider = _provider_from_entry(entry)
         if provider == CatalogProvider.kinopoisk.value:
             fields = self._hydrate_kinopoisk(entry, maps.films_by_kp)
@@ -291,6 +330,7 @@ class ListUserWatchlistEntriesService:
             watch_with_user_id=entry.watch_with_user_id,
             watch_with_user_ids=[UUID(str(raw)) for raw in (entry.watch_with_user_ids or [])],
             created_at=entry.created_at,
+            planned_user_card_id=planned_by_key.get(entry.card_id),
             **fields,
         )
 

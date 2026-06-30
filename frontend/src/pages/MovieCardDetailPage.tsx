@@ -75,6 +75,8 @@ import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInl
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
+import { PlannedCardBadge } from '../components/cards/PlannedCardBadge'
+import { PlannedWatchPartnersList } from '../components/cards/PlannedWatchPartnersList'
 import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
@@ -120,6 +122,10 @@ function ratingPalette(value: number): { ring: string; glow: string; text: strin
 
 function formatRating(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function plannedCardRateHref(card: MovieCard): string {
+  return `/cards/new?fromCard=${encodeURIComponent(String(card.id))}&intent=rate`
 }
 
 function formatCommentTime(value: string): string {
@@ -510,7 +516,12 @@ export function MovieCardDetailPage() {
   }, [parsedCardId])
 
   useEffect(() => {
-    if (parsedCardId == null) return
+    if (parsedCardId == null || card?.is_planned === true) {
+      queueMicrotask(() => {
+        setFollowingRatings(card?.is_planned === true ? [] : null)
+      })
+      return
+    }
     let alive = true
     queueMicrotask(() => {
       if (alive) setFollowingRatings(null)
@@ -530,7 +541,7 @@ export function MovieCardDetailPage() {
     return () => {
       alive = false
     }
-  }, [parsedCardId])
+  }, [parsedCardId, card?.is_planned])
 
   useEffect(() => {
     if (card == null || viewerId == null) return
@@ -980,6 +991,7 @@ function MovieCardDetailLoadedBody({
   const detailCardAuthor = movieCardAuthorOrNull(card)
   const watchNoteText = movieCardWatchNotePlainText(card)
   const showWatchNote = watchNoteText.trim().length > 0
+  const isPlannedCard = card.is_planned === true
   const hasCardAudio = card.audio_url != null && card.audio_url.trim() !== ''
   const cardAudioUrlTrimmed = (card.audio_url ?? '').trim()
 
@@ -994,6 +1006,11 @@ function MovieCardDetailLoadedBody({
     <>
       <div className="space-y-3">
             <div className="filmony-card-detail-panel-enter group/poster overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] contain-[paint]">
+              {isPlannedCard ? (
+                <div className="flex flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--tgui--divider_color)_55%,transparent)] px-3.5 py-2 sm:px-4">
+                  <PlannedCardBadge variant="ribbon" />
+                </div>
+              ) : null}
               <div className="relative w-full overflow-hidden bg-(--tgui--bg_color)">
                 <div
                   {...posterFs.bindings}
@@ -1016,32 +1033,34 @@ function MovieCardDetailLoadedBody({
                   className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_96%,transparent)] via-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_35%,transparent)] to-transparent"
                   aria-hidden
                 />
-                <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 sm:left-3.5 sm:top-3.5">
-                  <div className="relative flex h-21 w-21 items-center justify-center sm:h-21.5 sm:w-21.5">
-                    {hasCardAudio ? (
-                      <MovieCardRatingAudioVisualizer
-                        audio={cardAttachedAudio}
-                        audioUrl={cardAudioUrlTrimmed}
-                        ringColor={palette.ring}
-                        compact
-                      />
-                    ) : null}
-                    <div
-                      className="filmony-detail-rating-ring relative z-10 flex h-14.5 w-14.5 shrink-0 flex-col items-center justify-center gap-px rounded-full border-2 bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_8px_18px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:h-15 sm:w-15"
-                      style={{
-                        borderColor: palette.ring,
-                        color: palette.text,
-                      }}
-                    >
-                      <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-(--tgui--hint_color) sm:text-[7.5px]">
-                        Оценка
-                      </span>
-                      <span className="text-[1.05rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.1rem]">
-                        {formatRating(card.rating)}
-                      </span>
+                {!isPlannedCard ? (
+                  <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 sm:left-3.5 sm:top-3.5">
+                    <div className="relative flex h-21 w-21 items-center justify-center sm:h-21.5 sm:w-21.5">
+                      {hasCardAudio ? (
+                        <MovieCardRatingAudioVisualizer
+                          audio={cardAttachedAudio}
+                          audioUrl={cardAudioUrlTrimmed}
+                          ringColor={palette.ring}
+                          compact
+                        />
+                      ) : null}
+                      <div
+                        className="filmony-detail-rating-ring relative z-10 flex h-14.5 w-14.5 shrink-0 flex-col items-center justify-center gap-px rounded-full border-2 bg-[color-mix(in_srgb,var(--filmony-void,#0a1018)_88%,transparent)] shadow-[0_8px_18px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:h-15 sm:w-15"
+                        style={{
+                          borderColor: palette.ring,
+                          color: palette.text,
+                        }}
+                      >
+                        <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-(--tgui--hint_color) sm:text-[7.5px]">
+                          Оценка
+                        </span>
+                        <span className="text-[1.05rem] font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.1rem]">
+                          {formatRating(card.rating)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : null}
                 {hasCardAudio ? (
                   <div className="absolute bottom-3 right-3 z-10 sm:bottom-4 sm:right-4">
                     <div className="filmony-detail-poster-audio-pill pointer-events-auto flex flex-col items-stretch">
@@ -1180,28 +1199,36 @@ function MovieCardDetailLoadedBody({
                 <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,var(--filmony-surface,#111b27))] px-3 py-1.5 text-xs font-medium text-(--tgui--text_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition duration-200 motion-safe:active:scale-[0.97]">
                   {COMPANY_LABELS[card.company]}
                 </span>
-                <span className="rounded-full border border-[color-mix(in_srgb,var(--tgui--divider_color)_80%,transparent)] bg-transparent px-3 py-1.5 text-xs font-medium text-(--tgui--text_color) transition duration-200 motion-safe:active:scale-[0.97]">
-                  {MOOD_BEFORE_LABELS[card.mood_before]}
-                </span>
-                <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_32%,var(--filmony-elevated,#182433))] px-3 py-1.5 text-xs font-semibold text-(--filmony-ink,#06090d) shadow-[0_1px_0_rgba(255,255,255,0.12)] transition duration-200 motion-safe:active:scale-[0.97]">
-                  {MOOD_AFTER_LABELS[card.mood_after]}
-                </span>
-              </div>
-              <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Свои теги</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {card.custom_tags.length > 0 ? (
-                  card.custom_tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-lg border border-[color-mix(in_srgb,var(--tgui--divider_color)_90%,transparent)] bg-(--tgui--bg_color) px-2.5 py-1 text-xs transition duration-200 motion-safe:hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)] motion-safe:hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] motion-safe:active:scale-[0.98]"
-                    >
-                      {tag}
+                {!isPlannedCard ? (
+                  <>
+                    <span className="rounded-full border border-[color-mix(in_srgb,var(--tgui--divider_color)_80%,transparent)] bg-transparent px-3 py-1.5 text-xs font-medium text-(--tgui--text_color) transition duration-200 motion-safe:active:scale-[0.97]">
+                      {MOOD_BEFORE_LABELS[card.mood_before]}
                     </span>
-                  ))
-                ) : (
-                  <span className="text-xs text-(--tgui--hint_color)">Пока нет собственных тегов</span>
-                )}
+                    <span className="rounded-full bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_32%,var(--filmony-elevated,#182433))] px-3 py-1.5 text-xs font-semibold text-(--filmony-ink,#06090d) shadow-[0_1px_0_rgba(255,255,255,0.12)] transition duration-200 motion-safe:active:scale-[0.97]">
+                      {MOOD_AFTER_LABELS[card.mood_after]}
+                    </span>
+                  </>
+                ) : null}
               </div>
+              {!isPlannedCard ? (
+                <>
+                  <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Свои теги</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {card.custom_tags.length > 0 ? (
+                      card.custom_tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-lg border border-[color-mix(in_srgb,var(--tgui--divider_color)_90%,transparent)] bg-(--tgui--bg_color) px-2.5 py-1 text-xs transition duration-200 motion-safe:hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)] motion-safe:hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,transparent)] motion-safe:active:scale-[0.98]"
+                        >
+                          {tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-(--tgui--hint_color)">Пока нет собственных тегов</span>
+                    )}
+                  </div>
+                </>
+              ) : null}
               {showWatchNote ? (
                 <>
                   <p className="mt-3.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Заметка к карточке</p>
@@ -1210,8 +1237,28 @@ function MovieCardDetailLoadedBody({
                   </p>
                 </>
               ) : null}
+              {isPlannedCard ? (
+                <PlannedWatchPartnersList
+                  partners={card.planned_watch_partners ?? []}
+                  className="mt-3.5"
+                />
+              ) : null}
+              {isPlannedCard && isOwner ? (
+                <Button
+                  type="button"
+                  size="m"
+                  stretched
+                  className="mt-4!"
+                  onClick={() => {
+                    void navigate(plannedCardRateHref(card))
+                  }}
+                >
+                  Поставить оценку
+                </Button>
+              ) : null}
             </section>
 
+            {!isPlannedCard ? (
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Друзья оценили</p>
               <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">Сравнить с подписками.</p>
@@ -1250,6 +1297,7 @@ function MovieCardDetailLoadedBody({
                 </ul>
               )}
             </section>
+            ) : null}
 
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-3 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Комментарии</p>

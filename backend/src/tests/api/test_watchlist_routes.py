@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from conf import settings
 from core.database import get_session_factory
@@ -98,23 +98,26 @@ async def _add_mutual_subscription(user_a: User, user_b: User) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_watchlist_entry_creates_feed_post_with_referenced_card(
+async def test_create_watchlist_entry_does_not_create_feed_post(
     async_client: AsyncClient,
 ) -> None:
     await _login(async_client, telegram_user_id=910150)
     film = await _create_film(kinopoisk_id=701_040, title='Feed Post Film')
 
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        feed_count_before = (
+            await session.execute(select(func.count()).select_from(FeedPost))
+        ).scalar_one()
+
     response = await async_client.post('/api/me/watchlist', json={'film_id': film.id})
     assert response.status_code == 201
 
-    session_factory = get_session_factory()
     async with session_factory() as session:
-        feed_post = (
-            await session.execute(select(FeedPost).order_by(FeedPost.id.desc()))
+        feed_count_after = (
+            await session.execute(select(func.count()).select_from(FeedPost))
         ).scalar_one()
-        assert feed_post.body == ''
-        assert feed_post.referenced_card_id is not None
-        assert feed_post.image_url is None
+        assert feed_count_after == feed_count_before
 
 
 @pytest.mark.asyncio
@@ -201,6 +204,9 @@ async def test_list_user_watchlist_with_mixed_providers(async_client: AsyncClien
     assert len(body['items']) == 3
     providers = {item['provider'] for item in body['items']}
     assert providers == {'kinopoisk', 'rawg', 'custom'}
+    for item in body['items']:
+        assert item['planned_user_card_id'] is not None
+        assert item['planned_user_card_id'] > 0
 
 
 @pytest.mark.asyncio

@@ -180,6 +180,29 @@ function plannedCardLookupParams(binding: CreationBinding): GetMyPlannedCardPara
   return null
 }
 
+async function creationBindingFromMovieCard(card: MovieCard): Promise<CreationBinding | null> {
+  if (card.film_id != null && card.film_id > 0) {
+    const item = await getFilmById(card.film_id)
+    return { kind: 'film', film: item }
+  }
+  if (card.catalog_item_id != null && card.catalog_item_id > 0 && card.provider === 'rawg') {
+    return {
+      kind: 'catalog_game',
+      catalogItemId: card.catalog_item_id,
+      display_title: movieCardPrimaryTitle(card),
+      display_cover_url: movieCardPrimaryPoster(card),
+      display_summary: card.display_summary ?? null,
+      subtitle: movieCardReleaseCompactSuffix(card),
+    }
+  }
+  return {
+    kind: 'manual',
+    display_title: movieCardPrimaryTitle(card),
+    display_cover_url: movieCardPrimaryPoster(card),
+    display_summary: card.display_summary ?? null,
+  }
+}
+
 function buildWatchlistCreatePayload(
   binding: CreationBinding,
   opts?: {
@@ -517,6 +540,7 @@ export function CreateCardPage() {
     const cleanCreatePath = cardsNewPathPreserveReturnTo(returnToParam)
 
     const raw = searchParams.get('fromCard')
+    const rateIntent = searchParams.get('intent') === 'rate'
     if (raw == null || raw === '') {
       queueMicrotask(() => {
         setFromCardPrefillDone(true)
@@ -541,6 +565,27 @@ export function CreateCardPage() {
       try {
         const [card, me] = await Promise.all([getMovieCardById(cardId), getMyProfile()])
         if (!alive || seq !== fromCardBootstrapSeq.current) return
+        if (card.user_id != null && card.user_id === me.id && card.is_planned === true) {
+          if (!rateIntent) {
+            void navigate(`/cards/${cardId}`, { replace: true })
+            return
+          }
+          const binding = await creationBindingFromMovieCard(card)
+          if (!alive || seq !== fromCardBootstrapSeq.current) return
+          if (binding == null) {
+            setError('Не удалось подготовить карточку для оценки')
+            void navigate(cleanCreatePath, { replace: true })
+            return
+          }
+          setCreationBinding(binding)
+          setRemixFromCard(false)
+          setCompany(card.company)
+          setSelectedShelfId(card.category?.id ?? null)
+          setWatchNote(card.watch_note ?? '')
+          setStep(3)
+          void navigate(cleanCreatePath, { replace: true })
+          return
+        }
         if (card.user_id != null && card.user_id === me.id) {
           setError('Свою карточку нельзя взять за основу — отредактируйте её или создайте новую из каталога по ссылке.')
           void navigate(cleanCreatePath, { replace: true })

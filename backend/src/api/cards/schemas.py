@@ -177,6 +177,7 @@ class CardDetailResponse(BaseModel):
     watch_note: str = ''
     category: UserCardCategorySnippet
     is_favorite: bool = False
+    is_planned: bool = False
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
     audio_url: str | None = None
 
@@ -186,6 +187,7 @@ class UserCardDetailResponse(CardDetailResponse):
 
     film_short_description: str | None = None
     film_description: str | None = None
+    planned_watch_partners: list[UserCardCommentAuthorResponse] = Field(default_factory=list)
 
 
 class CardUpdateRequest(BaseModel):

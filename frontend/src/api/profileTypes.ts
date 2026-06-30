@@ -79,6 +79,8 @@ export type MovieCardPage = {
 export type WatchlistEntryItem = {
   entry_id: number
   card_id: string
+  /** Planned snippet card id when the watchlist entry has a rated-card placeholder. */
+  planned_user_card_id?: number | null
   provider: UserCardProvider | 'custom'
   title: string
   poster_url: string | null
@@ -214,6 +216,8 @@ export type MovieCard = {
   film_short_description?: string | null
   film_description?: string | null
   rating: number
+  /** True for watchlist «Позже» snippets without a user rating yet. */
+  is_planned?: boolean
   company: CardCompany
   mood_before: CardMoodBefore
   mood_after: CardMoodAfter
@@ -226,6 +230,8 @@ export type MovieCard = {
   is_favorite?: boolean
   /** Опциональный аудио-слой (деталка / лента / профиль). */
   audio_url?: string | null
+  /** Только GET /api/cards/:id для запланированных карточек. */
+  planned_watch_partners?: MovieCardCommentAuthor[]
 }
 
 export type MyUserCardCategory = {

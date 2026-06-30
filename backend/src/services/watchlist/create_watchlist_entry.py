@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.card_enums import CardCompany
 from models.watchlist_entry import WatchlistEntry
 from services.cards.create_planned_user_card import CreatePlannedUserCardService
-from services.feed_posts.create_watchlist_feed_post import CreateWatchlistFeedPostService
 from services.telegram.send_watchlist_invite_notification import (
     SendWatchlistInviteNotificationService,
 )
@@ -44,7 +43,6 @@ class CreateWatchlistEntryService:
 
     _session: AsyncSession
     _planned_card_service: CreatePlannedUserCardService
-    _feed_post_service: CreateWatchlistFeedPostService
     _invite_notification_service: SendWatchlistInviteNotificationService
     _assert_mutual_watch_partner_service: AssertMutualWatchPartnerService
 
@@ -59,7 +57,6 @@ class CreateWatchlistEntryService:
         return cls(
             _session=session,
             _planned_card_service=CreatePlannedUserCardService.build(session),
-            _feed_post_service=CreateWatchlistFeedPostService.build(session),
             _invite_notification_service=SendWatchlistInviteNotificationService.build(),
             _assert_mutual_watch_partner_service=AssertMutualWatchPartnerService.build(session),
         )
@@ -116,7 +113,7 @@ class CreateWatchlistEntryService:
             await self._session.rollback()
             raise self.WatchlistEntryAlreadyExistsError from exc
 
-        planned_card = await self._planned_card_service.execute(
+        await self._planned_card_service.execute(
             actor_user_id,
             card_id,
             provider_meta,
@@ -124,12 +121,9 @@ class CreateWatchlistEntryService:
             category_id=category_id,
             watch_note=normalized_note,
         )
-        await self._feed_post_service.execute(
-            user_id=actor_user_id,
-            referenced_user_card_id=int(planned_card.id),
-        )
 
         invited_entries: list[WatchlistEntry] = []
+        invitee_planned_card_ids: dict[UUID, int] = {}
         for invitee_id in partner_ids:
             existing_invited = (
                 await self._session.execute(
@@ -159,7 +153,16 @@ class CreateWatchlistEntryService:
                 self._session.expunge(invited_entry)
                 continue
 
+            invited_planned_card = await self._planned_card_service.execute(
+                invitee_id,
+                card_id,
+                provider_meta,
+                company=effective_company,
+                category_id=None,
+                watch_note=normalized_note,
+            )
             invited_entries.append(invited_entry)
+            invitee_planned_card_ids[invited_entry.user_id] = int(invited_planned_card.id)
 
         await self._session.commit()
         await self._session.refresh(actor_entry)
@@ -168,8 +171,8 @@ class CreateWatchlistEntryService:
             await self._invite_notification_service.execute(
                 actor_user_id=actor_user_id,
                 invited_user_id=invited_entry.user_id,
+                planned_user_card_id=invitee_planned_card_ids[invited_entry.user_id],
                 card_id=card_id,
-                provider_meta=provider_meta,
             )
 
         return CreateWatchlistEntryResult(
