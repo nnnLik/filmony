@@ -1,0 +1,21 @@
+registry_version: 1
+status_legend:
+  planned: spec exists under .cursor/features
+  in_progress: implementation artifacts exist under .cursor/active
+  done: published doc exists under docs/features
+  blocked: work exists but is blocked
+  cancelled: intentionally dropped
+features:
+  - slug: profile-taste-match
+    title: Taste Match Between Profiles
+    status: planned
+    source_path: .cursor/features/profile-taste-match/feature.md
+    active_path: null
+    docs_path: null
+
+  - slug: monthly-recap-shareable-summary
+    title: Monthly Recap and Shareable Summary
+    status: planned
+    source_path: .cursor/features/monthly-recap-shareable-summary/feature.md
+    active_path: null
+    docs_path: null

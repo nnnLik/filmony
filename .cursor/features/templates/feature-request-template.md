@@ -2,6 +2,8 @@
 
 ## Metadata
 - Feature slug:
+- Title:
+- Status: planned | in_progress | blocked | done | cancelled
 - Author:
 - Created at:
 - Priority:
