@@ -14,16 +14,22 @@ export function buildRouteKey({
   const query = new URLSearchParams(search ?? '');
   const queryKeys = allowedQueryKeys ?? [];
   const normalizedQuery = queryKeys
-    .map((key) => [key, query.get(key) ?? ''])
-    .filter(([, value]) => value.length > 0)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => `${key}=${value}`)
+    .slice()
+    .sort()
+    .flatMap((key) => {
+      const values = query
+        .getAll(key)
+        .filter((value) => value.length > 0)
+        .sort((a, b) => a.localeCompare(b));
+      return values.map((value) => [key, value] as const);
+    })
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&');
 
   const normalizedParams = params
     ? Object.keys(params)
         .sort()
-        .map((key) => `${key}=${params[key]}`)
+        .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
         .join('&')
     : '';
 
