@@ -731,7 +731,7 @@ class ListUserCardFeedService:
             q = (
                 select(UserCard.id, UserCard.user_id, UserCard.film_id)
                 .where(where_clause)
-                .order_by(UserCard.created_at.desc(), UserCard.id.desc())
+                .order_by(UserCard.updated_at.desc(), UserCard.id.desc())
                 .limit(const.feed.STREAM_POOL_LIMIT)
             )
             rows = (await self._session.execute(q)).all()
@@ -786,11 +786,11 @@ class ListUserCardFeedService:
                 UserCard.user_id,
                 UserCard.film_id,
                 Film.genres,
-                UserCard.created_at,
+                UserCard.updated_at,
             )
             .join(Film, Film.id == UserCard.film_id)
             .where(UserCard.user_id != viewer_user_id)
-            .order_by(UserCard.created_at.desc(), UserCard.id.desc())
+            .order_by(UserCard.updated_at.desc(), UserCard.id.desc())
             .limit(const.feed.AFFINITY_CANDIDATE_SCAN)
         )
         rows = (await self._session.execute(q)).all()
@@ -808,7 +808,7 @@ class ListUserCardFeedService:
             tags_by_card[int(cid)].append(tag)
 
         scored: list[tuple[int, int, UUID, int, dt.datetime | None]] = []
-        for rid, uid, fid, genres, created_at in rows:
+        for rid, uid, fid, genres, updated_at in rows:
             cid = int(rid)
             gfilm = {_norm_genre(str(g)) for g in (genres or [])}
             tc = {_norm_tag(t) for t in tags_by_card.get(cid, [])}
@@ -818,13 +818,13 @@ class ListUserCardFeedService:
                 const.feed.GENRE_OVERLAP_WEIGHT * g_overlap
                 + const.feed.TAG_OVERLAP_WEIGHT * t_overlap
             )
-            scored.append((cid, score, uid, fid, created_at))
+            scored.append((cid, score, uid, fid, updated_at))
 
         def sort_key(
             item: tuple[int, int, UUID, int, dt.datetime | None],
         ) -> tuple[int, float, int]:
-            cid, score, _uid, _fid, created_at = item
-            ts = -created_at.timestamp() if created_at else 0.0
+            cid, score, _uid, _fid, updated_at = item
+            ts = -updated_at.timestamp() if updated_at else 0.0
             return (-score, ts, -cid)
 
         scored.sort(key=sort_key)

@@ -16,14 +16,13 @@ import {
 import type { MovieCard, MovieCardPage, PublicProfile, WatchlistFilmPage } from '../api/profileTypes'
 import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import {
-  DEFAULT_RATED_CARDS_QUERY,
-  type RatedCardsListQuery,
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
   ratedCardsToListParams,
 } from '../lib/ratedCardsListQuery'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
+import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
@@ -74,7 +73,7 @@ export function PublicProfilePage() {
   const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>('rated')
   const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
   const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
-  const [ratedQuery, setRatedQuery] = useState<RatedCardsListQuery>(() => ({ ...DEFAULT_RATED_CARDS_QUERY }))
+  const [ratedQuery, setRatedQuery] = useRatedCardsQueryFromUrl()
   const [ratedCardsLoading, setRatedCardsLoading] = useState(false)
   const deferredRatedQuery = useDeferredValue(ratedQuery)
   const ratedQueryKey = useMemo(
@@ -89,12 +88,6 @@ export function PublicProfilePage() {
     return favoriteStripFetched
   }, [profile, favoriteStripFetched, favoriteStripForUserId])
   const prevRouteId = useRef<string | null>(null)
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setRatedQuery({ ...DEFAULT_RATED_CARDS_QUERY })
-    })
-  }, [resolvedUserId])
 
   useEffect(() => {
     if (auth.kind !== 'ready' || resolvedUserId === '') {

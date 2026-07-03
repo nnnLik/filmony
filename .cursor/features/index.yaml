@@ -6,6 +6,20 @@ status_legend:
   blocked: work exists but is blocked
   cancelled: intentionally dropped
 features:
+  - slug: profile-filters-persistence
+    title: Profile Filters Persistence
+    status: done
+    source_path: .cursor/features/profile-filters-persistence/feature.md
+    active_path: .cursor/active/profile-filters-persistence
+    docs_path: docs/features/profile-filters-persistence.md
+
+  - slug: feed-ordering-updated-at
+    title: Feed Ordering After Conversion
+    status: done
+    source_path: .cursor/features/feed-ordering-updated-at/feature.md
+    active_path: .cursor/active/feed-ordering-updated-at
+    docs_path: docs/features/feed-ordering-updated-at.md
+
   - slug: backend-parallel-test-coverage
     title: Backend Parallel Test Execution and Coverage Reporting
     status: planned

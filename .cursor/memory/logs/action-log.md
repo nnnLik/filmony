@@ -17,6 +17,12 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-03T191530Z-profile-filters-persistence-docs.md`
+- `2026-07-03T191500Z-profile-filters-persistence-code.md`
+- `2026-07-03T191300Z-feed-ordering-updated-at-docs.md`
+- `2026-07-03T191200Z-feed-ordering-updated-at-test.md`
+- `2026-07-03T191000Z-feed-ordering-updated-at-code.md`
+- `2026-07-03T190800Z-feed-ordering-updated-at-plan.md`
 - `2026-06-30T210500Z-watchlist-cards-code.md`
 - `2026-06-30T202000Z-watchlist-cards-code.md`
 - `2026-06-30T194700Z-watchlist-cards-completion.md`

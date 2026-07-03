@@ -22,8 +22,6 @@ import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import {
-  DEFAULT_RATED_CARDS_QUERY,
-  type RatedCardsListQuery,
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
   ratedCardsToListParams,
@@ -36,6 +34,7 @@ import {
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
+import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
 import './ProfilePage.css'
 
@@ -98,7 +97,7 @@ export function ProfilePage() {
   const [postsLoadingMore, setPostsLoadingMore] = useState(false)
   const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
   const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
-  const [ratedQuery, setRatedQuery] = useState<RatedCardsListQuery>(() => ({ ...DEFAULT_RATED_CARDS_QUERY }))
+  const [ratedQuery, setRatedQuery] = useRatedCardsQueryFromUrl()
   const [ratedCardsLoading, setRatedCardsLoading] = useState(false)
   const deferredRatedQuery = useDeferredValue(ratedQuery)
   const ratedQueryKey = useMemo(

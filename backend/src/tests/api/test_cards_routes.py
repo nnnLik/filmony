@@ -2230,6 +2230,65 @@ async def test_movie_card_feed_cursor_pagination(async_client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
+async def test_movie_card_feed_promotes_converted_planned_card(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=918)
+    author_a = await _login(async_client, telegram_user_id=9180)
+    author_b = await _login(async_client, telegram_user_id=9181)
+    await _login(async_client, telegram_user_id=918)
+    await async_client.post(f'/api/users/{author_a["id"]}/subscriptions')
+    await async_client.post(f'/api/users/{author_b["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=9180)
+    planned_film = await _create_film(kinopoisk_id=1009181, title='Planned first')
+    planned_watchlist = await async_client.post(
+        '/api/me/watchlist', json={'film_id': planned_film.id}
+    )
+    assert planned_watchlist.status_code == 201
+
+    await _login(async_client, telegram_user_id=9181)
+    newer_film = await _create_film(kinopoisk_id=1009182, title='Newer card')
+    newer_card = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': newer_film.id,
+            'kinopoisk_id': newer_film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert newer_card.status_code == 200
+    newer_card_id = newer_card.json()['id']
+
+    await _login(async_client, telegram_user_id=9180)
+    upgraded = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': planned_film.id,
+            'kinopoisk_id': planned_film.kinopoisk_id,
+            'genres': [],
+            'rating': 9.0,
+            'company': 'friends',
+            'mood_before': 'laugh',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert upgraded.status_code == 200
+    upgraded_card_id = upgraded.json()['id']
+
+    await _login(async_client, telegram_user_id=918)
+    feed = await async_client.get('/api/cards/feed?limit=10&mode=subscriptions_only')
+    assert feed.status_code == 200
+    items = feed.json()['items']
+    feed_ids = [item['id'] for item in items]
+    assert feed_ids[:2] == [upgraded_card_id, newer_card_id]
+
+
+@pytest.mark.asyncio
 async def test_list_my_card_categories_includes_default_films(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=8801)
     r = await async_client.get('/api/me/card-categories')
