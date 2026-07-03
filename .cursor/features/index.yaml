@@ -40,3 +40,10 @@ features:
     source_path: .cursor/features/monthly-recap-shareable-summary/feature.md
     active_path: null
     docs_path: null
+
+  - slug: subscribed-activity-telegram-digest
+    title: Telegram Digest Подписанной Активности
+    status: planned
+    source_path: .cursor/features/subscribed-activity-telegram-digest/feature.md
+    active_path: null
+    docs_path: null
