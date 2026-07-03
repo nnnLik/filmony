@@ -2,7 +2,7 @@
 
 ## Feature
 - Slug: `movie-card-edit-delete`
-- Status: in_progress
+- Status: done
 
 ## Action Entries
 ### 2026-05-06 20:42 UTC
@@ -35,3 +35,13 @@
   - `frontend/src/routes.tsx`
 - Verification:
   - `ReadLints` для измененных frontend файлов: без ошибок после фикса.
+
+### 2026-07-03 20:19 UTC
+- Action type: docs
+- Summary: Закрыт как завершённый по подтверждению пользователя; дополнительная реализация не требуется.
+- Files:
+  - `.cursor/active/movie-card-edit-delete/progress.md`
+  - `.cursor/active/movie-card-edit-delete/result.md`
+  - `docs/features/movie-card-edit-delete.md`
+- Verification:
+  - Новые проверки не запускались в рамках этой closeout-правки.

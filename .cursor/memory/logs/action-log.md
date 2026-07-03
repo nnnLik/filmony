@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-03T201900Z-feature-closeout.md`
 - `2026-07-03T201500Z-profile-taste-match-spec.md`
 - `2026-07-03T201500Z-profile-analytics-redesign-code.md`
 - `2026-07-03T201000Z-profile-analytics-redesign.md`

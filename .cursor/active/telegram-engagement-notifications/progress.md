@@ -2,7 +2,7 @@
 
 ## Feature
 - Slug: `telegram-engagement-notifications`
-- Status: in_progress
+- Status: done
 
 ## Action Entries
 ### 2026-05-07 09:00 UTC
@@ -16,3 +16,13 @@
   - `docs/features/telegram-engagement-notifications.md`
 - Verification:
   - Спека согласована с черновиком `.cursor/features/009-telegram-notifications.md` и ограничениями из `README.md` про отсутствие webhook.
+
+### 2026-07-03 20:19 UTC
+- Action type: docs
+- Summary: Закрыт как завершённый по подтверждению пользователя; дальнейшая проработка не требуется.
+- Files:
+  - `.cursor/active/telegram-engagement-notifications/progress.md`
+  - `.cursor/active/telegram-engagement-notifications/result.md`
+  - `docs/features/telegram-engagement-notifications.md`
+- Verification:
+  - Новые проверки не запускались в рамках этой closeout-правки.

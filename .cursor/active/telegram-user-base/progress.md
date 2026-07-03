@@ -2,7 +2,7 @@
 
 ## Feature
 - Slug: `telegram-user-base`
-- Status: **in_progress** (бэкенд и тесты — основа готова; фронт по спеке 001 — частично / вне текущего объёма артефактов)
+- Status: **cancelled** (бэкенд и тесты готовы; оставшийся фронтовый follow-up признан не нужным по подтверждению пользователя)
 
 ## Action Entries
 
@@ -35,3 +35,13 @@
 - Summary: Корневой `.gitignore`, `README.md`, `vars/.env.example`.
 - Files: `.gitignore`, `README.md`, `vars/.env.example`
 - Verification: шаблон env без секретов.
+
+### 2026-07-03 20:19 UTC
+- Action type: docs
+- Summary: Закрыт как не нужный для дальнейшей проработки; детали backend-основы сохранены в результатах.
+- Files:
+  - `.cursor/active/telegram-user-base/progress.md`
+  - `.cursor/active/telegram-user-base/result.md`
+  - `docs/features/telegram-user-base.md`
+- Verification:
+  - Новые проверки не запускались в рамках этой closeout-правки.

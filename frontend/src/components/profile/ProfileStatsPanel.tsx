@@ -3,19 +3,21 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../../api/client'
-import { getUserCards, getUserMovieCardStats } from '../../api/profileApi'
+import { getUserCards, getUserMovieCardStats, getUserPublicCardCategories } from '../../api/profileApi'
 import type {
   CardCompany,
   CardMoodAfter,
   MovieCard,
   ProfileInsightItem,
   ProfileStatsMovieItem,
+  MyUserCardCategoryListResponse,
   TagDistributionItem,
   TagTasteItem,
   UserMovieCardStats,
   ValueDistributionItem,
 } from '../../api/profileTypes'
 import { profileStatsMoviePrimaryTitle } from '../../lib/movieCardDisplay'
+import { mergeShelfDistributionWithMetadata } from '../../lib/profileShelfDistribution'
 import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
@@ -236,6 +238,13 @@ export function ProfileStatsPanel({
   const [error, setError] = useState<string | null>(null)
   const statsLoadedRef = useRef(false)
 
+  const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
+    queryKey: ['profile-stats-card-categories', userId],
+    queryFn: async (): Promise<MyUserCardCategoryListResponse> => getUserPublicCardCategories(userId),
+    enabled: userId !== '',
+    staleTime: 15 * 60_000,
+  })
+
   useEffect(() => {
     statsLoadedRef.current = false
     queueMicrotask(() => {
@@ -323,8 +332,17 @@ export function ProfileStatsPanel({
     [stats],
   )
 
+  const shelfDistributionRows = useMemo(
+    () =>
+      mergeShelfDistributionWithMetadata(
+        stats?.category_distribution ?? [],
+        shelvesQuery.data?.items ?? [],
+      ),
+    [stats?.category_distribution, shelvesQuery.data?.items],
+  )
+
   const shelfDistributionUi = useMemo(() => {
-    const rows = stats?.category_distribution ?? []
+    const rows = shelfDistributionRows
     if (rows.length === 0) {
       return {
         hasShelves: false,
@@ -350,7 +368,7 @@ export function ProfileStatsPanel({
       }
     }
     return { hasShelves: true, shelfMax, shelfUncatBarItems, shelfCatBarItems }
-  }, [stats])
+  }, [shelfDistributionRows])
 
   const ratingBarItems = useMemo(() => {
     const list = stats?.rating_distribution ?? []
@@ -542,7 +560,7 @@ export function ProfileStatsPanel({
             activity={stats.activity_distribution}
             activityStart={stats.activity_start}
             activityEnd={stats.activity_end}
-            shelves={stats.category_distribution}
+            shelves={shelfDistributionRows}
             selectedShelfId={activityShelfId}
             onShelfChange={setActivityShelfId}
             loading={activityLoading}

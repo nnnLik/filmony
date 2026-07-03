@@ -2,7 +2,7 @@
 
 ## Feature
 - Slug: `telegram-user-base`
-- Final status: **in_progress** (бэкенд + тесты + инфра; фронт по полному чеклисту 001 — не завершён)
+- Final status: **cancelled**
 
 ## Implemented
 - Проверка Telegram Mini App `initData` (HMAC по правилам WebAppData), отказ с 401 при невалидных данных.
@@ -32,7 +32,7 @@
 
 ## Verification
 - Ожидаемая команда: `make start` затем `make migrate` затем `make backend-test`.
-- Итог в этой сессии: автоматический прогон pytest в Docker не был приложен к логу как артефакт; при необходимости выполните локально и допишите строку сюда.
+- Итог в этой closeout-сессии: дополнительных проверок не запускали; оставшийся фронтовый follow-up признан не нужным.
 
 ## Automated tests (backend)
 - `backend/src/tests/auth/test_telegram.py` — невалидный hash, просроченный auth_date, успешный обмен + cookie + `/api/me`, идемпотентность, logout.
@@ -40,9 +40,8 @@
 - Хелпер: `backend/src/tests/auth/telegram_init_data.py`.
 
 ## Known Limitations
-- Фронт: в спецификации 001 указаны `api/client.ts`, `useTelegramAuth`, `AuthContext` и доработка `App.tsx` под бэкенд-пользователя — в текущем дереве фронта этого нет или объём меньше спеки; нужна отдельная итерация.
+- Исходный фронтовый gap по спецификации 001 оставлен без доработки по подтверждению пользователя.
 - Секреты: если `vars/.env.development` когда-либо коммитился, нужна ротация токенов и `git rm --cached` для игнорируемых файлов.
 
 ## Next Steps
-- Завершить фронт по 001 (initData → POST, `credentials: 'include'`, состояния загрузки/ошибки).
-- Прогнать `make backend-test`, зафиксировать вывод в этом файле и в action-log.
+- Дальнейшая проработка по этой ветке не требуется.

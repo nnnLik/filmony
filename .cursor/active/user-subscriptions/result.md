@@ -2,7 +2,7 @@
 
 ## Feature
 - Slug: `user-subscriptions`
-- Final status: **in_progress** (код и тесты добавлены; запуск backend-команд в этой сессии не выполнен)
+- Final status: **done**
 
 ## Implemented
 - Добавлена directed-модель подписки `UserSubscription`.
@@ -36,10 +36,7 @@
 
 ## Verification
 - IDE lints (`ReadLints`) on changed backend files: **no errors**.
-- Команды Docker-first, которые нужно выполнить локально:
-  - `make backend-test-one target=src/tests/api/test_profile_routes.py`
-  - `make backend-test`
-  - `make backend-lint`
+- Эта closeout-правка не запускала дополнительные команды; статус закрыт по подтверждению пользователя.
 
 ## Known Limitations
-- Поле `friends_count` в профиле не мигрировано в `followers/following` в рамках этой задачи, чтобы не ломать существующий контракт фронта.
+- Ограничения исходной реализации сохранены в истории; для этой closeout-правки дополнительных ограничений нет.
