@@ -193,6 +193,7 @@ class ListUserCardsService:
         mood_after: str | None = None,
         film_title_search: str | None = None,
         category_id: int | None = None,
+        completed_on: dt.date | None = None,
     ) -> UserCardListPage:
         tags = list(tags_all or [])
         title_q = _normalize_film_title_search(film_title_search)
@@ -221,6 +222,7 @@ class ListUserCardsService:
                 mood_after=mood_after,
                 film_title_search=title_q,
                 category_id=category_id,
+                completed_on=completed_on,
             )
         return await self._execute_default(
             user_id,
@@ -235,6 +237,7 @@ class ListUserCardsService:
             mood_after=mood_after,
             film_title_search=title_q,
             category_id=category_id,
+            completed_on=completed_on,
         )
 
     def _apply_filters(
@@ -249,6 +252,7 @@ class ListUserCardsService:
         mood_after: str | None,
         film_title_search: str | None,
         category_id: int | None,
+        completed_on: dt.date | None,
     ) -> SASelect[tuple[UserCard, Film | None, Game | None]]:
         for tag in tags_all:
             query = query.where(
@@ -281,6 +285,9 @@ class ListUserCardsService:
             )
         if category_id is not None:
             query = query.where(UserCard.category_id == category_id)
+        if completed_on is not None:
+            completion = func.coalesce(UserCard.completed_at, UserCard.created_at)
+            query = query.where(func.date(completion) == completed_on)
         return query
 
     async def _execute_default(
@@ -298,6 +305,7 @@ class ListUserCardsService:
         mood_after: str | None,
         film_title_search: str | None,
         category_id: int | None,
+        completed_on: dt.date | None,
     ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
@@ -317,6 +325,7 @@ class ListUserCardsService:
             mood_after=mood_after,
             film_title_search=film_title_search,
             category_id=category_id,
+            completed_on=completed_on,
         )
 
         if sort == 'recent':
@@ -393,6 +402,7 @@ class ListUserCardsService:
         mood_after: str | None,
         film_title_search: str | None,
         category_id: int | None,
+        completed_on: dt.date | None,
     ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
@@ -417,6 +427,7 @@ class ListUserCardsService:
             mood_after=mood_after,
             film_title_search=film_title_search,
             category_id=category_id,
+            completed_on=completed_on,
         )
 
         if sort == 'rating_desc':

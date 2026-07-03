@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass
 from math import floor
 from typing import Self
@@ -14,6 +15,7 @@ from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
+ACTIVITY_WINDOW_DAYS = 90
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +50,12 @@ class CategoryDistributionItem:
 
 
 @dataclass(frozen=True, slots=True)
+class ActivityDistributionItem:
+    date: dt.date
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class ProfileMovieStatsItem:
     card_id: int
     film_id: int
@@ -69,6 +77,13 @@ class UserCardStats:
     category_distribution: list[CategoryDistributionItem]
     top_movies: list[ProfileMovieStatsItem]
     worst_movies: list[ProfileMovieStatsItem]
+    activity_distribution: list[ActivityDistributionItem]
+    activity_start: dt.date
+    activity_end: dt.date
+
+
+def _completion_timestamp():
+    return func.coalesce(UserCard.completed_at, UserCard.created_at)
 
 
 @dataclass
@@ -77,11 +92,34 @@ class GetUserCardStatsService:
 
     _session: AsyncSession
 
+    class InvalidCategoryFilter(Exception):
+        """activity_category_id does not belong to the profile user."""
+
     @classmethod
     def build(cls, session: AsyncSession) -> Self:
         return cls(_session=session)
 
-    async def execute(self, user_id: UUID) -> UserCardStats:
+    async def execute(
+        self,
+        user_id: UUID,
+        *,
+        activity_category_id: int | None = None,
+    ) -> UserCardStats:
+        if activity_category_id is not None:
+            owns = (
+                await self._session.execute(
+                    select(UserCardCategory.id).where(
+                        UserCardCategory.id == activity_category_id,
+                        UserCardCategory.user_id == user_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if owns is None:
+                raise self.InvalidCategoryFilter
+
+        activity_end = dt.datetime.now(dt.UTC).date()
+        activity_start = activity_end - dt.timedelta(days=ACTIVITY_WINDOW_DAYS - 1)
+
         card_rows = (
             await self._session.execute(
                 select(
@@ -102,7 +140,7 @@ class GetUserCardStatsService:
                     (UserCardCategory.id == UserCard.category_id)
                     & (UserCardCategory.user_id == UserCard.user_id),
                 )
-                .where(UserCard.user_id == user_id)
+                .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
             )
         ).all()
 
@@ -183,7 +221,7 @@ class GetUserCardStatsService:
             await self._session.execute(
                 select(CardTag.tag, func.count(CardTag.id))
                 .join(UserCard, UserCard.id == CardTag.card_id)
-                .where(UserCard.user_id == user_id)
+                .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
                 .group_by(CardTag.tag)
                 .order_by(desc(func.count(CardTag.id)), CardTag.tag)
                 .limit(10)
@@ -193,6 +231,13 @@ class GetUserCardStatsService:
 
         sorted_by_top = sorted(movies, key=lambda item: (-item.rating, item.card_id))
         sorted_by_worst = sorted(movies, key=lambda item: (item.rating, item.card_id))
+
+        activity_distribution = await self._load_activity_distribution(
+            user_id=user_id,
+            activity_start=activity_start,
+            activity_end=activity_end,
+            activity_category_id=activity_category_id,
+        )
 
         return UserCardStats(
             total_movies=total_movies,
@@ -205,4 +250,34 @@ class GetUserCardStatsService:
             category_distribution=category_distribution,
             top_movies=sorted_by_top[:5],
             worst_movies=sorted_by_worst[:5],
+            activity_distribution=activity_distribution,
+            activity_start=activity_start,
+            activity_end=activity_end,
         )
+
+    async def _load_activity_distribution(
+        self,
+        *,
+        user_id: UUID,
+        activity_start: dt.date,
+        activity_end: dt.date,
+        activity_category_id: int | None,
+    ) -> list[ActivityDistributionItem]:
+        completion = _completion_timestamp()
+        day_col = func.date(completion).label('day')
+        query = (
+            select(day_col, func.count(UserCard.id))
+            .where(
+                UserCard.user_id == user_id,
+                UserCard.is_planned.is_(False),
+                func.date(completion) >= activity_start,
+                func.date(completion) <= activity_end,
+            )
+            .group_by(day_col)
+            .order_by(day_col)
+        )
+        if activity_category_id is not None:
+            query = query.where(UserCard.category_id == activity_category_id)
+
+        rows = (await self._session.execute(query)).all()
+        return [ActivityDistributionItem(date=day, count=int(count)) for day, count in rows]

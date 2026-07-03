@@ -47,3 +47,10 @@ features:
     source_path: .cursor/features/subscribed-activity-telegram-digest/feature.md
     active_path: .cursor/active/subscribed-activity-telegram-digest
     docs_path: docs/features/subscribed-activity-telegram-digest.md
+
+  - slug: profile-activity-heatmap
+    title: Profile Activity Heatmap
+    status: done
+    source_path: .cursor/features/profile-activity-heatmap/feature.md
+    active_path: .cursor/active/profile-activity-heatmap
+    docs_path: docs/features/profile-activity-heatmap.md

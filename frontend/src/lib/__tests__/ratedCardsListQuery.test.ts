@@ -6,6 +6,7 @@ import {
   ratedCardsQueryFromSearchParams,
   ratedCardsQueryKey,
   ratedCardsQueryToSearchParams,
+  ratedCardsToListParams,
 } from '../ratedCardsListQuery'
 
 describe('ratedCardsListQuery url helpers', () => {
@@ -83,5 +84,22 @@ describe('ratedCardsListQuery url helpers', () => {
     expect(merged.get('tab')).toBe('posts')
     expect(merged.get('filmTitle')).toBe('new')
     expect(merged.get('sort')).toBe('rating_desc')
+  })
+
+  it('serializes completedOn for heatmap drill-down', () => {
+    const params = ratedCardsQueryToSearchParams({
+      ...DEFAULT_RATED_CARDS_QUERY,
+      completedOn: '2026-06-01',
+      categoryId: '4',
+    })
+    expect(params.get('completedOn')).toBe('2026-06-01')
+    expect(params.get('categoryId')).toBe('4')
+
+    const restored = ratedCardsQueryFromSearchParams(params)
+    expect(restored.completedOn).toBe('2026-06-01')
+
+    const listParams = ratedCardsToListParams(restored)
+    expect(listParams.completedOn).toBe('2026-06-01')
+    expect(listParams.categoryId).toBe(4)
   })
 })

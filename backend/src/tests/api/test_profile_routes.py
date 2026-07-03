@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -34,6 +35,8 @@ async def _seed_movie_card(
     mood_after: str,
     tags: list[str],
     category_id: int | None = None,
+    is_planned: bool = False,
+    completed_at: datetime | None = None,
 ) -> int:
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -61,6 +64,8 @@ async def _seed_movie_card(
             company=company,
             mood_before=mood_before,
             mood_after=mood_after,
+            is_planned=is_planned,
+            completed_at=completed_at,
         )
         session.add(card)
         await session.flush()
@@ -492,6 +497,155 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert by_key[(block_id, 'Блокбастеры')] == 2
     assert by_key[(default_id, 'Фильмы')] == 1
     assert by_key[(None, 'Без полки')] == 1
+
+
+@pytest.mark.asyncio
+async def test_user_stats_activity_heatmap_excludes_planned_cards(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=5270)
+    user_id = UUID(str(me['id']))
+    today = datetime.now(tz=UTC).date()
+    yesterday = today - timedelta(days=1)
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5270001,
+        title='Completed today',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5270002,
+        title='Completed yesterday',
+        year=2024,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(yesterday, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5270003,
+        title='Planned later',
+        year=2024,
+        rating=0.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        is_planned=True,
+        completed_at=None,
+    )
+
+    r = await async_client.get(f'/api/users/{user_id}/stats')
+    assert r.status_code == 200
+    body = r.json()
+    assert body['total_movies'] == 2
+    assert 'activity_distribution' in body
+    assert 'activity_start' in body
+    assert 'activity_end' in body
+    start = datetime.fromisoformat(body['activity_start']).date()
+    end = datetime.fromisoformat(body['activity_end']).date()
+    assert end == today
+    assert (end - start).days == 89
+
+    by_day = {item['date']: item['count'] for item in body['activity_distribution']}
+    assert by_day.get(str(today)) == 1
+    assert by_day.get(str(yesterday)) == 1
+    assert sum(by_day.values()) == 2
+
+
+@pytest.mark.asyncio
+async def test_user_stats_activity_heatmap_filters_by_shelf(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5271)
+    user_id = UUID(str(me['id']))
+    today = datetime.now(tz=UTC).date()
+
+    art = await async_client.post('/api/me/card-categories', json={'name': 'HeatmapShelf'})
+    assert art.status_code == 200
+    shelf_id = art.json()['id']
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5271001,
+        title='On shelf',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        category_id=shelf_id,
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5271002,
+        title='Default shelf',
+        year=2024,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+
+    all_activity = await async_client.get(f'/api/users/{user_id}/stats')
+    assert all_activity.status_code == 200
+    assert sum(item['count'] for item in all_activity.json()['activity_distribution']) == 2
+
+    filtered = await async_client.get(
+        f'/api/users/{user_id}/stats',
+        params={'activity_category_id': shelf_id},
+    )
+    assert filtered.status_code == 200
+    filtered_body = filtered.json()
+    assert len(filtered_body['activity_distribution']) == 1
+    assert filtered_body['activity_distribution'][0]['count'] == 1
+    assert filtered_body['total_movies'] == 2
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_filter_by_completed_on(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5272)
+    user_id = UUID(str(me['id']))
+    today = datetime.now(tz=UTC).date()
+    yesterday = today - timedelta(days=1)
+
+    c_today = await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5272001,
+        title='Today card',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5272002,
+        title='Yesterday card',
+        year=2024,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(yesterday, datetime.min.time(), tzinfo=UTC),
+    )
+
+    r = await async_client.get(
+        f'/api/users/{user_id}/cards',
+        params={'completed_on': str(today), 'limit': 50},
+    )
+    assert r.status_code == 200
+    assert [item['id'] for item in r.json()['items']] == [c_today]
 
 
 @pytest.mark.asyncio

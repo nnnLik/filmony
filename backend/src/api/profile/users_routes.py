@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -205,6 +206,10 @@ async def list_user_cards(
         max_length=120,
         description='Подстрока в названии фильма (только карточки этого пользователя, без внешних API)',
     ),
+    completed_on: dt.date | None = Query(
+        default=None,
+        description='Только карточки, завершённые в указанный день (UTC, YYYY-MM-DD)',
+    ),
 ) -> UserCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
@@ -231,6 +236,7 @@ async def list_user_cards(
             mood_after=mood_after_val,
             film_title_search=film_title,
             category_id=category_id,
+            completed_on=completed_on,
         )
     except ListUserCardsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None
@@ -297,11 +303,22 @@ async def get_user_movie_card_stats(
     user_id: UUID,
     _viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
+    activity_category_id: int | None = Query(
+        default=None,
+        ge=1,
+        description='Фильтр активности heatmap по полке (id категории этого пользователя)',
+    ),
 ) -> UserCardStatsApiResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
         raise _not_found()
-    stats = await GetUserCardStatsService.build(db).execute(user_id)
+    try:
+        stats = await GetUserCardStatsService.build(db).execute(
+            user_id,
+            activity_category_id=activity_category_id,
+        )
+    except GetUserCardStatsService.InvalidCategoryFilter:
+        raise HTTPException(status_code=422, detail='invalid category for user') from None
     return build_user_card_stats_response(stats)
 
 

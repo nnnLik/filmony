@@ -41,6 +41,8 @@ export type GetUserCardsParams = {
   filmTitle?: string | null
   /** Полка владельца списка; несовпадение id и владельца даёт 422 на бэкенде. */
   categoryId?: number | null
+  /** ISO date YYYY-MM-DD — только карточки, завершённые в этот день. */
+  completedOn?: string | null
 }
 
 export type CreateWatchlistEntryBody = {
@@ -158,6 +160,9 @@ export async function getUserCards(userId: string, params: GetUserCardsParams): 
   if (params.categoryId != null && params.categoryId >= 1) {
     q.set('category_id', String(params.categoryId))
   }
+  if (params.completedOn != null && params.completedOn.trim() !== '') {
+    q.set('completed_on', params.completedOn.trim())
+  }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)
 }
@@ -242,8 +247,16 @@ export async function getUserWatchlist(
   return normalizeWatchlistPage(body)
 }
 
-export async function getUserMovieCardStats(userId: string): Promise<UserMovieCardStats> {
-  return apiJson<UserMovieCardStats>(`/api/users/${encodeURIComponent(userId)}/stats`)
+export async function getUserMovieCardStats(
+  userId: string,
+  params?: { activityCategoryId?: number | null },
+): Promise<UserMovieCardStats> {
+  const q = new URLSearchParams()
+  if (params?.activityCategoryId != null && params.activityCategoryId >= 1) {
+    q.set('activity_category_id', String(params.activityCategoryId))
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : ''
+  return apiJson<UserMovieCardStats>(`/api/users/${encodeURIComponent(userId)}/stats${suffix}`)
 }
 
 export async function postCreateWatchlistEntry(body: CreateWatchlistEntryBody): Promise<WatchlistEntryItem> {

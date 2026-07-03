@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -283,6 +283,13 @@ class CategoryDistributionItemResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class ActivityDistributionItemResponse(BaseModel):
+    date: date
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class ProfileStatsMovieItemResponse(BaseModel):
     card_id: int
     film_id: int
@@ -303,6 +310,9 @@ class UserCardStatsApiResponse(BaseModel):
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
+    activity_distribution: list[ActivityDistributionItemResponse] = Field(default_factory=list)
+    activity_start: date
+    activity_end: date
 
 
 def build_watchlist_entry_item_response(item: WatchlistEntryListItem) -> WatchlistEntryItemResponse:
@@ -480,4 +490,10 @@ def build_user_card_stats_response(stats: UserCardStats) -> UserCardStatsApiResp
             )
             for item in stats.worst_movies
         ],
+        activity_distribution=[
+            ActivityDistributionItemResponse(date=item.date, count=item.count)
+            for item in stats.activity_distribution
+        ],
+        activity_start=stats.activity_start,
+        activity_end=stats.activity_end,
     )

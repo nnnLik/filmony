@@ -18,6 +18,7 @@ export const RATED_CARDS_FILTER_PARAM_KEYS = [
   'moodAfter',
   'favoritesOnly',
   'categoryId',
+  'completedOn',
 ] as const
 
 export type RatedCardsListQuery = {
@@ -33,6 +34,8 @@ export type RatedCardsListQuery = {
   favoritesOnly: boolean
   /** Пустая строка = все полки. */
   categoryId: string
+  /** ISO date YYYY-MM-DD — завершённые в этот день. */
+  completedOn: string
 }
 
 export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
@@ -46,6 +49,7 @@ export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   moodAfter: '',
   favoritesOnly: false,
   categoryId: '',
+  completedOn: '',
 }
 
 export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
@@ -59,7 +63,8 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
     q.moodBefore === '' &&
     q.moodAfter === '' &&
     !q.favoritesOnly &&
-    q.categoryId.trim() === ''
+    q.categoryId.trim() === '' &&
+    q.completedOn.trim() === ''
   )
 }
 
@@ -75,6 +80,7 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
     ma: q.moodAfter,
     fav: q.favoritesOnly,
     shelf: q.categoryId.trim(),
+    completed: q.completedOn.trim(),
   })
 }
 
@@ -157,6 +163,10 @@ export function ratedCardsQueryToSearchParams(query: RatedCardsListQuery): URLSe
   if (categoryId !== '') {
     params.set('categoryId', categoryId)
   }
+  const completedOn = query.completedOn.trim()
+  if (completedOn !== '') {
+    params.set('completedOn', completedOn)
+  }
 
   return params
 }
@@ -173,6 +183,7 @@ export function ratedCardsQueryFromSearchParams(searchParams: URLSearchParams): 
     moodAfter: parseCardMoodAfter(searchParams.get('moodAfter')),
     favoritesOnly: parseFavoritesOnlyParam(searchParams.get('favoritesOnly')),
     categoryId: searchParams.get('categoryId') ?? '',
+    completedOn: searchParams.get('completedOn') ?? '',
   }
 }
 
@@ -212,5 +223,6 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
     moodBefore: q.moodBefore === '' ? null : q.moodBefore,
     moodAfter: q.moodAfter === '' ? null : q.moodAfter,
     categoryId,
+    completedOn: q.completedOn.trim() === '' ? null : q.completedOn.trim(),
   }
 }

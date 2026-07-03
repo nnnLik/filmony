@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from math import isfinite
@@ -18,6 +19,10 @@ from models.watchlist_entry import WatchlistEntry
 from services.user_card_categories.resolve_user_card_category_id_for_owner import (
     ResolveUserCardCategoryIdForOwnerService,
 )
+
+
+def _completion_now() -> dt.datetime:
+    return dt.datetime.now(dt.UTC)
 
 
 class FilmNotFoundError(Exception):
@@ -339,6 +344,7 @@ class CreateUserCardService:
         watchlist_card_id: str | None,
     ) -> UserCard:
         entity.is_planned = False
+        entity.completed_at = dt.datetime.now(dt.UTC)
         entity.category_id = category_id
         entity.rating = rating
         entity.company = company.value
@@ -430,6 +436,7 @@ class CreateUserCardService:
             entity.display_cover_url = display_cover_url
         if display_summary is not None:
             entity.display_summary = display_summary
+        entity.completed_at = _completion_now()
 
         self._session.add(entity)
 
@@ -539,6 +546,7 @@ class CreateUserCardService:
                 entity.display_cover_url = display_cover_url
             if display_summary is not None:
                 entity.display_summary = display_summary
+        entity.completed_at = _completion_now()
 
         self._session.add(entity)
 
@@ -613,6 +621,7 @@ class CreateUserCardService:
             display_cover_url=display_cover_url,
             display_summary=display_summary,
         )
+        entity.completed_at = _completion_now()
 
         self._session.add(entity)
 

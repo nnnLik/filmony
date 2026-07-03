@@ -419,6 +419,11 @@ export type CategoryDistributionItem = {
   count: number
 }
 
+export type ActivityDistributionItem = {
+  date: string
+  count: number
+}
+
 export type ProfileStatsMovieItem = {
   card_id: number
   film_id: number | null
@@ -441,4 +446,7 @@ export type UserMovieCardStats = {
   mood_after_distribution: ValueDistributionItem[]
   top_movies: ProfileStatsMovieItem[]
   worst_movies: ProfileStatsMovieItem[]
+  activity_distribution: ActivityDistributionItem[]
+  activity_start: string
+  activity_end: string
 }

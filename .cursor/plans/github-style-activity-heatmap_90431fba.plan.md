@@ -4,16 +4,16 @@ overview: Add a GitHub-style activity heatmap to the profile Statistics tab that
 todos:
   - id: backend-contract
     content: Define the activity heatmap backend contract and test completed-only, shelf-aware aggregation.
-    status: pending
+    status: completed
   - id: frontend-heatmap
     content: Add the `ProfileActivityHeatmap` UI inside the profile `Статистика` view and wire it to the stats payload.
-    status: pending
+    status: completed
   - id: filter-alignment
     content: Keep shelf/category filters and URL-synced rated-cards state aligned with the heatmap drill-down.
-    status: pending
+    status: completed
   - id: docs-and-log
     content: Document the final placement rules and record the feature work in the repo docs/logs.
-    status: pending
+    status: completed
 isProject: false
 ---
 

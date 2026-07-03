@@ -74,6 +74,10 @@ class UserCard(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    completed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     watch_note: Mapped[str] = mapped_column(
         String(500),
         nullable=False,

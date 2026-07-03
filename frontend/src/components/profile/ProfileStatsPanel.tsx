@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../../api/client'
@@ -21,6 +21,7 @@ import {
   type RatedCardsListQuery,
 } from '../../lib/ratedCardsListQuery'
 
+import { ProfileActivityHeatmap } from './ProfileActivityHeatmap'
 import { StatsDistributionBars, TastePolarityChart } from './ProfileStatsCharts'
 import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCard } from './ProfileStatsSummaryCard'
 
@@ -112,33 +113,69 @@ export function ProfileStatsPanel({
   onDrillToRatedCards,
 }: ProfileStatsPanelProps) {
   const [stats, setStats] = useState<UserMovieCardStats | null>(null)
+  const [activityShelfId, setActivityShelfId] = useState('')
+  const [activityLoading, setActivityLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const statsLoadedRef = useRef(false)
+
+  useEffect(() => {
+    statsLoadedRef.current = false
+    queueMicrotask(() => {
+      setStats(null)
+      setActivityShelfId('')
+    })
+  }, [userId])
+
   useEffect(() => {
     if (userId === '') return
     let alive = true
+    const shelfNum = activityShelfId === '' ? null : Number(activityShelfId)
+    const activityCategoryId =
+      shelfNum != null && Number.isInteger(shelfNum) && shelfNum >= 1 ? shelfNum : null
+    const isInitialLoad = !statsLoadedRef.current
+
     void (async () => {
-      setLoading(true)
+      if (isInitialLoad) {
+        setLoading(true)
+      } else {
+        setActivityLoading(true)
+      }
       setError(null)
       try {
-        const data = await getUserMovieCardStats(userId)
+        const data = await getUserMovieCardStats(userId, { activityCategoryId })
         if (!alive) return
-        setStats(data)
+        setStats((prev) =>
+          prev == null
+            ? data
+            : {
+                ...prev,
+                activity_distribution: data.activity_distribution,
+                activity_start: data.activity_start,
+                activity_end: data.activity_end,
+              },
+        )
+        statsLoadedRef.current = true
       } catch (e) {
         if (!alive) return
-        if (e instanceof ApiError) {
-          setError(formatApiDetail(e.detail))
-        } else {
-          setError('Не удалось загрузить статистику')
+        if (isInitialLoad) {
+          if (e instanceof ApiError) {
+            setError(formatApiDetail(e.detail))
+          } else {
+            setError('Не удалось загрузить статистику')
+          }
         }
       } finally {
-        if (alive) setLoading(false)
+        if (alive) {
+          setLoading(false)
+          setActivityLoading(false)
+        }
       }
     })()
     return () => {
       alive = false
     }
-  }, [userId])
+  }, [userId, activityShelfId])
 
   const needsFilteredRankings = !isDefaultRatedCardsQuery(cardsQuery)
   const rankingsKey = ratedCardsQueryKey(cardsQuery)
@@ -319,6 +356,16 @@ export function ProfileStatsPanel({
     ? (rankingsQuery.data?.worst ?? [])
     : (stats?.worst_movies ?? [])
 
+  const handleActivityDaySelect = (isoDate: string, shelfId: string) => {
+    onCardsQueryChange({
+      ...cardsQuery,
+      completedOn: isoDate,
+      categoryId: shelfId,
+      sort: 'recent',
+    })
+    onDrillToRatedCards?.()
+  }
+
   if (loading && stats == null) {
     return <p className="filmony-text-panel py-8 text-center text-sm text-(--tgui--hint_color)">Загрузка статистики…</p>
   }
@@ -340,6 +387,17 @@ export function ProfileStatsPanel({
 
   return (
     <div className="space-y-4">
+      <ProfileActivityHeatmap
+        activity={stats.activity_distribution}
+        activityStart={stats.activity_start}
+        activityEnd={stats.activity_end}
+        shelves={stats.category_distribution}
+        selectedShelfId={activityShelfId}
+        onShelfChange={setActivityShelfId}
+        loading={activityLoading}
+        onDaySelect={handleActivityDaySelect}
+      />
+
       <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-2.5 sm:p-3">
         <ProfileStatsMetricStrip metrics={metricStripItems} />
       </section>
