@@ -26,6 +26,9 @@ from services.telegram.notify_user_card_comment_mention import (
     run_notify_user_card_comment_mention_safe,
 )
 from services.telegram.notify_user_card_root_comment import run_notify_user_card_root_comment_safe
+from services.telegram.send_subscribed_activity_digest import (
+    run_subscribed_activity_digest_for_recipient_safe,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -340,9 +343,45 @@ def _register_mention_tasks(app: Celery) -> None:
             logger.exception('celery task notify_feed_post_comment_mentions_task failed')
 
 
+def _register_subscribed_activity_digest_tasks(app: Celery) -> None:
+    @app.task(name='tasks.telegram_engagement.send_subscribed_activity_digests')
+    def send_subscribed_activity_digests_task() -> None:
+        try:
+            _run_async_isolated(_send_subscribed_activity_digests_batch_async())
+        except Exception:
+            logger.exception('celery task send_subscribed_activity_digests_task failed')
+
+
+async def _send_subscribed_activity_digests_batch_async() -> None:
+    import datetime as dt
+
+    from core.database import disposable_async_session
+    from services.telegram.list_due_subscribed_activity_digest_recipients import (
+        ListDueSubscribedActivityDigestRecipientIdsService,
+    )
+
+    now = dt.datetime.now(tz=dt.UTC)
+    async with disposable_async_session() as session:
+        recipient_ids = await ListDueSubscribedActivityDigestRecipientIdsService.build(
+            session
+        ).execute(now=now)
+
+    for recipient_id in recipient_ids:
+        try:
+            await run_subscribed_activity_digest_for_recipient_safe(
+                recipient_user_id=recipient_id,
+            )
+        except Exception:
+            logger.exception(
+                'subscribed activity digest batch failed recipient=%s',
+                recipient_id,
+            )
+
+
 def register_tasks(app: Celery) -> None:
     _register_movie_card_comment_tasks(app)
     _register_feed_post_comment_tasks(app)
     _register_reaction_and_share_tasks(app)
     _register_follower_publish_tasks(app)
     _register_mention_tasks(app)
+    _register_subscribed_activity_digest_tasks(app)

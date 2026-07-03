@@ -47,3 +47,22 @@ def html_feed_post_deep_link_block(post_id: int, *, link_text: str | None = None
     esc_url = html.escape(url, quote=True)
     label = html.escape(link_text or 'Открыть пост в ленте')
     return f'🔗 <a href="{esc_url}">{label}</a>'
+
+
+def telegram_mini_app_url() -> str | None:
+    raw = settings.telegram.bot_username
+    if raw is None:
+        return None
+    name = raw.strip().lstrip('@')
+    if not name:
+        return None
+    return f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
+
+
+def html_app_deep_link_block(*, link_text: str | None = None) -> str:
+    url = telegram_mini_app_url()
+    if url is None:
+        return '📱 Откройте приложение Filmony из Telegram'
+    esc_url = html.escape(url, quote=True)
+    label = html.escape(link_text or _DEFAULT_LINK_LABEL)
+    return f'🔗 <a href="{esc_url}">{label}</a>'

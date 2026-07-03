@@ -43,7 +43,7 @@ features:
 
   - slug: subscribed-activity-telegram-digest
     title: Telegram Digest Подписанной Активности
-    status: planned
+    status: done
     source_path: .cursor/features/subscribed-activity-telegram-digest/feature.md
-    active_path: null
-    docs_path: null
+    active_path: .cursor/active/subscribed-activity-telegram-digest
+    docs_path: docs/features/subscribed-activity-telegram-digest.md

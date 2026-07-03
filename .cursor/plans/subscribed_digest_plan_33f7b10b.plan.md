@@ -4,19 +4,19 @@ overview: "План для реализации Telegram digest подписан
 todos:
   - id: digest-model
     content: Спроектировать и добавить storage для digest state и idempotency.
-    status: in_progress
+    status: completed
   - id: digest-service
     content: Реализовать сбор кандидатов, scoring и выбор 3 инсайтов из pool.
-    status: pending
+    status: completed
   - id: digest-telegram
     content: Собрать Telegram HTML copy и подключить доставку через existing send_bot_message service.
-    status: pending
+    status: completed
   - id: digest-celery
     content: Добавить Celery task и регистрацию фонового workflow без новых HTTP routes.
-    status: pending
+    status: completed
   - id: digest-tests
     content: Покрыть scoring, delivery, orchestration, dedupe и edge cases pytest-тестами.
-    status: pending
+    status: completed
 isProject: false
 ---
 

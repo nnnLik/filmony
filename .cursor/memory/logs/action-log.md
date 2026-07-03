@@ -17,6 +17,9 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-03T193000Z-subscribed-activity-telegram-digest-docs.md`
+- `2026-07-03T192900Z-subscribed-activity-telegram-digest-test.md`
+- `2026-07-03T192800Z-subscribed-activity-telegram-digest-code.md`
 - `2026-07-03T191530Z-profile-filters-persistence-docs.md`
 - `2026-07-03T191500Z-profile-filters-persistence-code.md`
 - `2026-07-03T191300Z-feed-ordering-updated-at-docs.md`
