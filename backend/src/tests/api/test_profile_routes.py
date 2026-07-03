@@ -498,6 +498,20 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert by_key[(default_id, 'Фильмы')] == 1
     assert by_key[(None, 'Без полки')] == 1
 
+    tag_taste = {item['tag']: item for item in body['tag_taste']}
+    assert tag_taste['Шедевр']['count'] == 2
+    assert tag_taste['Шедевр']['average_rating'] == 9.5
+    assert tag_taste['Ноланомания']['average_rating'] == 10.0
+
+    insights = body['insights']
+    assert insights['dominant_company'] == 'alone'
+    assert insights['dominant_mood_after'] == 'cried'
+    assert insights['top_tag'] == 'Шедевр'
+    assert insights['activity_total_180d'] >= 0
+
+    assert body['social']['mutual_subscriptions_count'] == 0
+    assert body['social']['taste_peers'] == []
+
 
 @pytest.mark.asyncio
 async def test_user_stats_activity_heatmap_excludes_planned_cards(
@@ -553,7 +567,7 @@ async def test_user_stats_activity_heatmap_excludes_planned_cards(
     start = datetime.fromisoformat(body['activity_start']).date()
     end = datetime.fromisoformat(body['activity_end']).date()
     assert end == today
-    assert (end - start).days == 89
+    assert (end - start).days == 179
 
     by_day = {item['date']: item['count'] for item in body['activity_distribution']}
     assert by_day.get(str(today)) == 1
@@ -608,6 +622,155 @@ async def test_user_stats_activity_heatmap_filters_by_shelf(async_client: AsyncC
     assert len(filtered_body['activity_distribution']) == 1
     assert filtered_body['activity_distribution'][0]['count'] == 1
     assert filtered_body['total_movies'] == 2
+
+
+async def _seed_movie_card_for_film(
+    *,
+    user_id: UUID,
+    film_id: int,
+    kinopoisk_id: int,
+    rating: float,
+    company: str = 'alone',
+    mood_after: str = 'enjoyed',
+    tags: list[str] | None = None,
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
+            user_id=user_id,
+            film_id=film_id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(kinopoisk_id),
+            rating=rating,
+            company=company,
+            mood_before='relax',
+            mood_after=mood_after,
+            is_planned=False,
+        )
+        session.add(card)
+        await session.flush()
+        for tag in tags or []:
+            session.add(CardTag(card_id=card.id, tag=tag))
+        await session.commit()
+        return card.id
+
+
+async def _create_shared_film(*, kinopoisk_id: int, title: str, year: int) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(
+            kinopoisk_id=kinopoisk_id,
+            title=title,
+            year=year,
+            poster_url='https://example.com/poster.jpg',
+            genres=[],
+        )
+        session.add(film)
+        await session.commit()
+        await session.refresh(film)
+        return int(film.id)
+
+
+@pytest.mark.asyncio
+async def test_user_stats_social_insights(async_client: AsyncClient) -> None:
+    owner = await _login(async_client, telegram_user_id=5290)
+    owner_id = UUID(str(owner['id']))
+
+    peer_high = await _login(async_client, telegram_user_id=5291)
+    peer_low = await _login(async_client, telegram_user_id=5292)
+    peer_none = await _login(async_client, telegram_user_id=5293)
+
+    film_alpha_id = await _create_shared_film(kinopoisk_id=5290001, title='Shared Alpha', year=2024)
+    film_beta_id = await _create_shared_film(kinopoisk_id=5290002, title='Shared Beta', year=2023)
+    film_owner_only_id = await _create_shared_film(
+        kinopoisk_id=5290003, title='Owner Only', year=2022
+    )
+    film_peer_extra_id = await _create_shared_film(
+        kinopoisk_id=5290100, title='Peer Extra', year=2020
+    )
+
+    await _seed_movie_card_for_film(
+        user_id=owner_id,
+        film_id=film_alpha_id,
+        kinopoisk_id=5290001,
+        rating=9.0,
+        tags=['alpha'],
+    )
+    await _seed_movie_card_for_film(
+        user_id=owner_id,
+        film_id=film_beta_id,
+        kinopoisk_id=5290002,
+        rating=8.0,
+        tags=['beta'],
+    )
+    await _seed_movie_card_for_film(
+        user_id=owner_id,
+        film_id=film_owner_only_id,
+        kinopoisk_id=5290003,
+        rating=7.0,
+        tags=['gamma'],
+    )
+
+    peer_high_id = UUID(str(peer_high['id']))
+    await _seed_movie_card_for_film(
+        user_id=peer_high_id,
+        film_id=film_alpha_id,
+        kinopoisk_id=5290001,
+        rating=10.0,
+        tags=['alpha'],
+    )
+    await _seed_movie_card_for_film(
+        user_id=peer_high_id,
+        film_id=film_beta_id,
+        kinopoisk_id=5290002,
+        rating=8.5,
+        tags=['beta'],
+    )
+    await _seed_movie_card_for_film(
+        user_id=peer_high_id,
+        film_id=film_peer_extra_id,
+        kinopoisk_id=5290100,
+        rating=6.0,
+        tags=['extra'],
+    )
+
+    await _seed_movie_card_for_film(
+        user_id=UUID(str(peer_low['id'])),
+        film_id=film_alpha_id,
+        kinopoisk_id=5290001,
+        rating=5.0,
+        tags=['alpha'],
+    )
+
+    await _login(async_client, telegram_user_id=5291)
+    assert (await async_client.post(f'/api/users/{owner_id}/subscriptions')).status_code == 204
+    await _login(async_client, telegram_user_id=5290)
+    assert (
+        await async_client.post(f'/api/users/{peer_high["id"]}/subscriptions')
+    ).status_code == 204
+
+    await _login(async_client, telegram_user_id=5292)
+    assert (await async_client.post(f'/api/users/{owner_id}/subscriptions')).status_code == 204
+
+    await _login(async_client, telegram_user_id=5293)
+    assert (await async_client.post(f'/api/users/{owner_id}/subscriptions')).status_code == 204
+
+    await _login(async_client, telegram_user_id=5290)
+    r = await async_client.get(f'/api/users/{owner_id}/stats')
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body['social']['mutual_subscriptions_count'] == 1
+    peers = body['social']['taste_peers']
+    assert len(peers) == 2
+    assert peers[0]['id'] == peer_high['id']
+    assert peers[0]['shared_films_count'] == 2
+    assert peers[0]['similarity_score'] == round(2 / (3 + 3 - 2), 3)
+    assert peers[1]['id'] == peer_low['id']
+    assert peers[1]['shared_films_count'] == 1
+    assert peer_none['id'] not in {p['id'] for p in peers}
 
 
 @pytest.mark.asyncio

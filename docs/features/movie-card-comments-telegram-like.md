@@ -1,5 +1,8 @@
 # Feature: movie-card-comments-telegram-like
 
+## Статус
+- done
+
 ## Что реализовано
 - Комментарии карточки фильма переведены с древовидного рендера на плоский Telegram-like сценарий.
 - `GET /api/cards/{card_id}/comments` теперь возвращает плоский список всех комментариев карточки (включая ответы) с cursor pagination.

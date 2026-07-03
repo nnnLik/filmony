@@ -15,7 +15,7 @@ from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
-ACTIVITY_WINDOW_DAYS = 90
+ACTIVITY_WINDOW_DAYS = 180
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +40,21 @@ class ValueDistributionItem:
 class TagDistributionItem:
     tag: str
     count: int
+
+
+@dataclass(frozen=True, slots=True)
+class TagTasteItem:
+    tag: str
+    count: int
+    average_rating: float
+
+
+@dataclass(frozen=True, slots=True)
+class ProfileInsights:
+    activity_total_180d: int
+    dominant_company: str | None
+    dominant_mood_after: str | None
+    top_tag: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +87,8 @@ class UserCardStats:
     rating_distribution: list[RatingDistributionItem]
     year_distribution: list[YearDistributionItem]
     popular_tags: list[TagDistributionItem]
+    tag_taste: list[TagTasteItem]
+    insights: ProfileInsights
     watch_with_distribution: list[ValueDistributionItem]
     mood_after_distribution: list[ValueDistributionItem]
     category_distribution: list[CategoryDistributionItem]
@@ -229,6 +246,29 @@ class GetUserCardStatsService:
         ).all()
         popular_tags = [TagDistributionItem(tag=tag, count=int(count)) for tag, count in tag_rows]
 
+        tag_taste_rows = (
+            await self._session.execute(
+                select(
+                    CardTag.tag,
+                    func.count(CardTag.id),
+                    func.avg(UserCard.rating),
+                )
+                .join(UserCard, UserCard.id == CardTag.card_id)
+                .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
+                .group_by(CardTag.tag)
+                .order_by(desc(func.count(CardTag.id)), CardTag.tag)
+                .limit(10)
+            )
+        ).all()
+        tag_taste = [
+            TagTasteItem(
+                tag=tag,
+                count=int(count),
+                average_rating=round(float(avg_rating), 1),
+            )
+            for tag, count, avg_rating in tag_taste_rows
+        ]
+
         sorted_by_top = sorted(movies, key=lambda item: (-item.rating, item.card_id))
         sorted_by_worst = sorted(movies, key=lambda item: (item.rating, item.card_id))
 
@@ -239,12 +279,25 @@ class GetUserCardStatsService:
             activity_category_id=activity_category_id,
         )
 
+        activity_total_180d = sum(item.count for item in activity_distribution)
+        dominant_company = watch_with_distribution[0].value if watch_with_distribution else None
+        dominant_mood_after = mood_after_distribution[0].value if mood_after_distribution else None
+        top_tag = tag_taste[0].tag if tag_taste else None
+        insights = ProfileInsights(
+            activity_total_180d=activity_total_180d,
+            dominant_company=dominant_company,
+            dominant_mood_after=dominant_mood_after,
+            top_tag=top_tag,
+        )
+
         return UserCardStats(
             total_movies=total_movies,
             average_rating=average_rating,
             rating_distribution=rating_distribution,
             year_distribution=year_distribution,
             popular_tags=popular_tags,
+            tag_taste=tag_taste,
+            insights=insights,
             watch_with_distribution=watch_with_distribution,
             mood_after_distribution=mood_after_distribution,
             category_distribution=category_distribution,

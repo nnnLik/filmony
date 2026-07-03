@@ -72,7 +72,7 @@ export function ProfileActivityHeatmap({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-(--tgui--hint_color)">
             {totalCompleted > 0
-              ? `${totalCompleted} завершённых за 3 месяца`
+              ? `${totalCompleted} завершённых за 6 месяцев`
               : 'Пока нет завершённых просмотров'}
           </p>
           {loading ? (
@@ -113,7 +113,7 @@ export function ProfileActivityHeatmap({
         ) : null}
 
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
-          <div className="inline-flex min-w-full items-start gap-2">
+          <div className="flex min-w-full justify-center gap-2">
             <div className="grid shrink-0 grid-rows-7 gap-[3px] pt-[2px] text-[9px] leading-none text-(--tgui--hint_color)">
               {WEEKDAY_LABELS.map((label, index) => (
                 <span key={`wd-${index}`} className="flex h-[11px] items-center">
@@ -128,7 +128,7 @@ export function ProfileActivityHeatmap({
                 gridTemplateColumns: `repeat(${weekCount}, 11px)`,
               }}
               role="grid"
-              aria-label="Сетка активности просмотров за 3 месяца"
+              aria-label="Сетка активности просмотров за 6 месяцев"
             >
               {grid.flatMap((row) =>
                 row.map((cell) => (

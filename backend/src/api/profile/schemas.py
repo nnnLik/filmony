@@ -12,6 +12,7 @@ from models.catalog_item import CatalogProvider
 from models.user import User
 from services.profile.get_user_card_stats import UserCardStats
 from services.profile.get_user_profile_counts import UserProfileCounts
+from services.profile.get_user_profile_social_insights import UserProfileSocialInsights
 from services.profile.list_user_cards import UserCardListPage
 from services.subscriptions.list_user_subscriptions import (
     SubscriptionListItem,
@@ -275,6 +276,41 @@ class TagDistributionItemResponse(BaseModel):
     count: int
 
 
+class TagTasteItemResponse(BaseModel):
+    tag: str
+    count: int
+    average_rating: float
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class ProfileInsightsResponse(BaseModel):
+    activity_total_180d: int
+    dominant_company: str | None
+    dominant_mood_after: str | None
+    top_tag: str | None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class TastePeerItemResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    display_name: str | None
+    photo_url: str | None
+    similarity_score: float
+    shared_films_count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class ProfileSocialInsightsResponse(BaseModel):
+    mutual_subscriptions_count: int
+    taste_peers: list[TastePeerItemResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class CategoryDistributionItemResponse(BaseModel):
     category_id: int | None
     name: str
@@ -305,6 +341,8 @@ class UserCardStatsApiResponse(BaseModel):
     rating_distribution: list[RatingDistributionItemResponse] = Field(default_factory=list)
     year_distribution: list[YearDistributionItemResponse] = Field(default_factory=list)
     popular_tags: list[TagDistributionItemResponse] = Field(default_factory=list)
+    tag_taste: list[TagTasteItemResponse] = Field(default_factory=list)
+    insights: ProfileInsightsResponse
     watch_with_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
     mood_after_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
@@ -313,6 +351,7 @@ class UserCardStatsApiResponse(BaseModel):
     activity_distribution: list[ActivityDistributionItemResponse] = Field(default_factory=list)
     activity_start: date
     activity_end: date
+    social: ProfileSocialInsightsResponse
 
 
 def build_watchlist_entry_item_response(item: WatchlistEntryListItem) -> WatchlistEntryItemResponse:
@@ -436,7 +475,11 @@ def build_subscription_list_response(items: list[SubscriptionListItem]) -> Subsc
     )
 
 
-def build_user_card_stats_response(stats: UserCardStats) -> UserCardStatsApiResponse:
+def build_user_card_stats_response(
+    stats: UserCardStats,
+    *,
+    social: UserProfileSocialInsights,
+) -> UserCardStatsApiResponse:
     return UserCardStatsApiResponse(
         total_movies=stats.total_movies,
         average_rating=stats.average_rating,
@@ -452,6 +495,20 @@ def build_user_card_stats_response(stats: UserCardStats) -> UserCardStatsApiResp
             TagDistributionItemResponse(tag=item.tag, count=item.count)
             for item in stats.popular_tags
         ],
+        tag_taste=[
+            TagTasteItemResponse(
+                tag=item.tag,
+                count=item.count,
+                average_rating=item.average_rating,
+            )
+            for item in stats.tag_taste
+        ],
+        insights=ProfileInsightsResponse(
+            activity_total_180d=stats.insights.activity_total_180d,
+            dominant_company=stats.insights.dominant_company,
+            dominant_mood_after=stats.insights.dominant_mood_after,
+            top_tag=stats.insights.top_tag,
+        ),
         watch_with_distribution=[
             ValueDistributionItemResponse(value=item.value, count=item.count)
             for item in stats.watch_with_distribution
@@ -496,4 +553,18 @@ def build_user_card_stats_response(stats: UserCardStats) -> UserCardStatsApiResp
         ],
         activity_start=stats.activity_start,
         activity_end=stats.activity_end,
+        social=ProfileSocialInsightsResponse(
+            mutual_subscriptions_count=social.mutual_subscriptions_count,
+            taste_peers=[
+                TastePeerItemResponse(
+                    id=peer.id,
+                    profile_slug=peer.profile_slug,
+                    display_name=peer.display_name,
+                    photo_url=peer.photo_url,
+                    similarity_score=peer.similarity_score,
+                    shared_films_count=peer.shared_films_count,
+                )
+                for peer in social.taste_peers
+            ],
+        ),
     )

@@ -33,6 +33,7 @@ from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_card_stats import GetUserCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
+from services.profile.get_user_profile_social_insights import GetUserProfileSocialInsightsService
 from services.profile.list_my_user_card_tag_stats import ListMyUserCardTagStatsService
 from services.profile.list_user_cards import ListUserCardsService
 from services.profile.list_user_feed_posts import ListUserFeedPostsService
@@ -319,7 +320,8 @@ async def get_user_movie_card_stats(
         )
     except GetUserCardStatsService.InvalidCategoryFilter:
         raise HTTPException(status_code=422, detail='invalid category for user') from None
-    return build_user_card_stats_response(stats)
+    social = await GetUserProfileSocialInsightsService.build(db).execute(user_id)
+    return build_user_card_stats_response(stats, social=social)
 
 
 @router.post(

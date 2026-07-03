@@ -17,6 +17,9 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-03T201500Z-profile-taste-match-spec.md`
+- `2026-07-03T201500Z-profile-analytics-redesign-code.md`
+- `2026-07-03T201000Z-profile-analytics-redesign.md`
 - `2026-07-03T195800Z-profile-activity-heatmap.md`
 - `2026-07-03T193000Z-subscribed-activity-telegram-digest-docs.md`
 - `2026-07-03T192900Z-subscribed-activity-telegram-digest-test.md`

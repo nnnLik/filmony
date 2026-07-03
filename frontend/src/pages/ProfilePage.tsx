@@ -16,6 +16,7 @@ import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
+import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
 import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
@@ -39,10 +40,6 @@ import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeG
 import './ProfilePage.css'
 
 type ProfileMainTab = 'movies' | 'posts' | 'stats'
-
-function shownCount(value: number | undefined): string {
-  return typeof value === 'number' ? String(value) : '0'
-}
 
 function toPublicShape(p: MyProfile): PublicProfile {
   return {
@@ -426,6 +423,16 @@ export function ProfilePage() {
     })
   }, [])
 
+  const drillToWatchlist = useCallback(() => {
+    setMainTab('movies')
+    setMoviesSegment('watchlist')
+  }, [])
+
+  const drillToRatedSegment = useCallback(() => {
+    setMainTab('movies')
+    setMoviesSegment('rated')
+  }, [])
+
   const ratedCardsLoadMoreRef = useInfiniteScrollLoadMore({
     enabled:
       auth.kind === 'ready' &&
@@ -565,35 +572,19 @@ export function ProfilePage() {
             {shownName}
           </Title>
           <p className="mt-1 font-mono text-[11px] text-(--tgui--hint_color)">@{profile.profile_slug}</p>
-          <div className="mt-4 grid w-full max-w-sm grid-cols-2 gap-2">
-            <button
-              type="button"
-              className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
-              onClick={() => void navigate('/profile/subscriptions?tab=followers')}
-            >
-              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.followers_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">подписчиков</span>
-            </button>
-            <button
-              type="button"
-              className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center transition-opacity active:opacity-80"
-              onClick={() => void navigate('/profile/subscriptions?tab=following')}
-            >
-              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.following_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">подписок</span>
-            </button>
-            <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
-              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.cards_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">оценено</span>
-            </div>
-            <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
-              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.watchlist_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">позже</span>
-            </div>
-            <div className="col-span-2 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-2 text-center">
-              <span className="block text-lg font-semibold tabular-nums">{shownCount(profile.favorites_count)}</span>
-              <span className="text-[11px] text-(--tgui--hint_color)">в любимых</span>
-            </div>
+          <div className="mt-4 w-full max-w-sm">
+            <ProfileCompactMetrics
+              followers_count={profile.followers_count}
+              following_count={profile.following_count}
+              cards_count={profile.cards_count}
+              watchlist_count={profile.watchlist_count}
+              favorites_count={profile.favorites_count}
+              onFollowersClick={() => void navigate('/profile/subscriptions?tab=followers')}
+              onFollowingClick={() => void navigate('/profile/subscriptions?tab=following')}
+              onRatedClick={drillToRatedSegment}
+              onWatchlistClick={drillToWatchlist}
+              onFavoritesClick={drillToRatedSegment}
+            />
           </div>
         </div>
 

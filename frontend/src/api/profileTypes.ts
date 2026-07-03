@@ -435,6 +435,48 @@ export type ProfileStatsMovieItem = {
   rating: number
 }
 
+/** Тег с весом для пузырьковой диаграммы вкуса (GET /stats tag_taste). */
+export type TagTasteItem = {
+  tag: string
+  count: number
+  average_rating?: number | null
+  /** @deprecated use average_rating */
+  avg_rating?: number | null
+  weight?: number | null
+}
+
+/** Краткий инсайт для блока «Обзор» (клиентская проекция). */
+export type ProfileInsightItem = {
+  key: string
+  label: string
+  value: string
+  hint?: string | null
+}
+
+/** Сводка активности и доминирующих паттернов (GET /stats insights). */
+export type ProfileInsightsSnapshot = {
+  activity_total_180d: number
+  dominant_company: string | null
+  dominant_mood_after: string | null
+  top_tag: string | null
+}
+
+/** Пользователь с пересечением вкуса (GET /stats social.taste_peers). */
+export type SocialTastePeerItem = {
+  id: string
+  profile_slug: string
+  display_name: string | null
+  photo_url: string | null
+  similarity_score: number
+  shared_films_count: number
+}
+
+/** Социальные агрегаты профиля (GET /stats social). */
+export type ProfileStatsSocial = {
+  mutual_subscriptions_count: number
+  taste_peers: SocialTastePeerItem[]
+}
+
 export type UserMovieCardStats = {
   total_movies: number
   average_rating: number
@@ -449,4 +491,10 @@ export type UserMovieCardStats = {
   activity_distribution: ActivityDistributionItem[]
   activity_start: string
   activity_end: string
+  /** Расширенный срез тегов для визуализации вкуса; fallback — popular_tags. */
+  tag_taste?: TagTasteItem[]
+  /** Сводка активности и доминирующих паттернов. */
+  insights?: ProfileInsightsSnapshot
+  /** Социальные метрики и похожие профили. */
+  social?: ProfileStatsSocial
 }
