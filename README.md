@@ -1,6 +1,7 @@
 # Filmony
 
 [![CI Backend](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml?query=branch%3Amaster)
+[![Codecov](https://codecov.io/gh/nnnLik/Filmony/branch/master/graph/badge.svg)](https://codecov.io/gh/nnnLik/Filmony)
 [![CI Frontend](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml?query=branch%3Amaster)
 [![Deploy](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml/badge.svg)](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white)
