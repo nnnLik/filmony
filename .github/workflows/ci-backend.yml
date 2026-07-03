@@ -82,6 +82,13 @@ jobs:
             backend/coverage.xml
             backend/htmlcov/
 
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage.xml
+
       - name: Coverage summary
         if: always()
         run: |

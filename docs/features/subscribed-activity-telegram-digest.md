@@ -1,35 +1,20 @@
-# Telegram Digest Подписанной Активности
+# Subscribed Activity Telegram Digest
+
+## Status
+done
 
 ## Summary
+Backend-only Telegram digest for subscribed activity. It gathers recent signals from followed users, builds a scored pool, selects up to 3 diverse insights, and sends the result through the existing Telegram delivery path.
 
-Раз в **48 часов** пользователи с активной Telegram-связкой и хотя бы одной подпиской могут получить компактный DM с **до 3 инсайтами** об активности людей, на которых они подписаны. Digest не заменяет точечные уведомления о публикациях.
+The feature uses per-recipient digest state for idempotency, skips empty or low-quality windows, and keeps recipient-level failures isolated in the Celery batch task. No new HTTP routes were added.
 
-## Celery task
+## Verification
+- `make backend-test-one target=src/tests/services/telegram/test_subscribed_activity_digest.py` - 6 passed
+- `make backend-test-one target=src/tests/tasks/test_subscribed_activity_digest.py` - 3 passed
+- `make backend-test-one target=src/tests/services/subscriptions/test_list_following_user_ids_for_follower_user.py` - passed
+- `make backend-test-one target=src/tests/test_celery_app.py` - passed
+- `docker compose exec backend alembic upgrade head`
 
-| Task | Назначение |
-|------|------------|
-| `tasks.telegram_engagement.send_subscribed_activity_digests` | Batch: найти due recipients, собрать и отправить digest |
-
-Расписание beat настраивается в deployment (в `celery_app.py` beat не включён).
-
-## Источники инсайтов
-
-- новые user cards подписанных авторов;
-- новые feed posts;
-- высокие оценки (≥9);
-- сводный сигнал по автору (≥2 события за окно).
-
-Выбор **3 пунктов** — weighted random из scored pool с ограничениями: max 1 пункт на автора, max 2 одного типа.
-
-## Связанный код
-
-- [`send_subscribed_activity_digest.py`](../../backend/src/services/telegram/send_subscribed_activity_digest.py)
-- [`subscribed_activity_digest_candidates.py`](../../backend/src/services/telegram/subscribed_activity_digest_candidates.py)
-- [`subscribed_activity_digest_state.py`](../../backend/src/models/subscribed_activity_digest_state.py)
-- [`telegram_engagement.py`](../../backend/src/tasks/telegram_engagement.py)
-
-## Tests
-
-- `backend/src/tests/services/telegram/test_subscribed_activity_digest.py`
-- `backend/src/tests/tasks/test_subscribed_activity_digest.py`
-- `backend/src/tests/services/subscriptions/test_list_following_user_ids_for_follower_user.py`
+## Notes
+- Celery beat scheduling for the batch task is configured in deployment.
+- Existing follower publish notifications and other Telegram delivery flows remain unchanged.

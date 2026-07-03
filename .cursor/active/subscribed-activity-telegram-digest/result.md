@@ -18,6 +18,8 @@ Status: done
 - `backend/src/services/telegram/send_subscribed_activity_digest.py`
 - `backend/src/services/telegram/mini_app_link.py`
 - `backend/src/tasks/telegram_engagement.py`
+- `.cursor/active/subscribed-activity-telegram-digest/progress.md`
+- `docs/features/subscribed-activity-telegram-digest.md`
 
 ## Verification
 - `make backend-test-one target=src/tests/services/telegram/test_subscribed_activity_digest.py` — 6 passed
@@ -29,3 +31,4 @@ Status: done
 ## Notes
 - Celery beat schedule for the batch task must be configured in deployment (not in repo Celery app yet).
 - No new HTTP routes.
+- Closeout artifacts now agree on `done` status.

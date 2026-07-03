@@ -40,7 +40,7 @@ pythonpath = ["src/"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 # make backend-test-one: pass -n0 (or -p no:xdist) to disable parallel xdist from addopts below.
-addopts = "-n auto --dist=loadscope --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov"
+addopts = "-n auto --dist=loadscope --cov=src --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov"
 
 [tool.coverage.run]
 source = ["src"]
