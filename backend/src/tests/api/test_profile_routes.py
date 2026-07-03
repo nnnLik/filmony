@@ -418,6 +418,28 @@ async def _seed_user_stats_movie_cards(
     )
 
 
+def _assert_distribution_counts(
+    items: list[dict[str, object]],
+    *,
+    key: str,
+    expected: dict[object, int],
+) -> None:
+    assert {item[key] for item in items} == set(expected)
+    assert {item[key]: item['count'] for item in items} == expected
+
+
+def _assert_titles(items: list[dict[str, object]], expected: list[str]) -> None:
+    assert [item['film_title'] for item in items] == expected
+
+
+def _assert_category_distribution(
+    items: list[dict[str, object]],
+    expected: dict[tuple[int | None, str], int],
+) -> None:
+    assert sum(item['count'] for item in items) == sum(expected.values())
+    assert {(item['category_id'], item['name']): item['count'] for item in items} == expected
+
+
 @pytest.mark.asyncio
 async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     peer = await _login(async_client, telegram_user_id=528)
@@ -444,64 +466,59 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert body['total_movies'] == 6
     assert body['average_rating'] == 7.2
 
-    ratings = {item['rating']: item['count'] for item in body['rating_distribution']}
-    assert ratings[10] == 1
-    assert ratings[9] == 2
-    assert ratings[7] == 2
-    assert ratings[1] == 1
+    _assert_distribution_counts(
+        body['rating_distribution'],
+        key='rating',
+        expected={10: 1, 9: 2, 7: 2, 1: 1},
+    )
+    _assert_distribution_counts(
+        body['year_distribution'],
+        key='year',
+        expected={2024: 1, 2023: 2, 2021: 1, 2020: 1, 2010: 1},
+    )
+    _assert_distribution_counts(
+        body['popular_tags'],
+        key='tag',
+        expected={'Шедевр': 2, 'Ноланомания': 1, 'Эпик': 1, 'Яркий': 1, 'Фемповестка': 1},
+    )
+    _assert_distribution_counts(
+        body['watch_with_distribution'],
+        key='value',
+        expected={'alone': 2, 'friends': 2, 'partner': 2},
+    )
+    _assert_distribution_counts(
+        body['mood_after_distribution'],
+        key='value',
+        expected={'cried': 2, 'laughed': 2, 'enjoyed': 1, 'wasted_time': 1},
+    )
 
-    years = {item['year']: item['count'] for item in body['year_distribution']}
-    assert years[2024] == 1
-    assert years[2023] == 2
-    assert years[2021] == 1
-    assert years[2020] == 1
-    assert years[2010] == 1
+    _assert_titles(
+        body['top_movies'],
+        ['Фильм A', 'Фильм B', 'Фильм C', 'Фильм D', 'Фильм E'],
+    )
+    _assert_titles(
+        body['worst_movies'],
+        ['Фильм F', 'Фильм D', 'Фильм E', 'Фильм B', 'Фильм C'],
+    )
 
-    tags = {item['tag']: item['count'] for item in body['popular_tags']}
-    assert tags['Шедевр'] == 2
-    assert tags['Ноланомания'] == 1
-    assert tags['Эпик'] == 1
-    assert tags['Яркий'] == 1
-    assert tags['Фемповестка'] == 1
-
-    by_company = {item['value']: item['count'] for item in body['watch_with_distribution']}
-    assert by_company['alone'] == 2
-    assert by_company['friends'] == 2
-    assert by_company['partner'] == 2
-
-    by_mood = {item['value']: item['count'] for item in body['mood_after_distribution']}
-    assert by_mood['cried'] == 2
-    assert by_mood['laughed'] == 2
-    assert by_mood['enjoyed'] == 1
-    assert by_mood['wasted_time'] == 1
-
-    assert [item['film_title'] for item in body['top_movies']] == [
-        'Фильм A',
-        'Фильм B',
-        'Фильм C',
-        'Фильм D',
-        'Фильм E',
-    ]
-    assert [item['film_title'] for item in body['worst_movies']] == [
-        'Фильм F',
-        'Фильм D',
-        'Фильм E',
-        'Фильм B',
-        'Фильм C',
-    ]
-
-    cat_dist = body['category_distribution']
-    assert sum(item['count'] for item in cat_dist) == 6
-    by_key = {(item['category_id'], item['name']): item['count'] for item in cat_dist}
-    assert by_key[(art_id, 'Артхаус')] == 2
-    assert by_key[(block_id, 'Блокбастеры')] == 2
-    assert by_key[(default_id, 'Фильмы')] == 1
-    assert by_key[(None, 'Без полки')] == 1
+    _assert_category_distribution(
+        body['category_distribution'],
+        {
+            (art_id, 'Артхаус'): 2,
+            (block_id, 'Блокбастеры'): 2,
+            (default_id, 'Фильмы'): 1,
+            (None, 'Без полки'): 1,
+        },
+    )
 
     tag_taste = {item['tag']: item for item in body['tag_taste']}
-    assert tag_taste['Шедевр']['count'] == 2
-    assert tag_taste['Шедевр']['average_rating'] == 9.5
-    assert tag_taste['Ноланомания']['average_rating'] == 10.0
+    assert tag_taste == {
+        'Шедевр': {'tag': 'Шедевр', 'count': 2, 'average_rating': 9.5},
+        'Ноланомания': {'tag': 'Ноланомания', 'count': 1, 'average_rating': 10.0},
+        'Эпик': {'tag': 'Эпик', 'count': 1, 'average_rating': 9.0},
+        'Яркий': {'tag': 'Яркий', 'count': 1, 'average_rating': 7.0},
+        'Фемповестка': {'tag': 'Фемповестка', 'count': 1, 'average_rating': 7.0},
+    }
 
     insights = body['insights']
     assert insights['dominant_company'] == 'alone'
@@ -509,8 +526,9 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert insights['top_tag'] == 'Шедевр'
     assert insights['activity_total_180d'] >= 0
 
-    assert body['social']['mutual_subscriptions_count'] == 0
-    assert body['social']['taste_peers'] == []
+    social = body['social']
+    assert social['mutual_subscriptions_count'] == 0
+    assert social['taste_peers'] == []
 
 
 @pytest.mark.asyncio
