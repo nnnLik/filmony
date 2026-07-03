@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from unittest.mock import Mock
+
+from celery.signals import worker_before_create_process
+
 import celery_app
 
 
@@ -21,3 +25,13 @@ def test_celery_app_registers_telegram_engagement_tasks() -> None:
     assert 'tasks.telegram_engagement.notify_feed_post_comment_reply' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_followers_new_user_card' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_followers_new_feed_post' in celery_app.app.tasks
+    assert 'tasks.telegram_engagement.send_subscribed_activity_digests' in celery_app.app.tasks
+
+
+def test_celery_app_freezes_gc_before_worker_fork(monkeypatch) -> None:
+    freeze = Mock()
+    monkeypatch.setattr(celery_app.gc, 'freeze', freeze)
+
+    worker_before_create_process.send(sender=celery_app.app)
+
+    freeze.assert_called_once_with()
