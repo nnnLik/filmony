@@ -75,6 +75,33 @@ async def _seed_movie_card(
         return card.id
 
 
+async def _seed_null_film_movie_card(
+    *,
+    user_id: UUID,
+    rating: float,
+    company: str = 'alone',
+    mood_after: str = 'enjoyed',
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
+            user_id=user_id,
+            film_id=None,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id='legacy-null-film',
+            rating=rating,
+            company=company,
+            mood_before='relax',
+            mood_after=mood_after,
+            is_planned=False,
+        )
+        session.add(card)
+        await session.commit()
+        return card.id
+
+
 @pytest.mark.asyncio
 async def test_my_profile_requires_auth(async_client: AsyncClient) -> None:
     r = await async_client.get('/api/me/profile')
@@ -729,6 +756,12 @@ async def test_user_stats_social_insights(async_client: AsyncClient) -> None:
         kinopoisk_id=5290003,
         rating=7.0,
         tags=['gamma'],
+    )
+    await _seed_null_film_movie_card(
+        user_id=owner_id,
+        rating=6.5,
+        company='alone',
+        mood_after='enjoyed',
     )
 
     peer_high_id = UUID(str(peer_high['id']))

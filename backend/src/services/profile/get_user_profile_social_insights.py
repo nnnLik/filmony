@@ -69,6 +69,7 @@ class GetUserProfileSocialInsightsService:
                     select(UserCard.film_id).where(
                         UserCard.user_id == user_id,
                         UserCard.is_planned.is_(False),
+                        UserCard.film_id.is_not(None),
                     )
                 )
             )
