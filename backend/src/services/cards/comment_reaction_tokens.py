@@ -15,6 +15,10 @@ from services.profile.validate_inline_mention_tokens import (
     MentionTokenValidationError,
     validate_and_canonicalize_mentions,
 )
+from services.text.spoiler_tokens import (
+    SpoilerTokenValidationError,
+    validate_spoiler_tokens,
+)
 
 COMMENT_TEXT_MAX_LEN = 250
 REACTION_TOKEN_RE = re.compile(r'⟦r(\d+)⟧')
@@ -71,6 +75,11 @@ async def validate_comment_text_with_reaction_tokens(
             body, session, author_user_id=author_user_id
         )
     except MentionTokenValidationError as e:
+        raise CommentReactionTokenError(str(e)) from e
+
+    try:
+        body = validate_spoiler_tokens(body)
+    except SpoilerTokenValidationError as e:
         raise CommentReactionTokenError(str(e)) from e
 
     return body, mention_ids

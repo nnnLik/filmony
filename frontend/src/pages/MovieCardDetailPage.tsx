@@ -44,6 +44,7 @@ import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
 import { inlineMovieCardRefMapFromSnippets } from '../lib/inlineMovieCardRefMap'
 import {
   authorLikeToMentionRow,
@@ -74,6 +75,7 @@ import { CommentBodyWithReactionTokens } from '../components/comments/CommentBod
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
+import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { PlannedCardBadge } from '../components/cards/PlannedCardBadge'
@@ -466,6 +468,25 @@ export function MovieCardDetailPage() {
     [commentText],
   )
 
+  const toggleSpoilerInComment = useCallback(() => {
+    setCommentMentionPicker(null)
+    setCommentMentionHighlightIdx(0)
+    const el = commentTextAreaRef.current
+    const toggled = toggleSpoilerAtSelection(
+      commentText,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      COMMENT_BODY_MAX_LEN,
+    )
+    if (toggled == null) return
+    setCommentText(toggled.nextValue)
+    const caret = toggled.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [commentText])
+
   useEffect(() => {
     if (viewerId != null) return
     let alive = true
@@ -828,6 +849,7 @@ export function MovieCardDetailPage() {
             commentRefs={commentRefs}
             commentTextAreaRef={commentTextAreaRef}
             insertReactionIntoComment={insertReactionIntoComment}
+            toggleSpoilerInComment={toggleSpoilerInComment}
             insertMovieCardIntoComment={insertMovieCardIntoComment}
             commentDraftInlineCardRefs={commentDraftInlineCardRefs}
             loadComments={loadComments}
@@ -902,6 +924,7 @@ type MovieCardDetailLoadedBodyProps = {
   commentRefs: MutableRefObject<Record<number, HTMLDivElement | null>>
   commentTextAreaRef: RefObject<HTMLTextAreaElement | null>
   insertReactionIntoComment: (reactionTypeId: number) => void
+  toggleSpoilerInComment: () => void
   insertMovieCardIntoComment: (row: WatchedInlinePickerItem) => void
   commentDraftInlineCardRefs: ReadonlyMap<number, { film_title: string; film_year: number | null }>
   loadComments: (append: boolean) => Promise<void>
@@ -951,6 +974,7 @@ function MovieCardDetailLoadedBody({
   commentRefs,
   commentTextAreaRef,
   insertReactionIntoComment,
+  toggleSpoilerInComment,
   insertMovieCardIntoComment,
   commentDraftInlineCardRefs,
   loadComments,
@@ -1418,6 +1442,11 @@ function MovieCardDetailLoadedBody({
                   <div className="flex shrink-0 flex-col items-center justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
                       onPickReactionTypeId={insertReactionIntoComment}
+                      disabled={submitBusy || commentImageUploadBusy}
+                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
+                    />
+                    <CommentSpoilerToggleButton
+                      onToggleSpoiler={toggleSpoilerInComment}
                       disabled={submitBusy || commentImageUploadBusy}
                       allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
                     />

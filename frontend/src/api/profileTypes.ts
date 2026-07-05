@@ -230,7 +230,7 @@ export type MovieCard = {
   mood_before: CardMoodBefore
   mood_after: CardMoodAfter
   custom_tags: string[]
-  /** Заметка о просмотре (до 500 символов); в ленте и профиле приходит с бэкенда. */
+  /** Заметка о просмотре (до 1000 символов); в ленте и профиле приходит с бэкенда. */
   watch_note?: string
   /** Полка организации коллекции; может отсутствовать на устаревших кэшах клиента. */
   category?: UserCardCategorySnippet

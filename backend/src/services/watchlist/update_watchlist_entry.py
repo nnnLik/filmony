@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
@@ -15,6 +16,10 @@ from services.cards.create_planned_user_card import CreatePlannedUserCardService
 from services.cards.get_planned_user_card import GetPlannedUserCardService
 from services.telegram.send_watchlist_invite_notification import (
     SendWatchlistInviteNotificationService,
+)
+from services.text.spoiler_tokens import (
+    SpoilerTokenValidationError,
+    validate_spoiler_tokens,
 )
 from services.watchlist.assert_mutual_watch_partner import AssertMutualWatchPartnerService
 from services.watchlist.normalize_watch_with_partners import (
@@ -25,7 +30,13 @@ from services.watchlist.normalize_watch_with_partners import (
 
 
 def _normalize_watch_note(raw: str) -> str:
-    return (raw or '').strip()[:500]
+    s = (raw or '').strip()
+    if len(s) > WATCH_NOTE_MAX_LEN:
+        raise ValueError(f'watch note max length is {WATCH_NOTE_MAX_LEN}')
+    try:
+        return validate_spoiler_tokens(s)
+    except SpoilerTokenValidationError as e:
+        raise ValueError(str(e)) from e
 
 
 def _partner_ids_from_entry(entry: WatchlistEntry, actor_user_id: UUID) -> list[UUID]:

@@ -15,6 +15,10 @@ from services.profile.validate_inline_mention_tokens import (
     MentionTokenValidationError,
     validate_and_canonicalize_mentions,
 )
+from services.text.spoiler_tokens import (
+    SpoilerTokenValidationError,
+    validate_spoiler_tokens,
+)
 
 FEED_POST_BODY_MAX_LEN = 2000
 _REACTION_TOKEN_RE = re.compile(r'⟦r(\d+)⟧')
@@ -70,6 +74,11 @@ async def validate_feed_post_body(
             body, session, author_user_id=author_user_id
         )
     except MentionTokenValidationError as e:
+        raise FeedPostBodyValidationError(str(e)) from e
+
+    try:
+        body = validate_spoiler_tokens(body)
+    except SpoilerTokenValidationError as e:
         raise FeedPostBodyValidationError(str(e)) from e
 
     return body, mention_ids

@@ -8,11 +8,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
 from models.user_card import UserCard
+from services.text.spoiler_tokens import (
+    SpoilerTokenValidationError,
+    validate_spoiler_tokens,
+)
 from services.user_card_categories.resolve_user_card_category_id_for_owner import (
     ResolveUserCardCategoryIdForOwnerService,
 )
@@ -36,6 +41,16 @@ def _optional_str(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text if text != '' else None
+
+
+def _normalize_watch_note(raw: str) -> str:
+    s = (raw or '').strip()
+    if len(s) > WATCH_NOTE_MAX_LEN:
+        raise ValueError(f'watch note max length is {WATCH_NOTE_MAX_LEN}')
+    try:
+        return validate_spoiler_tokens(s)
+    except SpoilerTokenValidationError as e:
+        raise ValueError(str(e)) from e
 
 
 @dataclass
@@ -67,7 +82,7 @@ class CreatePlannedUserCardService:
             self._session
         ).execute(user_id, category_id)
 
-        normalized_note = (watch_note or '').strip()[:500]
+        normalized_note = _normalize_watch_note(watch_note)
 
         if provider == CatalogProvider.kinopoisk.value:
             return await self._upsert_kinopoisk(

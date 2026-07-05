@@ -17,6 +17,7 @@ import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReacti
 import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
+import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
 import { inlineMovieCardRefMapFromSnippets } from '../../lib/inlineMovieCardRefMap'
 import {
   COMMENT_BODY_MAX_LEN,
@@ -24,6 +25,7 @@ import {
   movieCardRefTokenFromId,
   reactionTokenFromId,
 } from '../../lib/commentReactionTokens'
+import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
@@ -254,6 +256,23 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       return next
     })
     const caret = inserted.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [draft])
+
+  const toggleSpoilerInDraft = useCallback(() => {
+    const el = draftInputRef.current
+    const toggled = toggleSpoilerAtSelection(
+      draft,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      COMMENT_BODY_MAX_LEN,
+    )
+    if (toggled == null) return
+    setDraft(toggled.nextValue)
+    const caret = toggled.caret
     queueMicrotask(() => {
       el?.focus()
       el?.setSelectionRange(caret, caret)
@@ -637,6 +656,11 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                   />
                   <CommentReactionTokenPicker
                     onPickReactionTypeId={insertReactionToken}
+                    disabled={submitBusy}
+                    allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
+                  />
+                  <CommentSpoilerToggleButton
+                    onToggleSpoiler={toggleSpoilerInDraft}
                     disabled={submitBusy}
                     allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
                   />

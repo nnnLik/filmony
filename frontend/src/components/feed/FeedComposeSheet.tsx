@@ -22,7 +22,9 @@ import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReacti
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
+import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
 import { insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../../lib/commentReactionTokens'
+import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import {
   applyMentionPick,
   mentionReplacementFromSlug,
@@ -237,6 +239,24 @@ export function FeedComposeSheet({
       return next
     })
     const caret = inserted.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [body])
+
+  const toggleSpoilerInBody = useCallback(() => {
+    setMentionPicker(null)
+    const el = bodyRef.current
+    const toggled = toggleSpoilerAtSelection(
+      body,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      FEED_POST_BODY_MAX,
+    )
+    if (toggled == null) return
+    setBody(toggled.nextValue)
+    const caret = toggled.caret
     queueMicrotask(() => {
       el?.focus()
       el?.setSelectionRange(caret, caret)
@@ -517,6 +537,11 @@ export function FeedComposeSheet({
             <div className="flex shrink-0 items-center gap-1">
               <CommentReactionTokenPicker
                 onPickReactionTypeId={insertReactionToken}
+                disabled={submitBusy || uploadBusy}
+                allowInsert={body.length < FEED_POST_BODY_MAX}
+              />
+              <CommentSpoilerToggleButton
+                onToggleSpoiler={toggleSpoilerInBody}
                 disabled={submitBusy || uploadBusy}
                 allowInsert={body.length < FEED_POST_BODY_MAX}
               />

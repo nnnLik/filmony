@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
+import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import {
   deleteMyWatchlistFilm,
   getMyPlannedCard,
@@ -429,9 +430,9 @@ export function FilmDetailPage() {
                                   <summary className="cursor-pointer text-xs font-medium text-(--tgui--link_color)">
                                     Заметка к карточке
                                   </summary>
-                                  <p className="mt-2 whitespace-pre-wrap text-[13px] leading-snug text-(--tgui--text_color)">
-                                    {row.watch_note}
-                                  </p>
+                                  <div className="mt-2 text-[13px] leading-snug text-(--tgui--text_color)">
+                                    <CommentBodyWithReactionTokens text={row.watch_note} />
+                                  </div>
                                 </details>
                               ) : null}
                               {row.custom_tags.length > 0 ? (

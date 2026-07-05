@@ -18,7 +18,7 @@ class WatchlistEntryCreate(BaseModel):
     watch_tag: WatchTag
     company: CardCompany = CardCompany.alone
     category_id: int | None = Field(default=None, ge=1)
-    watch_note: str = Field(default='', max_length=500)
+    watch_note: str = Field(default='', max_length=1000)
     watch_with_user_id: UUID | None = None
     watch_with_user_ids: list[UUID] = Field(default_factory=list, max_length=20)
 

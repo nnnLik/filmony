@@ -45,6 +45,7 @@ import type {
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
+import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
 import { MutualWatchFriendsMultiPicker } from '../components/watchlist/MutualWatchFriendsMultiPicker'
@@ -66,6 +67,8 @@ import {
   movieCardReleaseCompactSuffix,
 } from '../lib/movieCardDisplay'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
+import { MAX_WATCH_NOTE_LEN } from '../lib/watchNoteLimits'
 import { filterMutualSubscriptions } from '../lib/mutualSubscriptionFilter'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 import { safeHapticSuccess } from '../lib/safeHaptic'
@@ -269,7 +272,7 @@ const WIZARD_TEXT_FIELD_CLASS =
 
 /** Совпадает с бэкендом `create_movie_card._normalize_tags`. */
 const MAX_CUSTOM_TAG_LEN = 40
-const MAX_WATCH_NOTE_LEN = 500
+const MAX_SHARE_COMMENT_LEN = 500
 
 /** После мастера создания сохраняем returnTo=feed в URL при strip query-параметров. */
 function cardsNewPathPreserveReturnTo(returnTo: string | null): string {
@@ -383,6 +386,7 @@ export function CreateCardPage() {
   const [createShelfBusy, setCreateShelfBusy] = useState(false)
   const fromCardBootstrapSeq = useRef(0)
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+  const watchlistNoteRef = useRef<HTMLTextAreaElement>(null)
   const createCardAudioInputRef = useRef<HTMLInputElement>(null)
   const [createCardAudioFile, setCreateCardAudioFile] = useState<File | null>(null)
 
@@ -408,6 +412,42 @@ export function CreateCardPage() {
     },
     [watchNote],
   )
+
+  const toggleSpoilerInWatchNote = useCallback(() => {
+    const el = watchNoteRef.current
+    const toggled = toggleSpoilerAtSelection(
+      watchNote,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      MAX_WATCH_NOTE_LEN,
+    )
+    if (toggled == null) return
+    setWatchNote(toggled.nextValue)
+    window.requestAnimationFrame(() => {
+      const target = watchNoteRef.current
+      if (!target) return
+      target.focus()
+      target.setSelectionRange(toggled.caret, toggled.caret)
+    })
+  }, [watchNote])
+
+  const toggleSpoilerInWatchlistNote = useCallback(() => {
+    const el = watchlistNoteRef.current
+    const toggled = toggleSpoilerAtSelection(
+      watchlistNote,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      MAX_WATCH_NOTE_LEN,
+    )
+    if (toggled == null) return
+    setWatchlistNote(toggled.nextValue)
+    window.requestAnimationFrame(() => {
+      const target = watchlistNoteRef.current
+      if (!target) return
+      target.focus()
+      target.setSelectionRange(toggled.caret, toggled.caret)
+    })
+  }, [watchlistNote])
 
   const tagStatsQuery = useQuery({
     queryKey: myMovieCardTagStatsQueryKey(),
@@ -1316,7 +1356,7 @@ export function CreateCardPage() {
       if (shareSelected.size > 0) {
         try {
           await shareMovieCardWithFollowers(newCard.id, [...shareSelected], {
-            shareComment: shareComment.trim().slice(0, MAX_WATCH_NOTE_LEN),
+            shareComment: shareComment.trim().slice(0, MAX_SHARE_COMMENT_LEN),
           })
         } catch {
           void navigate(`/cards/${newCard.id}/share`)
@@ -2008,8 +2048,9 @@ export function CreateCardPage() {
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">
                   По желанию — до {MAX_WATCH_NOTE_LEN} символов. Перенесётся, когда поставите оценку.
                 </p>
-                <div className="mt-2">
+                <div className="mt-2 flex gap-2">
                   <CommentDraftMultiline
+                    ref={watchlistNoteRef}
                     value={watchlistNote}
                     onChange={(v) => {
                       setWatchlistNote(v)
@@ -2019,8 +2060,14 @@ export function CreateCardPage() {
                     ariaLabel="Заметка для списка «Позже»"
                     maxLength={MAX_WATCH_NOTE_LEN}
                     rows={4}
-                    wrapperClassName={`min-h-24 ${WIZARD_TEXT_FIELD_CLASS}`}
+                    wrapperClassName={`min-h-24 flex-1 ${WIZARD_TEXT_FIELD_CLASS}`}
                   />
+                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                    <CommentSpoilerToggleButton
+                      allowInsert={watchlistNote.length < MAX_WATCH_NOTE_LEN}
+                      onToggleSpoiler={toggleSpoilerInWatchlistNote}
+                    />
+                  </div>
                 </div>
                 {watchlistNoteTooLong ? (
                   <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">
@@ -2309,10 +2356,14 @@ export function CreateCardPage() {
                     rows={4}
                     wrapperClassName="min-h-24 flex-1 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) outline-none transition-[border-color,box-shadow] focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
                   />
-                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                  <div className="flex shrink-0 flex-col justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
                       allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
                       onPickReactionTypeId={insertReactionIntoWatchNote}
+                    />
+                    <CommentSpoilerToggleButton
+                      allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
+                      onToggleSpoiler={toggleSpoilerInWatchNote}
                     />
                   </div>
                 </div>
@@ -2396,18 +2447,18 @@ export function CreateCardPage() {
                 <div className="mt-4">
                   <p className="text-sm font-medium text-(--tgui--text_color)">Комментарий к уведомлению</p>
                   <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                    Текст для Telegram у выбранных подписчиков. До {MAX_WATCH_NOTE_LEN} символов.
+                    Текст для Telegram у выбранных подписчиков. До {MAX_SHARE_COMMENT_LEN} символов.
                   </p>
                   <textarea
                     value={shareComment}
-                    maxLength={MAX_WATCH_NOTE_LEN}
+                    maxLength={MAX_SHARE_COMMENT_LEN}
                     onChange={(e) => setShareComment(e.currentTarget.value)}
                     placeholder="Например: загляните в мини-апп — там детали"
                     rows={3}
                     className={`mt-2 ${WIZARD_TEXT_FIELD_CLASS} min-h-20 resize-y`}
                   />
                   <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                    {shareComment.length}/{MAX_WATCH_NOTE_LEN}
+                    {shareComment.length}/{MAX_SHARE_COMMENT_LEN}
                   </p>
                 </div>
               </div>

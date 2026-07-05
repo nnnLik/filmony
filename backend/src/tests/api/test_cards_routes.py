@@ -563,6 +563,53 @@ async def test_create_card_watch_note_roundtrip(async_client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_create_card_watch_note_accepts_spoiler_tokens(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=6291)
+    film = await _create_film(kinopoisk_id=1006291)
+    note = '⟦S⟧финал с твистом⟦/S⟧'
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': note,
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    fetched = await async_client.get(f'/api/cards/{card_id}')
+    assert fetched.status_code == 200
+    assert fetched.json()['watch_note'] == note
+
+
+@pytest.mark.asyncio
+async def test_create_card_watch_note_rejects_over_1000_chars(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=6292)
+    film = await _create_film(kinopoisk_id=1006292)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': 'x' * 1001,
+        },
+    )
+    assert created.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_get_planned_card_returns_is_planned_true(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=623)
     film = await _create_film(kinopoisk_id=100623)
@@ -1378,6 +1425,13 @@ async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
         root_body['total_descendants_count'],
     ) == (None, me['id'], 'Отличный фильм\nСильная режиссура', 0)
     assert 'reactions' in root_body
+
+    spoiler = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': '⟦S⟧неожиданный финал⟦/S⟧'},
+    )
+    assert spoiler.status_code == 200
+    assert spoiler.json()['text'] == '⟦S⟧неожиданный финал⟦/S⟧'
 
     reply = await async_client.post(
         f'/api/cards/{card_id}/comments',

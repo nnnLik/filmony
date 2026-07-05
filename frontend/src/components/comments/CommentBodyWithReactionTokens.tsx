@@ -9,11 +9,13 @@ import {
   splitCommentTextIntoSegmentsWithRanges,
   type CommentTextSegmentWithRange,
 } from '../../lib/commentReactionTokens'
+import { splitTextWithSpoilers, SPOILER_OPEN } from '../../lib/spoilerTokens'
 import type { InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import { mentionChipLabelFromRow } from '../../lib/mentionChipDisplayLabel'
 import { mentionProfileKeyFromSlug, type MentionProfileRow } from '../../lib/mentionProfileLookupUtils'
 import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
+import { SpoilerRevealBlock } from './SpoilerRevealBlock'
 
 const MENTION_CHIP_CLASS =
   'mx-0.5 inline-block rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_50%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_14%,transparent)] px-1 py-0.5 align-[-0.12em] text-[0.92em] font-semibold tabular-nums text-(--tgui--text_color) no-underline transition-opacity hover:opacity-95 active:opacity-90'
@@ -38,6 +40,8 @@ type CommentBodyWithReactionTokensProps = {
   inlineMovieCardRefs?: ReadonlyMap<number, InlineMovieCardRefMeta>
   /** Сниппеты ⟦@slug⟧ с сервера (имя для всех зрителей, не только из контекста подписок). */
   referencedMentions?: readonly ReferencedMentionSnippet[]
+  /** Adds to every annotated segment range (for nested spoiler/plain slices). */
+  rangeOffset?: number
 }
 
 function buildImageUrlMap(catalog: ReactionGroupedCatalog): Map<number, string> {
@@ -51,17 +55,18 @@ function buildImageUrlMap(catalog: ReactionGroupedCatalog): Map<number, string> 
 }
 
 function segmentDomAttrs(
-  seg: CommentTextSegmentWithRange,
-  kind: 'text' | 'reaction' | 'mention' | 'card_ref',
+  seg: CommentTextSegmentWithRange | { rangeStart: number; rangeEnd: number },
+  kind: 'text' | 'reaction' | 'mention' | 'card_ref' | 'spoiler',
   on: boolean,
+  rangeOffset = 0,
 ): Record<string, string> {
   if (!on) {
     return {}
   }
   return {
     'data-segment': kind,
-    'data-char-start': String(seg.rangeStart),
-    'data-char-end': String(seg.rangeEnd),
+    'data-char-start': String(seg.rangeStart + rangeOffset),
+    'data-char-end': String(seg.rangeEnd + rangeOffset),
   }
 }
 
@@ -71,8 +76,10 @@ export function CommentBodyWithReactionTokens({
   annotateCharRanges = false,
   inlineMovieCardRefs,
   referencedMentions,
+  rangeOffset = 0,
 }: CommentBodyWithReactionTokensProps) {
   const mentionProfiles = useMentionProfileLookup()
+  const spoilerParts = useMemo(() => splitTextWithSpoilers(text), [text])
   const segments = useMemo(() => splitCommentTextIntoSegmentsWithRanges(text), [text])
   const textHasMentionTokens = useMemo(
     () => segments.some((s) => s.type === 'mention'),
@@ -128,6 +135,56 @@ export function CommentBodyWithReactionTokens({
     }
   }, [needsCatalog])
 
+  if (spoilerParts.length === 0) {
+    return null
+  }
+
+  const hasSpoilers = spoilerParts.some((part) => part.type === 'spoiler')
+
+  if (hasSpoilers) {
+    return (
+      <span className={className}>
+        {catalogError != null && !annotateCharRanges ? (
+          <span className="text-[11px] text-(--tgui--destructive_text_color)">{catalogError} · </span>
+        ) : null}
+        {spoilerParts.map((part, i) => {
+          if (part.type === 'plain') {
+            if (part.value === '') {
+              return null
+            }
+            return (
+              <CommentBodyWithReactionTokens
+                key={`plain-${i}`}
+                text={part.value}
+                annotateCharRanges={annotateCharRanges}
+                inlineMovieCardRefs={inlineMovieCardRefs}
+                referencedMentions={referencedMentions}
+                rangeOffset={part.rangeStart}
+              />
+            )
+          }
+          return (
+            <span
+              key={`spoiler-${i}`}
+              className="inline"
+              {...segmentDomAttrs(part, 'spoiler', annotateCharRanges, rangeOffset)}
+              >
+              <SpoilerRevealBlock>
+                <CommentBodyWithReactionTokens
+                  text={part.value}
+                  inlineMovieCardRefs={inlineMovieCardRefs}
+                  referencedMentions={referencedMentions}
+                  annotateCharRanges={annotateCharRanges}
+                  rangeOffset={part.rangeStart + SPOILER_OPEN.length + rangeOffset}
+                />
+              </SpoilerRevealBlock>
+            </span>
+          )
+        })}
+      </span>
+    )
+  }
+
   if (segments.length === 0) {
     return null
   }
@@ -140,7 +197,7 @@ export function CommentBodyWithReactionTokens({
       {segments.map((seg, i) => {
         if (seg.type === 'text') {
           return (
-            <span key={`t-${i}`} className="whitespace-pre-wrap" {...segmentDomAttrs(seg, 'text', annotateCharRanges)}>
+            <span key={`t-${i}`} className="whitespace-pre-wrap" {...segmentDomAttrs(seg, 'text', annotateCharRanges, rangeOffset)}>
               {seg.value}
             </span>
           )
@@ -191,7 +248,7 @@ export function CommentBodyWithReactionTokens({
               </span>
             )
           return (
-            <span key={`m-${i}`} className="inline" {...segmentDomAttrs(seg, 'mention', true)}>
+            <span key={`m-${i}`} className="inline" {...segmentDomAttrs(seg, 'mention', true, rangeOffset)}>
               {mentionInner}
             </span>
           )
@@ -221,7 +278,7 @@ export function CommentBodyWithReactionTokens({
             )
           }
           return (
-            <span key={`c-${i}`} className="inline" {...segmentDomAttrs(seg, 'card_ref', true)}>
+            <span key={`c-${i}`} className="inline" {...segmentDomAttrs(seg, 'card_ref', true, rangeOffset)}>
               {chip}
             </span>
           )
@@ -233,7 +290,7 @@ export function CommentBodyWithReactionTokens({
               key={`r-${i}`}
               className="inline-block align-[-0.15em] text-[13px] opacity-70"
               title="Реакция"
-              {...segmentDomAttrs(seg, 'reaction', annotateCharRanges)}
+              {...segmentDomAttrs(seg, 'reaction', annotateCharRanges, rangeOffset)}
             >
               ·
             </span>
@@ -243,7 +300,7 @@ export function CommentBodyWithReactionTokens({
           <span
             key={`r-${i}`}
             className="inline-block align-[-0.24em]"
-            {...segmentDomAttrs(seg, 'reaction', annotateCharRanges)}
+            {...segmentDomAttrs(seg, 'reaction', annotateCharRanges, rangeOffset)}
           >
             <img
               src={resolveApiMediaUrl(src)}

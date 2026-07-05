@@ -9,8 +9,11 @@ import { getMyCardCategories, getMyProfile } from '../api/profileApi'
 import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MyUserCardCategory } from '../api/profileTypes'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
+import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
+import { MAX_WATCH_NOTE_LEN } from '../lib/watchNoteLimits'
 import { myCardCategoriesQueryKey } from '../feed/feedQueryKeys'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -36,7 +39,6 @@ const MOOD_AFTER_OPTIONS: Array<{ value: CardMoodAfter; label: string }> = [
 ]
 
 const MAX_CUSTOM_TAG_LEN = 40
-const MAX_WATCH_NOTE_LEN = 500
 
 const CHIP_COLORS = [
   'bg-[#3B82F633] text-[#60A5FA]',
@@ -132,6 +134,24 @@ export function EditMovieCardPage() {
     },
     [watchNote],
   )
+
+  const toggleSpoilerInWatchNote = useCallback(() => {
+    const el = watchNoteRef.current
+    const toggled = toggleSpoilerAtSelection(
+      watchNote,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      MAX_WATCH_NOTE_LEN,
+    )
+    if (toggled == null) return
+    setWatchNote(toggled.nextValue)
+    window.requestAnimationFrame(() => {
+      const target = watchNoteRef.current
+      if (!target) return
+      target.focus()
+      target.setSelectionRange(toggled.caret, toggled.caret)
+    })
+  }, [watchNote])
 
   const parsedCardId = useMemo(() => {
     if (cardId == null) return null
@@ -488,11 +508,16 @@ export function EditMovieCardPage() {
                     rows={5}
                     wrapperClassName="min-h-28 flex-1 focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
                   />
-                  <div className="flex shrink-0 flex-col justify-start pt-1">
+                  <div className="flex shrink-0 flex-col justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
                       allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
                       disabled={saving}
                       onPickReactionTypeId={insertReactionIntoWatchNote}
+                    />
+                    <CommentSpoilerToggleButton
+                      allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
+                      disabled={saving}
+                      onToggleSpoiler={toggleSpoilerInWatchNote}
                     />
                   </div>
                 </div>

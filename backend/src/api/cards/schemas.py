@@ -35,7 +35,7 @@ class CardCreateRequest(BaseModel):
     mood_before: CardMoodBefore
     mood_after: CardMoodAfter
     custom_tags: list[str] = Field(default_factory=list, max_length=5)
-    watch_note: str = Field(default='', max_length=500)
+    watch_note: str = Field(default='', max_length=1000)
     category_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(extra='forbid')
@@ -204,7 +204,7 @@ class CardUpdateRequest(BaseModel):
     mood_before: CardMoodBefore | None = None
     mood_after: CardMoodAfter | None = None
     custom_tags: list[str] | None = Field(default=None, max_length=5)
-    watch_note: str | None = Field(default=None, max_length=500)
+    watch_note: str | None = Field(default=None, max_length=1000)
     is_favorite: bool | None = None
     category_id: int | None = Field(default=None, ge=1)
 

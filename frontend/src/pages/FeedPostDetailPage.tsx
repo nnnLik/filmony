@@ -25,11 +25,13 @@ import type { FeedPostComment, ReactionSummary } from '../api/profileTypes'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
+import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
+import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
 import {
   applyMentionPick,
   mentionReplacementFromSlug,
@@ -369,6 +371,25 @@ export function FeedPostDetailPage() {
     [commentText],
   )
 
+  const toggleSpoilerInComment = useCallback(() => {
+    setCommentMentionPicker(null)
+    setCommentMentionHighlightIdx(0)
+    const el = commentTextAreaRef.current
+    const toggled = toggleSpoilerAtSelection(
+      commentText,
+      el?.selectionStart ?? null,
+      el?.selectionEnd ?? null,
+      COMMENT_BODY_MAX_LEN,
+    )
+    if (toggled == null) return
+    setCommentText(toggled.nextValue)
+    const caret = toggled.caret
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [commentText])
+
   async function handleCreateComment() {
     if (parsedPostId == null || submitBusy) return
     const text = commentText.trim()
@@ -590,6 +611,11 @@ export function FeedPostDetailPage() {
                   <div className="flex shrink-0 flex-col items-center justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
                       onPickReactionTypeId={insertReactionIntoComment}
+                      disabled={submitBusy}
+                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
+                    />
+                    <CommentSpoilerToggleButton
+                      onToggleSpoiler={toggleSpoilerInComment}
                       disabled={submitBusy}
                       allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
                     />
