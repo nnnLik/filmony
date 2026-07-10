@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import datetime as dt
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from conf import settings
 from core.database import get_session_factory
+from models.feed_post import FeedPost
 from models.film import Film
 from models.user import User
+from models.user_card import UserCard
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -32,6 +36,16 @@ async def _create_film(*, kinopoisk_id: int = 900001) -> Film:
         await session.commit()
         await session.refresh(film)
         return film
+
+
+async def _card_updated_at_before_post(card_id: int, post_id: int) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        card = await session.get(UserCard, card_id)
+        post = await session.get(FeedPost, post_id)
+        assert card is not None and post is not None
+        card.updated_at = post.created_at - dt.timedelta(seconds=1)
+        await session.commit()
 
 
 @pytest.mark.asyncio
@@ -66,6 +80,8 @@ async def test_global_feed_cards_and_posts_chronology(async_client: AsyncClient)
     )
     assert r_post.status_code == 200
     post_id = int(r_post.json()['id'])
+
+    await _card_updated_at_before_post(card_id, post_id)
 
     r_all = await async_client.get('/api/feed/global?limit=20&kind=all')
     assert r_all.status_code == 200
@@ -201,6 +217,102 @@ async def test_global_feed_includes_other_users_cards(async_client: AsyncClient)
     items = r.json()['items']
     match = next(x for x in items if x['id'] == other_card_id)
     assert str(match['user_id']) == author_id
+
+
+@pytest.mark.asyncio
+async def test_global_feed_all_resurfaces_updated_card_above_newer_post(
+    async_client: AsyncClient,
+) -> None:
+    """Обновлённая карточка всплывает выше более нового поста в kind=all."""
+    await _login(async_client, telegram_user_id=71101)
+    film = await _create_film(kinopoisk_id=71102)
+    r_card = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': film.genres,
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r_card.status_code == 200
+    card_id = int(r_card.json()['id'])
+
+    r_post = await async_client.post(
+        '/api/feed-posts',
+        json={'body': 'newer than the card'},
+    )
+    assert r_post.status_code == 200
+    post_id = int(r_post.json()['id'])
+
+    await _card_updated_at_before_post(card_id, post_id)
+
+    before = await async_client.get('/api/feed/global?kind=all&limit=20')
+    assert before.status_code == 200
+    assert before.json()['items'][0]['kind'] == 'feed_post'
+    assert before.json()['items'][0]['id'] == post_id
+
+    r_patch = await async_client.patch(f'/api/cards/{card_id}', json={'rating': 8.5})
+    assert r_patch.status_code == 200
+
+    after = await async_client.get('/api/feed/global?kind=all&limit=20')
+    assert after.status_code == 200
+    assert after.json()['items'][0]['kind'] == 'movie_card'
+    assert after.json()['items'][0]['id'] == card_id
+
+
+@pytest.mark.asyncio
+async def test_global_feed_cards_sort_by_updated_at(async_client: AsyncClient) -> None:
+    """В kind=cards более свежий updated_at выше, даже если карточка создана раньше."""
+    await _login(async_client, telegram_user_id=71103)
+    film_a = await _create_film(kinopoisk_id=71104)
+    r_card_a = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_a.id,
+            'kinopoisk_id': film_a.kinopoisk_id,
+            'genres': film_a.genres,
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['older'],
+        },
+    )
+    assert r_card_a.status_code == 200
+    card_a_id = int(r_card_a.json()['id'])
+
+    film_b = await _create_film(kinopoisk_id=71105)
+    r_card_b = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_b.id,
+            'kinopoisk_id': film_b.kinopoisk_id,
+            'genres': film_b.genres,
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': ['newer'],
+        },
+    )
+    assert r_card_b.status_code == 200
+    card_b_id = int(r_card_b.json()['id'])
+
+    before = await async_client.get('/api/feed/global?kind=cards&limit=20')
+    assert before.status_code == 200
+    assert before.json()['items'][0]['id'] == card_b_id
+
+    r_patch = await async_client.patch(f'/api/cards/{card_a_id}', json={'rating': 9.0})
+    assert r_patch.status_code == 200
+
+    after = await async_client.get('/api/feed/global?kind=cards&limit=20')
+    assert after.status_code == 200
+    assert after.json()['items'][0]['id'] == card_a_id
 
 
 @pytest.mark.asyncio

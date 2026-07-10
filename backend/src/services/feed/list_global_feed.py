@@ -1,4 +1,4 @@
-"""Глобальная публичная лента: карточки и посты в одной хронологии по времени создания."""
+"""Глобальная публичная лента: карточки по updated_at, посты по created_at."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
         literal('card', type_=String()).label('etype'),
         literal(0, type_=Integer()).label('kind_rank'),
         UserCard.id.label('eid'),
-        UserCard.created_at.label('sort_at'),
+        UserCard.updated_at.label('sort_at'),
     ).select_from(UserCard)
     if exclude_own:
         card_branch = card_branch.where(UserCard.user_id != viewer_user_id)
@@ -92,7 +92,7 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
 
 @dataclass
 class ListGlobalFeedService:
-    """Отдаёт глобальную ленту: все публичные карточки и посты по времени, без соцграфа."""
+    """Отдаёт глобальную ленту: карточки по updated_at, посты по created_at, без соцграфа."""
 
     _session: AsyncSession
 
