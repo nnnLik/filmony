@@ -7,20 +7,20 @@ type WatchlistPosterGridProps = {
   items: WatchlistEntryItem[]
 }
 
-function watchlistNewCardHref(item: WatchlistEntryItem): string {
-  const params = new URLSearchParams({ branch: 'watchlist' })
+function watchlistNewHref(item: WatchlistEntryItem): string {
+  const params = new URLSearchParams()
   if (item.provider === 'kinopoisk' && item.film_id != null && item.film_id > 0) {
     params.set('filmId', String(item.film_id))
-    return `/cards/new?${params.toString()}`
+    return `/watchlist/new?${params.toString()}`
   }
   if (item.catalog_item_id != null && item.catalog_item_id > 0) {
     params.set('catalogItemId', String(item.catalog_item_id))
-    return `/cards/new?${params.toString()}`
+    return `/watchlist/new?${params.toString()}`
   }
   if (item.card_id.trim() !== '') {
     params.set('watchlistCardId', item.card_id)
   }
-  return `/cards/new?${params.toString()}`
+  return `/watchlist/new?${params.toString()}`
 }
 
 function watchlistItemHref(item: WatchlistEntryItem): string | null {
@@ -29,13 +29,13 @@ function watchlistItemHref(item: WatchlistEntryItem): string | null {
     return `/cards/${plannedId}`
   }
   if (item.provider === 'kinopoisk' && item.film_id != null && item.film_id > 0) {
-    return watchlistNewCardHref(item)
+    return watchlistNewHref(item)
   }
   if (item.catalog_item_id != null && item.catalog_item_id > 0) {
-    return watchlistNewCardHref(item)
+    return watchlistNewHref(item)
   }
   if (item.card_id.trim() !== '') {
-    return watchlistNewCardHref(item)
+    return watchlistNewHref(item)
   }
   return null
 }

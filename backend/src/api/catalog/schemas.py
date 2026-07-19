@@ -36,6 +36,30 @@ class CatalogSearchResponse(BaseModel):
     has_more: bool
 
 
+class CatalogCandidateResponse(BaseModel):
+    candidate_id: str
+    provider: CatalogProvider
+    external_id: str
+    kind: CatalogSearchHitKind
+    kind_hint: CatalogSearchHitKind | None = None
+    title: str
+    subtitle: str | None = None
+    cover_url: str | None = None
+    catalog_item_id: int | None = None
+    source: CatalogSearchHitSource
+    degraded: bool | None = None
+
+
+class CatalogCandidatesMetaResponse(BaseModel):
+    degraded_sources: list[str] = Field(default_factory=list)
+
+
+class CatalogCandidatesResponse(BaseModel):
+    items: list[CatalogCandidateResponse]
+    has_more: bool
+    meta: CatalogCandidatesMetaResponse
+
+
 class CatalogResolveRequest(BaseModel):
     provider: CatalogProvider
     url: str = Field(..., min_length=1)
@@ -47,6 +71,23 @@ class CatalogResolveResponse(BaseModel):
     catalog_item_id: int
     provider: CatalogProvider
     external_id: str
+    title: str
+    cover_url: str | None = None
+    summary: str | None = None
+    film: FilmResponse
+
+
+class CatalogResolveByUrlRequest(BaseModel):
+    url: str = Field(..., min_length=1)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class CatalogResolveByUrlResponse(BaseModel):
+    catalog_item_id: int
+    provider: CatalogProvider
+    external_id: str
+    kind: Literal['film'] = 'film'
     title: str
     cover_url: str | None = None
     summary: str | None = None

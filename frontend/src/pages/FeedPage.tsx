@@ -1,10 +1,10 @@
 import { Button, IconButton } from '@telegram-apps/telegram-ui'
-import { PenLine, UserRoundX } from 'lucide-react'
+import { UserRoundX } from 'lucide-react'
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
-import { Link, useLocation, type Location } from 'react-router-dom'
+import { useLocation, type Location } from 'react-router-dom'
 
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
@@ -17,6 +17,7 @@ import type { FeedPostComment, GlobalFeedKind, MovieCardComment } from '../api/p
 import { FeedCard } from '../components/feed/FeedCard'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
+import { CreateActionSheet } from '../components/feed/CreateActionSheet'
 import { FeedTopFab } from '../components/feed/FeedTopFab'
 import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
 import {
@@ -86,6 +87,7 @@ export function FeedPage() {
   const { openCompose } = useComposeFeedPost()
   const scrollContainerRef = useRef<HTMLElement | null>(null)
 
+  const [createSheetOpen, setCreateSheetOpen] = useState(false)
   const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
   const [myProfileBundle, setMyProfileBundle] = useState<unknown>(() => {
     const bundle: unknown = readMyProfileBundleCache()
@@ -364,20 +366,10 @@ export function FeedPage() {
                 </IconButton>
               ) : null}
               {auth.kind === 'ready' ? (
-                <IconButton
-                  type="button"
-                  mode="gray"
-                  size="s"
-                  onClick={() => openCompose()}
-                  aria-label="Новый пост в ленту"
-                  title="Пост в ленту"
-                >
-                  <PenLine className="block size-[18px]" strokeWidth={2} />
-                </IconButton>
+                <Button mode="gray" size="s" onClick={() => setCreateSheetOpen(true)}>
+                  Создать
+                </Button>
               ) : null}
-              <Link to="/cards/new" aria-label="Добавить карточку" className="shrink-0 no-underline">
-                <Button mode="gray">+</Button>
-              </Link>
             </div>
           </div>
           <div
@@ -443,9 +435,11 @@ export function FeedPage() {
                   ? `${emptyFeedGreeting}, здесь пока пусто`
                   : 'Здесь появятся публичные посты и карточки пользователей.'}
               </p>
-              <Link to="/cards/new" className="w-full no-underline">
-                <Button stretched>Добавить карточку</Button>
-              </Link>
+              {auth.kind === 'ready' ? (
+                <Button stretched onClick={() => setCreateSheetOpen(true)}>
+                  Создать
+                </Button>
+              ) : null}
             </div>
           )}
 
@@ -500,6 +494,13 @@ export function FeedPage() {
           liveHeadVersion={liveHeadVersion}
           ackHeadVersion={ackHeadVersion}
           onRefetch={onRefetchFeed}
+        />
+      ) : null}
+
+      {createSheetOpen ? (
+        <CreateActionSheet
+          onClose={() => setCreateSheetOpen(false)}
+          onOpenCompose={() => openCompose()}
         />
       ) : null}
     </div>

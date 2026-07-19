@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-19T191800Z-card-post-create-redesign-code.md`
+- `2026-07-19T161600Z-card-post-create-redesign-plan.md`
 - `2026-07-10T201500Z-global-feed-sort-by-updated-at-docs.md`
 - `2026-07-06T022500Z-note-spoiler-update-test-docs.md`
 - `2026-07-06T022400Z-note-spoiler-update-code.md`

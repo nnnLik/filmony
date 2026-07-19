@@ -177,7 +177,7 @@ export function FilmDetailPage() {
 
   const onAddToWatchlist = useCallback(() => {
     if (filmId < 1 || film == null) return
-    void navigate(`/cards/new?filmId=${encodeURIComponent(String(film.id))}&branch=watchlist`)
+    void navigate(`/watchlist/new?filmId=${encodeURIComponent(String(film.id))}`)
   }, [film, filmId, navigate])
 
   const onRemoveFromWatchlist = useCallback(async () => {

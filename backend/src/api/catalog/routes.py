@@ -7,6 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.catalog.schemas import (
+    CatalogCandidateResponse,
+    CatalogCandidatesMetaResponse,
+    CatalogCandidatesResponse,
+    CatalogResolveByUrlRequest,
+    CatalogResolveByUrlResponse,
     CatalogResolveRequest,
     CatalogResolveResponse,
     CatalogSearchHitResponse,
@@ -19,9 +24,12 @@ from deps.auth import CurrentUser
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
+from services.catalog.catalog_candidate_dto import CatalogCandidateDTO
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
 from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
+from services.catalog.resolve_catalog_by_url_service import ResolveCatalogByUrlService
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
+from services.catalog.search_catalog_candidates_service import SearchCatalogCandidatesService
 from services.catalog.search_kinopoisk_films_local_first import (
     CatalogFilmSearchHitDTO,
     SearchKinopoiskFilmsLocalFirstService,
@@ -59,6 +67,50 @@ def _game_search_hit(hit: RawgCatalogSearchHitDTO) -> CatalogSearchHitResponse:
         cover_url=hit.cover,
         catalog_item_id=hit.catalog_item_id,
         source=hit.source,
+    )
+
+
+def _catalog_candidate(item: CatalogCandidateDTO) -> CatalogCandidateResponse:
+    return CatalogCandidateResponse(
+        candidate_id=item.candidate_id,
+        provider=item.provider,
+        external_id=item.external_id,
+        kind=item.kind,
+        kind_hint=item.kind_hint,
+        title=item.title,
+        subtitle=item.subtitle,
+        cover_url=item.cover_url,
+        catalog_item_id=item.catalog_item_id,
+        source=item.source,
+        degraded=item.degraded,
+    )
+
+
+@router.get(
+    '/candidates',
+    response_model=CatalogCandidatesResponse,
+    summary='Смешанный поиск кандидатов каталога (Kinopoisk + RAWG)',
+)
+async def search_catalog_candidates(
+    *,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _viewer: CurrentUser,
+    q: Annotated[
+        str,
+        Query(
+            min_length=1,
+            alias='q',
+            description='Поисковая строка; после нормализации ≥3 для kinopoisk, ≥4 для rawg',
+        ),
+    ],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=40)] = 15,
+) -> CatalogCandidatesResponse:
+    result = await SearchCatalogCandidatesService.build(db).execute(q, page=page, limit=limit)
+    return CatalogCandidatesResponse(
+        items=[_catalog_candidate(item) for item in result.items],
+        has_more=result.has_more,
+        meta=CatalogCandidatesMetaResponse(degraded_sources=list(result.degraded_sources)),
     )
 
 
@@ -154,6 +206,51 @@ async def resolve_catalog_item(
         catalog_item_id=catalog_item.id,
         provider=catalog_item.provider,
         external_id=catalog_item.external_id,
+        title=film.title,
+        cover_url=film.poster_url,
+        summary=film.short_description,
+        film=FilmResponse(
+            id=film.id,
+            kinopoisk_id=film.kinopoisk_id,
+            genres=list(film.genres or []),
+            title=film.title,
+            year=film.year,
+            poster_url=film.poster_url,
+            short_description=film.short_description,
+            description=film.description,
+            my_card_id=my_card_id,
+        ),
+    )
+
+
+@router.post(
+    '/resolve-by-url',
+    response_model=CatalogResolveByUrlResponse,
+    summary='Резолв элемента каталога по URL (provider определяется по host)',
+)
+async def resolve_catalog_by_url(
+    body: CatalogResolveByUrlRequest,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CatalogResolveByUrlResponse:
+    try:
+        catalog_item, film = await ResolveCatalogByUrlService.build(db).execute(url=body.url)
+    except ResolveCatalogByUrlService.UnsupportedUrlHostError as e:
+        raise HTTPException(status_code=422, detail='unsupported url host') from e
+    except KinopoiskUrlParseError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except ResolveCatalogByUrlService.CatalogFilmNotFoundError as e:
+        raise HTTPException(status_code=404, detail='catalog item not found') from e
+    except KinopoiskClientError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+    my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
+
+    return CatalogResolveByUrlResponse(
+        catalog_item_id=catalog_item.id,
+        provider=catalog_item.provider,
+        external_id=catalog_item.external_id,
+        kind='film',
         title=film.title,
         cover_url=film.poster_url,
         summary=film.short_description,

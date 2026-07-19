@@ -9,6 +9,7 @@ function pathHasBottomNav(pathname: string): boolean {
   if (pathname === '/') return true
   if (pathname.startsWith('/profile')) return true
   if (pathname === '/cards/new') return true
+  if (pathname === '/watchlist/new') return true
   return false
 }
 

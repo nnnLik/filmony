@@ -152,6 +152,7 @@ from services.cards.upload_user_card_audio import (
     USER_CARD_AUDIO_MAX_BYTES,
     UserCardAudioUploadError,
 )
+from services.cards.upload_user_card_cover import UploadUserCardCoverService
 from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.feed_posts import (
     FEED_POST_IMAGE_MAX_BYTES,
@@ -278,6 +279,33 @@ async def upload_user_card_comment_image(
             content_type=content_type,
             data=data,
             media_subdir='movie_card_comments',
+        )
+    except HTTPException:
+        raise
+    except FeedPostImageUploadError as e:
+        msg = str(e).lower()
+        if 'not configured' in msg:
+            raise HTTPException(status_code=503, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return FeedPostImageUploadResponse(url=url)
+
+
+@router.post(
+    '/covers/upload',
+    response_model=FeedPostImageUploadResponse,
+    summary='Загрузить обложку для карточки фильма',
+)
+async def upload_user_card_cover(
+    user: CurrentUser,
+    file: UploadFile = File(...),
+) -> FeedPostImageUploadResponse:
+    content_type = (file.content_type or '').strip()
+    try:
+        data = await _read_upload_body_max(file, FEED_POST_IMAGE_MAX_BYTES)
+        url = await UploadUserCardCoverService.build().execute(
+            user_id=user.id,
+            content_type=content_type,
+            data=data,
         )
     except HTTPException:
         raise

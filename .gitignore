@@ -1,3 +1,6 @@
+# --- Cursor / agent artifacts ---
+.superpowers/
+
 # --- OS ---
 .DS_Store
 Thumbs.db

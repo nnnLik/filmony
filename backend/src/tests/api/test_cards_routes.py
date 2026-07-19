@@ -2512,6 +2512,49 @@ async def test_user_card_media_unsafe_key(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_user_card_cover_upload_requires_auth(async_client: AsyncClient) -> None:
+    r = await async_client.post(
+        '/api/cards/covers/upload',
+        files={'file': ('x.jpg', b'hello', 'image/jpeg')},
+    )
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_user_card_cover_upload_success(
+    monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
+) -> None:
+    from api.cards import routes as cards_routes_module
+
+    class FakeUpload:
+        @classmethod
+        def build(cls):
+            return cls()
+
+        async def execute(self, **_kwargs):
+            return '/api/cards/media/user_media/user_card_covers/x/y.jpg'
+
+    monkeypatch.setattr(cards_routes_module, 'UploadUserCardCoverService', FakeUpload)
+    await _login(async_client, telegram_user_id=880010)
+    r = await async_client.post(
+        '/api/cards/covers/upload',
+        files={'file': ('x.jpg', b'hello', 'image/jpeg')},
+    )
+    assert r.status_code == 200
+    assert r.json()['url'] == '/api/cards/media/user_media/user_card_covers/x/y.jpg'
+
+
+@pytest.mark.asyncio
+async def test_user_card_cover_upload_rejects_bad_type(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=880011)
+    r = await async_client.post(
+        '/api/cards/covers/upload',
+        files={'file': ('x.bin', b'hello', 'application/octet-stream')},
+    )
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_upload_card_audio_success(
     monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
 ) -> None:

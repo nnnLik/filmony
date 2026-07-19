@@ -453,7 +453,7 @@ export function FeedComposeSheet({
                 )
               }}
               onKeyDown={handleDraftKeyDown}
-              placeholder="Напишите пост…"
+              placeholder="Мысль, ссылка, упоминание…"
               ariaLabel="Текст поста"
               disabled={submitBusy || uploadBusy}
               maxLength={FEED_POST_BODY_MAX}

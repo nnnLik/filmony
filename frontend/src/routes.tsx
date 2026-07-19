@@ -52,6 +52,14 @@ const EditMovieCardPage = lazy(async () => {
   const m = await import('./pages/EditMovieCardPage')
   return { default: m.EditMovieCardPage }
 })
+const CreateWatchlistPage = lazy(async () => {
+  const m = await import('./pages/CreateWatchlistPage')
+  return { default: m.CreateWatchlistPage }
+})
+const EditPlannedWatchlistPage = lazy(async () => {
+  const m = await import('./pages/CreateWatchlistPage')
+  return { default: m.EditPlannedWatchlistPage }
+})
 
 export function AppRoutes() {
   return (
@@ -61,6 +69,7 @@ export function AppRoutes() {
           <Route index element={<FeedPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="cards/new" element={<CreateCardPage />} />
+          <Route path="watchlist/new" element={<CreateWatchlistPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/edit" element={<ProfileEditPage />} />
           <Route path="profile/subscriptions" element={<SubscriptionsPage />} />
@@ -72,7 +81,7 @@ export function AppRoutes() {
         <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
         <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />
         <Route path="/cards/:cardId/edit" element={<EditMovieCardPage />} />
-        <Route path="/cards/:cardId/edit-planned" element={<CreateCardPage />} />
+        <Route path="/cards/:cardId/edit-planned" element={<EditPlannedWatchlistPage />} />
       </Routes>
     </Suspense>
   )

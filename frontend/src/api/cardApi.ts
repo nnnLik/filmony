@@ -235,6 +235,23 @@ export const deleteMovieCard: (cardId: number) => Promise<void> = async (cardId:
   await assertActionOk(res)
 }
 
+export async function uploadUserCardCover(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await apiFetch('/api/cards/covers/upload', {
+    method: 'POST',
+    body: form,
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readActionErrorDetail(res))
+  }
+  const data = (await res.json()) as { url?: string }
+  if (typeof data.url !== 'string' || data.url.trim() === '') {
+    throw new ApiError(res.status, 'invalid upload response')
+  }
+  return data.url.trim()
+}
+
 export async function uploadUserCardAudio(cardId: number, file: File): Promise<{ url: string }> {
   const body = new FormData()
   body.append('file', file)

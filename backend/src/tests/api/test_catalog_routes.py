@@ -20,6 +20,7 @@ from providers.kinopoisk.kinopoisk_search_dto import (
 )
 from providers.rawg.rawg_openapi_dto import RawgGamesListQueryParams, RawgGamesListResponseDTO
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
+from services.kinopoisk.client import KinopoiskClientError
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -100,6 +101,74 @@ async def test_catalog_resolve_no_provider_returns_422(async_client: AsyncClient
         json={'provider': 'no_provider', 'url': 'https://example.com/anything'},
     )
     assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_kinopoisk_happy_path(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=703)
+
+    async def fake_get_film(self: object, kinopoisk_id: int):
+        from services.kinopoisk.client import KinopoiskFilmPayload
+
+        return KinopoiskFilmPayload(
+            kinopoisk_id=kinopoisk_id,
+            title='Resolve By Url',
+            year=2022,
+            poster_url='https://example.com/by-url.jpg',
+            genres=['драма'],
+            short_description='Краткое.',
+            description='Полное.',
+        )
+
+    monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
+
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': 'https://kinopoisk.ru/film/888001/'},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['provider'] == 'kinopoisk'
+    assert body['external_id'] == '888001'
+    assert body['kind'] == 'film'
+    assert body['title'] == 'Resolve By Url'
+    assert body['cover_url'] == 'https://example.com/by-url.jpg'
+    assert body['summary'] == 'Краткое.'
+    assert body['film']['kinopoisk_id'] == 888001
+    assert body['catalog_item_id'] >= 1
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_unknown_host_returns_422(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=704)
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': 'https://letterboxd.com/film/matrix/'},
+    )
+    assert r.status_code == 422
+    assert r.json()['detail'] == 'unsupported url host'
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_not_found_returns_404(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=705)
+
+    async def missing_film(self: object, kinopoisk_id: int):
+        _ = (self, kinopoisk_id)
+        raise KinopoiskClientError('kinopoisk returned 404')
+
+    monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', missing_film)
+
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': 'https://www.kinopoisk.ru/film/999404/'},
+    )
+    assert r.status_code == 404
+    assert r.json()['detail'] == 'catalog item not found'
 
 
 @pytest.mark.asyncio
@@ -434,3 +503,218 @@ async def test_catalog_search_kinopoisk_passes_normalized_lowercase_to_transport
     )
     assert r.status_code == 200
     assert seen == ['xyz abc']
+
+
+@pytest.mark.asyncio
+async def test_catalog_candidates_mixed_sources(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=71401)
+
+    remote_film = KinopoiskFilmSearchItemDTO.from_dict(
+        {
+            'filmId': 714_101,
+            'nameRu': 'Mixed Candidate Film',
+            'year': '2020',
+            'posterUrl': 'https://example.com/film.jpg',
+            'description': None,
+            'type': 'FILM',
+        },
+    )
+
+    async def fake_kp_search(self: KinopoiskProviderTransport, keyword: str, page: int = 1):
+        _ = (self, page)
+        assert keyword == 'mixedcandidates'
+        return KinopoiskFilmSearchResponseDTO(
+            keyword=keyword,
+            pages_count=1,
+            search_films_count_result=1,
+            films=(remote_film,),
+        )
+
+    rawg_doc = RawgGamesListResponseDTO.from_document(
+        {
+            'count': 1,
+            'next': None,
+            'previous': None,
+            'results': [
+                {
+                    'id': 714_102,
+                    'slug': 'mixed-game',
+                    'name': 'Mixed Candidate Game',
+                    'released': '2021-01-01',
+                    'tba': False,
+                    'background_image': 'https://example.com/game.jpg',
+                    'rating': 0.0,
+                    'rating_top': None,
+                    'ratings': {},
+                    'ratings_count': None,
+                    'reviews_text_count': None,
+                    'added': None,
+                    'added_by_status': {},
+                    'metacritic': None,
+                    'playtime': None,
+                    'suggestions_count': None,
+                    'updated': None,
+                    'esrb_rating': None,
+                    'platforms': [],
+                },
+            ],
+        },
+    )
+
+    async def fake_rawg_search(
+        _self: RawgProviderTransport, params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
+        assert params.search == 'mixedcandidates'
+        return rawg_doc
+
+    monkeypatch.setattr(KinopoiskProviderTransport, 'search_films_by_keyword', fake_kp_search)
+    monkeypatch.setattr(RawgProviderTransport, 'search_games', fake_rawg_search)
+
+    r = await async_client.get(
+        '/api/catalog/candidates',
+        params={'q': 'MixedCandidates', 'limit': 10},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['meta']['degraded_sources'] == []
+    assert len(body['items']) == 2
+
+    kinds = {item['kind'] for item in body['items']}
+    assert kinds == {'film', 'game'}
+
+    for item in body['items']:
+        assert item['candidate_id'] == f'{item["provider"]}:{item["external_id"]}'
+        assert item['kind_hint'] == item['kind']
+
+    film_item = next(i for i in body['items'] if i['kind'] == 'film')
+    game_item = next(i for i in body['items'] if i['kind'] == 'game')
+    assert film_item['external_id'] == '714101'
+    assert game_item['external_id'] == '714102'
+    assert film_item['source'] == 'remote'
+    assert game_item['source'] == 'remote'
+
+
+@pytest.mark.asyncio
+async def test_catalog_candidates_query_too_short_returns_empty(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=71402)
+    r = await async_client.get('/api/catalog/candidates', params={'q': '  ab '})
+    assert r.status_code == 200
+    body = r.json()
+    assert body['items'] == []
+    assert body['has_more'] is False
+    assert body['meta']['degraded_sources'] == []
+
+
+@pytest.mark.asyncio
+async def test_catalog_candidates_one_source_degraded(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=71403)
+
+    async def fake_kp_search(self: KinopoiskProviderTransport, keyword: str, page: int = 1):
+        _ = (self, page)
+        return KinopoiskFilmSearchResponseDTO(
+            keyword=keyword,
+            pages_count=1,
+            search_films_count_result=0,
+            films=(),
+        )
+
+    async def failing_rawg(
+        _self: RawgProviderTransport, params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
+        _ = params
+        raise RawgProviderTransport.RawgProviderTransportError(msg='RAWG timeout')
+
+    monkeypatch.setattr(KinopoiskProviderTransport, 'search_films_by_keyword', fake_kp_search)
+    monkeypatch.setattr(RawgProviderTransport, 'search_games', failing_rawg)
+
+    r = await async_client.get(
+        '/api/catalog/candidates',
+        params={'q': 'DegradedOne', 'limit': 5},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['meta']['degraded_sources'] == ['rawg']
+
+
+@pytest.mark.asyncio
+async def test_catalog_candidates_same_title_film_and_game_both_returned(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=71404)
+
+    title = 'Shared Title Token'
+
+    remote_film = KinopoiskFilmSearchItemDTO.from_dict(
+        {
+            'filmId': 714_201,
+            'nameRu': title,
+            'year': '2018',
+            'posterUrl': None,
+            'description': None,
+            'type': 'FILM',
+        },
+    )
+
+    async def fake_kp_search(self: KinopoiskProviderTransport, keyword: str, page: int = 1):
+        _ = (self, page)
+        return KinopoiskFilmSearchResponseDTO(
+            keyword=keyword,
+            pages_count=1,
+            search_films_count_result=1,
+            films=(remote_film,),
+        )
+
+    rawg_doc = RawgGamesListResponseDTO.from_document(
+        {
+            'count': 1,
+            'next': None,
+            'previous': None,
+            'results': [
+                {
+                    'id': 714_202,
+                    'slug': 'shared-title',
+                    'name': title,
+                    'released': None,
+                    'tba': False,
+                    'background_image': None,
+                    'rating': 0.0,
+                    'rating_top': None,
+                    'ratings': {},
+                    'ratings_count': None,
+                    'reviews_text_count': None,
+                    'added': None,
+                    'added_by_status': {},
+                    'metacritic': None,
+                    'playtime': None,
+                    'suggestions_count': None,
+                    'updated': None,
+                    'esrb_rating': None,
+                    'platforms': [],
+                },
+            ],
+        },
+    )
+
+    async def fake_rawg_search(
+        _self: RawgProviderTransport, params: RawgGamesListQueryParams
+    ) -> RawgGamesListResponseDTO:
+        return rawg_doc
+
+    monkeypatch.setattr(KinopoiskProviderTransport, 'search_films_by_keyword', fake_kp_search)
+    monkeypatch.setattr(RawgProviderTransport, 'search_games', fake_rawg_search)
+
+    r = await async_client.get(
+        '/api/catalog/candidates',
+        params={'q': 'SharedTitleToken', 'limit': 10},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body['items']) == 2
+    assert {item['title'] for item in body['items']} == {title}
+    assert {item['kind'] for item in body['items']} == {'film', 'game'}

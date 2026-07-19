@@ -1,0 +1,47 @@
+# Action Log Entry
+
+- Timestamp: 2026-07-19T191800Z
+- Feature slug: card-post-create-redesign
+- Action type: code
+- Summary: Completed card/post/watchlist create redesign — mixed catalog candidates API, URL resolve, card cover upload, feed action sheet, CreateCardPage scroll form rewrite, dedicated CreateWatchlistPage, feature docs closeout.
+- Files:
+  - `backend/src/api/cards/routes.py`
+  - `backend/src/api/catalog/routes.py`
+  - `backend/src/api/catalog/schemas.py`
+  - `backend/src/services/cards/upload_user_card_cover.py`
+  - `backend/src/services/catalog/catalog_candidate_dto.py`
+  - `backend/src/services/catalog/resolve_catalog_by_url_service.py`
+  - `backend/src/services/catalog/search_catalog_candidates_service.py`
+  - `backend/src/services/feed_posts/upload_feed_post_image.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `backend/src/tests/api/test_catalog_routes.py`
+  - `backend/src/tests/services/catalog/test_search_catalog_candidates_service.py`
+  - `backend/src/utils/user_card_media_key.py`
+  - `frontend/src/api/cardApi.ts`
+  - `frontend/src/api/catalogApi.ts`
+  - `frontend/src/components/create/CardCoverBlock.tsx`
+  - `frontend/src/components/create/CatalogCandidatesList.tsx`
+  - `frontend/src/components/create/RatedCardScrollForm.tsx`
+  - `frontend/src/components/create/WatchlistForm.tsx`
+  - `frontend/src/components/feed/CreateActionSheet.tsx`
+  - `frontend/src/components/feed/FeedComposeSheet.tsx`
+  - `frontend/src/components/profile/WatchlistPosterGrid.tsx`
+  - `frontend/src/hooks/useCatalogCandidates.ts`
+  - `frontend/src/hooks/useResolveCatalogUrl.ts`
+  - `frontend/src/lib/createCardBinding.ts`
+  - `frontend/src/lib/watchlistBinding.ts`
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/pages/CreateWatchlistPage.tsx`
+  - `frontend/src/pages/FeedPage.tsx`
+  - `frontend/src/pages/FilmDetailPage.tsx`
+  - `frontend/src/routes.tsx`
+  - `docs/features/card-post-create-redesign.md`
+  - `.cursor/active/card-post-create-redesign/result.md`
+  - `.cursor/active/card-post-create-redesign/progress.md`
+- Verification:
+  - `cd frontend && npm run lint && npm run build` — pass
+  - `make backend-test-one target=src/tests/api/test_catalog_routes.py` — failed (test DB missing `user` table; env/migrations)
+  - `make backend-test-one target=src/tests/api/test_cards_routes.py` — failed (same DB setup issue)
+- Links:
+  - Spec: `docs/superpowers/specs/2026-07-19-card-post-create-redesign-design.md`
+  - Feature doc: `docs/features/card-post-create-redesign.md`

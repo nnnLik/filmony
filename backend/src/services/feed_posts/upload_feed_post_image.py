@@ -53,7 +53,7 @@ class UploadFeedPostImageService:
         if client is None:
             raise FeedPostImageUploadError('storage not configured')
 
-        if media_subdir not in ('feed_posts', 'movie_card_comments'):
+        if media_subdir not in ('feed_posts', 'movie_card_comments', 'user_card_covers'):
             raise FeedPostImageUploadError('invalid media path')
         ext = _ALLOWED_CT_SUFFIX[ct]
         key = f'user_media/{media_subdir}/{user_id}/{uuid4().hex}{ext}'
