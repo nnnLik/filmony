@@ -63,6 +63,7 @@ class CreateUserCardInput:
     display_title: str | None = None
     display_cover_url: str | None = None
     display_summary: str | None = None
+    source_url: str | None = None
     category_id: int | None = None
 
 
@@ -180,6 +181,7 @@ class CreateUserCardService:
         genres = _normalize_genres(payload.genres)
         cover_url = _normalize_optional_url(payload.display_cover_url, field='display_cover_url')
         summary = _normalize_display_summary(payload.display_summary)
+        source_url = _normalize_optional_url(payload.source_url, field='source_url')
         try:
             resolved_category_id = await ResolveUserCardCategoryIdForOwnerService.build(
                 self._session
@@ -193,6 +195,7 @@ class CreateUserCardService:
         manual_title = (payload.display_title or '').strip()
 
         has_ke = payload.provider == CatalogProvider.kinopoisk and ext_norm is not None
+        has_yt = payload.provider == CatalogProvider.youtube and ext_norm is not None
 
         if payload.provider == CatalogProvider.no_provider:
             if ext_norm is not None:
@@ -216,21 +219,34 @@ class CreateUserCardService:
                 'or omit provider and use film_id/catalog_item_id',
             )
 
-        if ext_norm is not None:
-            if payload.provider not in (None, CatalogProvider.kinopoisk):
-                raise UserCardValidationError('external_id is only valid with provider kinopoisk')
-            if payload.provider is None:
+        if payload.provider == CatalogProvider.youtube:
+            if ext_norm is None:
+                raise UserCardValidationError('external_id is required for youtube')
+            if not manual_title:
+                raise UserCardValidationError('display_title is required for youtube')
+            if has_film or has_catalog:
                 raise UserCardValidationError(
-                    'provider kinopoisk is required when external_id is set'
+                    'youtube cannot be combined with film_id or catalog_item_id',
                 )
 
-        is_manual = not has_film and not has_catalog and not has_ke and bool(manual_title)
+        if ext_norm is not None:
+            if payload.provider not in (None, CatalogProvider.kinopoisk, CatalogProvider.youtube):
+                raise UserCardValidationError(
+                    'external_id is only valid with provider kinopoisk or youtube',
+                )
+            if payload.provider is None:
+                raise UserCardValidationError('provider is required when external_id is set')
 
-        modes = int(has_film) + int(has_catalog) + int(has_ke) + int(is_manual)
+        is_manual = (
+            not has_film and not has_catalog and not has_ke and not has_yt and bool(manual_title)
+        )
+
+        modes = int(has_film) + int(has_catalog) + int(has_ke) + int(has_yt) + int(is_manual)
         if modes != 1:
             raise UserCardValidationError(
                 'exactly one of: film-backed (film_id), catalog_item_id, '
                 'kinopoisk external subject (provider kinopoisk + external_id), '
+                'youtube subject (provider youtube + external_id + display_title), '
                 'or display_title (manual)',
             )
 
@@ -288,6 +304,23 @@ class CreateUserCardService:
                 bridged,
                 cover_url,
                 summary,
+            )
+        if has_yt:
+            assert ext_norm is not None
+            return await self._create_youtube(
+                user_id,
+                resolved_category_id,
+                rating,
+                custom_tags,
+                watch_note,
+                manual_title,
+                ext_norm,
+                cover_url,
+                summary,
+                source_url,
+                payload.company,
+                payload.mood_before,
+                payload.mood_after,
             )
         return await self._create_manual(
             user_id,
@@ -572,6 +605,58 @@ class CreateUserCardService:
                     == _watchlist_card_id_for_provider(ci.provider, ci.external_id),
                 )
             )
+
+        if custom_tags:
+            self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
+        await self._session.commit()
+        await self._session.refresh(entity)
+        return entity
+
+    async def _create_youtube(
+        self,
+        user_id: UUID,
+        category_id: int,
+        rating: float,
+        custom_tags: list[str],
+        watch_note: str,
+        title: str,
+        external_id: str,
+        display_cover_url: str | None,
+        display_summary: str | None,
+        source_url: str | None,
+        company: CardCompany,
+        mood_before: CardMoodBefore,
+        mood_after: CardMoodAfter,
+    ) -> UserCard:
+        if len(title) > 255:
+            raise UserCardValidationError('display_title max length is 255')
+
+        entity = UserCard(
+            user_id=user_id,
+            film_id=None,
+            catalog_item_id=None,
+            category_id=category_id,
+            provider=CatalogProvider.youtube,
+            external_id=external_id,
+            rating=rating,
+            company=company.value,
+            mood_before=mood_before.value,
+            mood_after=mood_after.value,
+            watch_note=watch_note,
+            display_title=title,
+            display_cover_url=display_cover_url,
+            display_summary=display_summary,
+            source_url=source_url,
+        )
+        entity.completed_at = _completion_now()
+
+        self._session.add(entity)
+
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise UserCardAlreadyExistsError from exc
 
         if custom_tags:
             self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])

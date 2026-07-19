@@ -81,11 +81,29 @@ export type CreateMovieCardManualPayload = {
   category_id?: number
 }
 
+/** POST /api/cards — YouTube video (abstract card, no catalog_item / film). */
+export type CreateMovieCardYoutubePayload = {
+  provider: Extract<UserCardProvider, 'youtube'>
+  external_id: string
+  display_title: string
+  display_cover_url?: string | null
+  display_summary?: string | null
+  source_url?: string
+  rating: number
+  company: CardCompany
+  mood_before: CardMoodBefore
+  mood_after: CardMoodAfter
+  custom_tags: string[]
+  watch_note?: string
+  category_id?: number
+}
+
 export type CreateMovieCardPayload =
   | CreateMovieCardFilmPayload
   | CreateMovieCardCatalogPayload
   | CreateMovieCardKinopoiskPayload
   | CreateMovieCardManualPayload
+  | CreateMovieCardYoutubePayload
 
 export type UpdateMovieCardPayload = {
   rating?: number

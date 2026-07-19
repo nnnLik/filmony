@@ -441,6 +441,7 @@ async def create_card(
                 display_title=(body.display_title or '').strip() or None,
                 display_cover_url=body.display_cover_url,
                 display_summary=body.display_summary,
+                source_url=body.source_url,
                 category_id=body.category_id,
             ),
         )

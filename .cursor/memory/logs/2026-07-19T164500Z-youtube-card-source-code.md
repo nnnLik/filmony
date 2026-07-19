@@ -1,0 +1,44 @@
+# Action Log Entry
+
+- Timestamp: 2026-07-19T164500Z
+- Feature slug: youtube-card-source
+- Action type: code
+- Summary: Shipped YouTube card source v1 — URL parser and oEmbed client, ResolveYoutubeVideoByUrlService, extended resolve-by-url and card create for provider=youtube, partial unique index, frontend youtube_video bindings on card/watchlist create, feature docs closeout.
+- Files:
+  - `backend/src/providers/youtube/__init__.py`
+  - `backend/src/providers/youtube/youtube_url.py`
+  - `backend/src/providers/youtube/youtube_oembed_client.py`
+  - `backend/src/services/catalog/youtube_video_dto.py`
+  - `backend/src/services/catalog/resolve_youtube_video_by_url_service.py`
+  - `backend/src/services/catalog/resolve_catalog_by_url_service.py`
+  - `backend/src/api/catalog/routes.py`
+  - `backend/src/api/catalog/schemas.py`
+  - `backend/src/api/cards/schemas.py`
+  - `backend/src/services/cards/create_user_card.py`
+  - `backend/src/models/catalog_item.py`
+  - `backend/src/migrations/versions/a2b3c4d5e678_user_card_youtube_external_partial.py`
+  - `backend/src/tests/providers/test_youtube_url.py`
+  - `backend/src/tests/providers/test_youtube_oembed_client.py`
+  - `backend/src/tests/services/catalog/test_resolve_youtube_video_by_url_service.py`
+  - `backend/src/tests/api/test_catalog_routes.py`
+  - `backend/src/tests/api/test_cards_routes.py`
+  - `frontend/src/api/profileTypes.ts`
+  - `frontend/src/api/catalogApi.ts`
+  - `frontend/src/api/cardApi.ts`
+  - `frontend/src/lib/createCardBinding.ts`
+  - `frontend/src/lib/watchlistBinding.ts`
+  - `frontend/src/pages/CreateCardPage.tsx`
+  - `frontend/src/components/create/WatchlistForm.tsx`
+  - `frontend/src/components/create/CatalogCandidatesList.tsx`
+  - `docs/features/youtube-card-source.md`
+  - `.cursor/active/youtube-card-source/result.md`
+  - `.cursor/active/youtube-card-source/progress.md`
+- Verification:
+  - `make backend-test-one target="src/tests/providers/test_youtube_url.py src/tests/providers/test_youtube_oembed_client.py src/tests/services/catalog/test_resolve_youtube_video_by_url_service.py"` — 28 passed
+  - `make backend-test-one target=src/tests/api/test_catalog_routes.py` — 25 passed
+  - `make backend-test-one target="src/tests/api/test_cards_routes.py::test_create_card_youtube_provider_happy_path src/tests/api/test_cards_routes.py::test_create_card_youtube_duplicate_returns_409"` — 2 passed
+  - `cd frontend && npm run lint && npm run build` — pass
+- Links:
+  - Feature doc: `docs/features/youtube-card-source.md`
+  - Plan: `docs/superpowers/plans/2026-07-19-youtube-card-source.md`
+  - Spec baseline: `docs/superpowers/specs/2026-07-19-card-post-create-redesign-design.md` § Future: YouTube

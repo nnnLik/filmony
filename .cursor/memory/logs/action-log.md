@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-19T164500Z-youtube-card-source-code.md`
+- `2026-07-19T163800Z-youtube-card-source-plan.md`
 - `2026-07-19T191800Z-card-post-create-redesign-code.md`
 - `2026-07-19T161600Z-card-post-create-redesign-plan.md`
 - `2026-07-10T201500Z-global-feed-sort-by-updated-at-docs.md`

@@ -286,6 +286,17 @@ export function CreateCardPage() {
             display_summary: card.display_summary ?? null,
             subtitle: movieCardReleaseCompactSuffix(card),
           }
+        } else if (card.provider === 'youtube' && (card.external_id ?? '').trim() !== '') {
+          const externalId = card.external_id!.trim()
+          binding = {
+            kind: 'youtube_video',
+            externalId,
+            sourceUrl: `https://www.youtube.com/watch?v=${externalId}`,
+            display_title: movieCardPrimaryTitle(card),
+            display_cover_url: movieCardPrimaryPoster(card),
+            display_summary: card.display_summary ?? null,
+            myCardId: null,
+          }
         } else {
           binding = {
             kind: 'manual',
@@ -492,6 +503,23 @@ export function CreateCardPage() {
           watch_note: watchNotePayload,
           ...shelfOpt,
         })
+      } else if (creationBinding.kind === 'youtube_video') {
+        const yt = creationBinding
+        newCard = await createMovieCard({
+          provider: 'youtube',
+          external_id: yt.externalId,
+          display_title: titleTrimmed,
+          ...coverOpt,
+          ...summaryOpt,
+          source_url: yt.sourceUrl,
+          rating: ratingPayload,
+          company,
+          mood_before: moodBefore,
+          mood_after: moodAfter,
+          custom_tags: customTags,
+          watch_note: watchNotePayload,
+          ...shelfOpt,
+        })
       } else {
         newCard = await createMovieCard({
           provider: 'no_provider',
@@ -615,7 +643,7 @@ export function CreateCardPage() {
             </div>
             <div className="filmony-text-panel space-y-4 p-4">
               <p className="text-sm text-(--tgui--hint_color)">
-                Введите название для поиска в каталогах или вставьте ссылку на страницу Кинопоиска.
+                Введите название для поиска в каталогах или вставьте ссылку на страницу Кинопоиска или YouTube.
               </p>
               <input
                 id="create-card-smart-field"

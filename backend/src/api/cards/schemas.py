@@ -29,6 +29,7 @@ class CardCreateRequest(BaseModel):
     display_title: str | None = Field(default=None, max_length=255)
     display_cover_url: str | None = Field(default=None, max_length=2048)
     display_summary: str | None = None
+    source_url: str | None = Field(default=None, max_length=2048)
     genres: list[str] = Field(default_factory=list, max_length=20)
     rating: float = Field(..., ge=1, le=10, multiple_of=0.5)
     company: CardCompany
@@ -49,6 +50,7 @@ class CardCreateRequest(BaseModel):
         title = (self.display_title or '').strip()
 
         has_ke = self.provider == CatalogProvider.kinopoisk and ext_norm is not None
+        has_yt = self.provider == CatalogProvider.youtube and ext_norm is not None
 
         if self.provider == CatalogProvider.no_provider:
             if ext_norm is not None:
@@ -72,19 +74,32 @@ class CardCreateRequest(BaseModel):
                 'or omit provider and use film_id/catalog_item_id',
             )
 
+        if self.provider == CatalogProvider.youtube:
+            if ext_norm is None:
+                raise ValueError('external_id is required for youtube')
+            if not title:
+                raise ValueError('display_title is required for youtube')
+            if has_film or has_catalog:
+                raise ValueError(
+                    'youtube cannot be combined with film_id or catalog_item_id',
+                )
+
         if ext_norm is not None:
-            if self.provider not in (None, CatalogProvider.kinopoisk):
-                raise ValueError('external_id is only valid with provider kinopoisk')
+            if self.provider not in (None, CatalogProvider.kinopoisk, CatalogProvider.youtube):
+                raise ValueError('external_id is only valid with provider kinopoisk or youtube')
             if self.provider is None:
-                raise ValueError('provider kinopoisk is required when external_id is set')
+                raise ValueError('provider is required when external_id is set')
 
-        is_manual = not has_film and not has_catalog and not has_ke and bool(title)
+        is_manual = (
+            not has_film and not has_catalog and not has_ke and not has_yt and bool(title)
+        )
 
-        modes = int(has_film) + int(has_catalog) + int(has_ke) + int(is_manual)
+        modes = int(has_film) + int(has_catalog) + int(has_ke) + int(has_yt) + int(is_manual)
         if modes != 1:
             raise ValueError(
                 'exactly one of film_id (with kinopoisk_id), catalog_item_id, '
                 'kinopoisk external subject (provider kinopoisk + external_id), '
+                'youtube subject (provider youtube + external_id + display_title), '
                 'or non-empty display_title (manual card) must be provided',
             )
 

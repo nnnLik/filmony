@@ -4,6 +4,7 @@ import type { CardCompany, Film, MovieCard } from '../api/profileTypes'
 import {
   creationBindingFromMovieCard,
   watchlistCustomCardId,
+  watchlistYoutubeCardId,
   type CreationBinding,
 } from './createCardBinding'
 
@@ -77,6 +78,25 @@ export function buildWatchlistCreatePayload(
   if (binding.kind === 'catalog_game' || binding.kind === 'catalog_item') {
     return { catalog_item_id: binding.catalogItemId, ...watchExtras }
   }
+  if (binding.kind === 'youtube_video') {
+    const externalId = binding.externalId.trim()
+    const title = binding.display_title.trim()
+    if (externalId === '' || title === '') return null
+    return {
+      card_id: watchlistYoutubeCardId(externalId),
+      provider_meta: {
+        provider: 'youtube',
+        data: {
+          external_id: externalId,
+          title,
+          display_cover_url: binding.display_cover_url,
+          display_summary: binding.display_summary,
+          source_url: binding.sourceUrl,
+        },
+      },
+      ...watchExtras,
+    }
+  }
   if (binding.kind === 'catalog_film' || binding.kind === 'film') {
     return { film_id: binding.film.id, ...watchExtras }
   }
@@ -107,6 +127,14 @@ export function watchlistBindingPreview(binding: WatchlistBinding): {
       posterUrl: binding.display_cover_url,
       title: binding.display_title,
       yearLabel: sub !== '' ? sub : 'Каталог RAWG',
+      genres: [],
+    }
+  }
+  if (binding.kind === 'youtube_video') {
+    return {
+      posterUrl: binding.display_cover_url,
+      title: binding.display_title,
+      yearLabel: 'YouTube',
       genres: [],
     }
   }

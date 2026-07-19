@@ -25,7 +25,7 @@ export type CatalogSearchResponse = {
   has_more: boolean
 }
 
-export type CatalogCandidateKind = 'film' | 'game'
+export type CatalogCandidateKind = 'film' | 'game' | 'video'
 
 export type CatalogCandidateSource = 'local' | 'remote'
 
@@ -55,14 +55,16 @@ export type CatalogCandidatesResponse = {
 
 /** POST /api/catalog/resolve-by-url — provider определяется по host URL на сервере. */
 export type CatalogResolveByUrlResponse = {
-  catalog_item_id: number
+  catalog_item_id: number | null
   provider: UserCardProvider
   external_id: string
-  kind: 'film'
+  kind: 'film' | 'video'
   title: string
   cover_url: string | null
   summary: string | null
-  film: Film
+  film: Film | null
+  source_url: string | null
+  my_card_id?: number | null
 }
 
 /** Разрешённые значения `provider` в теле POST /api/catalog/resolve (сервер отклоняет `no_provider`). */

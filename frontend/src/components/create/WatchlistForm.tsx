@@ -27,7 +27,7 @@ import { FilmGenreChips } from '../films/FilmGenreChips'
 import { MutualWatchFriendsMultiPicker } from '../watchlist/MutualWatchFriendsMultiPicker'
 import { myCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
 import { useCatalogCandidates } from '../../hooks/useCatalogCandidates'
-import { createManualBinding } from '../../lib/createCardBinding'
+import { createManualBinding, bindingFromResolveByUrl, mapResolveError } from '../../lib/createCardBinding'
 import { clearMyProfileBundleCache } from '../../lib/myProfileBundleCache'
 import { filterMutualSubscriptions } from '../../lib/mutualSubscriptionFilter'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
@@ -270,15 +270,11 @@ export function WatchlistForm({
     setResolveError(null)
     try {
       const resolved = await resolveCatalogByUrl(url)
-      onBindingChange?.({
-        kind: 'catalog_film',
-        catalogItemId: resolved.catalog_item_id,
-        film: resolved.film,
-      })
+      onBindingChange?.(bindingFromResolveByUrl(resolved))
       setSearchDraft('')
     } catch (e) {
       if (e instanceof ApiError) {
-        setResolveError(formatApiDetail(e.detail))
+        setResolveError(mapResolveError(formatApiDetail(e.detail)))
       } else {
         setResolveError('Не удалось распознать ссылку')
       }
@@ -390,7 +386,7 @@ export function WatchlistForm({
                 <input
                   id="watchlist-smart-field"
                   type="text"
-                  placeholder="Название, игра или ссылка Кинопоиска…"
+                  placeholder="Название, игра или ссылка Кинопоиска / YouTube…"
                   value={searchDraft}
                   onChange={(e) => {
                     setSearchDraft(e.currentTarget.value)

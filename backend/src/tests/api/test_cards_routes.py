@@ -198,6 +198,63 @@ async def test_create_card_kinopoisk_external_duplicate_returns_409(
 
 
 @pytest.mark.asyncio
+async def test_create_card_youtube_provider_happy_path(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=761030)
+    video_id = 'dQw4w9WgXcQ'
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'provider': 'youtube',
+            'external_id': video_id,
+            'display_title': 'Test Video',
+            'display_cover_url': 'https://i.ytimg.com/vi/abc/hqdefault.jpg',
+            'display_summary': 'Test Channel',
+            'source_url': f'https://www.youtube.com/watch?v={video_id}',
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['provider'] == 'youtube'
+    assert body['external_id'] == video_id
+    assert body['film_id'] is None
+    assert body['catalog_item_id'] is None
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        card = (
+            await session.execute(select(UserCard).where(UserCard.id == body['id']))
+        ).scalar_one()
+        assert card.provider == CatalogProvider.youtube
+        assert card.external_id == video_id
+        assert card.display_title == 'Test Video'
+        assert card.source_url == f'https://www.youtube.com/watch?v={video_id}'
+
+
+@pytest.mark.asyncio
+async def test_create_card_youtube_duplicate_returns_409(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=761031)
+    payload = {
+        'provider': 'youtube',
+        'external_id': 'abc12345678',
+        'display_title': 'Duplicate Video',
+        'genres': [],
+        'rating': 7.5,
+        'company': 'alone',
+        'mood_before': 'relax',
+        'mood_after': 'enjoyed',
+        'custom_tags': [],
+    }
+    assert (await async_client.post('/api/cards', json=payload)).status_code == 200
+    assert (await async_client.post('/api/cards', json=payload)).status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_create_card_kinopoisk_external_unknown_catalog_returns_404(
     async_client: AsyncClient,
 ) -> None:
@@ -1455,10 +1512,11 @@ async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
     listed_body = listed.json()
     assert listed_body['next_cursor'] is None
     items = listed_body['items']
-    assert len(items) == 3
+    assert len(items) == 4
     for it in items:
         assert 'reactions' in it
 
+    spoiler_body = spoiler.json()
     listed_projection = [
         (
             item['id'],
@@ -1470,6 +1528,7 @@ async def test_create_and_list_comments_flat(async_client: AsyncClient) -> None:
     ]
     assert listed_projection == [
         (root_body['id'], None, 1, 2),
+        (spoiler_body['id'], None, 0, 0),
         (reply_body['id'], root_body['id'], 1, 1),
         (nested_reply.json()['id'], reply_body['id'], 0, 0),
     ]
