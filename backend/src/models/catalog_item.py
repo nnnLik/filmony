@@ -14,6 +14,7 @@ class CatalogProvider(StrEnum):
 
     kinopoisk = 'kinopoisk'
     rawg = 'rawg'
+    youtube = 'youtube'
     no_provider = 'no_provider'
 
 

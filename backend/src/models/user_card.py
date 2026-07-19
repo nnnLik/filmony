@@ -124,6 +124,14 @@ class UserCard(Base):
             postgresql_where=text("provider = 'kinopoisk' AND external_id IS NOT NULL"),
         ),
         Index(
+            'uq_user_card_user_provider_external_youtube_partial',
+            'user_id',
+            'provider',
+            'external_id',
+            unique=True,
+            postgresql_where=text("provider = 'youtube' AND external_id IS NOT NULL"),
+        ),
+        Index(
             'ix_user_card_user_id_created_at_id',
             'user_id',
             'created_at',

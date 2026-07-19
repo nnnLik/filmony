@@ -20,6 +20,7 @@ from providers.kinopoisk.kinopoisk_search_dto import (
 )
 from providers.rawg.rawg_openapi_dto import RawgGamesListQueryParams, RawgGamesListResponseDTO
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
+from providers.youtube.youtube_oembed_client import YoutubeOembedClient
 from services.kinopoisk.client import KinopoiskClientError
 from tests.auth.telegram_init_data import build_init_data
 
@@ -169,6 +170,98 @@ async def test_catalog_resolve_by_url_not_found_returns_404(
     )
     assert r.status_code == 404
     assert r.json()['detail'] == 'catalog item not found'
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_youtube_happy_path(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=706)
+
+    video_id = 'dQw4w9WgXcQ'
+    canonical_url = f'https://www.youtube.com/watch?v={video_id}'
+
+    async def fake_fetch(self: YoutubeOembedClient, video_url: str):
+        assert video_url == canonical_url
+        from providers.youtube.youtube_oembed_client import YoutubeOembedDTO
+
+        return YoutubeOembedDTO(
+            title='Test Video',
+            thumbnail_url='https://i.ytimg.com/vi/abc/hqdefault.jpg',
+            author_name='Test Channel',
+        )
+
+    monkeypatch.setattr(YoutubeOembedClient, 'fetch', fake_fetch)
+
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': f'https://youtu.be/{video_id}'},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body['provider'] == 'youtube'
+    assert body['external_id'] == video_id
+    assert body['kind'] == 'video'
+    assert body['title'] == 'Test Video'
+    assert body['cover_url'] == 'https://i.ytimg.com/vi/abc/hqdefault.jpg'
+    assert body['summary'] == 'Test Channel'
+    assert body['catalog_item_id'] is None
+    assert body['film'] is None
+    assert body['source_url'] == canonical_url
+    assert body['my_card_id'] is None
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_youtube_bad_video_returns_404(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=707)
+
+    async def missing_video(self: YoutubeOembedClient, video_url: str):
+        _ = (self, video_url)
+        raise YoutubeOembedClient.VideoNotFoundError
+
+    monkeypatch.setattr(YoutubeOembedClient, 'fetch', missing_video)
+
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'},
+    )
+    assert r.status_code == 404
+    assert r.json()['detail'] == 'catalog item not found'
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_youtube_oembed_failure_returns_502(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _login(async_client, telegram_user_id=708)
+
+    async def failing_oembed(self: YoutubeOembedClient, video_url: str):
+        _ = (self, video_url)
+        raise YoutubeOembedClient.UpstreamError('upstream unavailable')
+
+    monkeypatch.setattr(YoutubeOembedClient, 'fetch', failing_oembed)
+
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'},
+    )
+    assert r.status_code == 502
+    assert r.json()['detail'] == 'upstream unavailable'
+
+
+@pytest.mark.asyncio
+async def test_catalog_resolve_by_url_youtube_invalid_url_returns_422(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=709)
+    r = await async_client.post(
+        '/api/catalog/resolve-by-url',
+        json={'url': 'https://www.youtube.com/watch'},
+    )
+    assert r.status_code == 422
+    assert r.json()['detail'] == 'unsupported youtube url'
 
 
 @pytest.mark.asyncio

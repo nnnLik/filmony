@@ -25,6 +25,15 @@ export type CreationBinding =
       display_cover_url: string | null
       display_summary: string | null
     }
+  | {
+      kind: 'youtube_video'
+      externalId: string
+      sourceUrl: string
+      display_title: string
+      display_cover_url: string | null
+      display_summary: string | null
+      myCardId: number | null
+    }
 
 export function watchlistCustomCardId(title: string): string {
   const slug =
@@ -37,12 +46,22 @@ export function watchlistCustomCardId(title: string): string {
   return `custom:${slug}`
 }
 
+/** Matches backend ``watchlist_card_id_for_provider`` for ``provider=youtube``. */
+export function watchlistYoutubeCardId(externalId: string): string {
+  return `youtube:${externalId.trim()}`
+}
+
 export function plannedCardLookupParams(binding: CreationBinding): GetMyPlannedCardParams | null {
   if (binding.kind === 'film' || binding.kind === 'catalog_film') {
     return { film_id: binding.film.id }
   }
   if (binding.kind === 'catalog_game') {
     return { catalog_item_id: binding.catalogItemId }
+  }
+  if (binding.kind === 'youtube_video') {
+    const externalId = binding.externalId.trim()
+    if (externalId === '') return null
+    return { card_id: watchlistYoutubeCardId(externalId) }
   }
   if (binding.kind === 'manual') {
     const title = binding.display_title.trim()
@@ -67,6 +86,19 @@ export async function creationBindingFromMovieCard(card: MovieCard): Promise<Cre
       subtitle: movieCardReleaseCompactSuffix(card),
     }
   }
+  if (card.provider === 'youtube') {
+    const externalId = (card.external_id ?? '').trim()
+    if (externalId === '') return null
+    return {
+      kind: 'youtube_video',
+      externalId,
+      sourceUrl: `https://www.youtube.com/watch?v=${externalId}`,
+      display_title: movieCardPrimaryTitle(card),
+      display_cover_url: movieCardPrimaryPoster(card),
+      display_summary: card.display_summary ?? null,
+      myCardId: null,
+    }
+  }
   return {
     kind: 'manual',
     display_title: movieCardPrimaryTitle(card),
@@ -76,30 +108,30 @@ export async function creationBindingFromMovieCard(card: MovieCard): Promise<Cre
 }
 
 export function bindingDisplayTitle(binding: CreationBinding): string {
-  if (binding.kind === 'manual' || binding.kind === 'catalog_game') {
+  if (binding.kind === 'manual' || binding.kind === 'catalog_game' || binding.kind === 'youtube_video') {
     return binding.display_title
   }
   return binding.film.title
 }
 
 export function bindingDisplayCover(binding: CreationBinding): string | null {
-  if (binding.kind === 'manual' || binding.kind === 'catalog_game') {
+  if (binding.kind === 'manual' || binding.kind === 'catalog_game' || binding.kind === 'youtube_video') {
     return binding.display_cover_url
   }
   return binding.film.poster_url ?? null
 }
 
 export function bindingDisplaySummary(binding: CreationBinding): string | null {
-  if (binding.kind === 'manual') {
-    return binding.display_summary
-  }
-  if (binding.kind === 'catalog_game') {
+  if (binding.kind === 'manual' || binding.kind === 'catalog_game' || binding.kind === 'youtube_video') {
     return binding.display_summary
   }
   return binding.film.short_description ?? binding.film.description ?? null
 }
 
 export function bindingSubtitle(binding: CreationBinding): string | null {
+  if (binding.kind === 'youtube_video') {
+    return 'YouTube'
+  }
   if (binding.kind === 'catalog_game') {
     const sub = (binding.subtitle ?? '').trim()
     return sub !== '' ? sub : 'Каталог RAWG'
@@ -118,6 +150,12 @@ export function kinopoiskCatalogRowHasMyCard(f: Film): boolean {
 export function bindingHasRatedDuplicate(binding: CreationBinding): { has: boolean; myCardId: number | null } {
   if (binding.kind === 'film' || binding.kind === 'catalog_film') {
     const id = binding.film.my_card_id
+    if (id != null && id > 0) {
+      return { has: true, myCardId: id }
+    }
+  }
+  if (binding.kind === 'youtube_video') {
+    const id = binding.myCardId
     if (id != null && id > 0) {
       return { has: true, myCardId: id }
     }
@@ -181,6 +219,21 @@ export async function bindingFromCatalogCandidate(candidate: CatalogCandidate): 
 }
 
 export function bindingFromResolveByUrl(resolved: CatalogResolveByUrlResponse): CreationBinding {
+  if (resolved.kind === 'video') {
+    return {
+      kind: 'youtube_video',
+      externalId: resolved.external_id,
+      sourceUrl:
+        resolved.source_url ?? `https://www.youtube.com/watch?v=${resolved.external_id}`,
+      display_title: resolved.title,
+      display_cover_url: resolved.cover_url,
+      display_summary: resolved.summary,
+      myCardId: resolved.my_card_id ?? null,
+    }
+  }
+  if (resolved.catalog_item_id == null || resolved.film == null) {
+    throw new Error('missing catalog film data')
+  }
   return {
     kind: 'catalog_film',
     catalogItemId: resolved.catalog_item_id,
@@ -196,16 +249,17 @@ export function cardsNewPathPreserveReturnTo(returnTo: string | null): string {
 export function mapResolveError(detail: string): string {
   const normalized = detail.toLowerCase()
   if (normalized.includes('empty url')) {
-    return 'Вставьте ссылку на страницу записи каталога на Кинопоиске.'
+    return 'Вставьте ссылку на страницу Кинопоиска или YouTube.'
   }
   if (normalized.includes('url must be from kinopoisk.ru') || normalized.includes('unsupported host')) {
-    return 'Нужна ссылка с домена kinopoisk.ru.'
+    return 'Нужна ссылка с домена kinopoisk.ru или YouTube (youtube.com, youtu.be).'
   }
   if (
     normalized.includes('kinopoisk id was not found in url') ||
-    normalized.includes('film id was not found in url')
+    normalized.includes('film id was not found in url') ||
+    normalized.includes('video id was not found')
   ) {
-    return 'Не получилось прочитать номер из ссылки. Скопируйте полный адрес страницы на Кинопоиске (из строки браузера).'
+    return 'Не получилось прочитать идентификатор из ссылки. Скопируйте полный адрес страницы из строки браузера.'
   }
   return detail
 }

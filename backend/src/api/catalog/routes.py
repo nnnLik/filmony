@@ -4,6 +4,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.catalog.schemas import (
@@ -21,6 +22,8 @@ from api.catalog.schemas import (
 from api.films.schemas import FilmResponse
 from core.database import get_db
 from deps.auth import CurrentUser
+from models.catalog_item import CatalogProvider
+from models.user_card import UserCard
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
@@ -29,6 +32,8 @@ from services.catalog.catalog_search_query_normalize import normalize_catalog_se
 from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from services.catalog.resolve_catalog_by_url_service import ResolveCatalogByUrlService
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
+from services.catalog.resolve_youtube_video_by_url_service import ResolveYoutubeVideoByUrlService
+from services.catalog.youtube_video_dto import YoutubeVideoDTO
 from services.catalog.search_catalog_candidates_service import SearchCatalogCandidatesService
 from services.catalog.search_kinopoisk_films_local_first import (
     CatalogFilmSearchHitDTO,
@@ -234,16 +239,44 @@ async def resolve_catalog_by_url(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CatalogResolveByUrlResponse:
     try:
-        catalog_item, film = await ResolveCatalogByUrlService.build(db).execute(url=body.url)
+        result = await ResolveCatalogByUrlService.build(db).execute(url=body.url)
     except ResolveCatalogByUrlService.UnsupportedUrlHostError as e:
         raise HTTPException(status_code=422, detail='unsupported url host') from e
+    except ResolveYoutubeVideoByUrlService.UnsupportedUrlError as e:
+        raise HTTPException(status_code=422, detail='unsupported youtube url') from e
     except KinopoiskUrlParseError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
     except ResolveCatalogByUrlService.CatalogFilmNotFoundError as e:
         raise HTTPException(status_code=404, detail='catalog item not found') from e
+    except ResolveCatalogByUrlService.UpstreamError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
     except KinopoiskClientError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
+    if isinstance(result, YoutubeVideoDTO):
+        my_card_id = (
+            await db.execute(
+                select(UserCard.id).where(
+                    UserCard.user_id == viewer.id,
+                    UserCard.provider == CatalogProvider.youtube,
+                    UserCard.external_id == result.video_id,
+                )
+            )
+        ).scalar_one_or_none()
+        return CatalogResolveByUrlResponse(
+            provider=CatalogProvider.youtube,
+            external_id=result.video_id,
+            kind='video',
+            title=result.title,
+            cover_url=result.cover_url,
+            summary=result.summary,
+            catalog_item_id=None,
+            film=None,
+            source_url=result.canonical_url,
+            my_card_id=int(my_card_id) if my_card_id is not None else None,
+        )
+
+    catalog_item, film = result
     my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
 
     return CatalogResolveByUrlResponse(
@@ -265,4 +298,6 @@ async def resolve_catalog_by_url(
             description=film.description,
             my_card_id=my_card_id,
         ),
+        source_url=None,
+        my_card_id=None,
     )

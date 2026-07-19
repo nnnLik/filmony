@@ -13,12 +13,14 @@ type CatalogCandidatesListProps = {
 const PROVIDER_LABELS: Record<UserCardProvider, string> = {
   kinopoisk: 'Кинопоиск',
   rawg: 'RAWG',
+  youtube: 'YouTube',
   no_provider: 'Без каталога',
 }
 
 const KIND_HINT_LABELS = {
   film: 'фильм',
   game: 'игра',
+  video: 'видео',
 } as const
 
 function providerLabel(provider: UserCardProvider): string {

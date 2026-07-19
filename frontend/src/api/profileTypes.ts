@@ -129,7 +129,7 @@ export type CardMoodBefore = 'relax' | 'laugh' | 'sad' | 'thrill'
 export type CardMoodAfter = 'laughed' | 'cried' | 'enjoyed' | 'tense' | 'wasted_time'
 
 /** Привязка карточки к каталогу / Kinopoisk / RAWG или ручной тайтл без внешнего id. */
-export type UserCardProvider = 'kinopoisk' | 'rawg' | 'no_provider'
+export type UserCardProvider = 'kinopoisk' | 'rawg' | 'youtube' | 'no_provider'
 
 /** Полка пользователя из ответов карточек (detail / профиль / лента). */
 export type UserCardCategorySnippet = {

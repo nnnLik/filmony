@@ -84,11 +84,13 @@ class CatalogResolveByUrlRequest(BaseModel):
 
 
 class CatalogResolveByUrlResponse(BaseModel):
-    catalog_item_id: int
     provider: CatalogProvider
     external_id: str
-    kind: Literal['film'] = 'film'
+    kind: Literal['film', 'video']
     title: str
     cover_url: str | None = None
     summary: str | None = None
-    film: FilmResponse
+    catalog_item_id: int | None = None
+    film: FilmResponse | None = None
+    source_url: str | None = None
+    my_card_id: int | None = None
