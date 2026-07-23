@@ -58,3 +58,22 @@ export function buildMiniAppWatchlistDeepLink(cardId: string): string | null {
   const encoded = encodeWatchlistCardIdForStartParam(trimmed)
   return `https://t.me/${bot}/app?startapp=w${encoded}`
 }
+
+/** Parses Telegram mini-app start_param for taste-quiz invite deeplinks (`tq…`). */
+export function parseMiniAppTasteQuizStartParam(startParam: string): string | null {
+  const sp = startParam.trim()
+  if (sp === '') return null
+  const compact = /^tq([A-Za-z0-9_-]+)$/i.exec(sp)
+  if (compact != null && compact[1] != null && compact[1] !== '') {
+    return compact[1]
+  }
+  return null
+}
+
+export function buildMiniAppTasteQuizDeepLink(inviteToken: string): string | null {
+  const token = inviteToken.trim()
+  if (token === '') return null
+  const bot = normalizeBotUsername(import.meta.env.VITE_TELEGRAM_BOT_USERNAME)
+  if (bot == null) return null
+  return `https://t.me/${bot}/app?startapp=tq${token}`
+}

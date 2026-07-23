@@ -44,6 +44,9 @@ import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { hasMeaningfulCardRating } from '../lib/ratingDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
+import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
+import { useTasteQuizKnowledgeBatch } from '../hooks/useTasteQuizKnowledgeBatch'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
@@ -301,6 +304,16 @@ export function MovieCardDetailPage() {
     })
     return map
   }, [comments])
+
+  const commentAuthorIds = useMemo(() => comments.map((c) => c.author.id), [comments])
+  const tasteQuizKnowledge = useTasteQuizKnowledgeBatch(card?.user_id ?? null, commentAuthorIds, {
+    enabled: card?.user_id != null && commentAuthorIds.length > 0,
+  })
+  const tasteQuizKnowledgeByAuthor = useMemo(
+    (): Record<string, TasteQuizKnowledgeBatchItem> => tasteQuizKnowledge.data?.items ?? {},
+    [tasteQuizKnowledge.data],
+  )
+
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
   const isOwner =
     card != null && card.user_id != null && viewerId != null && card.user_id === viewerId
@@ -969,6 +982,7 @@ export function MovieCardDetailPage() {
             onDeleteComment={(commentId) => {
               void handleDeleteComment(commentId)
             }}
+            tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
           />
           </MentionProfileLookupProvider>
         ) : null}
@@ -1034,6 +1048,7 @@ type MovieCardDetailLoadedBodyProps = {
   onCancelEditComment: () => void
   onSaveEditComment: (commentId: number, imageUrl: string | null) => Promise<void>
   onDeleteComment: (commentId: number) => void
+  tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
 }
 
 function MovieCardDetailLoadedBody({
@@ -1093,6 +1108,7 @@ function MovieCardDetailLoadedBody({
   onCancelEditComment,
   onSaveEditComment,
   onDeleteComment,
+  tasteQuizKnowledgeByAuthor,
 }: MovieCardDetailLoadedBodyProps) {
   const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
   const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
@@ -1650,6 +1666,10 @@ function MovieCardDetailLoadedBody({
                                 >
                                   {authorName(cardComment)}
                                 </Link>
+                                <TasteQuizCommentAuthorBadge
+                                  knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+                                  authorId={cardComment.author.id}
+                                />
                                 <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(cardComment.created_at)}</span>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">

@@ -591,6 +591,12 @@ export function ProfilePage() {
           </p>
         ) : null}
 
+        <div className="mt-4 flex justify-center">
+          <Button mode="gray" onClick={() => void navigate('/taste-quiz/invite')}>
+            Пригласить угадать
+          </Button>
+        </div>
+
         {exportOk != null ? (
           <p className="filmony-text-panel mt-4 text-center text-sm text-[color-mix(in_srgb,var(--tgui--hint_color)_92%,var(--tgui--link_color)_8%)]">
             {exportOk}
@@ -810,6 +816,7 @@ export function ProfilePage() {
               cardsQuery={ratedQuery}
               onCardsQueryChange={setRatedQuery}
               enableCategoryFilter
+              showTasteQuizTeaser
               onDrillToRatedCards={drillToRatedCards}
             />
           </div>

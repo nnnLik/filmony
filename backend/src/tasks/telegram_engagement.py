@@ -29,6 +29,9 @@ from services.telegram.notify_user_card_root_comment import run_notify_user_card
 from services.telegram.send_subscribed_activity_digest import (
     run_subscribed_activity_digest_for_recipient_safe,
 )
+from services.telegram.send_taste_quiz_complete_notification import (
+    run_deliver_taste_quiz_complete_notification_safe,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -228,6 +231,25 @@ def _register_reaction_and_share_tasks(app: Celery) -> None:
             )
         except Exception:
             logger.exception('celery task deliver_shared_movie_card_task failed')
+
+    @app.task(name='tasks.telegram_engagement.deliver_taste_quiz_complete_notification')
+    def deliver_taste_quiz_complete_notification_task(
+        session_id: str,
+        owner_user_id: str,
+        guesser_user_id: str,
+        round_points: str,
+    ) -> None:
+        try:
+            _ = session_id
+            _run_async_isolated(
+                run_deliver_taste_quiz_complete_notification_safe(
+                    owner_user_id=UUID(owner_user_id),
+                    guesser_user_id=UUID(guesser_user_id),
+                    round_points=float(round_points),
+                )
+            )
+        except Exception:
+            logger.exception('celery task deliver_taste_quiz_complete_notification_task failed')
 
 
 def _register_follower_publish_tasks(app: Celery) -> None:

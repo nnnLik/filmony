@@ -1,0 +1,13 @@
+- Timestamp: 2026-07-23T180700Z
+- Feature slug: taste-quiz-guess-rating
+- Action type: code
+- Summary: Implemented Taste Quiz backend (models, migration, 9 services, API routes, Celery TG notify, pytest).
+- Files:
+  - backend/src/models/taste_quiz_*.py
+  - backend/src/migrations/versions/c4d5e6f7a890_taste_quiz.py
+  - backend/src/services/taste_quiz/*
+  - backend/src/api/taste_quiz/*
+  - backend/src/services/telegram/send_taste_quiz_complete_notification.py
+  - backend/src/tests/api/test_taste_quiz_routes.py
+  - backend/src/tests/services/taste_quiz/test_scoring.py
+- Verification: `make backend-test-one target=src/tests/api/test_taste_quiz_routes.py` (11 passed); `make backend-test-one target=src/tests/services/taste_quiz/test_scoring.py` (9 passed)

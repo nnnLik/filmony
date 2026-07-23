@@ -24,6 +24,8 @@ import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
+import { useTasteQuizKnowledgeBatch } from '../../hooks/useTasteQuizKnowledgeBatch'
+import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
@@ -321,6 +323,14 @@ export function FeedPostCard({
     return map
   }, [panelComments])
 
+  const commentAuthorIds = useMemo(
+    () => panelComments.map((c) => c.author.id),
+    [panelComments],
+  )
+  const tasteQuizKnowledge = useTasteQuizKnowledgeBatch(user_id, commentAuthorIds, {
+    enabled: commentsPreviewOpen && commentAuthorIds.length > 0,
+  })
+
   const mergedPreviewAfterCreate = useCallback(
     (incoming: FeedPostComment) => {
       const nextCount = post.comments_count + 1
@@ -565,6 +575,10 @@ export function FeedPostCard({
                           <div className="flex min-w-0 items-center justify-between gap-2">
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <span className="text-sm font-medium text-(--tgui--text_color)">{authorName(comment)}</span>
+                              <TasteQuizCommentAuthorBadge
+                                knowledgeByAuthor={tasteQuizKnowledge.data?.items ?? {}}
+                                authorId={comment.author.id}
+                              />
                               <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
                             </div>
                             <Link

@@ -18,6 +18,7 @@ def test_celery_app_registers_telegram_engagement_tasks() -> None:
     assert 'tasks.telegram_engagement.notify_movie_card_root_comment' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_reaction_added' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.deliver_shared_movie_card' in celery_app.app.tasks
+    assert 'tasks.telegram_engagement.deliver_taste_quiz_complete_notification' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_feed_post_mentions' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_movie_card_comment_mentions' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_feed_post_comment_mentions' in celery_app.app.tasks

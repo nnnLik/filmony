@@ -35,6 +35,9 @@ import {
   TastePolarityChart,
 } from './ProfileStatsCharts'
 import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCard } from './ProfileStatsSummaryCard'
+import { TasteQuizKnowledgeList } from '../tasteQuiz/TasteQuizKnowledgeList'
+import { listTasteQuizKnowledge } from '../../api/tasteQuizApi'
+import type { TasteQuizKnowledgeItem } from '../../api/tasteQuizTypes'
 
 type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings'
 
@@ -53,6 +56,8 @@ type ProfileStatsPanelProps = {
   enableCategoryFilter?: boolean
   /** После действия из статистики — перейти к списку оценённых карточек (вкладка родителя). */
   onDrillToRatedCards?: () => void
+  /** Блок «Угадай вкус» на вкладке «Социальность» (только свой профиль). */
+  showTasteQuizTeaser?: boolean
 }
 
 const COMPANY_LABELS: Record<string, string> = {
@@ -229,6 +234,7 @@ export function ProfileStatsPanel({
   cardsQuery,
   onCardsQueryChange,
   onDrillToRatedCards,
+  showTasteQuizTeaser = false,
 }: ProfileStatsPanelProps) {
   const [statsSubTab, setStatsSubTab] = useState<StatsSubTab>('overview')
   const [stats, setStats] = useState<UserMovieCardStats | null>(null)
@@ -236,6 +242,8 @@ export function ProfileStatsPanel({
   const [activityLoading, setActivityLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tasteQuizTeaserItems, setTasteQuizTeaserItems] = useState<TasteQuizKnowledgeItem[]>([])
+  const [tasteQuizTeaserLoading, setTasteQuizTeaserLoading] = useState(false)
   const statsLoadedRef = useRef(false)
 
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
@@ -252,6 +260,35 @@ export function ProfileStatsPanel({
       setActivityShelfId('')
     })
   }, [userId])
+
+  useEffect(() => {
+    if (!showTasteQuizTeaser || statsSubTab !== 'social') {
+      return
+    }
+    let alive = true
+    void (async () => {
+      setTasteQuizTeaserLoading(true)
+      try {
+        const page = await listTasteQuizKnowledge('to_them', null, 5)
+        if (!alive) return
+        queueMicrotask(() => {
+          if (!alive) return
+          setTasteQuizTeaserItems(page.items)
+        })
+      } catch {
+        if (!alive) return
+        queueMicrotask(() => {
+          if (!alive) return
+          setTasteQuizTeaserItems([])
+        })
+      } finally {
+        if (alive) setTasteQuizTeaserLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [showTasteQuizTeaser, statsSubTab])
 
   useEffect(() => {
     if (userId === '') return
@@ -676,6 +713,22 @@ export function ProfileStatsPanel({
 
       {statsSubTab === 'social' ? (
         <>
+          {showTasteQuizTeaser ? (
+            <ProfileStatsSectionCard title="Угадай вкус">
+              <TasteQuizKnowledgeList
+                items={tasteQuizTeaserItems}
+                emptyCopy="Вы ещё ни с кем не играли. Подпишитесь на друзей и нажмите «Угадать вкус» в их профиле."
+                loading={tasteQuizTeaserLoading}
+              />
+              <Link
+                to="/taste-quiz/stats"
+                className="mt-3 block text-center text-sm text-(--tgui--link_color) no-underline"
+              >
+                Вся статистика угадывания
+              </Link>
+            </ProfileStatsSectionCard>
+          ) : null}
+
           <ProfileStatsSectionCard title="Взаимные подписки">
             <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2">
               <p className="text-[10px] text-(--tgui--hint_color)">Люди, с которыми вы подписаны друг на друга</p>
