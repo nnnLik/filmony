@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-23T170000Z-comment-edit-delete-test.md`
 - `2026-07-23T162400Z-app-hardening-pass-test.md`
 - `2026-07-23T132100Z-session-rollup-verification-test.md`
 - `2026-07-23T161900Z-backend-lint-fix-refactor.md`
