@@ -67,14 +67,12 @@ def compute_digest_window_stats(pool: list[DigestCandidate]) -> DigestWindowStat
             if g:
                 genre_counts[g] = genre_counts.get(g, 0) + 1
 
-    unique_post_keys = {
-        c.entity_key for c in posts if c.kind == DigestCandidateKind.new_feed_post
+    unique_post_keys = {c.entity_key for c in posts if c.kind == DigestCandidateKind.new_feed_post}
+    authors = {
+        c.author_user_id for c in pool if c.kind != DigestCandidateKind.author_activity_summary
     }
-    authors = {c.author_user_id for c in pool if c.kind != DigestCandidateKind.author_activity_summary}
 
-    top_genres = tuple(
-        sorted(genre_counts.items(), key=lambda item: (-item[1], item[0]))[:3]
-    )
+    top_genres = tuple(sorted(genre_counts.items(), key=lambda item: (-item[1], item[0]))[:3])
     avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
 
     return DigestWindowStats(
@@ -127,9 +125,7 @@ def _mood_after_label(mood: str | None) -> str | None:
 def _render_new_user_card(candidate: DigestCandidate) -> str:
     title = _title_html(candidate)
     year = f' ({candidate.film_year})' if candidate.film_year is not None else ''
-    rating = (
-        f' — <b>{candidate.rating:.0f}/10</b>' if candidate.rating is not None else ''
-    )
+    rating = f' — <b>{candidate.rating:.0f}/10</b>' if candidate.rating is not None else ''
     fav = ' ⭐' if candidate.is_favorite else ''
     genres = _format_genres(candidate.film_genres)
     tags = _format_tags(candidate.tags)
@@ -147,7 +143,7 @@ def _render_new_user_card(candidate: DigestCandidate) -> str:
         f'🎬 <b>{candidate.author_display}</b> — «{title}»{year}{rating}{fav}',
     ]
     if detail_parts:
-        lines.append(f'   {' · '.join(detail_parts)}')
+        lines.append(f'   {" · ".join(detail_parts)}')
     return '\n'.join(lines)
 
 
@@ -157,9 +153,7 @@ def _render_high_rating_card(candidate: DigestCandidate) -> str:
     genres = _format_genres(candidate.film_genres)
     genre_suffix = f' · {genres}' if genres else ''
     fav = ' и в избранном' if candidate.is_favorite else ''
-    return (
-        f'🔥 <b>{candidate.author_display}</b> поставил(а) {rating} «{title}»{fav}{genre_suffix}'
-    )
+    return f'🔥 <b>{candidate.author_display}</b> поставил(а) {rating} «{title}»{fav}{genre_suffix}'
 
 
 def _render_feed_post(candidate: DigestCandidate) -> str:
@@ -209,8 +203,7 @@ def _build_intro_candidates(stats: DigestWindowStats) -> list[str]:
 
     if stats.high_rating_count >= 2:
         candidates.append(
-            f'🔥 <b>{stats.high_rating_count}</b> карточек с оценкой 9+ '
-            f'за 48 ч — вот самые яркие:'
+            f'🔥 <b>{stats.high_rating_count}</b> карточек с оценкой 9+ за 48 ч — вот самые яркие:'
         )
 
     total_events = stats.card_count + stats.post_count

@@ -90,9 +90,7 @@ class CardCreateRequest(BaseModel):
             if self.provider is None:
                 raise ValueError('provider is required when external_id is set')
 
-        is_manual = (
-            not has_film and not has_catalog and not has_ke and not has_yt and bool(title)
-        )
+        is_manual = not has_film and not has_catalog and not has_ke and not has_yt and bool(title)
 
         modes = int(has_film) + int(has_catalog) + int(has_ke) + int(has_yt) + int(is_manual)
         if modes != 1:
