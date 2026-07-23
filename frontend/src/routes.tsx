@@ -60,6 +60,22 @@ const EditPlannedWatchlistPage = lazy(async () => {
   const m = await import('./pages/CreateWatchlistPage')
   return { default: m.EditPlannedWatchlistPage }
 })
+const TasteQuizPlayPage = lazy(async () => {
+  const m = await import('./pages/TasteQuizPlayPage')
+  return { default: m.TasteQuizPlayPage }
+})
+const TasteQuizInvitePage = lazy(async () => {
+  const m = await import('./pages/TasteQuizInvitePage')
+  return { default: m.TasteQuizInvitePage }
+})
+const TasteQuizInviteLandingPage = lazy(async () => {
+  const m = await import('./pages/TasteQuizInviteLandingPage')
+  return { default: m.TasteQuizInviteLandingPage }
+})
+const TasteQuizStatsPage = lazy(async () => {
+  const m = await import('./pages/TasteQuizStatsPage')
+  return { default: m.TasteQuizStatsPage }
+})
 
 export function AppRoutes() {
   return (
@@ -82,6 +98,10 @@ export function AppRoutes() {
         <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />
         <Route path="/cards/:cardId/edit" element={<EditMovieCardPage />} />
         <Route path="/cards/:cardId/edit-planned" element={<EditPlannedWatchlistPage />} />
+        <Route path="/taste-quiz/play/:ownerId" element={<TasteQuizPlayPage />} />
+        <Route path="/taste-quiz/invite/:inviteToken" element={<TasteQuizInviteLandingPage />} />
+        <Route path="/taste-quiz/invite" element={<TasteQuizInvitePage />} />
+        <Route path="/taste-quiz/stats" element={<TasteQuizStatsPage />} />
       </Routes>
     </Suspense>
   )

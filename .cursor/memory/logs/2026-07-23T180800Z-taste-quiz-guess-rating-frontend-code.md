@@ -1,0 +1,14 @@
+- Timestamp: 2026-07-23T180800Z
+- Feature slug: taste-quiz-guess-rating
+- Action type: code
+- Summary: Implemented Taste Quiz frontend (play/invite/stats pages, profile CTAs, comment knowledge badges, tq deep link).
+- Files:
+  - frontend/src/api/tasteQuizApi.ts
+  - frontend/src/components/tasteQuiz/*
+  - frontend/src/pages/TasteQuiz*.tsx
+  - frontend/src/routes.tsx
+  - frontend/src/navigation/TelegramMiniAppStartParamRedirect.tsx
+  - frontend/src/pages/PublicProfilePage.tsx
+  - frontend/src/components/profile/ProfileStatsPanel.tsx
+  - frontend/src/components/feed/FeedCard.tsx
+- Verification: `cd frontend && npm run lint && npm run build` (exit 0)

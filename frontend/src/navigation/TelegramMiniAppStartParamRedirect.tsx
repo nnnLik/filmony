@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuthStatus } from '../auth/useAuthStatus'
-import { parseMiniAppWatchlistStartParam } from '../lib/miniAppCardDeepLink'
+import { parseMiniAppWatchlistStartParam, parseMiniAppTasteQuizStartParam } from '../lib/miniAppCardDeepLink'
 
 function readTelegramStartParam(): string | undefined {
   const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
@@ -40,6 +40,20 @@ export function TelegramMiniAppStartParamRedirect() {
         state: {
           watchlistInviteCardId: watchlistCardId,
         },
+      })
+      return
+    }
+
+    const tasteQuizToken = parseMiniAppTasteQuizStartParam(sp)
+    if (tasteQuizToken != null) {
+      const key = `filmony.handled_start_param.${sp}`
+      if (sessionStorage.getItem(key) === '1') {
+        return
+      }
+      ran.current = true
+      sessionStorage.setItem(key, '1')
+      void navigate(`/taste-quiz/invite/${encodeURIComponent(tasteQuizToken)}`, {
+        replace: true,
       })
       return
     }

@@ -31,6 +31,17 @@ def telegram_mini_app_feed_post_url(post_id: int) -> str | None:
     return f'{base}?startapp=p{post_id}'
 
 
+def telegram_mini_app_taste_quiz_url(invite_token: str) -> str | None:
+    raw = settings.telegram.bot_username
+    if raw is None:
+        return None
+    name = raw.strip().lstrip('@')
+    if not name:
+        return None
+    base = f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
+    return f'{base}?startapp=tq{invite_token}'
+
+
 def html_card_deep_link_block(card_id: int, *, link_text: str | None = None) -> str:
     url = telegram_mini_app_card_url(card_id)
     if url is None:

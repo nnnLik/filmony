@@ -557,10 +557,18 @@ export function PublicProfilePage() {
         </div>
 
         {myUserId != null && profile.id !== myUserId ? (
-          <div className="mb-4 flex justify-center">
+          <div className="mb-4 flex flex-col items-center gap-2">
             <Button mode={isFollowing ? 'gray' : 'filled'} disabled={followBusy} onClick={() => void toggleFollowing()}>
               {followBusy ? '...' : isFollowing ? 'Отписаться' : 'Подписаться'}
             </Button>
+            {isFollowing ? (
+              <Button
+                mode="filled"
+                onClick={() => void navigate(`/taste-quiz/play/${encodeURIComponent(profile.id)}`)}
+              >
+                Угадать вкус
+              </Button>
+            ) : null}
           </div>
         ) : null}
 

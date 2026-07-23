@@ -10,6 +10,11 @@ from .game import Game
 from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .subscribed_activity_digest_state import SubscribedActivityDigestState
+from .taste_quiz_enums import TasteQuizSessionStatus
+from .taste_quiz_invite import TasteQuizInvite
+from .taste_quiz_pair_progress import TasteQuizPairProgress
+from .taste_quiz_session import TasteQuizSession
+from .taste_quiz_session_card import TasteQuizSessionCard
 from .user import User
 from .user_card import UserCard
 from .user_card_category import UserCardCategory
@@ -33,6 +38,11 @@ __all__ = (
     'ReactionTargetKind',
     'ReactionType',
     'SubscribedActivityDigestState',
+    'TasteQuizInvite',
+    'TasteQuizPairProgress',
+    'TasteQuizSession',
+    'TasteQuizSessionCard',
+    'TasteQuizSessionStatus',
     'User',
     'UserCard',
     'UserCardCategory',

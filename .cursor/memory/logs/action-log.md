@@ -17,6 +17,9 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-23T180900Z-taste-quiz-guess-rating-docs.md`
+- `2026-07-23T180800Z-taste-quiz-guess-rating-frontend-code.md`
+- `2026-07-23T180700Z-taste-quiz-guess-rating-code.md`
 - `2026-07-23T170000Z-comment-edit-delete-test.md`
 - `2026-07-23T162400Z-app-hardening-pass-test.md`
 - `2026-07-23T132100Z-session-rollup-verification-test.md`
