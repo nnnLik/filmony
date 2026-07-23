@@ -145,6 +145,12 @@ class UserCard(Base):
             postgresql_ops={'created_at': 'DESC', 'id': 'DESC'},
         ),
         Index(
+            'ix_user_card_updated_at_id',
+            'updated_at',
+            'id',
+            postgresql_ops={'updated_at': 'DESC', 'id': 'DESC'},
+        ),
+        Index(
             'ix_user_card_user_favorites_order',
             'user_id',
             'favorite_marked_at',

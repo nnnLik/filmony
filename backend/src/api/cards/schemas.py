@@ -268,6 +268,21 @@ class UserCardCommentCreateRequest(BaseModel):
         return self
 
 
+class UserCardCommentUpdateRequest(BaseModel):
+    text: str = Field(default='', max_length=250)
+    image_url: str | None = Field(default=None, max_length=2048)
+
+    model_config = ConfigDict(extra='forbid')
+
+    @model_validator(mode='after')
+    def require_text_or_image(self) -> UserCardCommentUpdateRequest:
+        if self.text.strip() == '' and (
+            self.image_url is None or str(self.image_url).strip() == ''
+        ):
+            raise ValueError('text or image_url is required')
+        return self
+
+
 class FilmResolveRequest(BaseModel):
     url: str = Field(..., min_length=1)
 

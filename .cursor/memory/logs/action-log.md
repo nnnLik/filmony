@@ -17,6 +17,14 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-23T162400Z-app-hardening-pass-test.md`
+- `2026-07-23T132100Z-session-rollup-verification-test.md`
+- `2026-07-23T161900Z-backend-lint-fix-refactor.md`
+- `2026-07-23T131500Z-comment-edit-delete-code.md`
+- `2026-07-23T161600Z-cold-deeplink-initdata-and-genres-code.md`
+- `2026-07-23T131600Z-profile-later-tab-back-nav-code.md`
+- `2026-07-23T131500Z-app-hardening-pass-code.md`
+- `2026-07-23T131500Z-engaging-digest-notifications-code.md`
 - `2026-07-19T164500Z-youtube-card-source-code.md`
 - `2026-07-19T163800Z-youtube-card-source-plan.md`
 - `2026-07-19T191800Z-card-post-create-redesign-code.md`

@@ -199,8 +199,9 @@ class GetUserCardStatsService:
 
         average_rating = round(rating_sum / total_movies, 1) if total_movies > 0 else 0.0
         rating_distribution = [
-            RatingDistributionItem(rating=score, count=rating_counts[score])
-            for score in range(1, 11)
+            RatingDistributionItem(rating=score, count=count)
+            for score, count in rating_counts.items()
+            if count > 0
         ]
         year_distribution = [
             YearDistributionItem(year=year, count=count)

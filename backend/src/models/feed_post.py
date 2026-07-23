@@ -40,4 +40,10 @@ class FeedPost(Base):
             'id',
             postgresql_ops={'created_at': 'DESC', 'id': 'DESC'},
         ),
+        Index(
+            'ix_feed_post_created_at_id',
+            'created_at',
+            'id',
+            postgresql_ops={'created_at': 'DESC', 'id': 'DESC'},
+        ),
     )

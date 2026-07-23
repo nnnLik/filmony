@@ -440,7 +440,7 @@ async def _seed_user_stats_movie_cards(
         rating=1.0,
         company='alone',
         mood_after='cried',
-        tags=['Визуал'],
+        tags=[],
         category_id=foreign_cat_id,
     )
 

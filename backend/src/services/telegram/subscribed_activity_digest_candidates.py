@@ -15,6 +15,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.card_tag import CardTag
 from models.feed_post import FeedPost
 from models.film import Film
 from models.user import User
@@ -55,6 +56,16 @@ class DigestCandidate:
     entity_key: str
     card_id: int | None = None
     feed_post_id: int | None = None
+    film_title: str | None = None
+    film_year: int | None = None
+    film_genres: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
+    rating: float | None = None
+    is_favorite: bool = False
+    mood_after: str | None = None
+    post_snippet: str | None = None
+    activity_card_count: int | None = None
+    activity_post_count: int | None = None
 
 
 def _format_actor_display(user: User) -> str:
@@ -124,7 +135,46 @@ class CollectSubscribedActivityDigestCandidatesService:
         window_start = _ensure_naive_utc(window_start)
         window_end = _ensure_naive_utc(window_end)
 
-        card_rows = (
+        card_rows = await self._load_card_rows(following_user_ids, window_start, window_end)
+        post_rows = await self._load_post_rows(following_user_ids, window_start, window_end)
+
+        candidates: list[DigestCandidate] = []
+        author_card_counts: dict[UUID, int] = {}
+        author_post_counts: dict[UUID, int] = {}
+
+        card_ids = [int(card.id) for card, _, _ in card_rows]
+        tags_by_card = await self._load_tags_by_card_id(card_ids)
+        self._append_card_candidates(
+            candidates,
+            author_card_counts,
+            card_rows,
+            tags_by_card,
+            window_end,
+        )
+        self._append_post_candidates(
+            candidates,
+            author_post_counts,
+            post_rows,
+            window_end,
+        )
+        await self._append_author_summary_candidates(
+            candidates,
+            author_card_counts,
+            author_post_counts,
+            window_end,
+        )
+
+        filtered = [c for c in candidates if c.score >= MIN_CANDIDATE_SCORE]
+        filtered.sort(key=lambda c: (-c.score, c.entity_key))
+        return filtered[:MAX_POOL_SIZE]
+
+    async def _load_card_rows(
+        self,
+        following_user_ids: tuple[UUID, ...],
+        window_start: dt.datetime,
+        window_end: dt.datetime,
+    ):
+        return (
             await self._session.execute(
                 select(UserCard, User, Film)
                 .join(User, User.id == UserCard.user_id)
@@ -138,7 +188,13 @@ class CollectSubscribedActivityDigestCandidatesService:
             )
         ).all()
 
-        post_rows = (
+    async def _load_post_rows(
+        self,
+        following_user_ids: tuple[UUID, ...],
+        window_start: dt.datetime,
+        window_end: dt.datetime,
+    ):
+        return (
             await self._session.execute(
                 select(FeedPost, User)
                 .join(User, User.id == FeedPost.user_id)
@@ -149,12 +205,18 @@ class CollectSubscribedActivityDigestCandidatesService:
             )
         ).all()
 
-        candidates: list[DigestCandidate] = []
-        author_event_counts: dict[UUID, int] = {}
-
+    def _append_card_candidates(
+        self,
+        candidates: list[DigestCandidate],
+        author_card_counts: dict[UUID, int],
+        card_rows,
+        tags_by_card: dict[int, tuple[str, ...]],
+        window_end: dt.datetime,
+    ) -> None:
         for card, author, film in card_rows:
-            author_event_counts[author.id] = author_event_counts.get(author.id, 0) + 1
-            title = html.escape(_card_title(film=film, card=card))
+            author_card_counts[author.id] = author_card_counts.get(author.id, 0) + 1
+            title_raw = _card_title(film=film, card=card)
+            title = html.escape(title_raw)
             rating = float(card.rating)
             display = html.escape(_format_actor_display(author))
             occurred_at = card.created_at
@@ -164,6 +226,11 @@ class CollectSubscribedActivityDigestCandidatesService:
                 base_score += 25.0
             if card.is_favorite:
                 base_score += 10.0
+
+            genres = tuple(g for g in (film.genres if film is not None else []) if g)
+            tags = tags_by_card.get(int(card.id), ())
+            film_year = int(film.year) if film is not None and film.year is not None else None
+            mood_after = card.mood_after if card.mood_after else None
 
             fav_suffix = ' и добавил(а) её в любимое' if card.is_favorite else ''
             line = (
@@ -180,6 +247,13 @@ class CollectSubscribedActivityDigestCandidatesService:
                     line_html=line,
                     entity_key=f'card:{card.id}',
                     card_id=int(card.id),
+                    film_title=title_raw,
+                    film_year=film_year,
+                    film_genres=genres,
+                    tags=tags,
+                    rating=rating,
+                    is_favorite=bool(card.is_favorite),
+                    mood_after=mood_after,
                 )
             )
 
@@ -197,11 +271,25 @@ class CollectSubscribedActivityDigestCandidatesService:
                         ),
                         entity_key=f'high:{card.id}',
                         card_id=int(card.id),
+                        film_title=title_raw,
+                        film_year=film_year,
+                        film_genres=genres,
+                        tags=tags,
+                        rating=rating,
+                        is_favorite=bool(card.is_favorite),
+                        mood_after=mood_after,
                     )
                 )
 
+    def _append_post_candidates(
+        self,
+        candidates: list[DigestCandidate],
+        author_post_counts: dict[UUID, int],
+        post_rows,
+        window_end: dt.datetime,
+    ) -> None:
         for post, author in post_rows:
-            author_event_counts[author.id] = author_event_counts.get(author.id, 0) + 1
+            author_post_counts[author.id] = author_post_counts.get(author.id, 0) + 1
             snippet = _snippet_from_body(post.body or '')
             if not snippet:
                 continue
@@ -219,11 +307,23 @@ class CollectSubscribedActivityDigestCandidatesService:
                     line_html=f'<b>{display}</b> опубликовал(а) пост: «{safe_snippet}»',
                     entity_key=f'post:{post.id}',
                     feed_post_id=int(post.id),
+                    post_snippet=snippet,
                 )
             )
 
-        for author_id, count in author_event_counts.items():
-            if count < 2:
+    async def _append_author_summary_candidates(
+        self,
+        candidates: list[DigestCandidate],
+        author_card_counts: dict[UUID, int],
+        author_post_counts: dict[UUID, int],
+        window_end: dt.datetime,
+    ) -> None:
+        author_ids = set(author_card_counts) | set(author_post_counts)
+        for author_id in author_ids:
+            card_count = author_card_counts.get(author_id, 0)
+            post_count = author_post_counts.get(author_id, 0)
+            total = card_count + post_count
+            if total < 2:
                 continue
             author = await self._session.get(User, author_id)
             if author is None:
@@ -234,19 +334,32 @@ class CollectSubscribedActivityDigestCandidatesService:
                     kind=DigestCandidateKind.author_activity_summary,
                     author_user_id=author_id,
                     author_display=display,
-                    score=55.0 + min(count, 10) * 3.0,
+                    score=55.0 + min(total, 10) * 3.0,
                     occurred_at=window_end,
                     line_html=(
                         f'<b>{display}</b> был(а) особенно активен(а): '
-                        f'{count} новых событий за 48 часов'
+                        f'{total} новых событий за 48 часов'
                     ),
                     entity_key=f'summary:{author_id}',
+                    activity_card_count=card_count or None,
+                    activity_post_count=post_count or None,
                 )
             )
 
-        filtered = [c for c in candidates if c.score >= MIN_CANDIDATE_SCORE]
-        filtered.sort(key=lambda c: (-c.score, c.entity_key))
-        return filtered[:MAX_POOL_SIZE]
+    async def _load_tags_by_card_id(self, card_ids: list[int]) -> dict[int, tuple[str, ...]]:
+        if not card_ids:
+            return {}
+        rows = (
+            await self._session.execute(
+                select(CardTag.card_id, CardTag.tag)
+                .where(CardTag.card_id.in_(card_ids))
+                .order_by(CardTag.card_id, CardTag.tag)
+            )
+        ).all()
+        out: dict[int, list[str]] = {}
+        for card_id, tag in rows:
+            out.setdefault(int(card_id), []).append(tag.strip())
+        return {cid: tuple(tags) for cid, tags in out.items()}
 
 
 @dataclass

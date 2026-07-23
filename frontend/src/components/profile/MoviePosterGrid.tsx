@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import type { MovieCard } from '../../api/profileTypes'
 import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../../lib/movieCardDisplay'
+import { FilmGenreChips } from '../films/FilmGenreChips'
 import { FeedRatingRing } from '../feed/FeedRatingRing'
 import { FavoriteCardHeartButton } from '../cards/FavoriteCardHeartButton'
 
@@ -72,27 +73,28 @@ function PosterCell({
               : 'absolute right-1 top-1 z-[2] sm:right-1.5 sm:top-1.5'
           }
         />
-      </div>
-      {showFavoriteToggle ? (
-        <div
-          className="absolute right-1 top-1 z-[1]"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-          }}
-          onKeyDown={(e) => e.stopPropagation()}
-          role="presentation"
-        >
-          <FavoriteCardHeartButton
-            cardId={card.id}
-            isFavorite={fav}
-            onFavoriteChange={(next) => {
-              setFav(next)
-              onFavoriteToggled?.(card.id, next)
+        {showFavoriteToggle ? (
+          <div
+            className="absolute right-1 top-1 z-[1]"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
             }}
-          />
-        </div>
-      ) : null}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            <FavoriteCardHeartButton
+              cardId={card.id}
+              isFavorite={fav}
+              onFavoriteChange={(next) => {
+                setFav(next)
+                onFavoriteToggled?.(card.id, next)
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+      <FilmGenreChips genres={card.film_genres} maxVisible={2} className="px-1 py-1" />
     </Link>
   )
 }

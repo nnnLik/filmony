@@ -355,6 +355,25 @@ export async function createMovieCardComment(
   })
 }
 
+export async function updateMovieCardComment(
+  cardId: number,
+  commentId: number,
+  body: { text: string; image_url?: string | null },
+): Promise<MovieCardComment> {
+  return apiJson<MovieCardComment>(`/api/cards/${cardId}/comments/${commentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export async function deleteMovieCardComment(cardId: number, commentId: number): Promise<void> {
+  const res = await apiFetch(`/api/cards/${cardId}/comments/${commentId}`, {
+    method: 'DELETE',
+  })
+  await assertActionOk(res)
+}
+
 export type WatchedInlinePickerListResponse = {
   items: WatchedInlinePickerItem[]
 }

@@ -2,6 +2,7 @@ import { isTMA } from '@telegram-apps/sdk'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { useAuthStatus } from '../auth/useAuthStatus'
 import { parseMiniAppWatchlistStartParam } from '../lib/miniAppCardDeepLink'
 
 function readTelegramStartParam(): string | undefined {
@@ -14,10 +15,11 @@ function readTelegramStartParam(): string | undefined {
 
 export function TelegramMiniAppStartParamRedirect() {
   const navigate = useNavigate()
+  const auth = useAuthStatus()
   const ran = useRef(false)
 
   useEffect(() => {
-    if (!isTMA() || ran.current) {
+    if (!isTMA() || ran.current || auth.kind !== 'ready') {
       return
     }
     const sp = readTelegramStartParam()
@@ -33,10 +35,9 @@ export function TelegramMiniAppStartParamRedirect() {
       }
       ran.current = true
       sessionStorage.setItem(key, '1')
-      void navigate('/profile', {
+      void navigate('/profile?movies=watchlist', {
         replace: true,
         state: {
-          moviesSegment: 'watchlist' as const,
           watchlistInviteCardId: watchlistCardId,
         },
       })
@@ -79,7 +80,7 @@ export function TelegramMiniAppStartParamRedirect() {
         state: { fromFeed: true },
       })
     }
-  }, [navigate])
+  }, [navigate, auth.kind])
 
   return null
 }

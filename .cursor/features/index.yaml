@@ -41,6 +41,13 @@ features:
     active_path: null
     docs_path: null
 
+  - slug: engaging-digest-notifications
+    title: Richer Subscribed-Activity Digest Copy
+    status: done
+    source_path: .cursor/features/engaging-digest-notifications/feature.md
+    active_path: .cursor/active/engaging-digest-notifications
+    docs_path: docs/features/engaging-digest-notifications.md
+
   - slug: subscribed-activity-telegram-digest
     title: Telegram Digest Подписанной Активности
     status: done

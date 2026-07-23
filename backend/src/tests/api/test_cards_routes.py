@@ -2939,3 +2939,101 @@ async def test_send_card_audio_to_telegram_chat_unavailable(
     detail = r.json()['detail']
     assert detail['code'] == 'telegram_chat_unavailable'
     assert 'bot_username' in detail
+
+
+@pytest.mark.asyncio
+async def test_user_card_comment_update_and_delete(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8810)
+    film = await _create_film(kinopoisk_id=100881, title='Edit Comment Film', year=2024)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+
+    com = await async_client.post(
+        f'/api/cards/{card_id}/comments',
+        json={'text': 'first draft'},
+    )
+    assert com.status_code == 200
+    cid = int(com.json()['id'])
+
+    updated = await async_client.patch(
+        f'/api/cards/{card_id}/comments/{cid}',
+        json={'text': ' polished draft '},
+    )
+    assert updated.status_code == 200
+    assert updated.json()['text'] == 'polished draft'
+
+    await _login(async_client, telegram_user_id=8811)
+    forbidden = await async_client.patch(
+        f'/api/cards/{card_id}/comments/{cid}',
+        json={'text': 'nope'},
+    )
+    assert forbidden.status_code == 403
+
+    await _login(async_client, telegram_user_id=8810)
+    deleted = await async_client.delete(f'/api/cards/{card_id}/comments/{cid}')
+    assert deleted.status_code == 204
+
+    listed = await async_client.get(f'/api/cards/{card_id}/comments')
+    assert listed.status_code == 200
+    assert all(it['id'] != cid for it in listed.json()['items'])
+
+
+@pytest.mark.asyncio
+async def test_user_card_comment_update_wrong_card(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8812)
+    film1 = await _create_film(kinopoisk_id=100882, title='Mismatch Card A', year=2023)
+    film2 = await _create_film(kinopoisk_id=100883, title='Mismatch Card B', year=2024)
+    c1 = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film1.id,
+            'kinopoisk_id': film1.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    c2 = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film2.id,
+            'kinopoisk_id': film2.kinopoisk_id,
+            'genres': ['драма'],
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert c1.status_code == 200
+    assert c2.status_code == 200
+    card_id1 = c1.json()['id']
+    card_id2 = c2.json()['id']
+    com = await async_client.post(
+        f'/api/cards/{card_id1}/comments',
+        json={'text': 'on card 1'},
+    )
+    cid = int(com.json()['id'])
+
+    mismatch = await async_client.patch(
+        f'/api/cards/{card_id2}/comments/{cid}',
+        json={'text': 'wrong card'},
+    )
+    assert mismatch.status_code == 404

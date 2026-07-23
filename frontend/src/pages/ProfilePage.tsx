@@ -1,7 +1,7 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { Download } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile, getUserCards, getUserFeedPosts, getUserWatchlist, postExportMyCardsCsv } from '../api/profileApi'
@@ -35,6 +35,7 @@ import {
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
+import { useProfileMoviesSegmentFromUrl } from '../hooks/useProfileMoviesSegmentFromUrl'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
 import './ProfilePage.css'
@@ -64,7 +65,6 @@ export function ProfilePage() {
   const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const navigate = useNavigate()
-  const location = useLocation()
   const initialBundle = useMemo(() => readMyProfileBundleCache(), [])
 
   const [mainTab, setMainTab] = useState<ProfileMainTab>('movies')
@@ -73,10 +73,7 @@ export function ProfilePage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [cardsError, setCardsError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>(() => {
-    const m = (location.state as { moviesSegment?: string } | null)?.moviesSegment
-    return m === 'watchlist' ? 'watchlist' : 'rated'
-  })
+  const [moviesSegment, setMoviesSegment] = useProfileMoviesSegmentFromUrl()
   const [myWatchlist, setMyWatchlist] = useState<WatchlistFilmPage | null>(null)
   const [watchlistErr, setWatchlistErr] = useState<string | null>(null)
   const [watchlistLoading, setWatchlistLoading] = useState(false)
@@ -421,17 +418,17 @@ export function ProfilePage() {
         document.getElementById('profile-rated-cards-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       })
     })
-  }, [])
+  }, [setMoviesSegment])
 
   const drillToWatchlist = useCallback(() => {
     setMainTab('movies')
     setMoviesSegment('watchlist')
-  }, [])
+  }, [setMoviesSegment])
 
   const drillToRatedSegment = useCallback(() => {
     setMainTab('movies')
     setMoviesSegment('rated')
-  }, [])
+  }, [setMoviesSegment])
 
   const ratedCardsLoadMoreRef = useInfiniteScrollLoadMore({
     enabled:
