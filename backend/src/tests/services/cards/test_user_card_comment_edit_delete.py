@@ -17,8 +17,14 @@ from models.user_card import UserCard
 from services.cards.create_user_card import CreateUserCardInput, CreateUserCardService
 from services.cards.delete_user_card_comment import (
     DeleteUserCardCommentService,
+)
+from services.cards.delete_user_card_comment import (
     UserCardCommentForbiddenError as DeleteUserCardCommentForbiddenError,
+)
+from services.cards.delete_user_card_comment import (
     UserCardCommentMismatchError as DeleteUserCardCommentMismatchError,
+)
+from services.cards.delete_user_card_comment import (
     UserCardCommentNotFoundError as DeleteUserCardCommentNotFoundError,
 )
 from services.cards.update_user_card_comment import (
@@ -63,7 +69,7 @@ async def _create_film(*, kinopoisk_id: int) -> Film:
 async def _create_card(user_id: UUID, film: Film) -> UserCard:
     session_factory = get_session_factory()
     async with session_factory() as session:
-        category_id = await ensure_default_category(session, user_id)
+        await ensure_default_category(session, user_id)
         card = await CreateUserCardService(session).execute(
             user_id,
             CreateUserCardInput(

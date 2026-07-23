@@ -21,12 +21,12 @@ from services.cards.create_user_card import (
     FilmNotFoundError,
     UserCardAlreadyExistsError,
     UserCardValidationError,
-    _normalize_genres,
-    _normalize_rating,
-    _normalize_tags,
     _normalize_catalog_external_id,
     _normalize_display_summary,
+    _normalize_genres,
     _normalize_optional_url,
+    _normalize_rating,
+    _normalize_tags,
     _validate_create_subject_modes,
 )
 from tests.support.user_card_category import ensure_default_category
@@ -35,7 +35,7 @@ from tests.support.user_card_category import ensure_default_category
 def test_normalize_rating_rejects_non_finite_and_bad_step() -> None:
     with pytest.raises(UserCardValidationError, match='finite'):
         _normalize_rating(float('nan'))
-    with pytest.raises(UserCardValidationError, match='0.5 step'):
+    with pytest.raises(UserCardValidationError, match=r'0.5 step'):
         _normalize_rating(7.3)
     with pytest.raises(UserCardValidationError, match='\\[1, 10\\]'):
         _normalize_rating(10.5)

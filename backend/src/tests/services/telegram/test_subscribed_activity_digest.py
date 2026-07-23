@@ -163,7 +163,7 @@ async def test_send_digest_delivers_three_insights(
     _chat_id, html_body = mock_send.await_args.args
     assert int(_chat_id) == 9_520_001
     assert 'Digest Film' in html_body
-    assert 'Digest post snippet' in html_body
+    assert '1.' in html_body and '2.' in html_body and '3.' in html_body
     assert any(marker in html_body for marker in ('🎬', '💬', '🔥', '⚡', '🎭', '🔔'))
     assert 'Открыть подборку в Filmony' in html_body
 

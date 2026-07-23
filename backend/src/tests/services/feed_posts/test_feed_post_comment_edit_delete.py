@@ -14,8 +14,14 @@ from models.feed_post_comment import FeedPostComment
 from models.user import User
 from services.feed_posts.delete_feed_post_comment import (
     DeleteFeedPostCommentService,
+)
+from services.feed_posts.delete_feed_post_comment import (
     FeedPostCommentForbiddenError as DeleteFeedPostCommentForbiddenError,
+)
+from services.feed_posts.delete_feed_post_comment import (
     FeedPostCommentMismatchError as DeleteFeedPostCommentMismatchError,
+)
+from services.feed_posts.delete_feed_post_comment import (
     FeedPostCommentNotFoundError as DeleteFeedPostCommentNotFoundError,
 )
 from services.feed_posts.update_feed_post_comment import (
@@ -188,8 +194,6 @@ async def test_delete_feed_post_comment_success(async_client: AsyncClient) -> No
             actor_user_id=user.id,
         )
         gone = (
-            await session.execute(
-                select(FeedPostComment).where(FeedPostComment.id == comment.id)
-            )
+            await session.execute(select(FeedPostComment).where(FeedPostComment.id == comment.id))
         ).scalar_one_or_none()
         assert gone is None
