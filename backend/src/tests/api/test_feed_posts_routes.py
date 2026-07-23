@@ -801,3 +801,109 @@ async def test_feed_post_only_mention_follower_skips_follower_broadcast(
 
     mock_mention.assert_called_once()
     mock_follower.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_update_and_delete(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8801)
+    create = await async_client.post('/api/feed-posts', json={'body': 'post for edit'})
+    assert create.status_code == 200
+    pid = int(create.json()['id'])
+
+    com = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': 'original text'},
+    )
+    assert com.status_code == 200
+    cid = int(com.json()['id'])
+
+    updated = await async_client.patch(
+        f'/api/feed-posts/{pid}/comments/{cid}',
+        json={'text': '  revised text  '},
+    )
+    assert updated.status_code == 200
+    assert updated.json()['text'] == 'revised text'
+
+    await _login(async_client, telegram_user_id=8802)
+    forbidden = await async_client.patch(
+        f'/api/feed-posts/{pid}/comments/{cid}',
+        json={'text': 'hack'},
+    )
+    assert forbidden.status_code == 403
+
+    await _login(async_client, telegram_user_id=8801)
+    deleted = await async_client.delete(f'/api/feed-posts/{pid}/comments/{cid}')
+    assert deleted.status_code == 204
+
+    lst = await async_client.get(f'/api/feed-posts/{pid}/comments')
+    assert lst.status_code == 200
+    assert all(it['id'] != cid for it in lst.json()['items'])
+
+    await _login(async_client, telegram_user_id=8802)
+    del_forbidden = await async_client.delete(f'/api/feed-posts/{pid}/comments/{cid}')
+    assert del_forbidden.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_update_wrong_post(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8803)
+    p1 = await async_client.post('/api/feed-posts', json={'body': 'p1'})
+    p2 = await async_client.post('/api/feed-posts', json={'body': 'p2'})
+    pid1 = int(p1.json()['id'])
+    pid2 = int(p2.json()['id'])
+    com = await async_client.post(
+        f'/api/feed-posts/{pid1}/comments',
+        json={'text': 'on p1'},
+    )
+    cid = int(com.json()['id'])
+
+    mismatch = await async_client.patch(
+        f'/api/feed-posts/{pid2}/comments/{cid}',
+        json={'text': 'wrong post'},
+    )
+    assert mismatch.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_update_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8804)
+    create = await async_client.post('/api/feed-posts', json={'body': 'post'})
+    pid = int(create.json()['id'])
+    missing = await async_client.patch(
+        f'/api/feed-posts/{pid}/comments/999999',
+        json={'text': 'ghost'},
+    )
+    assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_delete_mismatch(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8805)
+    p1 = await async_client.post('/api/feed-posts', json={'body': 'p1'})
+    p2 = await async_client.post('/api/feed-posts', json={'body': 'p2'})
+    pid1 = int(p1.json()['id'])
+    pid2 = int(p2.json()['id'])
+    com = await async_client.post(
+        f'/api/feed-posts/{pid1}/comments',
+        json={'text': 'on p1'},
+    )
+    cid = int(com.json()['id'])
+    mismatch = await async_client.delete(f'/api/feed-posts/{pid2}/comments/{cid}')
+    assert mismatch.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_feed_post_comment_update_validation_error(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8806)
+    create = await async_client.post('/api/feed-posts', json={'body': 'post'})
+    pid = int(create.json()['id'])
+    com = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': 'original'},
+    )
+    cid = int(com.json()['id'])
+    bad = await async_client.patch(
+        f'/api/feed-posts/{pid}/comments/{cid}',
+        json={'text': '⟦@missing_slug⟧'},
+    )
+    assert bad.status_code == 422

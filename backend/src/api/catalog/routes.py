@@ -33,13 +33,13 @@ from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from services.catalog.resolve_catalog_by_url_service import ResolveCatalogByUrlService
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
 from services.catalog.resolve_youtube_video_by_url_service import ResolveYoutubeVideoByUrlService
-from services.catalog.youtube_video_dto import YoutubeVideoDTO
 from services.catalog.search_catalog_candidates_service import SearchCatalogCandidatesService
 from services.catalog.search_kinopoisk_films_local_first import (
     CatalogFilmSearchHitDTO,
     SearchKinopoiskFilmsLocalFirstService,
 )
 from services.catalog.search_rawg_catalog_games_service import SearchRawgCatalogGamesService
+from services.catalog.youtube_video_dto import YoutubeVideoDTO
 from services.kinopoisk.resolve_kinopoisk_film import (
     KinopoiskClientError,
     KinopoiskUrlParseError,

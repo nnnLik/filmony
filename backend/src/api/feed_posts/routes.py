@@ -21,6 +21,7 @@ from api.feed_posts.schemas import (
     FeedPostCommentCreateRequest,
     FeedPostCommentListResponse,
     FeedPostCommentResponse,
+    FeedPostCommentUpdateRequest,
     FeedPostCreateRequest,
     FeedPostImageUploadResponse,
     FeedPostResponse,
@@ -59,11 +60,38 @@ from services.feed_posts.create_feed_post_comment import (
     ParentCommentMismatchError,
     ParentCommentNotFoundError,
 )
+from services.feed_posts.delete_feed_post_comment import (
+    DeleteFeedPostCommentService,
+)
+from services.feed_posts.delete_feed_post_comment import (
+    FeedPostCommentForbiddenError as DeleteFeedPostCommentForbiddenError,
+)
+from services.feed_posts.delete_feed_post_comment import (
+    FeedPostCommentMismatchError as DeleteFeedPostCommentMismatchError,
+)
+from services.feed_posts.delete_feed_post_comment import (
+    FeedPostCommentNotFoundError as DeleteFeedPostCommentNotFoundError,
+)
 from services.feed_posts.get_feed_post_feed_item import GetFeedPostFeedItemService
 from services.feed_posts.list_feed_post_comments import (
     CommentNotFoundError,
     FeedPostCommentItem,
     ListFeedPostCommentsService,
+)
+from services.feed_posts.update_feed_post_comment import (
+    FeedPostCommentForbiddenError as UpdateFeedPostCommentForbiddenError,
+)
+from services.feed_posts.update_feed_post_comment import (
+    FeedPostCommentMismatchError as UpdateFeedPostCommentMismatchError,
+)
+from services.feed_posts.update_feed_post_comment import (
+    FeedPostCommentNotFoundError as UpdateFeedPostCommentNotFoundError,
+)
+from services.feed_posts.update_feed_post_comment import (
+    FeedPostCommentValidationError as UpdateFeedPostCommentValidationError,
+)
+from services.feed_posts.update_feed_post_comment import (
+    UpdateFeedPostCommentService,
 )
 from services.profile.batch_resolve_inline_mentions import batch_resolve_inline_mentions
 from services.reactions import GetReactionSummariesForTargetsService
@@ -419,6 +447,64 @@ async def create_feed_post_comment_route(
         )
 
     return await _load_feed_post_comment_response(db, created.id, user.id)
+
+
+@router.patch(
+    '/{post_id}/comments/{comment_id}',
+    response_model=FeedPostCommentResponse,
+    summary='Редактировать комментарий к посту',
+)
+async def update_feed_post_comment_route(
+    post_id: int,
+    comment_id: int,
+    body: FeedPostCommentUpdateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FeedPostCommentResponse:
+    try:
+        await UpdateFeedPostCommentService.build(db).execute(
+            feed_post_id=post_id,
+            comment_id=comment_id,
+            actor_user_id=user.id,
+            text=body.text,
+        )
+    except UpdateFeedPostCommentNotFoundError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except UpdateFeedPostCommentMismatchError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except UpdateFeedPostCommentForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    except UpdateFeedPostCommentValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return await _load_feed_post_comment_response(db, comment_id, user.id)
+
+
+@router.delete(
+    '/{post_id}/comments/{comment_id}',
+    status_code=204,
+    response_class=Response,
+    summary='Удалить комментарий к посту',
+)
+async def delete_feed_post_comment_route(
+    post_id: int,
+    comment_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteFeedPostCommentService.build(db).execute(
+            feed_post_id=post_id,
+            comment_id=comment_id,
+            actor_user_id=user.id,
+        )
+    except DeleteFeedPostCommentNotFoundError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except DeleteFeedPostCommentMismatchError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except DeleteFeedPostCommentForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    return Response(status_code=204)
 
 
 @router.get('/{post_id}', response_model=FeedPostFeedItemResponse)

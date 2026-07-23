@@ -19,9 +19,11 @@ import { createPortal } from 'react-dom'
 
 import {
   createMovieCardComment as submitMovieCardCommentApi,
+  deleteMovieCardComment,
   getFollowingRatingsForCard,
   getMovieCardById,
   getMovieCardComments,
+  updateMovieCardComment,
 } from '../api/cardApi'
 import { uploadMovieCardCommentImage } from '../api/movieCardCommentImageApi'
 import type { WatchedInlinePickerItem } from '../api/watchedInlinePickerTypes'
@@ -73,6 +75,7 @@ import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
+import { CommentOwnerActionLinks } from '../components/comments/CommentOwnerActionLinks'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
@@ -270,6 +273,10 @@ export function MovieCardDetailPage() {
   const [commentImageUploadBusy, setCommentImageUploadBusy] = useState(false)
   const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
   const [submitBusy, setSubmitBusy] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [deleteCommentBusyId, setDeleteCommentBusyId] = useState<number | null>(null)
   const [jumpBusy, setJumpBusy] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [actionMenuOpen, setActionMenuOpen] = useState(false)
@@ -651,6 +658,58 @@ export function MovieCardDetailPage() {
     }
   }
 
+  function handleCancelEdit() {
+    setEditingCommentId(null)
+    setEditText('')
+  }
+
+  async function handleSaveEdit(commentId: number, imageUrl: string | null) {
+    if (parsedCardId == null || editBusy) return
+    const text = editText.trim()
+    if (text === '' && (imageUrl == null || imageUrl.trim() === '')) return
+    setEditBusy(true)
+    setCommentsError(null)
+    try {
+      const updated = await updateMovieCardComment(parsedCardId, commentId, {
+        text,
+        image_url: imageUrl,
+      })
+      setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)))
+      handleCancelEdit()
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setCommentsError(formatApiDetail(e.detail))
+      } else {
+        setCommentsError('Не удалось сохранить комментарий')
+      }
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    if (parsedCardId == null || deleteCommentBusyId != null) return
+    const confirmed = window.confirm('Удалить комментарий? Ответы на него тоже будут удалены.')
+    if (!confirmed) return
+    setDeleteCommentBusyId(commentId)
+    setCommentsError(null)
+    try {
+      await deleteMovieCardComment(parsedCardId, commentId)
+      if (editingCommentId === commentId) handleCancelEdit()
+      await loadComments(false)
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setCommentsError(formatApiDetail(e.detail))
+      } else {
+        setCommentsError('Не удалось удалить комментарий')
+      }
+    } finally {
+      setDeleteCommentBusyId(null)
+    }
+  }
+
   const handlePickCommentImage = useCallback(() => {
     commentImageFileInputRef.current?.click()
   }, [])
@@ -895,6 +954,21 @@ export function MovieCardDetailPage() {
             handleCommentImageFileChange={(event) => {
               void handleCommentImageFileChange(event)
             }}
+            editingCommentId={editingCommentId}
+            editText={editText}
+            setEditText={setEditText}
+            editBusy={editBusy}
+            deleteCommentBusyId={deleteCommentBusyId}
+            onStartEditComment={(comment) => {
+              setEditingCommentId(comment.id)
+              setEditText(comment.text)
+              setReplyTo(null)
+            }}
+            onCancelEditComment={handleCancelEdit}
+            onSaveEditComment={handleSaveEdit}
+            onDeleteComment={(commentId) => {
+              void handleDeleteComment(commentId)
+            }}
           />
           </MentionProfileLookupProvider>
         ) : null}
@@ -951,6 +1025,15 @@ type MovieCardDetailLoadedBodyProps = {
   commentImageFileInputRef: RefObject<HTMLInputElement | null>
   handlePickCommentImage: () => void
   handleCommentImageFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+  editingCommentId: number | null
+  editText: string
+  setEditText: Dispatch<SetStateAction<string>>
+  editBusy: boolean
+  deleteCommentBusyId: number | null
+  onStartEditComment: (comment: MovieCardComment) => void
+  onCancelEditComment: () => void
+  onSaveEditComment: (commentId: number, imageUrl: string | null) => Promise<void>
+  onDeleteComment: (commentId: number) => void
 }
 
 function MovieCardDetailLoadedBody({
@@ -1001,6 +1084,15 @@ function MovieCardDetailLoadedBody({
   commentImageFileInputRef,
   handlePickCommentImage,
   handleCommentImageFileChange,
+  editingCommentId,
+  editText,
+  setEditText,
+  editBusy,
+  deleteCommentBusyId,
+  onStartEditComment,
+  onCancelEditComment,
+  onSaveEditComment,
+  onDeleteComment,
 }: MovieCardDetailLoadedBodyProps) {
   const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
   const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
@@ -1569,24 +1661,32 @@ function MovieCardDetailLoadedBody({
                                   Ответить
                                 </button>
                                 {viewerId != null && cardComment.author.id === viewerId ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const payload: OpenComposeFeedPostPayload = {
-                                        sourceCommentId: d.id,
-                                        referencedMovieCardId: card.id,
-                                        sourceCommentImageUrl: d.sourceCommentImageUrl,
-                                        sourceCommentPreviewAuthorLabel: authorName(cardComment),
-                                        sourceCommentPreviewText: d.text,
-                                        sourceCommentReferencedMovieCards: d.referenced_movie_cards ?? null,
-                                        sourceCommentReferencedMentions: d.referenced_mentions ?? null,
-                                      }
-                                      openCompose(payload)
-                                    }}
-                                    className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                                  >
-                                    В ленту
-                                  </button>
+                                  <>
+                                    <CommentOwnerActionLinks
+                                      onEdit={() => onStartEditComment(cardComment)}
+                                      onDelete={() => onDeleteComment(cardComment.id)}
+                                      deleteBusy={deleteCommentBusyId === cardComment.id}
+                                      disabled={editBusy && editingCommentId === cardComment.id}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const payload: OpenComposeFeedPostPayload = {
+                                          sourceCommentId: d.id,
+                                          referencedMovieCardId: card.id,
+                                          sourceCommentImageUrl: d.sourceCommentImageUrl,
+                                          sourceCommentPreviewAuthorLabel: authorName(cardComment),
+                                          sourceCommentPreviewText: d.text,
+                                          sourceCommentReferencedMovieCards: d.referenced_movie_cards ?? null,
+                                          sourceCommentReferencedMentions: d.referenced_mentions ?? null,
+                                        }
+                                        openCompose(payload)
+                                      }}
+                                      className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
+                                    >
+                                      В ленту
+                                    </button>
+                                  </>
                                 ) : null}
                               </div>
                             </div>
@@ -1607,24 +1707,56 @@ function MovieCardDetailLoadedBody({
                               </button>
                             ) : null}
 
-                            {d.imageSrc != null ? (
-                              <FeedOpenableContainedImageThumbnail
-                                src={movieCardCommentImageSrc(d.imageSrc)}
-                                wrapperClassName="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)"
-                                imgClassName="max-h-[min(60vw,16rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
-                              />
-                            ) : null}
-
-                            {d.textTrimmed !== '' ? (
-                              <p className="mt-1 text-sm leading-relaxed">
-                                <CommentBodyWithReactionTokens
-                                  text={d.text}
-                                  className="whitespace-pre-wrap"
-                                  inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(d.referenced_movie_cards)}
-                                  referencedMentions={d.referenced_mentions}
+                            {editingCommentId === cardComment.id ? (
+                              <div className="mt-1 space-y-2">
+                                <CommentDraftMultiline
+                                  value={editText}
+                                  onChange={(v) => setEditText(v.slice(0, COMMENT_BODY_MAX_LEN))}
+                                  placeholder="Редактировать комментарий"
+                                  disabled={editBusy}
+                                  rows={3}
                                 />
-                              </p>
-                            ) : null}
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="s"
+                                    disabled={
+                                      editBusy ||
+                                      (editText.trim() === '' &&
+                                        (cardComment.image_url == null || cardComment.image_url.trim() === ''))
+                                    }
+                                    onClick={() =>
+                                      void onSaveEditComment(cardComment.id, cardComment.image_url ?? null)
+                                    }
+                                  >
+                                    {editBusy ? 'Сохранение…' : 'Сохранить'}
+                                  </Button>
+                                  <Button size="s" mode="gray" disabled={editBusy} onClick={onCancelEditComment}>
+                                    Отмена
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {d.imageSrc != null ? (
+                                  <FeedOpenableContainedImageThumbnail
+                                    src={movieCardCommentImageSrc(d.imageSrc)}
+                                    wrapperClassName="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)"
+                                    imgClassName="max-h-[min(60vw,16rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
+                                  />
+                                ) : null}
+
+                                {d.textTrimmed !== '' ? (
+                                  <p className="mt-1 text-sm leading-relaxed">
+                                    <CommentBodyWithReactionTokens
+                                      text={d.text}
+                                      className="whitespace-pre-wrap"
+                                      inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(d.referenced_movie_cards)}
+                                      referencedMentions={d.referenced_mentions}
+                                    />
+                                  </p>
+                                ) : null}
+                              </>
+                            )}
                             <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
                               <ReactionStrip
                                 compact

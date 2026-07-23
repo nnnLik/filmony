@@ -54,14 +54,22 @@ export async function consumeGlobalFeedHeadSse(
   const reader = res.body.getReader()
   const dec = new TextDecoder()
   let buf = ''
-  while (!signal.aborted) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += dec.decode(value, { stream: true })
-    const { events, rest } = parseSseDataLines(buf)
-    buf = rest
-    for (const e of events) {
-      onVersion(e.version)
+  try {
+    while (!signal.aborted) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += dec.decode(value, { stream: true })
+      const { events, rest } = parseSseDataLines(buf)
+      buf = rest
+      for (const e of events) {
+        onVersion(e.version)
+      }
+    }
+  } finally {
+    try {
+      await reader.cancel()
+    } catch {
+      /* stream already closed */
     }
   }
 }

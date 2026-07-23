@@ -56,5 +56,32 @@ def test_is_youtube_host(url: str, expected: bool) -> None:
     assert is_youtube_host(url) is expected
 
 
+@pytest.mark.parametrize(
+    ('url', 'expected'),
+    [
+        (f'http://www.youtube.com/watch?v={_VIDEO_ID}', _VIDEO_ID),
+        (f'https://music.youtube.com/watch?v={_VIDEO_ID}', _VIDEO_ID),
+        (f'https://www.youtube.com/watch/{_VIDEO_ID}', _VIDEO_ID),
+    ],
+)
+def test_parse_video_id_additional_formats(url: str, expected: str) -> None:
+    assert parse_video_id(url) == expected
+
+
+@pytest.mark.parametrize(
+    'url',
+    [
+        'ftp://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://www.youtube.com/',
+    ],
+)
+def test_parse_video_id_rejects_bad_scheme_or_empty_path(url: str) -> None:
+    assert parse_video_id(url) is None
+
+
+def test_is_youtube_host_rejects_non_http_scheme() -> None:
+    assert is_youtube_host('ftp://youtube.com/watch?v=dQw4w9WgXcQ') is False
+
+
 def test_canonical_youtube_url() -> None:
     assert canonical_youtube_url(_VIDEO_ID) == f'https://www.youtube.com/watch?v={_VIDEO_ID}'

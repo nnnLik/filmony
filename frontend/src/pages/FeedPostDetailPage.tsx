@@ -14,8 +14,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import {
   createFeedPostComment,
+  deleteFeedPostComment,
   getFeedPostById,
   getFeedPostComments,
+  updateFeedPostComment,
 } from '../api/feedPostApi'
 import type { WatchedInlinePickerItem } from '../api/cardApi'
 import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
@@ -24,6 +26,7 @@ import type { FeedPostInFeed } from '../api/feedInFeedTypes'
 import type { FeedPostComment, ReactionSummary } from '../api/profileTypes'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
+import { CommentOwnerActionLinks } from '../components/comments/CommentOwnerActionLinks'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
@@ -104,6 +107,10 @@ export function FeedPostDetailPage() {
   >(() => new Map())
   const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
   const [submitBusy, setSubmitBusy] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [deleteCommentBusyId, setDeleteCommentBusyId] = useState<number | null>(null)
   const [jumpBusy, setJumpBusy] = useState(false)
   const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null)
   const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
@@ -422,6 +429,55 @@ export function FeedPostDetailPage() {
     }
   }
 
+  function handleCancelEdit() {
+    setEditingCommentId(null)
+    setEditText('')
+  }
+
+  async function handleSaveEdit(commentId: number) {
+    if (parsedPostId == null || editBusy) return
+    const text = editText.trim()
+    if (text === '') return
+    setEditBusy(true)
+    setCommentsError(null)
+    try {
+      const updated = await updateFeedPostComment(parsedPostId, commentId, { text })
+      setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)))
+      handleCancelEdit()
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) setCommentsError(formatApiDetail(e.detail))
+      else setCommentsError('Не удалось сохранить комментарий')
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    if (parsedPostId == null || deleteCommentBusyId != null) return
+    const confirmed = window.confirm('Удалить комментарий? Ответы на него тоже будут удалены.')
+    if (!confirmed) return
+    setDeleteCommentBusyId(commentId)
+    setCommentsError(null)
+    try {
+      await deleteFeedPostComment(parsedPostId, commentId)
+      if (editingCommentId === commentId) handleCancelEdit()
+      await loadComments(false)
+      try {
+        const fresh = await getFeedPostById(parsedPostId)
+        setPost(fresh)
+      } catch {
+        void 0
+      }
+      safeHapticSuccess()
+    } catch (e) {
+      if (e instanceof ApiError) setCommentsError(formatApiDetail(e.detail))
+      else setCommentsError('Не удалось удалить комментарий')
+    } finally {
+      setDeleteCommentBusyId(null)
+    }
+  }
+
   async function handleJumpToParent(parentCommentId: number) {
     if (parsedPostId == null || jumpBusy) return
     setCommentsError(null)
@@ -700,13 +756,29 @@ export function FeedPostDetailPage() {
                                   {formatCommentTime(comment.created_at)}
                                 </span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
-                                className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                              >
-                                Ответить
-                              </button>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
+                                  className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
+                                >
+                                  Ответить
+                                </button>
+                                {viewerId != null && comment.author.id === viewerId ? (
+                                  <CommentOwnerActionLinks
+                                    onEdit={() => {
+                                      setEditingCommentId(comment.id)
+                                      setEditText(comment.text)
+                                      setReplyTo(null)
+                                    }}
+                                    onDelete={() => {
+                                      void handleDeleteComment(comment.id)
+                                    }}
+                                    deleteBusy={deleteCommentBusyId === comment.id}
+                                    disabled={editBusy && editingCommentId === comment.id}
+                                  />
+                                ) : null}
+                              </div>
                             </div>
 
                             {parentCommentId != null ? (
@@ -725,14 +797,38 @@ export function FeedPostDetailPage() {
                               </button>
                             ) : null}
 
-                            <p className="mt-1 text-sm leading-relaxed">
-                              <CommentBodyWithReactionTokens
-                                text={comment.text}
-                                className="whitespace-pre-wrap"
-                                inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
-                                referencedMentions={comment.referenced_mentions}
-                              />
-                            </p>
+                            {editingCommentId === comment.id ? (
+                              <div className="mt-1 space-y-2">
+                                <CommentDraftMultiline
+                                  value={editText}
+                                  onChange={(v) => setEditText(v.slice(0, COMMENT_BODY_MAX_LEN))}
+                                  placeholder="Редактировать комментарий"
+                                  disabled={editBusy}
+                                  rows={3}
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="s"
+                                    disabled={editBusy || editText.trim() === ''}
+                                    onClick={() => void handleSaveEdit(comment.id)}
+                                  >
+                                    {editBusy ? 'Сохранение…' : 'Сохранить'}
+                                  </Button>
+                                  <Button size="s" mode="gray" disabled={editBusy} onClick={handleCancelEdit}>
+                                    Отмена
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-sm leading-relaxed">
+                                <CommentBodyWithReactionTokens
+                                  text={comment.text}
+                                  className="whitespace-pre-wrap"
+                                  inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
+                                  referencedMentions={comment.referenced_mentions}
+                                />
+                              </p>
+                            )}
                             <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
                               <ReactionStrip
                                 compact

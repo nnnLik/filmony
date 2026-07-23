@@ -37,45 +37,38 @@ def _valid_video_id(candidate: str | None) -> str | None:
     return None
 
 
+def _video_id_from_watch_path(segments: list[str], query: str) -> str | None:
+    if len(segments) >= 2:
+        video_id = _valid_video_id(segments[1])
+        if video_id is not None:
+            return video_id
+    v_values = parse_qs(query).get('v')
+    if v_values:
+        return _valid_video_id(v_values[0])
+    return None
+
+
 def parse_video_id(url: str) -> str | None:
+    video_id: str | None = None
     stripped = url.strip()
     if not stripped:
-        return None
+        return video_id
     parsed = urlparse(stripped)
-    if parsed.scheme not in ('http', 'https'):
-        return None
-    if not is_youtube_host(stripped):
-        return None
+    if parsed.scheme not in ('http', 'https') or not is_youtube_host(stripped):
+        return video_id
 
     host = _host_key(parsed.netloc)
-    if host == 'youtu.be':
-        segments = [segment for segment in parsed.path.split('/') if segment]
-        if not segments:
-            return None
-        return _valid_video_id(segments[0])
-
     segments = [segment for segment in parsed.path.split('/') if segment]
-    if not segments:
-        return None
-
-    head = segments[0].lower()
-    if head == 'watch':
-        if len(segments) >= 2:
+    if host == 'youtu.be':
+        if segments:
+            video_id = _valid_video_id(segments[0])
+    elif segments:
+        head = segments[0].lower()
+        if head == 'watch':
+            video_id = _video_id_from_watch_path(segments, parsed.query)
+        elif head in ('shorts', 'embed') and len(segments) >= 2:
             video_id = _valid_video_id(segments[1])
-            if video_id is not None:
-                return video_id
-        query = parse_qs(parsed.query)
-        v_values = query.get('v')
-        if v_values:
-            return _valid_video_id(v_values[0])
-        return None
-
-    if head in ('shorts', 'embed'):
-        if len(segments) >= 2:
-            return _valid_video_id(segments[1])
-        return None
-
-    return None
+    return video_id
 
 
 def canonical_youtube_url(video_id: str) -> str:

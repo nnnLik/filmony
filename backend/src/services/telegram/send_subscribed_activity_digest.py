@@ -17,7 +17,9 @@ from models.user import User
 from services.subscriptions.list_following_user_ids_for_follower_user import (
     ListFollowingUserIdsForFollowerUserService,
 )
-from services.telegram.mini_app_link import html_app_deep_link_block
+from services.telegram.build_subscribed_activity_digest_message import (
+    BuildSubscribedActivityDigestMessageService,
+)
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 from services.telegram.subscribed_activity_digest_candidates import (
     DIGEST_INTERVAL,
@@ -64,15 +66,19 @@ def _compute_window(
     return window_start, now
 
 
-def _render_digest_html(*, items: list[DigestCandidate]) -> str:
-    lines = [
-        '🔔 <b>За последние 48 часов у людей, на которых вы подписаны, появилось интересное:</b>',
-        '',
-    ]
-    for idx, item in enumerate(items, start=1):
-        lines.append(f'{idx}. {item.line_html}')
-    lines.extend(['', html_app_deep_link_block(link_text='Открыть подборку в Filmony')])
-    return '\n'.join(lines)
+def _render_digest_html(
+    *,
+    items: list[DigestCandidate],
+    pool: list[DigestCandidate],
+    recipient_user_id: UUID,
+    window_start: dt.datetime,
+) -> str:
+    return BuildSubscribedActivityDigestMessageService.build().execute(
+        items=items,
+        pool=pool,
+        recipient_user_id=recipient_user_id,
+        window_start=window_start,
+    )
 
 
 @dataclass
@@ -148,7 +154,12 @@ class SendSubscribedActivityTelegramDigestService:
             )
 
         payload_hash = digest_payload_hash(selected)
-        body = _render_digest_html(items=selected)
+        body = _render_digest_html(
+            items=selected,
+            pool=pool,
+            recipient_user_id=recipient_user_id,
+            window_start=window_start,
+        )
 
         try:
             await self._send_svc.execute(

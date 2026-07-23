@@ -90,9 +90,7 @@ class CardCreateRequest(BaseModel):
             if self.provider is None:
                 raise ValueError('provider is required when external_id is set')
 
-        is_manual = (
-            not has_film and not has_catalog and not has_ke and not has_yt and bool(title)
-        )
+        is_manual = not has_film and not has_catalog and not has_ke and not has_yt and bool(title)
 
         modes = int(has_film) + int(has_catalog) + int(has_ke) + int(has_yt) + int(is_manual)
         if modes != 1:
@@ -261,6 +259,21 @@ class UserCardCommentCreateRequest(BaseModel):
 
     @model_validator(mode='after')
     def require_text_or_image(self) -> UserCardCommentCreateRequest:
+        if self.text.strip() == '' and (
+            self.image_url is None or str(self.image_url).strip() == ''
+        ):
+            raise ValueError('text or image_url is required')
+        return self
+
+
+class UserCardCommentUpdateRequest(BaseModel):
+    text: str = Field(default='', max_length=250)
+    image_url: str | None = Field(default=None, max_length=2048)
+
+    model_config = ConfigDict(extra='forbid')
+
+    @model_validator(mode='after')
+    def require_text_or_image(self) -> UserCardCommentUpdateRequest:
         if self.text.strip() == '' and (
             self.image_url is None or str(self.image_url).strip() == ''
         ):

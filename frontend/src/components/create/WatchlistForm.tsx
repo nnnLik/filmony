@@ -316,7 +316,7 @@ export function WatchlistForm({
       clearMyProfileBundleCache()
       void queryClient.invalidateQueries({ queryKey: ['userWatchlist'] })
       safeHapticSuccess()
-      void navigate('/profile', { replace: true, state: { moviesSegment: 'watchlist' as const } })
+      void navigate('/profile?movies=watchlist', { replace: true })
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 409) {

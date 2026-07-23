@@ -15,9 +15,9 @@ export default function App() {
   return (
     <AppRoot appearance="dark">
       <div className="filmony-theme min-h-dvh">
-        <TelegramMiniAppStartParamRedirect />
         <QueryProvider>
           <AuthProvider>
+            <TelegramMiniAppStartParamRedirect />
             <MentionProfileLookupBootstrap>
               <ComposeFeedPostProvider>
                 <ScrollRestoreProvider>

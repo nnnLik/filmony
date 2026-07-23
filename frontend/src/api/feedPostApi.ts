@@ -149,3 +149,24 @@ export async function createFeedPostComment(
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+export async function updateFeedPostComment(
+  postId: number,
+  commentId: number,
+  body: { text: string },
+): Promise<FeedPostComment> {
+  return apiJson<FeedPostComment>(`/api/feed-posts/${postId}/comments/${commentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export async function deleteFeedPostComment(postId: number, commentId: number): Promise<void> {
+  const res = await apiFetch(`/api/feed-posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readHttpErrorDetail(res))
+  }
+}

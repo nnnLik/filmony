@@ -28,7 +28,11 @@ class YoutubeOembedDTO:
             author_name = data['author_name']
         except KeyError as exc:
             raise YoutubeOembedDtoParseError(f'missing field {exc}') from exc
-        if not isinstance(title, str) or not isinstance(thumbnail_url, str) or not isinstance(author_name, str):
+        if (
+            not isinstance(title, str)
+            or not isinstance(thumbnail_url, str)
+            or not isinstance(author_name, str)
+        ):
             raise YoutubeOembedDtoParseError('invalid field types')
         normalized_thumbnail = normalize_absolute_http_url(thumbnail_url) or thumbnail_url
         return cls(

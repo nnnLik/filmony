@@ -31,11 +31,24 @@ function resolveInitDataRaw(): string {
 
 const authBootstrapGeneration = { current: 0 }
 
+/** Cold notification/deeplink opens can inject initData after the first paint. */
+const INIT_DATA_FAST_FRAMES = 30
+const INIT_DATA_MAX_WAIT_MS = 4000
+const INIT_DATA_POLL_MS = 50
+
+function signalTelegramWebAppReady(): void {
+  try {
+    window.Telegram?.WebApp?.ready?.()
+  } catch {
+    /* noop */
+  }
+}
+
 async function waitForInitDataRaw(
-  maxFrames: number,
+  maxWaitMs: number,
   isCurrent: () => boolean
 ): Promise<string> {
-  for (let i = 0; i < maxFrames; i++) {
+  for (let i = 0; i < INIT_DATA_FAST_FRAMES; i++) {
     if (!isCurrent()) {
       return ''
     }
@@ -47,6 +60,17 @@ async function waitForInitDataRaw(
       requestAnimationFrame(() => resolve())
     })
   }
+
+  const deadline = Date.now() + maxWaitMs
+  while (isCurrent() && Date.now() < deadline) {
+    const raw = resolveInitDataRaw()
+    if (raw) {
+      return raw
+    }
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, INIT_DATA_POLL_MS)
+    })
+  }
   return resolveInitDataRaw()
 }
 
@@ -56,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { kind: 'skipped' }
     }
     if (readAuthSessionFlag() && readAccessToken()) {
-      return { kind: 'ready' }
+      return { kind: 'loading' }
     }
     if (readAuthSessionFlag() && !readAccessToken()) {
       writeAuthSessionFlag(false)
@@ -69,19 +93,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Уже есть JWT в storage — не дублируем POST /auth/telegram при каждом mount.
-    if (readAccessToken()) {
-      writeAuthSessionFlag(true)
-      return
-    }
-
     const runId = ++authBootstrapGeneration.current
 
+    const resumeWithStoredBearer = async (): Promise<boolean> => {
+      const token = readAccessToken()
+      if (!token) {
+        return false
+      }
+      try {
+        const probe = await apiFetch('/api/me', {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (runId !== authBootstrapGeneration.current) {
+          return false
+        }
+        if (!probe.ok) {
+          writeAuthSessionFlag(false)
+          writeAccessToken(null)
+          return false
+        }
+        writeAuthSessionFlag(true)
+        setState({ kind: 'ready' })
+        return true
+      } catch {
+        return false
+      }
+    }
+
     void (async () => {
+      signalTelegramWebAppReady()
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve())
       })
       if (runId !== authBootstrapGeneration.current) {
+        return
+      }
+
+      if (await resumeWithStoredBearer()) {
         return
       }
 
@@ -110,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const raw = await waitForInitDataRaw(16, () => runId === authBootstrapGeneration.current)
+      const raw = await waitForInitDataRaw(INIT_DATA_MAX_WAIT_MS, () => runId === authBootstrapGeneration.current)
       if (runId !== authBootstrapGeneration.current) {
         return
       }

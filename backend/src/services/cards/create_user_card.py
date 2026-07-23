@@ -170,6 +170,72 @@ def _watchlist_card_id_for_provider(provider: CatalogProvider, external_id: str)
     return f'{provider.value}:{external_id}'
 
 
+def _validate_create_subject_modes(
+    payload: CreateUserCardInput,
+    ext_norm: str | None,
+    *,
+    has_film: bool,
+    has_catalog: bool,
+    manual_title: str,
+) -> tuple[bool, bool, bool]:
+    has_ke = payload.provider == CatalogProvider.kinopoisk and ext_norm is not None
+    has_yt = payload.provider == CatalogProvider.youtube and ext_norm is not None
+
+    if payload.provider == CatalogProvider.no_provider:
+        if ext_norm is not None:
+            raise UserCardValidationError('external_id must not be set for no_provider')
+        if has_film or has_catalog or has_ke:
+            raise UserCardValidationError(
+                'no_provider cannot be combined with film_id, catalog_item_id, '
+                'or kinopoisk external_id',
+            )
+        if not manual_title:
+            raise UserCardValidationError('display_title is required for no_provider')
+
+    if (
+        payload.provider == CatalogProvider.kinopoisk
+        and not has_ke
+        and not has_film
+        and not has_catalog
+    ):
+        raise UserCardValidationError(
+            'provider kinopoisk requires external_id, '
+            'or omit provider and use film_id/catalog_item_id',
+        )
+
+    if payload.provider == CatalogProvider.youtube:
+        if ext_norm is None:
+            raise UserCardValidationError('external_id is required for youtube')
+        if not manual_title:
+            raise UserCardValidationError('display_title is required for youtube')
+        if has_film or has_catalog:
+            raise UserCardValidationError(
+                'youtube cannot be combined with film_id or catalog_item_id',
+            )
+
+    if ext_norm is not None:
+        if payload.provider not in (None, CatalogProvider.kinopoisk, CatalogProvider.youtube):
+            raise UserCardValidationError(
+                'external_id is only valid with provider kinopoisk or youtube',
+            )
+        if payload.provider is None:
+            raise UserCardValidationError('provider is required when external_id is set')
+
+    is_manual = (
+        not has_film and not has_catalog and not has_ke and not has_yt and bool(manual_title)
+    )
+
+    modes = int(has_film) + int(has_catalog) + int(has_ke) + int(has_yt) + int(is_manual)
+    if modes != 1:
+        raise UserCardValidationError(
+            'exactly one of: film-backed (film_id), catalog_item_id, '
+            'kinopoisk external subject (provider kinopoisk + external_id), '
+            'youtube subject (provider youtube + external_id + display_title), '
+            'or display_title (manual)',
+        )
+    return has_ke, has_yt, is_manual
+
+
 class CreateUserCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -194,61 +260,13 @@ class CreateUserCardService:
         has_catalog = payload.catalog_item_id is not None
         manual_title = (payload.display_title or '').strip()
 
-        has_ke = payload.provider == CatalogProvider.kinopoisk and ext_norm is not None
-        has_yt = payload.provider == CatalogProvider.youtube and ext_norm is not None
-
-        if payload.provider == CatalogProvider.no_provider:
-            if ext_norm is not None:
-                raise UserCardValidationError('external_id must not be set for no_provider')
-            if has_film or has_catalog or has_ke:
-                raise UserCardValidationError(
-                    'no_provider cannot be combined with film_id, catalog_item_id, '
-                    'or kinopoisk external_id',
-                )
-            if not manual_title:
-                raise UserCardValidationError('display_title is required for no_provider')
-
-        if (
-            payload.provider == CatalogProvider.kinopoisk
-            and not has_ke
-            and not has_film
-            and not has_catalog
-        ):
-            raise UserCardValidationError(
-                'provider kinopoisk requires external_id, '
-                'or omit provider and use film_id/catalog_item_id',
-            )
-
-        if payload.provider == CatalogProvider.youtube:
-            if ext_norm is None:
-                raise UserCardValidationError('external_id is required for youtube')
-            if not manual_title:
-                raise UserCardValidationError('display_title is required for youtube')
-            if has_film or has_catalog:
-                raise UserCardValidationError(
-                    'youtube cannot be combined with film_id or catalog_item_id',
-                )
-
-        if ext_norm is not None:
-            if payload.provider not in (None, CatalogProvider.kinopoisk, CatalogProvider.youtube):
-                raise UserCardValidationError(
-                    'external_id is only valid with provider kinopoisk or youtube',
-                )
-            if payload.provider is None:
-                raise UserCardValidationError('provider is required when external_id is set')
-
-        is_manual = (
-            not has_film and not has_catalog and not has_ke and not has_yt and bool(manual_title)
+        has_ke, has_yt, _is_manual = _validate_create_subject_modes(
+            payload,
+            ext_norm,
+            has_film=has_film,
+            has_catalog=has_catalog,
+            manual_title=manual_title,
         )
-
-        modes = int(has_film) + int(has_catalog) + int(has_ke) + int(has_yt) + int(is_manual)
-        if modes != 1:
-            raise UserCardValidationError(
-                'exactly one of: film-backed (film_id), catalog_item_id, '
-                'kinopoisk external subject (provider kinopoisk + external_id), '
-                'youtube subject (provider youtube + external_id + display_title), '
-                'or display_title (manual)',
-            )
 
         if has_film:
             return await self._create_film_backed(

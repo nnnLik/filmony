@@ -32,6 +32,7 @@ from api.cards.schemas import (
     UserCardCommentCreateRequest,
     UserCardCommentListResponse,
     UserCardCommentResponse,
+    UserCardCommentUpdateRequest,
     UserCardDetailResponse,
     UserCardFeedItemResponse,
     UserCardFeedPageResponse,
@@ -96,6 +97,18 @@ from services.cards.delete_user_card_audio import (
 from services.cards.delete_user_card_audio import (
     UserCardNotFoundError as DeleteCardAudioNotFoundError,
 )
+from services.cards.delete_user_card_comment import (
+    DeleteUserCardCommentService,
+)
+from services.cards.delete_user_card_comment import (
+    UserCardCommentForbiddenError as DeleteUserCardCommentForbiddenError,
+)
+from services.cards.delete_user_card_comment import (
+    UserCardCommentMismatchError as DeleteUserCardCommentMismatchError,
+)
+from services.cards.delete_user_card_comment import (
+    UserCardCommentNotFoundError as DeleteUserCardCommentNotFoundError,
+)
 from services.cards.get_user_card_details import GetUserCardDetailsService, UserCardNotFoundError
 from services.cards.inline_user_card_ref_tokens import batch_resolve_inline_user_card_refs
 from services.cards.list_following_ratings_for_user_card import (
@@ -147,6 +160,21 @@ from services.cards.update_user_card import (
 )
 from services.cards.update_user_card import (
     UserCardValidationError as UpdateUserCardValidationError,
+)
+from services.cards.update_user_card_comment import (
+    UpdateUserCardCommentService,
+)
+from services.cards.update_user_card_comment import (
+    UserCardCommentForbiddenError as UpdateUserCardCommentForbiddenError,
+)
+from services.cards.update_user_card_comment import (
+    UserCardCommentMismatchError as UpdateUserCardCommentMismatchError,
+)
+from services.cards.update_user_card_comment import (
+    UserCardCommentNotFoundError as UpdateUserCardCommentNotFoundError,
+)
+from services.cards.update_user_card_comment import (
+    UserCardCommentValidationError as UpdateUserCardCommentValidationError,
 )
 from services.cards.upload_user_card_audio import (
     USER_CARD_AUDIO_MAX_BYTES,
@@ -990,3 +1018,62 @@ async def create_card_comment(
         )
 
     return await _load_comment_response(db, created.id, user.id)
+
+
+@router.patch(
+    '/{card_id}/comments/{comment_id}',
+    response_model=UserCardCommentResponse,
+    summary='Редактировать комментарий карточки',
+)
+async def update_card_comment(
+    card_id: int,
+    comment_id: int,
+    body: UserCardCommentUpdateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserCardCommentResponse:
+    try:
+        await UpdateUserCardCommentService.build(db).execute(
+            card_id=card_id,
+            comment_id=comment_id,
+            actor_user_id=user.id,
+            text=body.text,
+            image_url=body.image_url,
+        )
+    except UpdateUserCardCommentNotFoundError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except UpdateUserCardCommentMismatchError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except UpdateUserCardCommentForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    except UpdateUserCardCommentValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return await _load_comment_response(db, comment_id, user.id)
+
+
+@router.delete(
+    '/{card_id}/comments/{comment_id}',
+    status_code=204,
+    response_class=Response,
+    summary='Удалить комментарий карточки',
+)
+async def delete_card_comment(
+    card_id: int,
+    comment_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteUserCardCommentService.build(db).execute(
+            card_id=card_id,
+            comment_id=comment_id,
+            actor_user_id=user.id,
+        )
+    except DeleteUserCardCommentNotFoundError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except DeleteUserCardCommentMismatchError:
+        raise HTTPException(status_code=404, detail='comment not found') from None
+    except DeleteUserCardCommentForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    return Response(status_code=204)
