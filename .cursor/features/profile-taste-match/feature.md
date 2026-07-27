@@ -3,10 +3,11 @@
 ## Metadata
 - Feature slug: `profile-taste-match`
 - Title: Weighted Taste Match Between Profiles
-- Status: **planned — blocked on product decisions below**
+- Status: **done**
 - Author: `r.makkhmudov`
 - Created at: `2026-06-30`
-- Updated at: `2026-07-03`
+- Updated at: `2026-07-27`
+- Completed at: `2026-07-27` — v1 shipped to production (Jaccard taste peers in profile stats); see `docs/features/profile-taste-match.md` and `.cursor/active/profile-taste-match/result.md`
 - Priority: high (follow-up to `profile-analytics-redesign`)
 - Target area: backend + frontend
 

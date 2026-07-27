@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-27T142500Z-profile-taste-match-docs.md`
+- `2026-07-27T140000Z-backlog-cleanup-decision.md`
 - `2026-07-23T180900Z-taste-quiz-guess-rating-docs.md`
 - `2026-07-23T180800Z-taste-quiz-guess-rating-frontend-code.md`
 - `2026-07-23T180700Z-taste-quiz-guess-rating-code.md`

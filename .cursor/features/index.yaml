@@ -20,26 +20,12 @@ features:
     active_path: .cursor/active/feed-ordering-updated-at
     docs_path: docs/features/feed-ordering-updated-at.md
 
-  - slug: backend-parallel-test-coverage
-    title: Backend Parallel Test Execution and Coverage Reporting
-    status: planned
-    source_path: .cursor/features/backend-parallel-test-coverage/feature.md
-    active_path: null
-    docs_path: null
-
   - slug: profile-taste-match
     title: Taste Match Between Profiles
-    status: planned
+    status: done
     source_path: .cursor/features/profile-taste-match/feature.md
-    active_path: null
-    docs_path: null
-
-  - slug: monthly-recap-shareable-summary
-    title: Monthly Recap and Shareable Summary
-    status: planned
-    source_path: .cursor/features/monthly-recap-shareable-summary/feature.md
-    active_path: null
-    docs_path: null
+    active_path: .cursor/active/profile-taste-match
+    docs_path: docs/features/profile-taste-match.md
 
   - slug: engaging-digest-notifications
     title: Richer Subscribed-Activity Digest Copy

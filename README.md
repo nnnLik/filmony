@@ -51,8 +51,6 @@ make prod-up   # pull + up + alembic upgrade head
 
 Деплой из UI: **Actions → Deploy → Run workflow** (секреты `SERVER_*`, для сборки фронта в CI — `VITE_API_ORIGIN`, `VITE_TELEGRAM_BOT_USERNAME`). После деплоя создаётся **GitHub Release** с авто-тегом `deploy-<run>-<attempt>`. Нужны права workflow **Read and write** для `contents` (Settings → Actions → General).
 
-Чеклист: [`.cursor/features/production-readiness/feature.md`](.cursor/features/production-readiness/feature.md).
-
 ## Makefile (частое)
 
 | Цель | Назначение |
