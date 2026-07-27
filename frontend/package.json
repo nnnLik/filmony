@@ -28,7 +28,8 @@
       "react": "$react",
       "react-dom": "$react-dom"
     },
-    "valibot": "^1.2.0"
+    "valibot": "^1.2.0",
+    "sharp": "0.35.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.36.3",
