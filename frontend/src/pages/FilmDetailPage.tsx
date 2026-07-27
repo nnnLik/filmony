@@ -1,13 +1,15 @@
 import { Avatar, Button, Section, Title } from '@telegram-apps/telegram-ui'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
+import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import {
   deleteMyWatchlistFilm,
   getMyPlannedCard,
+  getMyProfile,
   getMyWatchlistPresence,
 } from '../api/profileApi'
 import type {
@@ -26,7 +28,8 @@ import {
   formatRating,
 } from '../components/feed/feedCardUtils'
 import { displayNameFromAuthorFields } from '../lib/authorDisplayName'
-import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { profileInitials } from '../lib/profileDisplay'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 function companyLabel(c: string): string {
@@ -61,6 +64,16 @@ export function FilmDetailPage() {
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communityErr, setCommunityErr] = useState<string | null>(null)
   const [communityMoreBusy, setCommunityMoreBusy] = useState(false)
+  const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
+
+  const communityAuthorIds = useMemo(
+    () => community.map((row) => row.author.id),
+    [community],
+  )
+  const { knowledgeByOwnerId: tasteQuizKnowledgeByAuthor } = useTasteQuizKnowledgeOfUsers(
+    communityAuthorIds,
+    { enabled: auth.kind === 'ready' && communityAuthorIds.length > 0 },
+  )
   const [descExpanded, setDescExpanded] = useState(false)
 
   useEffect(() => {
@@ -198,6 +211,23 @@ export function FilmDetailPage() {
       setRemoveBusy(false)
     }
   }, [filmId])
+
+  useEffect(() => {
+    if (viewerId != null) return
+    let alive = true
+    void (async () => {
+      try {
+        const profile = await getMyProfile()
+        if (!alive) return
+        setViewerId(profile.id)
+      } catch {
+        void 0
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [viewerId])
 
   const loadMoreCommunity = useCallback(async () => {
     if (filmId < 1 || communityNext == null) return
@@ -410,13 +440,18 @@ export function FilmDetailPage() {
                               />
                             </Link>
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                                 <Link
                                   to={`/u/${encodeURIComponent(row.author.id)}`}
                                   className="truncate font-medium text-(--tgui--text_color) no-underline hover:opacity-90"
                                 >
                                   {name}
                                 </Link>
+                                <TasteQuizCommentAuthorBadge
+                                  knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+                                  authorId={row.author.id}
+                                  viewerId={viewerId}
+                                />
                                 <Link
                                   to={`/cards/${encodeURIComponent(String(row.id))}`}
                                   className="shrink-0 text-xs font-semibold text-(--tgui--link_color) no-underline"

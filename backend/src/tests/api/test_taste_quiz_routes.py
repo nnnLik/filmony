@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from api.taste_quiz.schemas import TASTE_QUIZ_KNOWLEDGE_BATCH_MAX_IDS
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
@@ -105,7 +106,7 @@ async def test_create_session_and_submit_answer(async_client: AsyncClient) -> No
         owner_rating = float(db_card.snapshot_owner_rating)
 
     answer_response = await async_client.post(
-        f"/api/taste-quiz/sessions/{session_payload['id']}/answers",
+        f'/api/taste-quiz/sessions/{session_payload["id"]}/answers',
         json={
             'session_card_id': first_card['session_card_id'],
             'guess_rating': owner_rating,
@@ -222,7 +223,7 @@ async def test_knowledge_batch_omits_zero_attempts(async_client: AsyncClient) ->
         assert db_card is not None
         owner_rating = float(db_card.snapshot_owner_rating)
     await async_client.post(
-        f"/api/taste-quiz/sessions/{session['id']}/answers",
+        f'/api/taste-quiz/sessions/{session["id"]}/answers',
         json={'session_card_id': first_card['session_card_id'], 'guess_rating': owner_rating},
     )
 
@@ -237,6 +238,84 @@ async def test_knowledge_batch_omits_zero_attempts(async_client: AsyncClient) ->
     items = batch.json()['items']
     assert str(guesser_id) in items
     assert str(stranger_id) not in items
+
+
+@pytest.mark.asyncio
+async def test_knowledge_batch_as_guesser_requires_auth(async_client: AsyncClient) -> None:
+    response = await async_client.post(
+        '/api/taste-quiz/knowledge/batch-as-guesser',
+        json={'owner_user_ids': []},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_knowledge_batch_as_guesser_empty_returns_empty_items(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=920074)
+    response = await async_client.post(
+        '/api/taste-quiz/knowledge/batch-as-guesser',
+        json={'owner_user_ids': []},
+    )
+    assert response.status_code == 200
+    assert response.json()['items'] == {}
+
+
+@pytest.mark.asyncio
+async def test_knowledge_batch_as_guesser_rejects_too_many_owner_ids(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=920075)
+    response = await async_client.post(
+        '/api/taste-quiz/knowledge/batch-as-guesser',
+        json={
+            'owner_user_ids': [str(uuid4()) for _ in range(TASTE_QUIZ_KNOWLEDGE_BATCH_MAX_IDS + 1)]
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_knowledge_batch_as_guesser_omits_zero_attempts_and_self(
+    async_client: AsyncClient,
+) -> None:
+    owner = await _login(async_client, telegram_user_id=920076)
+    guesser = await _login(async_client, telegram_user_id=920077)
+    stranger = await _login(async_client, telegram_user_id=920078)
+    owner_id = UUID(str(owner['id']))
+    guesser_id = UUID(str(guesser['id']))
+    stranger_id = UUID(str(stranger['id']))
+    await add_follow(follower_user_id=guesser_id, following_user_id=owner_id)
+    await seed_rated_cards_for_owner(owner_user_id=owner_id, count=10, kinopoisk_id_base=920_850)
+
+    await _login(async_client, telegram_user_id=920077)
+
+    created = await async_client.post('/api/taste-quiz/sessions', json={'owner_id': str(owner_id)})
+    assert created.status_code == 201
+    session = created.json()
+    first_card = session['cards'][0]
+    session_factory = get_session_factory()
+    async with session_factory() as db:
+        db_card = await db.get(TasteQuizSessionCard, UUID(str(first_card['session_card_id'])))
+        assert db_card is not None
+        owner_rating = float(db_card.snapshot_owner_rating)
+    await async_client.post(
+        f'/api/taste-quiz/sessions/{session["id"]}/answers',
+        json={'session_card_id': first_card['session_card_id'], 'guess_rating': owner_rating},
+    )
+
+    batch = await async_client.post(
+        '/api/taste-quiz/knowledge/batch-as-guesser',
+        json={
+            'owner_user_ids': [str(owner_id), str(stranger_id), str(guesser_id)],
+        },
+    )
+    assert batch.status_code == 200
+    items = batch.json()['items']
+    assert str(owner_id) in items
+    assert str(stranger_id) not in items
+    assert str(guesser_id) not in items
 
 
 @pytest.mark.asyncio
@@ -268,7 +347,7 @@ async def test_complete_session_queues_telegram_task(
             assert db_card is not None
             owner_rating = float(db_card.snapshot_owner_rating)
         response = await async_client.post(
-            f"/api/taste-quiz/sessions/{session['id']}/answers",
+            f'/api/taste-quiz/sessions/{session["id"]}/answers',
             json={'session_card_id': card['session_card_id'], 'guess_rating': owner_rating},
         )
         assert response.status_code == 200
@@ -313,7 +392,7 @@ async def test_snapshot_immutable_after_owner_card_edit(async_client: AsyncClien
         assert snapshot.snapshot_mood_after == 'enjoyed'
 
     answer = await async_client.post(
-        f"/api/taste-quiz/sessions/{session['id']}/answers",
+        f'/api/taste-quiz/sessions/{session["id"]}/answers',
         json={'session_card_id': first_card['session_card_id'], 'guess_rating': 6.0},
     )
     assert answer.status_code == 200

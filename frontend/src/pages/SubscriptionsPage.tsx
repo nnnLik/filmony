@@ -17,6 +17,8 @@ import type {
   SubscriptionListType,
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 
 type SubscriptionsTab = 'following' | 'followers'
@@ -160,6 +162,11 @@ export function SubscriptionsPage() {
     }
   }, [auth.kind, targetProfile, tab])
 
+  const subscriptionOwnerIds = useMemo(() => items.map((item) => item.id), [items])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(subscriptionOwnerIds, {
+    enabled: subscriptionOwnerIds.length > 0,
+  })
+
   const backTo = userId ? `/u/${encodeURIComponent(resolvedUserId)}` : '/profile'
 
   function switchTab(nextTab: SubscriptionsTab) {
@@ -265,6 +272,7 @@ export function SubscriptionsPage() {
   }
 
   const shownName = displayNameFromProfile(targetProfile)
+  const viewerId = myProfile.id
 
   return (
     <div className="min-h-full">
@@ -345,9 +353,16 @@ export function SubscriptionsPage() {
                     >
                       <Avatar src={item.photo_url ?? undefined} acronym={profileInitials(item)} size={40} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-(--tgui--text_color)">
-                          {displayNameFromProfile(item)}
-                        </p>
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <p className="truncate text-sm font-medium text-(--tgui--text_color)">
+                            {displayNameFromProfile(item)}
+                          </p>
+                          <TasteQuizCommentAuthorBadge
+                            knowledgeByAuthor={knowledgeByOwnerId}
+                            authorId={item.id}
+                            viewerId={viewerId}
+                          />
+                        </div>
                         <p className="truncate text-xs text-(--tgui--hint_color)">@{item.profile_slug}</p>
                       </div>
                     </Link>

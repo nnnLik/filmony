@@ -91,12 +91,16 @@ class SubmitTasteQuizAnswerService:
             raise self.SessionNotActiveError
 
         session_cards = (
-            await self._session.execute(
-                select(TasteQuizSessionCard)
-                .where(TasteQuizSessionCard.session_id == session_id)
-                .order_by(TasteQuizSessionCard.order_index)
+            (
+                await self._session.execute(
+                    select(TasteQuizSessionCard)
+                    .where(TasteQuizSessionCard.session_id == session_id)
+                    .order_by(TasteQuizSessionCard.order_index)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         session_cards_list = list(session_cards)
 
         session_card = next((c for c in session_cards_list if c.id == session_card_id), None)

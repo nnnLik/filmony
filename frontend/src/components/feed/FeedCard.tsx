@@ -29,7 +29,7 @@ import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
-import { useTasteQuizKnowledgeBatch } from '../../hooks/useTasteQuizKnowledgeBatch'
+import { useTasteQuizKnowledgeOfUsers } from '../../hooks/useTasteQuizKnowledgeOfUsers'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
@@ -177,12 +177,18 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     return map
   }, [panelComments])
 
-  const commentAuthorIds = useMemo(
-    () => panelComments.map((c) => c.author.id),
-    [panelComments],
-  )
-  const tasteQuizKnowledge = useTasteQuizKnowledgeBatch(card.user_id, commentAuthorIds, {
-    enabled: commentsPreviewOpen && commentAuthorIds.length > 0,
+  const tasteQuizOwnerIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (!isOwnCard) {
+      ids.add(card.user_id)
+    }
+    for (const comment of panelComments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [card.user_id, isOwnCard, panelComments])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
+    enabled: tasteQuizOwnerIds.length > 0,
   })
 
   const mergedPreviewAfterCreate = useCallback(
@@ -433,18 +439,25 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       {/* Мета: профиль (только аватар, имя в title) + теги — не накрываем overlay-ссылкой */}
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex min-w-0 items-center justify-between gap-1.5">
-          <Link
-            to={profileHref}
-            className="relative z-10 flex shrink-0 rounded-full p-0.5 no-underline ring-1 ring-transparent transition-[box-shadow,ring-color] hover:ring-(--tgui--link_color) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--tgui--link_color)"
-            title={name}
-            aria-label={`Профиль: ${name}`}
-          >
-            <Avatar
-              size={22}
-              src={card.card_author.photo_url ?? undefined}
-              acronym={(name.slice(0, 1) || '?').toUpperCase()}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              to={profileHref}
+              className="relative z-10 flex shrink-0 rounded-full p-0.5 no-underline ring-1 ring-transparent transition-[box-shadow,ring-color] hover:ring-(--tgui--link_color) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--tgui--link_color)"
+              title={name}
+              aria-label={`Профиль: ${name}`}
+            >
+              <Avatar
+                size={22}
+                src={card.card_author.photo_url ?? undefined}
+                acronym={(name.slice(0, 1) || '?').toUpperCase()}
+              />
+            </Link>
+            <TasteQuizCommentAuthorBadge
+              knowledgeByAuthor={knowledgeByOwnerId}
+              authorId={card.user_id}
+              viewerId={viewerUserId}
             />
-          </Link>
+          </div>
           <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-1">
             <span className="rounded-full border border-transparent bg-[color-mix(in_srgb,var(--tgui--accent_text_color)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--tgui--text_color)">
               {COMPANY_SHORT[card.company]}
@@ -580,8 +593,9 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                                   <span className="text-sm font-medium text-(--tgui--text_color)">{commentAuthorDisplay(comment)}</span>
                                   <TasteQuizCommentAuthorBadge
-                                    knowledgeByAuthor={tasteQuizKnowledge.data?.items ?? {}}
+                                    knowledgeByAuthor={knowledgeByOwnerId}
                                     authorId={comment.author.id}
+                                    viewerId={viewerUserId}
                                   />
                                   <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
                                 </div>

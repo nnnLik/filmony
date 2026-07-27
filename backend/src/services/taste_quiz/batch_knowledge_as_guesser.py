@@ -8,19 +8,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.taste_quiz_pair_progress import TasteQuizPairProgress
+from services.taste_quiz.batch_knowledge import TasteQuizKnowledgeBatchItem
 from services.taste_quiz.scoring import compute_accuracy_pct
 
 
-@dataclass(frozen=True, slots=True)
-class TasteQuizKnowledgeBatchItem:
-    attempts: int
-    accuracy_pct: int
-    points_sum: float
-
-
 @dataclass
-class BatchTasteQuizKnowledgeService:
-    """Returns knowledge edges for comment enrichment."""
+class BatchTasteQuizKnowledgeAsGuesserService:
+    """Returns how well one guesser knows many owners for comment enrichment."""
 
     _session: AsyncSession
 
@@ -31,10 +25,12 @@ class BatchTasteQuizKnowledgeService:
     async def execute(
         self,
         *,
-        owner_user_id: UUID,
-        guesser_user_ids: list[UUID],
+        guesser_user_id: UUID,
+        owner_user_ids: list[UUID],
     ) -> dict[UUID, TasteQuizKnowledgeBatchItem]:
-        unique_ids = list(dict.fromkeys(guesser_user_ids))
+        unique_ids = [
+            owner_id for owner_id in dict.fromkeys(owner_user_ids) if owner_id != guesser_user_id
+        ]
         if not unique_ids:
             return {}
 
@@ -42,8 +38,8 @@ class BatchTasteQuizKnowledgeService:
             (
                 await self._session.execute(
                     select(TasteQuizPairProgress).where(
-                        TasteQuizPairProgress.owner_user_id == owner_user_id,
-                        TasteQuizPairProgress.guesser_user_id.in_(unique_ids),
+                        TasteQuizPairProgress.guesser_user_id == guesser_user_id,
+                        TasteQuizPairProgress.owner_user_id.in_(unique_ids),
                         TasteQuizPairProgress.attempts > 0,
                     )
                 )
@@ -56,7 +52,7 @@ class BatchTasteQuizKnowledgeService:
         for progress in rows:
             attempts = int(progress.attempts)
             points_sum = float(progress.points_sum)
-            out[progress.guesser_user_id] = TasteQuizKnowledgeBatchItem(
+            out[progress.owner_user_id] = TasteQuizKnowledgeBatchItem(
                 attempts=attempts,
                 accuracy_pct=compute_accuracy_pct(points_sum=points_sum, attempts=attempts),
                 points_sum=points_sum,

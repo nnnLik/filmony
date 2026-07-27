@@ -21,7 +21,7 @@ export function TasteQuizKnowledgeBadge({ item, className = '' }: TasteQuizKnowl
     <span className={`relative inline-flex ${className}`}>
       <button
         type="button"
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-1 py-0.5 text-xs leading-none"
+        className="relative inline-flex items-center px-0.5 text-xs leading-none before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']"
         aria-label={`Точность угадывания ${item.accuracy_pct} процентов, ${item.attempts} попыток`}
         onClick={(e) => {
           e.stopPropagation()

@@ -17,6 +17,10 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-27T151100Z-taste-knowledge-badge-everywhere-test.md`
+- `2026-07-27T151000Z-taste-knowledge-badge-everywhere-docs.md`
+- `2026-07-27T150300Z-comment-header-actions-overflow-complete.md`
+- `2026-07-27T150200Z-comment-header-actions-overflow-docs.md`
 - `2026-07-27T142500Z-profile-taste-match-docs.md`
 - `2026-07-27T140000Z-backlog-cleanup-decision.md`
 - `2026-07-23T180900Z-taste-quiz-guess-rating-docs.md`

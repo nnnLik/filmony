@@ -47,3 +47,17 @@ features:
     source_path: .cursor/features/profile-activity-heatmap/feature.md
     active_path: .cursor/active/profile-activity-heatmap
     docs_path: docs/features/profile-activity-heatmap.md
+
+  - slug: comment-header-actions-overflow
+    title: Comment Header Actions Overflow
+    status: done
+    source_path: .cursor/features/comment-header-actions-overflow/feature.md
+    active_path: .cursor/active/comment-header-actions-overflow
+    docs_path: docs/features/comment-header-actions-overflow.md
+
+  - slug: taste-knowledge-badge-everywhere
+    title: Taste Knowledge Badge Everywhere
+    status: done
+    source_path: .cursor/features/taste-knowledge-badge-everywhere/feature.md
+    active_path: .cursor/active/taste-knowledge-badge-everywhere
+    docs_path: docs/features/taste-knowledge-badge-everywhere.md

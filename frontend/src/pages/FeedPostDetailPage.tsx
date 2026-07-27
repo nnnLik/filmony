@@ -26,7 +26,7 @@ import type { FeedPostInFeed } from '../api/feedInFeedTypes'
 import type { FeedPostComment, ReactionSummary } from '../api/profileTypes'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
-import { CommentOwnerActionLinks } from '../components/comments/CommentOwnerActionLinks'
+import { CommentHeaderActions } from '../components/comments/CommentHeaderActions'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
@@ -54,6 +54,8 @@ import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { displayNameFromProfile } from '../lib/profileDisplay'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
+import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 
 function authorName(comment: FeedPostComment): string {
   if (comment.author.display_name && comment.author.display_name.trim() !== '') {
@@ -121,6 +123,20 @@ export function FeedPostDetailPage() {
     comments.forEach((c) => map.set(c.id, c))
     return map
   }, [comments])
+
+  const tasteQuizOwnerIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (post != null && viewerId != null && post.user_id !== viewerId) {
+      ids.add(post.user_id)
+    }
+    for (const comment of comments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [comments, post, viewerId])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
+    enabled: tasteQuizOwnerIds.length > 0,
+  })
 
   const followingForMentionsQuery = useQuery({
     queryKey: ['userSubscriptions', viewerId, 'following'],
@@ -743,8 +759,8 @@ export function FeedPostDetailPage() {
                             />
                           </Link>
                           <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 items-center justify-between gap-2">
-                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                                 <Link
                                   to={`/u/${encodeURIComponent(comment.author.id)}`}
                                   className="text-sm font-medium text-(--tgui--link_color) no-underline"
@@ -752,33 +768,37 @@ export function FeedPostDetailPage() {
                                 >
                                   {authorName(comment)}
                                 </Link>
+                                <TasteQuizCommentAuthorBadge
+                                  knowledgeByAuthor={knowledgeByOwnerId}
+                                  authorId={comment.author.id}
+                                  viewerId={viewerId}
+                                />
                                 <span className="text-xs text-(--tgui--hint_color)">
                                   {formatCommentTime(comment.created_at)}
                                 </span>
                               </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
-                                  className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                                >
-                                  Ответить
-                                </button>
-                                {viewerId != null && comment.author.id === viewerId ? (
-                                  <CommentOwnerActionLinks
-                                    onEdit={() => {
-                                      setEditingCommentId(comment.id)
-                                      setEditText(comment.text)
-                                      setReplyTo(null)
-                                    }}
-                                    onDelete={() => {
-                                      void handleDeleteComment(comment.id)
-                                    }}
-                                    deleteBusy={deleteCommentBusyId === comment.id}
-                                    disabled={editBusy && editingCommentId === comment.id}
-                                  />
-                                ) : null}
-                              </div>
+                              <CommentHeaderActions
+                                onReply={() => setReplyTo({ id: comment.id, label: authorName(comment) })}
+                                canManage={viewerId != null && comment.author.id === viewerId}
+                                onEdit={
+                                  viewerId != null && comment.author.id === viewerId
+                                    ? () => {
+                                        setEditingCommentId(comment.id)
+                                        setEditText(comment.text)
+                                        setReplyTo(null)
+                                      }
+                                    : undefined
+                                }
+                                onDelete={
+                                  viewerId != null && comment.author.id === viewerId
+                                    ? () => {
+                                        void handleDeleteComment(comment.id)
+                                      }
+                                    : undefined
+                                }
+                                deleteBusy={deleteCommentBusyId === comment.id}
+                                disabled={editBusy && editingCommentId === comment.id}
+                              />
                             </div>
 
                             {parentCommentId != null ? (

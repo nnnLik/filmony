@@ -88,6 +88,18 @@ export async function batchTasteQuizKnowledge(
   })
 }
 
+/** How well the authenticated viewer (guesser) knows each owner. */
+export async function batchTasteQuizKnowledgeAsGuesser(
+  ownerUserIds: string[],
+): Promise<TasteQuizKnowledgeBatchResponse> {
+  return apiJson<TasteQuizKnowledgeBatchResponse>('/api/taste-quiz/knowledge/batch-as-guesser', {
+    method: 'POST',
+    body: JSON.stringify({
+      owner_user_ids: ownerUserIds,
+    }),
+  })
+}
+
 export async function createTasteQuizInvite(): Promise<TasteQuizCreateInviteResponse> {
   return apiJson<TasteQuizCreateInviteResponse>('/api/taste-quiz/invites', {
     method: 'POST',

@@ -46,7 +46,7 @@ import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
-import { useTasteQuizKnowledgeBatch } from '../hooks/useTasteQuizKnowledgeBatch'
+import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
@@ -78,7 +78,7 @@ import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
-import { CommentOwnerActionLinks } from '../components/comments/CommentOwnerActionLinks'
+import { CommentHeaderActions } from '../components/comments/CommentHeaderActions'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
 import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
@@ -305,14 +305,19 @@ export function MovieCardDetailPage() {
     return map
   }, [comments])
 
-  const commentAuthorIds = useMemo(() => comments.map((c) => c.author.id), [comments])
-  const tasteQuizKnowledge = useTasteQuizKnowledgeBatch(card?.user_id ?? null, commentAuthorIds, {
-    enabled: card?.user_id != null && commentAuthorIds.length > 0,
+  const tasteQuizOwnerIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (card?.user_id != null && card.user_id !== viewerId) {
+      ids.add(card.user_id)
+    }
+    for (const comment of comments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [card, viewerId, comments])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
+    enabled: tasteQuizOwnerIds.length > 0,
   })
-  const tasteQuizKnowledgeByAuthor = useMemo(
-    (): Record<string, TasteQuizKnowledgeBatchItem> => tasteQuizKnowledge.data?.items ?? {},
-    [tasteQuizKnowledge.data],
-  )
 
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
   const isOwner =
@@ -982,7 +987,7 @@ export function MovieCardDetailPage() {
             onDeleteComment={(commentId) => {
               void handleDeleteComment(commentId)
             }}
-            tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+            tasteQuizKnowledgeByAuthor={knowledgeByOwnerId}
           />
           </MentionProfileLookupProvider>
         ) : null}
@@ -1231,7 +1236,16 @@ function MovieCardDetailLoadedBody({
                     ) : null}
                     <CardCategoryChip category={card.category} className="mt-2" />
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                      {detailCardAuthor != null ? <CardAuthorAvatarLink author={detailCardAuthor} /> : null}
+                      {detailCardAuthor != null ? (
+                        <>
+                          <CardAuthorAvatarLink author={detailCardAuthor} />
+                          <TasteQuizCommentAuthorBadge
+                            knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+                            authorId={detailCardAuthor.id}
+                            viewerId={viewerId}
+                          />
+                        </>
+                      ) : null}
                       <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
                         {movieCardReleasePrimaryLabel(card)}
                       </p>
@@ -1658,8 +1672,8 @@ function MovieCardDetailLoadedBody({
                             />
                           </Link>
                           <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 items-center justify-between gap-2">
-                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                                 <Link
                                   to={`/u/${encodeURIComponent(cardComment.author.id)}`}
                                   className="text-sm font-medium text-(--tgui--link_color) no-underline"
@@ -1669,28 +1683,26 @@ function MovieCardDetailLoadedBody({
                                 <TasteQuizCommentAuthorBadge
                                   knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
                                   authorId={cardComment.author.id}
+                                  viewerId={viewerId}
                                 />
                                 <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(cardComment.created_at)}</span>
                               </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setReplyTo({ id: cardComment.id, label: authorName(cardComment) })}
-                                  className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                                >
-                                  Ответить
-                                </button>
-                                {viewerId != null && cardComment.author.id === viewerId ? (
-                                  <>
-                                    <CommentOwnerActionLinks
-                                      onEdit={() => onStartEditComment(cardComment)}
-                                      onDelete={() => onDeleteComment(cardComment.id)}
-                                      deleteBusy={deleteCommentBusyId === cardComment.id}
-                                      disabled={editBusy && editingCommentId === cardComment.id}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
+                              <CommentHeaderActions
+                                onReply={() => setReplyTo({ id: cardComment.id, label: authorName(cardComment) })}
+                                canManage={viewerId != null && cardComment.author.id === viewerId}
+                                onEdit={
+                                  viewerId != null && cardComment.author.id === viewerId
+                                    ? () => onStartEditComment(cardComment)
+                                    : undefined
+                                }
+                                onDelete={
+                                  viewerId != null && cardComment.author.id === viewerId
+                                    ? () => onDeleteComment(cardComment.id)
+                                    : undefined
+                                }
+                                onPublishToFeed={
+                                  viewerId != null && cardComment.author.id === viewerId
+                                    ? () => {
                                         const payload: OpenComposeFeedPostPayload = {
                                           sourceCommentId: d.id,
                                           referencedMovieCardId: card.id,
@@ -1701,14 +1713,12 @@ function MovieCardDetailLoadedBody({
                                           sourceCommentReferencedMentions: d.referenced_mentions ?? null,
                                         }
                                         openCompose(payload)
-                                      }}
-                                      className="inline-flex bg-transparent px-0 py-0 text-xs leading-none text-(--tgui--link_color)"
-                                    >
-                                      В ленту
-                                    </button>
-                                  </>
-                                ) : null}
-                              </div>
+                                      }
+                                    : undefined
+                                }
+                                deleteBusy={deleteCommentBusyId === cardComment.id}
+                                disabled={editBusy && editingCommentId === cardComment.id}
+                              />
                             </div>
 
                             {parentCommentId != null ? (

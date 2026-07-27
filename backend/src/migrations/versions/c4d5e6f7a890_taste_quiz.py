@@ -19,7 +19,12 @@ def upgrade() -> None:
     op.create_table(
         'taste_quiz_pair_progress',
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.text('now()'),
+            nullable=False,
+        ),
         sa.Column('guesser_user_id', sa.Uuid(), nullable=False),
         sa.Column('owner_user_id', sa.Uuid(), nullable=False),
         sa.Column('points_sum', sa.Float(), server_default='0', nullable=False),
@@ -53,18 +58,30 @@ def upgrade() -> None:
     op.create_table(
         'taste_quiz_session',
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.text('now()'),
+            nullable=False,
+        ),
         sa.Column('guesser_user_id', sa.Uuid(), nullable=False),
         sa.Column('owner_user_id', sa.Uuid(), nullable=False),
         sa.Column('status', sa.String(length=16), server_default='active', nullable=False),
         sa.Column('round_points', sa.Float(), server_default='0', nullable=False),
-        sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column(
+            'started_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.text('now()'),
+            nullable=False,
+        ),
         sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(['guesser_user_id'], ['user.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['owner_user_id'], ['user.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index('ix_taste_quiz_session_guesser_user_id', 'taste_quiz_session', ['guesser_user_id'])
+    op.create_index(
+        'ix_taste_quiz_session_guesser_user_id', 'taste_quiz_session', ['guesser_user_id']
+    )
     op.create_index('ix_taste_quiz_session_owner_user_id', 'taste_quiz_session', ['owner_user_id'])
     op.create_index('ix_taste_quiz_session_status', 'taste_quiz_session', ['status'])
     op.create_index(
@@ -76,7 +93,12 @@ def upgrade() -> None:
     op.create_table(
         'taste_quiz_session_card',
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.text('now()'),
+            nullable=False,
+        ),
         sa.Column('session_id', sa.Uuid(), nullable=False),
         sa.Column('card_id', sa.Integer(), nullable=False),
         sa.Column('order_index', sa.Integer(), nullable=False),
@@ -95,13 +117,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['card_id'], ['user_card.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index('ix_taste_quiz_session_card_session_id', 'taste_quiz_session_card', ['session_id'])
+    op.create_index(
+        'ix_taste_quiz_session_card_session_id', 'taste_quiz_session_card', ['session_id']
+    )
     op.create_index('ix_taste_quiz_session_card_card_id', 'taste_quiz_session_card', ['card_id'])
 
     op.create_table(
         'taste_quiz_invite',
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.text('now()'),
+            nullable=False,
+        ),
         sa.Column('owner_user_id', sa.Uuid(), nullable=False),
         sa.Column('token', sa.String(length=64), nullable=False),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
@@ -125,6 +154,10 @@ def downgrade() -> None:
     op.drop_index('ix_taste_quiz_session_owner_user_id', table_name='taste_quiz_session')
     op.drop_index('ix_taste_quiz_session_guesser_user_id', table_name='taste_quiz_session')
     op.drop_table('taste_quiz_session')
-    op.drop_index('ix_taste_quiz_pair_progress_owner_user_id', table_name='taste_quiz_pair_progress')
-    op.drop_index('ix_taste_quiz_pair_progress_guesser_user_id', table_name='taste_quiz_pair_progress')
+    op.drop_index(
+        'ix_taste_quiz_pair_progress_owner_user_id', table_name='taste_quiz_pair_progress'
+    )
+    op.drop_index(
+        'ix_taste_quiz_pair_progress_guesser_user_id', table_name='taste_quiz_pair_progress'
+    )
     op.drop_table('taste_quiz_pair_progress')

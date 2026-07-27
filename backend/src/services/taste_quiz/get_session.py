@@ -41,10 +41,14 @@ class GetTasteQuizSessionService:
             raise self.ForbiddenError
 
         session_cards = (
-            await self._session.execute(
-                select(TasteQuizSessionCard)
-                .where(TasteQuizSessionCard.session_id == session_id)
-                .order_by(TasteQuizSessionCard.order_index)
+            (
+                await self._session.execute(
+                    select(TasteQuizSessionCard)
+                    .where(TasteQuizSessionCard.session_id == session_id)
+                    .order_by(TasteQuizSessionCard.order_index)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         return map_session(quiz_session, list(session_cards))

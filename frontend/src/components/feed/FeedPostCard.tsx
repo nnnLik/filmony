@@ -24,7 +24,7 @@ import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
-import { useTasteQuizKnowledgeBatch } from '../../hooks/useTasteQuizKnowledgeBatch'
+import { useTasteQuizKnowledgeOfUsers } from '../../hooks/useTasteQuizKnowledgeOfUsers'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
@@ -323,13 +323,6 @@ export function FeedPostCard({
     return map
   }, [panelComments])
 
-  const commentAuthorIds = useMemo(
-    () => panelComments.map((c) => c.author.id),
-    [panelComments],
-  )
-  const tasteQuizKnowledge = useTasteQuizKnowledgeBatch(user_id, commentAuthorIds, {
-    enabled: commentsPreviewOpen && commentAuthorIds.length > 0,
-  })
 
   const mergedPreviewAfterCreate = useCallback(
     (incoming: FeedPostComment) => {
@@ -445,6 +438,23 @@ export function FeedPostCard({
   )
   const isOwn =
     viewerUserId != null && viewerUserId !== '' && user_id === viewerUserId
+
+  const tasteQuizOwnerIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (!isOwn) {
+      ids.add(user_id)
+    }
+    if (sourceCommentQuote != null) {
+      ids.add(sourceCommentQuote.author.id)
+    }
+    for (const comment of panelComments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [user_id, isOwn, panelComments, sourceCommentQuote])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
+    enabled: tasteQuizOwnerIds.length > 0,
+  })
 
   const surfaceProps =
     linkToDetail === true
@@ -576,8 +586,9 @@ export function FeedPostCard({
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <span className="text-sm font-medium text-(--tgui--text_color)">{authorName(comment)}</span>
                               <TasteQuizCommentAuthorBadge
-                                knowledgeByAuthor={tasteQuizKnowledge.data?.items ?? {}}
+                                knowledgeByAuthor={knowledgeByOwnerId}
                                 authorId={comment.author.id}
+                                viewerId={viewerUserId}
                               />
                               <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
                             </div>
@@ -761,6 +772,11 @@ export function FeedPostCard({
                 >
                   {name}
                 </Link>
+                <TasteQuizCommentAuthorBadge
+                  knowledgeByAuthor={knowledgeByOwnerId}
+                  authorId={user_id}
+                  viewerId={viewerUserId}
+                />
                 <span className="shrink-0 text-[11px] text-(--tgui--hint_color)">{formatCommentTime(created_at)}</span>
               </div>
             </div>
@@ -776,9 +792,14 @@ export function FeedPostCard({
                 onClick={(e) => {
                   if (linkToDetail) e.stopPropagation()
                 }}
-                className="block truncate text-xs font-medium text-(--tgui--link_color) no-underline"
+                className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 truncate text-xs font-medium text-(--tgui--link_color) no-underline"
               >
                 {displayNameFromAuthorFields(sourceCommentQuote.author)}
+                <TasteQuizCommentAuthorBadge
+                  knowledgeByAuthor={knowledgeByOwnerId}
+                  authorId={sourceCommentQuote.author.id}
+                  viewerId={viewerUserId}
+                />
               </Link>
               {sourceCommentQuote.text.trim() !== '' ? (
                 <p className="mt-1 text-xs leading-relaxed text-(--tgui--hint_color)">

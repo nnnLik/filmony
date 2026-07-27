@@ -11,6 +11,7 @@ from api.taste_quiz.schemas import (
     TasteQuizCreateInviteResponse,
     TasteQuizCreateSessionRequest,
     TasteQuizInviteOwnerSnippetResponse,
+    TasteQuizKnowledgeBatchAsGuesserRequest,
     TasteQuizKnowledgeBatchItemResponse,
     TasteQuizKnowledgeBatchRequest,
     TasteQuizKnowledgeBatchResponse,
@@ -28,6 +29,7 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from services.taste_quiz.abandon_session import AbandonTasteQuizSessionService
 from services.taste_quiz.batch_knowledge import BatchTasteQuizKnowledgeService
+from services.taste_quiz.batch_knowledge_as_guesser import BatchTasteQuizKnowledgeAsGuesserService
 from services.taste_quiz.check_can_play import CheckTasteQuizCanPlayService
 from services.taste_quiz.create_invite import CreateTasteQuizInviteService
 from services.taste_quiz.create_session import CreateTasteQuizSessionService
@@ -106,7 +108,9 @@ async def check_can_play(
     )
 
 
-@router.post('/sessions', response_model=TasteQuizSessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    '/sessions', response_model=TasteQuizSessionResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_session(
     body: TasteQuizCreateSessionRequest,
     user: CurrentUser,
@@ -275,7 +279,31 @@ async def batch_knowledge(
     )
 
 
-@router.post('/invites', response_model=TasteQuizCreateInviteResponse, status_code=status.HTTP_201_CREATED)
+@router.post('/knowledge/batch-as-guesser', response_model=TasteQuizKnowledgeBatchResponse)
+async def batch_knowledge_as_guesser(
+    body: TasteQuizKnowledgeBatchAsGuesserRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> TasteQuizKnowledgeBatchResponse:
+    items = await BatchTasteQuizKnowledgeAsGuesserService.build(db).execute(
+        guesser_user_id=user.id,
+        owner_user_ids=list(body.owner_user_ids),
+    )
+    return TasteQuizKnowledgeBatchResponse(
+        items={
+            str(owner_id): TasteQuizKnowledgeBatchItemResponse(
+                attempts=item.attempts,
+                accuracy_pct=item.accuracy_pct,
+                points_sum=item.points_sum,
+            )
+            for owner_id, item in items.items()
+        }
+    )
+
+
+@router.post(
+    '/invites', response_model=TasteQuizCreateInviteResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_invite(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],

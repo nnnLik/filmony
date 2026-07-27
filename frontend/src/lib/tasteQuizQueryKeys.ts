@@ -10,5 +10,8 @@ export const tasteQuizKnowledgeListQueryKey = (direction: string, cursor?: strin
 export const tasteQuizKnowledgeBatchQueryKey = (ownerId: string, guesserUserIds: readonly string[]) =>
   ['tasteQuiz', 'knowledgeBatch', ownerId, [...guesserUserIds].sort().join(',')] as const
 
+export const tasteQuizKnowledgeOfUsersQueryKey = (ownerUserIds: readonly string[]) =>
+  ['tasteQuiz', 'knowledgeOfUsers', [...ownerUserIds].sort().join(',')] as const
+
 export const tasteQuizResolveInviteQueryKey = (token: string) =>
   ['tasteQuiz', 'invite', token] as const

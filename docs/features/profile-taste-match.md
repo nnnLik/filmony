@@ -62,6 +62,10 @@ make backend-test-one target=src/tests/api/test_profile_routes.py::test_user_sta
 - **Production:** live (confirmed 2026-07-27)
 - **Manual testing:** verified in production by product owner
 
+## Related: taste-quiz knowledge %
+
+Not the same metric as this feature. **[Taste knowledge badge everywhere](./taste-knowledge-badge-everywhere.md)** shows taste-quiz **accuracy %** next to users in feed, comments, and lists — meaning **how well the viewer knows that user's ratings** (viewer → owner), not Jaccard film overlap.
+
 ## Limitations (v1)
 
 - Film-backed cards only (`film_id`); games / `catalog_item` overlap not counted.

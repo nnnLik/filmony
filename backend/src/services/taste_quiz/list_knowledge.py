@@ -75,7 +75,8 @@ class ListTasteQuizKnowledgeService:
 
         stmt = select(TasteQuizPairProgress, User).join(
             User,
-            User.id == (
+            User.id
+            == (
                 TasteQuizPairProgress.owner_user_id
                 if direction == TasteQuizKnowledgeDirection.TO_THEM
                 else TasteQuizPairProgress.guesser_user_id

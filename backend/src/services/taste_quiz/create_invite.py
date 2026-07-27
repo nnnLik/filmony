@@ -64,8 +64,7 @@ class CreateTasteQuizInviteService:
         owner_name = _format_user_display(owner)
         if share_url:
             telegram_share_text = (
-                f'{owner_name} приглашает угадать его вкус в Filmony 🎬\n'
-                f'Открой квиз: {share_url}'
+                f'{owner_name} приглашает угадать его вкус в Filmony 🎬\nОткрой квиз: {share_url}'
             )
         else:
             telegram_share_text = f'{owner_name} приглашает угадать его вкус в Filmony 🎬'

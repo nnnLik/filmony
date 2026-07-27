@@ -21,6 +21,7 @@ import {
   ratedCardsToListParams,
 } from '../lib/ratedCardsListQuery'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
@@ -458,6 +459,14 @@ export function PublicProfilePage() {
     }
   }
 
+  const tasteQuizOwnerIds = useMemo(() => {
+    if (profile == null || myUserId == null || profile.id === myUserId) return []
+    return [profile.id]
+  }, [profile, myUserId])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
+    enabled: tasteQuizOwnerIds.length > 0,
+  })
+
   if (auth.kind === 'loading') {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
@@ -536,6 +545,8 @@ export function PublicProfilePage() {
         <ProfileHeader
           profile={profile}
           subtitle=""
+          viewerId={myUserId}
+          knowledgeByOwnerId={knowledgeByOwnerId}
         />
         <div className="mb-4">
           <ProfileCompactMetrics

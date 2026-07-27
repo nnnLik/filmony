@@ -48,12 +48,16 @@ class AbandonTasteQuizSessionService:
             raise self.SessionNotActiveError
 
         session_cards = (
-            await self._session.execute(
-                select(TasteQuizSessionCard)
-                .where(TasteQuizSessionCard.session_id == session_id)
-                .order_by(TasteQuizSessionCard.order_index)
+            (
+                await self._session.execute(
+                    select(TasteQuizSessionCard)
+                    .where(TasteQuizSessionCard.session_id == session_id)
+                    .order_by(TasteQuizSessionCard.order_index)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         session_cards_list = list(session_cards)
 
         quiz_session.status = TasteQuizSessionStatus.ABANDONED

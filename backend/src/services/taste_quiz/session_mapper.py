@@ -68,7 +68,9 @@ def compute_current_index(cards: list[TasteQuizSessionCard]) -> int:
     return len(cards)
 
 
-def map_session(session: TasteQuizSession, cards: list[TasteQuizSessionCard]) -> TasteQuizSessionDTO:
+def map_session(
+    session: TasteQuizSession, cards: list[TasteQuizSessionCard]
+) -> TasteQuizSessionDTO:
     ordered = sorted(cards, key=lambda c: c.order_index)
     return TasteQuizSessionDTO(
         id=session.id,

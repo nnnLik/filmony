@@ -84,9 +84,18 @@ class TasteQuizKnowledgeListResponse(BaseModel):
     next_cursor: str | None = None
 
 
+TASTE_QUIZ_KNOWLEDGE_BATCH_MAX_IDS = 100
+
+
 class TasteQuizKnowledgeBatchRequest(BaseModel):
     owner_id: UUID
     guesser_user_ids: list[UUID]
+
+
+class TasteQuizKnowledgeBatchAsGuesserRequest(BaseModel):
+    owner_user_ids: list[UUID] = Field(
+        default_factory=list, max_length=TASTE_QUIZ_KNOWLEDGE_BATCH_MAX_IDS
+    )
 
 
 class TasteQuizKnowledgeBatchItemResponse(BaseModel):

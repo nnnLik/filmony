@@ -90,6 +90,9 @@ export type TasteQuizKnowledgeBatchResponse = {
   items: Record<string, TasteQuizKnowledgeBatchItem>
 }
 
+/** Max owner ids per batch-as-guesser request (matches backend). */
+export const TASTE_QUIZ_KNOWLEDGE_BATCH_MAX_OWNER_IDS = 100
+
 export type TasteQuizCreateInviteResponse = {
   invite_token: string
   share_url: string | null

@@ -1,7 +1,7 @@
 import { Avatar, Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import {
@@ -11,10 +11,15 @@ import {
   type SearchSuggestionsResponse,
   type SearchUserItem,
 } from '../api/searchApi'
+import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
 import { ApiError, formatApiDetail } from '../api/client'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
+import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { getMyProfile } from '../api/profileApi'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 import { profileInitials } from '../lib/profileDisplay'
 import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
@@ -38,7 +43,15 @@ function userListLabel(u: SearchUserItem): string {
   return `@${u.profile_slug}`
 }
 
-function UserSuggestionRow({ user }: { user: SearchUserItem }) {
+function UserSuggestionRow({
+  user,
+  knowledgeByOwnerId,
+  viewerId,
+}: {
+  user: SearchUserItem
+  knowledgeByOwnerId: Record<string, TasteQuizKnowledgeBatchItem>
+  viewerId: string | null
+}) {
   const label = userListLabel(user)
   const initials = profileInitials({
     display_name: user.display_name,
@@ -52,7 +65,14 @@ function UserSuggestionRow({ user }: { user: SearchUserItem }) {
     >
       <Avatar size={40} src={user.photo_url ?? undefined} acronym={initials} />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{label}</div>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <div className="truncate font-medium">{label}</div>
+          <TasteQuizCommentAuthorBadge
+            knowledgeByAuthor={knowledgeByOwnerId}
+            authorId={user.id}
+            viewerId={viewerId}
+          />
+        </div>
         <div className="truncate text-sm text-(--tgui--hint_color)">@{user.profile_slug}</div>
       </div>
     </Link>
@@ -180,6 +200,24 @@ export function SearchPage() {
   const auth = useAuthStatus()
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
+
+  useEffect(() => {
+    if (viewerId != null) return
+    let alive = true
+    void (async () => {
+      try {
+        const profile = await getMyProfile()
+        if (!alive) return
+        setViewerId(profile.id)
+      } catch {
+        void 0
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [viewerId])
 
   useEffect(() => {
     void ensureHeaderPepeGifsPreloaded()
@@ -222,6 +260,26 @@ export function SearchPage() {
 
   const cardRows = searchQuery.data?.cards ?? searchQuery.data?.films ?? []
   const users = searchQuery.data?.users ?? []
+
+  const tasteQuizOwnerIds = useMemo(() => {
+    const ids = new Set<string>()
+    const searchUsers = searchQuery.data?.users
+    if (searchUsers != null) {
+      for (const u of searchUsers) {
+        ids.add(u.id)
+      }
+    }
+    const suggestions = suggestionsQuery.data
+    if (suggestions != null) {
+      for (const u of suggestions.mutual_circle) ids.add(u.id)
+      for (const u of suggestions.popular_authors) ids.add(u.id)
+      for (const u of suggestions.random_with_cards) ids.add(u.id)
+    }
+    return [...ids]
+  }, [searchQuery.data, suggestionsQuery.data])
+  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
+    enabled: auth.kind === 'ready' && tasteQuizOwnerIds.length > 0,
+  })
 
   const showCatalogEmpty = canSearch && searchQuery.isSuccess && cardRows.length === 0
   const showUserEmpty = canSearch && searchQuery.isSuccess && users.length === 0
@@ -349,7 +407,12 @@ export function SearchPage() {
                 ) : (
                   <div className="flex flex-col gap-0.5">
                     {users.map((u) => (
-                      <UserSuggestionRow key={u.id} user={u} />
+                      <UserSuggestionRow
+                        key={u.id}
+                        user={u}
+                        knowledgeByOwnerId={knowledgeByOwnerId}
+                        viewerId={viewerId}
+                      />
                     ))}
                   </div>
                 )}
