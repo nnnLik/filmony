@@ -1,7 +1,7 @@
 import { Button, Title } from '@telegram-apps/telegram-ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { resolveFilmByKinopoiskUrl } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'

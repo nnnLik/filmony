@@ -1,5 +1,5 @@
 import { type PropsWithChildren, useEffect } from 'react';
-import { NavigationType, useLocation, useNavigationType } from 'react-router-dom';
+import { NavigationType, useLocation, useNavigationType } from 'react-router';
 
 import { getScrollContainer } from './containers';
 import { isScrollRestoreEnabled, scrollRestoreConfig } from './flags';

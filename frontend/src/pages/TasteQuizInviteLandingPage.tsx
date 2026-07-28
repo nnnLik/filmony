@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { ApiError, formatApiDetail } from '../api/client'

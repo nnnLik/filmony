@@ -1,6 +1,6 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import {
@@ -33,6 +33,7 @@ import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
+import { PlayfulHint } from '../components/ui/PlayfulHint'
 
 const loadMyProfile: () => Promise<{ id: string }> = getMyProfile
 const loadPublicProfileById: (userId: string) => Promise<PublicProfile> = getPublicProfileById
@@ -683,9 +684,18 @@ export function PublicProfilePage() {
                   </p>
                 ) : null}
                 {cards != null && cards.items.length === 0 && !loadingMore && !ratedCardsLoading ? (
-                  <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                    {isDefaultRatedCardsQuery(ratedQuery) ? 'Пока нет карточек.' : 'Нет карточек с такими фильтрами.'}
-                  </p>
+                  isDefaultRatedCardsQuery(ratedQuery) ? (
+                    <PlayfulHint
+                      poolKey="profile_cards_empty"
+                      fallback="Пока нет карточек."
+                      userId={myUserId}
+                      className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)"
+                    />
+                  ) : (
+                    <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
+                      Нет карточек с такими фильтрами.
+                    </p>
+                  )
                 ) : null}
                 {cards != null && cards.items.length > 0 ? (
                   <div className="px-3 pb-3">
@@ -744,7 +754,12 @@ export function PublicProfilePage() {
                 <p className="py-8 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
               ) : null}
               {!postsLoading && feedPosts != null && feedPosts.items.length === 0 ? (
-                <p className="py-8 text-center text-sm text-(--tgui--hint_color)">Пока нет постов в ленте</p>
+                <PlayfulHint
+                  poolKey="profile_posts_empty"
+                  fallback="Пока нет постов в ленте"
+                  userId={myUserId}
+                  className="py-8 text-center text-sm text-(--tgui--hint_color)"
+                />
               ) : null}
               {!postsLoading && feedPosts != null && feedPosts.items.length > 0 ? (
                 <>

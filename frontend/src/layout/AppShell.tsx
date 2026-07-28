@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router'
 
 import { BottomNav } from '../components/navigation/BottomNav'
 import {

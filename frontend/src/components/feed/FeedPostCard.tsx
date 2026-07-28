@@ -1,6 +1,8 @@
 import { Avatar, Button } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEventHandler } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
+
+import { PlayfulHint } from '../ui/PlayfulHint'
 
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
 import type { WatchedInlinePickerItem } from '../../api/cardApi'
@@ -667,7 +669,12 @@ export function FeedPostCard({
               )}
             </div>
           ) : (
-            <p className="text-xs text-(--tgui--hint_color)">Пока нет комментариев. Будьте первым.</p>
+            <PlayfulHint
+              poolKey="comments_empty"
+              fallback="Пока нет комментариев. Будьте первым."
+              userId={viewerUserId}
+              className="text-xs text-(--tgui--hint_color)"
+            />
           )}
 
           <div className="flex min-w-0 flex-col gap-1">

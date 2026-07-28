@@ -1,7 +1,7 @@
 import { IconButton } from '@telegram-apps/telegram-ui'
 import { ChevronUp } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router'
 
 const SCROLL_SHOW_AFTER_PX = 240
 

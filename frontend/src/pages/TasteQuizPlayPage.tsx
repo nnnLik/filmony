@@ -1,6 +1,6 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { ApiError, formatApiDetail } from '../api/client'

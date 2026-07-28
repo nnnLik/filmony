@@ -1,5 +1,5 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { PlannedWatchPartner } from '../../api/profileTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'

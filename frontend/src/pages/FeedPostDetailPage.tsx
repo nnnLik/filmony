@@ -10,7 +10,7 @@ import {
   type KeyboardEventHandler,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 
 import {
   createFeedPostComment,
@@ -31,6 +31,7 @@ import { CommentReactionTokenPicker } from '../components/comments/CommentReacti
 import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
 import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
+import { PlayfulHint } from '../components/ui/PlayfulHint'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
@@ -738,7 +739,12 @@ export function FeedPostDetailPage() {
               ) : null}
 
               {!commentsLoading && comments.length === 0 ? (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока нет комментариев.</p>
+                <PlayfulHint
+                  poolKey="comments_empty"
+                  fallback="Пока нет комментариев."
+                  userId={viewerId}
+                  className="mt-3 text-sm text-(--tgui--hint_color)"
+                />
               ) : null}
 
               {comments.length > 0 ? (

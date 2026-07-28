@@ -1,6 +1,6 @@
 import { Avatar, Button, Section, Title } from '@telegram-apps/telegram-ui'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import {

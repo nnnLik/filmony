@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/r
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
-import { useLocation, type Location } from 'react-router-dom'
+import { useLocation, type Location } from 'react-router'
 
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
@@ -22,6 +22,7 @@ import { FeedTopFab } from '../components/feed/FeedTopFab'
 import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
 import { PageHeader } from '../components/layout/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { MicroFunToast } from '../components/ui/MicroFunToast'
 import { ListErrorState } from '../components/ui/ListErrorState'
 import { SegmentedControl } from '../components/ui/SegmentedControl'
 import {
@@ -40,6 +41,7 @@ import {
 } from '../lib/globalFeedViewedIds'
 import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
 import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
+import { useFeedScrollDepthSecret } from '../hooks/useFeedScrollDepthSecret'
 import { buildRouteKey, registerScrollContainer } from '../features/scrollRestore'
 
 import './FeedPage.css'
@@ -225,6 +227,15 @@ export function FeedPage() {
     onLoadMore: () => {
       void feedQuery.fetchNextPage()
     },
+  })
+
+  const { toastMessage, dismissToast } = useFeedScrollDepthSecret({
+    containerRef: scrollContainerRef,
+    userId: viewerUserIdString,
+    enabled: auth.kind === 'ready' && errorMessage == null,
+    itemCount: items.length,
+    hasNextPage,
+    isFetchingNextPage: feedQuery.isFetchingNextPage,
   })
 
   useEffect(() => {
@@ -413,8 +424,13 @@ export function FeedPage() {
             <EmptyState
               message={
                 emptyFeedGreeting != null
-                  ? `${emptyFeedGreeting}, здесь пока пусто`
+                  ? 'здесь пока пусто'
                   : 'Здесь появятся публичные посты и карточки пользователей.'
+              }
+              playfulKey="feed_empty"
+              playfulSeedUserId={viewerUserIdString}
+              playfulMessagePrefix={
+                emptyFeedGreeting != null ? `${emptyFeedGreeting}, ` : undefined
               }
               action={
                 auth.kind === 'ready'
@@ -484,6 +500,8 @@ export function FeedPage() {
           onOpenCompose={() => openCompose()}
         />
       ) : null}
+
+      <MicroFunToast message={toastMessage} onDismiss={dismissToast} />
     </div>
     </FeedCardGlobalAudioProvider>
   )

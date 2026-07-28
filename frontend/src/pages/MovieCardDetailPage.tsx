@@ -14,7 +14,7 @@ import {
   type RefObject,
   type SetStateAction,
 } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { createPortal } from 'react-dom'
 
 import {
@@ -44,6 +44,7 @@ import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import { hasMeaningfulCardRating } from '../lib/ratingDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
+import { PlayfulHint } from '../components/ui/PlayfulHint'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
@@ -1672,7 +1673,12 @@ function MovieCardDetailLoadedBody({
               ) : null}
 
               {!commentsLoading && comments.length === 0 ? (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока нет комментариев. Будьте первым.</p>
+                <PlayfulHint
+                  poolKey="comments_empty"
+                  fallback="Пока нет комментариев. Будьте первым."
+                  userId={viewerId}
+                  className="mt-3 text-sm text-(--tgui--hint_color)"
+                />
               ) : null}
 
               {comments.length > 0 ? (

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import type { MouseEventHandler } from 'react'
 
 import type { CoViewSplit } from '../../api/feedInFeedTypes'

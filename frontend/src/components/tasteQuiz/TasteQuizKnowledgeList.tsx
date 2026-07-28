@@ -1,5 +1,5 @@
 import { Avatar, Button } from '@telegram-apps/telegram-ui'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { TasteQuizKnowledgeItem } from '../../api/tasteQuizTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'

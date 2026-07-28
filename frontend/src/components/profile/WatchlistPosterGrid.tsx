@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { WatchlistEntryItem } from '../../api/profileTypes'
 

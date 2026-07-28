@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { createTasteQuizInvite } from '../api/tasteQuizApi'
