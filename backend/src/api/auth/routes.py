@@ -1,15 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.auth.schemas import TelegramAuthRequest, TelegramAuthResponse, UserResponse
 from conf import settings
 from core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Response
 from services.auth.errors import TelegramInitDataInvalidError
 from services.auth.issue_session_jwt import IssueSessionJwtService
 from services.auth.upsert_telegram_user import UpsertTelegramUserService
 from services.auth.verify_telegram_init_data import VerifyTelegramInitDataService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 

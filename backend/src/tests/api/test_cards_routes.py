@@ -4,12 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import orjson
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
+from httpx import AsyncClient
 from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
@@ -17,6 +15,8 @@ from models.game import Game
 from models.reaction_type import ReactionType
 from models.user import User
 from models.user_card import UserCard
+from sqlalchemy import select
+
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 
@@ -773,6 +773,7 @@ async def test_get_planned_card_includes_watch_partners(async_client: AsyncClien
 async def test_get_planned_card_partner_watch_status_when_rated(async_client: AsyncClient) -> None:
     from models.user_subscription import UserSubscription
     from models.watchlist_entry import WatchlistEntry
+
     from tests.support.user_card_category import ensure_default_category
 
     session_factory = get_session_factory()
@@ -891,6 +892,7 @@ async def test_get_planned_card_partner_only_planned_card_not_rated(
 ) -> None:
     from models.user_subscription import UserSubscription
     from models.watchlist_entry import WatchlistEntry
+
     from tests.support.user_card_category import ensure_default_category
 
     session_factory = get_session_factory()
@@ -1009,6 +1011,7 @@ async def test_get_planned_card_partner_zero_rating_not_rated(
 ) -> None:
     from models.user_subscription import UserSubscription
     from models.watchlist_entry import WatchlistEntry
+
     from tests.support.user_card_category import ensure_default_category
 
     session_factory = get_session_factory()

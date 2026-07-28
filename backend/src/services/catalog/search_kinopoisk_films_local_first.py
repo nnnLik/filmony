@@ -4,19 +4,19 @@ from dataclasses import dataclass
 from typing import Literal, Self
 
 import orjson
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from conf.settings import settings
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
+from services.catalog.redis_catalog_cache import redis_catalog_cached_fetch
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     genres_for_film_model,
 )
-from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
-from services.catalog.redis_catalog_cache import redis_catalog_cached_fetch
 
 PAGE_SIZE: int = 20
 

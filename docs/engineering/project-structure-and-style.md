@@ -82,6 +82,7 @@
 
 - Конфигурация: [`backend/pyproject.toml`](/backend/pyproject.toml). `target-version` согласован с `requires-python`.
 - В `ignore` участвует **`F401`** (неиспользуемые импорты) — стандартный `ruff check` их **не подсветит**. Имеет смысл периодически прогонять отдельные инструменты (ниже) или точечно убирать мусор при рефакторинге.
+- Прогон в Docker: `make backend-lint`, `make backend-format`. Опционально — [pre-commit](https://pre-commit.com) на `backend/src/` (хуки `ruff-format` + `ruff --fix`; правила — `backend/pyproject.toml`, конфиг — `.pre-commit-config.yaml`): один раз `pre-commit install`; установка и ручной прогон — [`.cursor/tech.md`](/.cursor/tech.md).
 
 ### 3.4. Тесты
 

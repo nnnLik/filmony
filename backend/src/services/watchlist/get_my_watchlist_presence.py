@@ -4,10 +4,9 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from models.watchlist_entry import WatchlistEntry
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.watchlist_entry import WatchlistEntry
 
 
 @dataclass

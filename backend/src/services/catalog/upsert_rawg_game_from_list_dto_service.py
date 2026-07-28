@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Self
 
+from models.game import Game
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.game import Game
 from providers.rawg.rawg_openapi_dto import RawgGameDTO
 
 from .rawg_game_snapshot_utils import merge_list_dto_into_game, utc_now

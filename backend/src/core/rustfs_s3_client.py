@@ -12,7 +12,6 @@ from typing import Any
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
-
 from conf import settings
 
 S3_SERVICE_NAME = 's3'

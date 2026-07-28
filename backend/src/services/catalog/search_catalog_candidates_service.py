@@ -5,12 +5,8 @@ import logging
 from dataclasses import dataclass
 from typing import Self
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
 from core.database import get_session_factory
 from models.catalog_item import CatalogProvider
-from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
-from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from services.catalog.catalog_candidate_dto import (
     CatalogCandidateDTO,
     SearchCatalogCandidatesResult,
@@ -26,6 +22,10 @@ from services.catalog.search_rawg_catalog_games_service import (
     SearchRawgCatalogGamesResult,
     SearchRawgCatalogGamesService,
 )
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
+from providers.rawg.rawg_provider_transport import RawgProviderTransport
 
 logger = logging.getLogger(__name__)
 

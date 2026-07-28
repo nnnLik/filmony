@@ -8,13 +8,12 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-
 from core.database import disposable_async_session
 from models.card_comment import CardComment
 from models.user import User
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import html_card_deep_link_block
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

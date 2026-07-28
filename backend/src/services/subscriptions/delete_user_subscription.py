@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user import User
 from models.user_subscription import UserSubscription
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TargetUserNotFoundError(Exception):

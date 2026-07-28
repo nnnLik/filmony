@@ -4,11 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user_card_category import UserCardCategory
 from services.user_card_categories.list_my_user_card_categories import UserCardCategoryListRow
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

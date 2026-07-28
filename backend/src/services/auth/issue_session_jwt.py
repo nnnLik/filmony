@@ -4,7 +4,6 @@ import time
 from uuid import UUID
 
 import jwt
-
 from conf import settings
 
 

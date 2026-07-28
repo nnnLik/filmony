@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-
 from conf.settings import AppEnv, settings
+
 from tests.support import db_setup
 
 

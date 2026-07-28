@@ -6,12 +6,11 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import desc, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.film import Film
 from models.user_card import UserCard
 from services.search.ilike_escape import escape_ilike_pattern
+from sqlalchemy import desc, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

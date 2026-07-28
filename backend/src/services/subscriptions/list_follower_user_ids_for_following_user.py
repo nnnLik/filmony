@@ -6,10 +6,9 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from models.user_subscription import UserSubscription
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.user_subscription import UserSubscription
 
 
 @dataclass

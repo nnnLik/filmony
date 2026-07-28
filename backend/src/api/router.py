@@ -1,4 +1,6 @@
+from deps.auth import CurrentUser
 from fastapi import APIRouter
+from models.user import User
 
 from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
@@ -16,8 +18,6 @@ from api.search.routes import router as search_router
 from api.streaks.routes import me_streak_router, streaks_router
 from api.taste_quiz.routes import router as taste_quiz_router
 from api.watchlist.routes import router as watchlist_router
-from deps.auth import CurrentUser
-from models.user import User
 
 router = APIRouter(prefix='/api', tags=['api'])
 

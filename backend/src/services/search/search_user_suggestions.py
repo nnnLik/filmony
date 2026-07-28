@@ -5,14 +5,13 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from models.user import User
+from models.user_card import UserCard
+from models.user_subscription import UserSubscription
 from sqlalchemy import exists, not_, select
 from sqlalchemy import func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-
-from models.user import User
-from models.user_card import UserCard
-from models.user_subscription import UserSubscription
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import os
 
-from sqlalchemy import text
-
 from conf import settings
 from core.database import get_engine
 from models import Base
+from sqlalchemy import text
 
 
 def _require_test_env() -> None:

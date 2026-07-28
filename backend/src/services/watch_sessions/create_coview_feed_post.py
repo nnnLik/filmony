@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.feed_post import FeedPost
+from sqlalchemy.ext.asyncio import AsyncSession
 
 CO_VIEW_FEED_POST_BODY = 'Смотрели вместе'
 

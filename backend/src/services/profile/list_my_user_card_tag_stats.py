@@ -3,11 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.card_tag import CardTag
 from models.user_card import UserCard
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

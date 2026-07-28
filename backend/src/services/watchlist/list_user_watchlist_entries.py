@@ -5,14 +5,13 @@ import re
 from dataclasses import dataclass, field
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 _CURSOR_PREFIX = 'wle1'
 

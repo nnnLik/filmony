@@ -6,9 +6,6 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.card_comment import CardComment
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
@@ -16,6 +13,8 @@ from models.reaction_target_kind import ReactionTargetKind
 from models.reaction_type import ReactionType
 from models.user_card import UserCard
 from models.user_reaction import UserReaction
+from sqlalchemy import Select, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .get_reaction_summaries_for_targets import GetReactionSummariesForTargetsService
 from .types import ReactionTargetSummary

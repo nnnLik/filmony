@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import pytest
-
 from models.catalog_item import CatalogProvider
+from services.catalog.search_catalog_candidates_service import SearchCatalogCandidatesService
+from services.catalog.search_kinopoisk_films_local_first import (
+    SearchKinopoiskFilmsLocalFirstService,
+)
+from services.catalog.search_rawg_catalog_games_service import SearchRawgCatalogGamesService
+
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     KinopoiskFilmSearchResponseDTO,
 )
 from providers.rawg.rawg_openapi_dto import RawgGamesListQueryParams, RawgGamesListResponseDTO
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
-from services.catalog.search_catalog_candidates_service import SearchCatalogCandidatesService
-from services.catalog.search_kinopoisk_films_local_first import (
-    SearchKinopoiskFilmsLocalFirstService,
-)
-from services.catalog.search_rawg_catalog_games_service import SearchRawgCatalogGamesService
 
 
 class FakeKinopoiskTransport:
@@ -223,6 +223,7 @@ async def test_one_source_failure_still_returns_other_hits(prepare_db: None) -> 
 @pytest.mark.asyncio
 async def test_both_sources_fail_returns_empty_items(prepare_db: None) -> None:
     from core.database import get_session_factory
+
     from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 
     class FailingKp:

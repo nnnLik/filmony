@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from models.game import Game
+
 from providers.rawg.rawg_openapi_dto import (
     RawgEsrbRatingDTO,
     RawgGameDTO,

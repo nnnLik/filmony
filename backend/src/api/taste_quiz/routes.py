@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.taste_quiz.schemas import (
     TasteQuizCanPlayResponse,
     TasteQuizCreateInviteResponse,
@@ -27,6 +24,7 @@ from api.taste_quiz.schemas import (
 from celery_app import app as celery_application
 from core.database import get_db
 from deps.auth import CurrentUser
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from services.taste_quiz.abandon_session import AbandonTasteQuizSessionService
 from services.taste_quiz.batch_knowledge import BatchTasteQuizKnowledgeService
 from services.taste_quiz.batch_knowledge_as_guesser import BatchTasteQuizKnowledgeAsGuesserService
@@ -41,6 +39,7 @@ from services.taste_quiz.list_knowledge import (
 from services.taste_quiz.resolve_invite import ResolveTasteQuizInviteService
 from services.taste_quiz.session_mapper import TasteQuizSessionCardDTO, TasteQuizSessionDTO
 from services.taste_quiz.submit_answer import SubmitTasteQuizAnswerService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix='/taste-quiz', tags=['taste-quiz'])
 

@@ -5,15 +5,14 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.taste_quiz_invite import TasteQuizInvite
 from models.user import User
 from services.taste_quiz.card_pool import count_meaningful_rated_cards
 from services.taste_quiz.check_can_play import CheckTasteQuizCanPlayService
 from services.taste_quiz.constants import GATE_MIN_RATED_CARDS
 from services.telegram.mini_app_link import telegram_mini_app_taste_quiz_url
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

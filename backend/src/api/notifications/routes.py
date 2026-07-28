@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from conf import settings
 from deps.auth import CurrentUser
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 
 router = APIRouter(prefix='/me/notifications', tags=['notifications'])

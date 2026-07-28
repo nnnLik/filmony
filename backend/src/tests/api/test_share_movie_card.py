@@ -6,9 +6,9 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
+from celery_app import app as celery_app_instance
 from httpx import AsyncClient
 
-from celery_app import app as celery_app_instance
 from tests.api.test_profile_routes import _login, _seed_movie_card
 
 

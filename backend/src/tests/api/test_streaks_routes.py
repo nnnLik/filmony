@@ -6,14 +6,14 @@ from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from httpx import AsyncClient
-
 from api.streaks.schemas import STREAK_BATCH_MAX_IDS
 from conf import settings
 from core.database import get_session_factory
+from httpx import AsyncClient
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
+
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 

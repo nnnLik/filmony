@@ -3,9 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Self
 
+from services.catalog.youtube_video_dto import YoutubeVideoDTO
+
 from providers.youtube.youtube_oembed_client import YoutubeOembedClient
 from providers.youtube.youtube_url import canonical_youtube_url, parse_video_id
-from services.catalog.youtube_video_dto import YoutubeVideoDTO
 
 
 @dataclass

@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user import User
 from services.auth.dto import TelegramWebAppUser
 from services.profile.allocate_default_profile_slug import AllocateDefaultProfileSlugService
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UpsertTelegramUserService:

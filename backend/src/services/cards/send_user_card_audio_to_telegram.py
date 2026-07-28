@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from typing import Self
 
 import httpx
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from conf import settings
 from core.rustfs_s3_client import (
     RustfsClientError,
@@ -19,6 +17,7 @@ from core.rustfs_s3_client import (
 from models.user import User
 from services.cards.get_user_card_details import GetUserCardDetailsService
 from services.telegram.send_bot_message import SendTelegramBotMessageService
+from sqlalchemy.ext.asyncio import AsyncSession
 from utils.user_card_media_key import rustfs_key_from_user_card_audio_proxy_url
 
 _CT_TO_EXT: dict[str, str] = {

@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.cards.feed_post_feed_mapping import (
     feed_post_feed_item_to_response,
     inline_mention_snippets_to_response,
@@ -22,6 +18,8 @@ from api.cards.schemas import (
 from api.reactions.schemas import reaction_target_summary_to_response
 from core.database import get_db
 from deps.auth import CurrentUser
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from services.cards.list_user_card_comments import UserCardCommentItem
 from services.cards.list_user_card_feed import FeedPostFeedItem, UserCardFeedItem
 from services.feed.global_feed_head_broker import (
@@ -29,6 +27,7 @@ from services.feed.global_feed_head_broker import (
     iter_global_feed_head_sse,
 )
 from services.feed.list_global_feed import GlobalFeedKind, ListGlobalFeedService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix='/feed', tags=['feed'])
 

@@ -7,11 +7,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.compute_weekly_controversy import WeeklyControversyResult
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

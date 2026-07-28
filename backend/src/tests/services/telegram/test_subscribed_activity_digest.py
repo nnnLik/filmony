@@ -7,10 +7,8 @@ from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-
 from core.database import get_session_factory
+from httpx import AsyncClient
 from models.catalog_item import CatalogProvider
 from models.feed_post import FeedPost
 from models.film import Film
@@ -28,6 +26,7 @@ from services.telegram.subscribed_activity_digest_candidates import (
     SelectSubscribedActivityDigestItemsService,
     digest_payload_hash,
 )
+from sqlalchemy import select
 from tests.support.user_card_category import ensure_default_category
 
 

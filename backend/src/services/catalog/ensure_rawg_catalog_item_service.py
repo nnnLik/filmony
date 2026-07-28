@@ -3,12 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Self
 
+from models.catalog_item import CatalogItem, CatalogProvider
+from models.game import Game
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.catalog_item import CatalogItem, CatalogProvider
-from models.game import Game
 
 
 @dataclass

@@ -3,7 +3,6 @@ from uuid import uuid4
 
 import jwt
 import pytest
-
 from conf import settings
 from services.auth.decode_session_jwt import DecodeSessionJwtService
 from services.auth.issue_session_jwt import IssueSessionJwtService

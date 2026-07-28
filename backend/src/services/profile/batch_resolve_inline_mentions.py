@@ -6,10 +6,9 @@ import re
 from dataclasses import dataclass
 from uuid import UUID
 
+from models.user import User
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.user import User
 
 _MENTION_TOKEN_RE = re.compile(r'⟦@([^⟧]+)⟧')
 

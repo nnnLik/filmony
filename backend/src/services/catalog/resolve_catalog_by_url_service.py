@@ -4,16 +4,16 @@ from dataclasses import dataclass
 from typing import Self
 from urllib.parse import urlparse
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
-from providers.youtube.youtube_url import is_youtube_host
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
 from services.catalog.resolve_youtube_video_by_url_service import ResolveYoutubeVideoByUrlService
 from services.catalog.youtube_video_dto import YoutubeVideoDTO
 from services.kinopoisk.client import KinopoiskClientError
 from services.kinopoisk.resolve_kinopoisk_film import KinopoiskUrlParseError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from providers.youtube.youtube_url import is_youtube_host
 
 _KINOPOISK_HOSTS = frozenset({'kinopoisk.ru', 'www.kinopoisk.ru'})
 

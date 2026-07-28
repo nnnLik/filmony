@@ -4,10 +4,8 @@ import datetime as dt
 import random
 from uuid import UUID
 
-import pytest
-from sqlalchemy import select
-
 import celery_app
+import pytest
 from core.database import get_session_factory
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogProvider
@@ -28,6 +26,7 @@ from services.watch_sessions.finalize_watch_session_if_ready import (
 )
 from services.watch_sessions.record_watch_session_rating import RecordWatchSessionRatingService
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
+from sqlalchemy import select
 from tests.support.user_card_category import ensure_default_category
 
 

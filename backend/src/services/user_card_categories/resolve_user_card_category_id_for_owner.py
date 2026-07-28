@@ -4,13 +4,12 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user_card_category import UserCardCategory
 from services.user_card_categories.ensure_default_user_card_category import (
     EnsureDefaultUserCardCategoryService,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

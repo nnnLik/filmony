@@ -4,9 +4,6 @@ import datetime as dt
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.catalog_item import CatalogItem
 from models.feed_post import FeedPost
 from models.film import Film
@@ -20,6 +17,8 @@ from services.cards.list_user_card_feed import (
     FeedPostReferencedCardSnippet,
     attach_feed_post_list_engagement,
 )
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 _CURSOR_PREFIX = 'ufp1'
 

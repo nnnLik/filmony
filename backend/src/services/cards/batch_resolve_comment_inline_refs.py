@@ -5,8 +5,6 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from services.cards.inline_user_card_ref_tokens import (
     ReferencedInlineUserCardSnippet,
     batch_resolve_inline_user_card_refs,
@@ -15,6 +13,7 @@ from services.profile.batch_resolve_inline_mentions import (
     ReferencedMentionSnippet,
     batch_resolve_inline_mentions,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def batch_resolve_comment_inline_refs(

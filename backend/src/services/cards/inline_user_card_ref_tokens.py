@@ -6,11 +6,10 @@ import re
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.film import Film
 from models.user_card import UserCard
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 CARD_REF_TOKEN_RE = re.compile(r'⟦c(\d+)⟧')
 

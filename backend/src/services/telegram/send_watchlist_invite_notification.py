@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import func, select
-
 from core.database import disposable_async_session
 from models.catalog_item import CatalogItem
 from models.film import Film
@@ -19,6 +17,7 @@ from services.cards.card_catalog_release_fields import universal_release_year_da
 from services.telegram.engagement_delivery import deliver_engagement_html_message
 from services.telegram.mini_app_link import html_card_deep_link_block
 from services.telegram.send_bot_message import SendTelegramBotMessageService
+from sqlalchemy import func, select
 from utils.http_url import normalize_absolute_http_url
 
 logger = logging.getLogger(__name__)

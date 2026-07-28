@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import select
-
 from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.game import Game
-from providers.rawg.rawg_openapi_dto import RawgGamesListQueryParams, RawgGamesListResponseDTO
-from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from services.catalog.ensure_rawg_catalog_item_service import EnsureRawgCatalogItemService
 from services.catalog.search_rawg_catalog_games_service import SearchRawgCatalogGamesService
+from sqlalchemy import select
+
+from providers.rawg.rawg_openapi_dto import RawgGamesListQueryParams, RawgGamesListResponseDTO
+from providers.rawg.rawg_provider_transport import RawgProviderTransport
 
 
 @pytest.mark.asyncio

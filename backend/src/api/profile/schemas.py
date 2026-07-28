@@ -3,13 +3,10 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from api.cards.schemas import UserCardCategorySnippet
-from api.watchlist.schemas import WatchTag
 from models.card_enums import CardCompany
 from models.catalog_item import CatalogProvider
 from models.user import User
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from services.profile.get_user_card_stats import UserCardStats
 from services.profile.get_user_profile_counts import UserProfileCounts
 from services.profile.get_user_profile_social_insights import UserProfileSocialInsights
@@ -26,6 +23,9 @@ from services.watchlist.list_watchlist_overlaps import (
     WatchlistOverlapPage,
     WatchlistOverlapPartner,
 )
+
+from api.cards.schemas import UserCardCategorySnippet
+from api.watchlist.schemas import WatchTag
 
 
 class MyUserCardCategoryResponse(BaseModel):

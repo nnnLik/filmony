@@ -1,14 +1,13 @@
 from typing import Annotated
 
-from fastapi import Cookie, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from conf import settings
 from core.database import get_db
+from fastapi import Cookie, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from models.user import User
 from services.auth.decode_session_jwt import DecodeSessionJwtService
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 _bearer = HTTPBearer(auto_error=False)
 

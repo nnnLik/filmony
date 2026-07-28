@@ -4,14 +4,13 @@ from dataclasses import dataclass
 from typing import Self
 
 import orjson
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from conf.settings import settings
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from services.catalog.redis_catalog_cache import redis_catalog_cached_fetch
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _resolve_pair_dumps(pair: tuple[int, int]) -> bytes:

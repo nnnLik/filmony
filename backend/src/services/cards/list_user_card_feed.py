@@ -8,11 +8,8 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 from uuid import UUID
 
-import orjson
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 import const.feed
+import orjson
 from const.feed import FeedMode
 from models.card_comment import CardComment
 from models.card_tag import CardTag
@@ -34,6 +31,8 @@ from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnip
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 from services.watch_sessions.list_co_view_splits import CoViewSplit
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 CURSOR_PREFIX = 'v1.'
 

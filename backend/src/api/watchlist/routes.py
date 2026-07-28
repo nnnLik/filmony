@@ -3,9 +3,6 @@ from __future__ import annotations
 import datetime as dt
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.watchlist.schemas import (
     WatchlistEntryCreate,
     WatchlistEntryResponse,
@@ -13,8 +10,10 @@ from api.watchlist.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
+from fastapi import APIRouter, Depends, HTTPException, status
 from models.watchlist_entry import WatchlistEntry
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix='/watchlist', tags=['watchlist'])
 

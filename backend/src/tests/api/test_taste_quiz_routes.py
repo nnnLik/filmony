@@ -6,16 +6,16 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-
 from api.taste_quiz.schemas import TASTE_QUIZ_KNOWLEDGE_BATCH_MAX_IDS
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
+from httpx import AsyncClient
 from models.taste_quiz_pair_progress import TasteQuizPairProgress
 from models.taste_quiz_session_card import TasteQuizSessionCard
 from models.user_card import UserCard
+from sqlalchemy import select
+
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.taste_quiz_helpers import add_follow, seed_rated_cards_for_owner
 

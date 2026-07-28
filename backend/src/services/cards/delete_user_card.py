@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from models.user_card import UserCard
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.user_card import UserCard
 
 
 class UserCardNotFoundError(Exception):

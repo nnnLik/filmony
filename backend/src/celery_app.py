@@ -6,7 +6,6 @@ import gc
 
 from celery import Celery
 from celery.signals import worker_before_create_process
-
 from conf import settings
 
 app = Celery('filmony')

@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import httpx
-
 from conf import settings
-from providers.shared_async_http import httpx_get_idempotent
 from utils.http_url import normalize_absolute_http_url
+
+from providers.shared_async_http import httpx_get_idempotent
 
 
 class KinopoiskClientError(Exception):

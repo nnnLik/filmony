@@ -3,10 +3,8 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-
 from core.database import get_session_factory
+from httpx import AsyncClient
 from models.card_enums import CardCompany
 from models.user import User
 from models.user_card import UserCard
@@ -14,6 +12,7 @@ from models.user_subscription import UserSubscription
 from models.watchlist_entry import WatchlistEntry
 from services.watchlist.create_watchlist_entry import CreateWatchlistEntryService
 from services.watchlist.update_watchlist_entry import UpdateWatchlistEntryService
+from sqlalchemy import select
 
 
 async def _create_user(*, telegram_user_id: int, slug_suffix: str) -> User:

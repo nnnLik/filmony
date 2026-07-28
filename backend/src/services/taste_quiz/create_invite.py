@@ -6,12 +6,11 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.taste_quiz_invite import TasteQuizInvite
 from models.user import User
 from services.taste_quiz.constants import INVITE_EXPIRY_DAYS
 from services.telegram.mini_app_link import telegram_mini_app_taste_quiz_url
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _format_user_display(user: User) -> str:

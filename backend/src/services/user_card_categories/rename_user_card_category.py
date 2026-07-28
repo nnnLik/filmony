@@ -4,11 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from models.user_card_category import UserCardCategory
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.user_card_category import UserCardCategory
 
 
 @dataclass

@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.films.schemas import (
     FilmCommunityAuthorResponse,
     FilmCommunityCardItemResponse,
@@ -14,6 +11,7 @@ from api.films.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
+from fastapi import APIRouter, Depends, HTTPException, Query
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
 from services.films.get_film_by_id import GetFilmByIdService
 from services.films.list_film_community_cards import ListFilmCommunityCardsService
@@ -22,6 +20,7 @@ from services.kinopoisk.resolve_kinopoisk_film import (
     KinopoiskUrlParseError,
     ResolveKinopoiskFilmService,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix='/films', tags=['films'])
 

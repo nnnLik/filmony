@@ -5,9 +5,8 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 import pytest
-from httpx import AsyncClient
-
 from core.database import get_session_factory
+from httpx import AsyncClient
 from models.user import User
 from models.user_subscription import UserSubscription
 from services.subscriptions.list_follower_user_ids_for_following_user import (

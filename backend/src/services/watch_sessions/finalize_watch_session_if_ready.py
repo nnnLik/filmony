@@ -5,15 +5,14 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user_card import UserCard
 from models.watch_session import WatchSession
 from models.watch_session_enums import WatchSessionStatus
 from services.telegram.send_coview_nudge_notification import SendCoViewNudgeNotificationService
 from services.watch_sessions.create_coview_feed_post import CreateCoViewFeedPostService
 from services.watch_sessions.list_co_view_splits import _parse_participant_ids
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 FINALIZE_TIMEOUT = dt.timedelta(hours=48)
 

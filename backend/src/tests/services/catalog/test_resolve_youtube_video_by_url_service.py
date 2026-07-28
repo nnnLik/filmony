@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from services.catalog.resolve_youtube_video_by_url_service import ResolveYoutubeVideoByUrlService
 
 from providers.youtube.youtube_oembed_client import YoutubeOembedClient
-from services.catalog.resolve_youtube_video_by_url_service import ResolveYoutubeVideoByUrlService
 
 _VIDEO_ID = 'dQw4w9WgXcQ'
 _VIDEO_URL = f'https://www.youtube.com/watch?v={_VIDEO_ID}'

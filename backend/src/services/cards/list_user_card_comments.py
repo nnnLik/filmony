@@ -4,10 +4,6 @@ import datetime as dt
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import Select, asc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
-
 from models.card_comment import CardComment
 from models.user import User
 from models.user_card import UserCard
@@ -16,6 +12,9 @@ from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardS
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
+from sqlalchemy import Select, asc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 
 @dataclass(frozen=True, slots=True)

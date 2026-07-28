@@ -4,14 +4,13 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.feed_post_comment import FeedPostComment
 from services.cards.comment_reaction_tokens import (
     CommentReactionTokenError,
     validate_comment_text_with_reaction_tokens,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class FeedPostCommentNotFoundError(Exception):

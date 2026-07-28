@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from core.database import disposable_async_session
 from models.card_comment import CardComment
 from models.feed_post import FeedPost
@@ -23,6 +21,7 @@ from services.telegram.mini_app_link import (
     html_card_deep_link_block,
     html_feed_post_deep_link_block,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

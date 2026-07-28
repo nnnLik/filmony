@@ -9,7 +9,6 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import orjson
-
 from conf import settings
 
 _lock = asyncio.Lock()

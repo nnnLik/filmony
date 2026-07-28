@@ -1,0 +1,12 @@
+# See https://pre-commit.com for more information
+# Ruff config: backend/pyproject.toml ([tool.ruff])
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff-format
+        args: [--config, backend/pyproject.toml]
+        files: ^backend/src/
+      - id: ruff
+        args: [--fix, --config, backend/pyproject.toml]
+        files: ^backend/src/

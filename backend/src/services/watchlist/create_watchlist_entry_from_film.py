@@ -5,9 +5,6 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.card_enums import CardCompany
 from models.film import Film
 from models.user_card import UserCard
@@ -15,6 +12,8 @@ from services.watchlist.create_watchlist_entry import (
     CreateWatchlistEntryResult,
     CreateWatchlistEntryService,
 )
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

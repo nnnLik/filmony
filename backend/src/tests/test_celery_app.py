@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import Mock
 
-from celery.signals import worker_before_create_process
-
 import celery_app
+from celery.signals import worker_before_create_process
 
 
 def test_celery_app_registers_ping_task() -> None:

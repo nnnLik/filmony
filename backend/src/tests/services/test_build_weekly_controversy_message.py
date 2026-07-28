@@ -6,7 +6,6 @@ import datetime as dt
 from uuid import uuid4
 
 import pytest
-
 from conf import settings
 from services.controversy.compute_weekly_controversy import (
     ControversyPolarCard,

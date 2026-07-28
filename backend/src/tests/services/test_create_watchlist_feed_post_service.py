@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from httpx import AsyncClient
-
 from core.database import get_session_factory
+from httpx import AsyncClient
 from models.user import User
 from models.user_card import UserCard
 from services.feed_posts.create_watchlist_feed_post import CreateWatchlistFeedPostService

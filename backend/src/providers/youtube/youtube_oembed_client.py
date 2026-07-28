@@ -5,9 +5,9 @@ from http import HTTPStatus
 from typing import Any, Self
 
 import httpx
+from utils.http_url import normalize_absolute_http_url
 
 from providers.shared_async_http import httpx_get_idempotent
-from utils.http_url import normalize_absolute_http_url
 
 
 class YoutubeOembedDtoParseError(Exception):

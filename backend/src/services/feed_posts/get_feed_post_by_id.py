@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Self
 
+from models.feed_post import FeedPost
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.feed_post import FeedPost
 
 
 class FeedPostNotFoundError(Exception):

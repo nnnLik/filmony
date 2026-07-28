@@ -9,7 +9,6 @@ from typing import Self
 from urllib.parse import urlparse
 
 import httpx
-
 from conf import settings
 from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 

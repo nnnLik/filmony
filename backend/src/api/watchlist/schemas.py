@@ -3,9 +3,8 @@ from __future__ import annotations
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 from models.card_enums import CardCompany
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class WatchTag(StrEnum):

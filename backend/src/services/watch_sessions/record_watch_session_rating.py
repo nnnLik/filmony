@@ -5,11 +5,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.watch_session import WatchSession
 from models.watch_session_enums import WatchSessionStatus
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _parse_participant_ids(raw: list) -> list[UUID]:

@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-
 from core.database import disposable_async_session
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
@@ -18,6 +16,7 @@ from models.user import User
 from models.user_card import UserCard
 from services.telegram.mini_app_link import html_card_deep_link_block
 from services.telegram.send_bot_message import SendTelegramBotMessageService
+from sqlalchemy import select
 from utils.http_url import normalize_absolute_http_url
 
 logger = logging.getLogger(__name__)

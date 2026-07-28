@@ -5,12 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user import User
 from models.user_card import UserCard
 from models.user_subscription import UserSubscription
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 FOLLOWING_RATINGS_TOP_LIMIT = 5
 

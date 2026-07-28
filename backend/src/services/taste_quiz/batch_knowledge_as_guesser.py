@@ -4,12 +4,11 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.taste_quiz_pair_progress import TasteQuizPairProgress
 from services.taste_quiz.batch_knowledge import TasteQuizKnowledgeBatchItem
 from services.taste_quiz.scoring import compute_accuracy_pct
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

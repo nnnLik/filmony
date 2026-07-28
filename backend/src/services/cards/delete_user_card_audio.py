@@ -4,13 +4,12 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user_card import UserCard
 from services.cards.delete_stored_user_card_audio_object import (
     DeleteStoredUserCardAudioObjectService,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UserCardNotFoundError(Exception):

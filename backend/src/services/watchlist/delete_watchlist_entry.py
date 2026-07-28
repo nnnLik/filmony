@@ -4,13 +4,12 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.watchlist_entry import WatchlistEntry
 from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

@@ -6,10 +6,10 @@ from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
 from unittest.mock import AsyncMock, patch
 
+import celery_app
 import pytest
 from httpx import AsyncClient
 
-import celery_app
 from tests.api.test_feed_posts_routes import _login as _login_feed
 from tests.api.test_reactions_routes import (
     _create_card_any,

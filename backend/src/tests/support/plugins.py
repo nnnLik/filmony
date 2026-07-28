@@ -6,12 +6,12 @@ import asyncio
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-
 from core.database import dispose_engine
+from httpx import ASGITransport, AsyncClient
 from services.feed.global_feed_head_broker import reset_global_feed_head_broker_for_tests
-from tests.support import db_setup
 from utils.app_utils import get_app, setup_app
+
+from tests.support import db_setup
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:

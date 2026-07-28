@@ -4,33 +4,11 @@ import datetime as dt
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.profile.schemas import (
-    MyProfileResponse,
-    MyUserCardCategoryCreateRequest,
-    MyUserCardCategoryListResponse,
-    MyUserCardCategoryRenameRequest,
-    MyUserCardCategoryResponse,
-    MyUserCardTagStatItem,
-    MyUserCardTagStatsResponse,
-    PlannedUserCardResponse,
-    ProfileUpdateRequest,
-    UserCardsExportCsvResponse,
-    WatchlistEntryItemResponse,
-    WatchlistEntryUpdateRequest,
-    WatchlistFilmCreateRequest,
-    WatchlistMembershipResponse,
-    WatchlistOverlapListResponse,
-    build_my_profile_response,
-    build_watchlist_entry_item_response,
-    build_watchlist_overlap_list_response,
-)
 from conf import settings
 from core.database import get_db
 from deps.auth import CurrentUser
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from services.cards.get_planned_user_card import GetPlannedUserCardService
@@ -61,6 +39,28 @@ from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntr
 from services.watchlist.list_watchlist_overlaps import ListWatchlistOverlapsService
 from services.watchlist.update_watchlist_entry import UpdateWatchlistEntryService
 from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.profile.schemas import (
+    MyProfileResponse,
+    MyUserCardCategoryCreateRequest,
+    MyUserCardCategoryListResponse,
+    MyUserCardCategoryRenameRequest,
+    MyUserCardCategoryResponse,
+    MyUserCardTagStatItem,
+    MyUserCardTagStatsResponse,
+    PlannedUserCardResponse,
+    ProfileUpdateRequest,
+    UserCardsExportCsvResponse,
+    WatchlistEntryItemResponse,
+    WatchlistEntryUpdateRequest,
+    WatchlistFilmCreateRequest,
+    WatchlistMembershipResponse,
+    WatchlistOverlapListResponse,
+    build_my_profile_response,
+    build_watchlist_entry_item_response,
+    build_watchlist_overlap_list_response,
+)
 
 router = APIRouter(prefix='/me', tags=['profile'])
 

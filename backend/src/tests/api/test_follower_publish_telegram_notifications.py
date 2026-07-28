@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
+import celery_app
 import pytest
+from conf import settings
 from httpx import AsyncClient
 
-import celery_app
-from conf import settings
 from tests.api.test_cards_routes import _create_film as _film_cards
 from tests.api.test_cards_routes import _login as _login_cards
 from tests.api.test_feed_posts_routes import _login as _login_feed

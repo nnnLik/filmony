@@ -1,9 +1,9 @@
 import time
 
 import pytest
+from conf import settings
 from httpx import AsyncClient
 
-from conf import settings
 from tests.auth.telegram_init_data import build_init_data
 
 

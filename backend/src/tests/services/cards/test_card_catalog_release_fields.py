@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from services.cards.card_catalog_release_fields import (
     split_game_released_iso,
     universal_release_year_date,

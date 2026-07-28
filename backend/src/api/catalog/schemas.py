@@ -3,10 +3,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from api.films.schemas import FilmResponse
 from models.catalog_item import CatalogProvider
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CatalogSearchProvider(StrEnum):

@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.catalog_item import CatalogItem
 from models.feed_post import FeedPost
 from models.film import Film
@@ -20,6 +17,8 @@ from services.cards.list_user_card_feed import (
     attach_feed_post_list_engagement,
 )
 from services.feed_posts.get_feed_post_by_id import FeedPostNotFoundError
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class GetFeedPostFeedItemService:

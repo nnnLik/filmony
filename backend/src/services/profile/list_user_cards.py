@@ -5,10 +5,6 @@ from dataclasses import dataclass
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import Select, and_, asc, desc, exists, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select as SASelect
-
 from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
@@ -16,6 +12,9 @@ from models.game import Game
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from services.cards.card_catalog_release_fields import universal_release_year_date
+from sqlalchemy import Select, and_, asc, desc, exists, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select as SASelect
 
 _FAV_CURSOR_PREFIX = 'fav1'
 _RATING_DESC_PREFIX = 'rtd'
