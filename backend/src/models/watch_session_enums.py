@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, StrEnum
 
 
-class WatchSessionStatus(str, Enum):
+class WatchSessionStatus(StrEnum):
     planned = 'planned'
     done = 'done'

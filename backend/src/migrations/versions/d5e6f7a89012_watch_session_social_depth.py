@@ -45,7 +45,9 @@ def upgrade() -> None:
             '(anchor_film_id IS NULL AND anchor_catalog_item_id IS NOT NULL)',
             name='ck_watch_session_exactly_one_anchor',
         ),
-        sa.ForeignKeyConstraint(['anchor_catalog_item_id'], ['catalog_item.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(
+            ['anchor_catalog_item_id'], ['catalog_item.id'], ondelete='CASCADE'
+        ),
         sa.ForeignKeyConstraint(['anchor_film_id'], ['film.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(
             ['feed_post_id'],

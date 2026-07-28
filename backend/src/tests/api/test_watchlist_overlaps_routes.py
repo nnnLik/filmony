@@ -135,9 +135,7 @@ async def test_watchlist_overlaps_returns_shared_titles_with_partners(
 
     session_factory = get_session_factory()
     async with session_factory() as session:
-        session.add(
-            UserSubscription(follower_user_id=stranger.id, following_user_id=actor.id)
-        )
+        session.add(UserSubscription(follower_user_id=stranger.id, following_user_id=actor.id))
         await session.commit()
 
     await _add_watchlist_entry(user_id=actor.id, card_id='kp:920100', kp_id=920_100)

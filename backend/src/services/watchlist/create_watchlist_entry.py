@@ -20,13 +20,13 @@ from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
 )
+from services.watch_sessions.create_watch_session import CreateWatchSessionService
 from services.watchlist.assert_mutual_watch_partner import AssertMutualWatchPartnerService
 from services.watchlist.normalize_watch_with_partners import (
     normalize_watch_with_user_ids,
     primary_watch_with_user_id,
     watch_with_user_ids_as_json,
 )
-from services.watch_sessions.create_watch_session import CreateWatchSessionService
 
 
 def _normalize_watch_note(raw: str) -> str:

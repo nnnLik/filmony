@@ -127,9 +127,7 @@ class ListWatchlistOverlapsService:
         cap: int,
     ) -> list[WatchlistEntry]:
         partner_card_ids = (
-            select(WatchlistEntry.card_id)
-            .where(WatchlistEntry.user_id.in_(mutual_ids))
-            .distinct()
+            select(WatchlistEntry.card_id).where(WatchlistEntry.user_id.in_(mutual_ids)).distinct()
         )
         stmt = (
             select(WatchlistEntry)
@@ -149,17 +147,21 @@ class ListWatchlistOverlapsService:
     ) -> dict[str, tuple[str, str]]:
         if not planned_by_key:
             return {}
-        card_ids = list(planned_by_key.keys())
+        list(planned_by_key.keys())
         card_row_ids = list(planned_by_key.values())
         rows = (
-            await self._session.execute(
-                select(UserCard).where(
-                    UserCard.user_id == actor_user_id,
-                    UserCard.id.in_(card_row_ids),
-                    UserCard.is_planned.is_(True),
+            (
+                await self._session.execute(
+                    select(UserCard).where(
+                        UserCard.user_id == actor_user_id,
+                        UserCard.id.in_(card_row_ids),
+                        UserCard.is_planned.is_(True),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         by_id = {int(row.id): row for row in rows}
         out: dict[str, tuple[str, str]] = {}
         for card_key, user_card_id in planned_by_key.items():

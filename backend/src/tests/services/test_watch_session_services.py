@@ -77,7 +77,11 @@ def celery_always_eager() -> None:
 
 
 async def _create_user(*, slug: str, telegram_user_id: int | None = None) -> User:
-    tg_id = telegram_user_id if telegram_user_id is not None else random.randint(930_000_000, 939_999_999)
+    tg_id = (
+        telegram_user_id
+        if telegram_user_id is not None
+        else random.randint(930_000_000, 939_999_999)
+    )
     session_factory = get_session_factory()
     async with session_factory() as session:
         user = User(
@@ -307,8 +311,14 @@ async def test_finalize_is_idempotent(prepare_db: None) -> None:
         assert await finalize.execute(watch_session_id=watch_session_id) is False
 
         post_count = (
-            await session.execute(select(FeedPost).where(FeedPost.watch_session_id == watch_session_id))
-        ).scalars().all()
+            (
+                await session.execute(
+                    select(FeedPost).where(FeedPost.watch_session_id == watch_session_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
         assert len(post_count) == 1
         assert first_post_id == post_count[0].id
 
@@ -331,7 +341,9 @@ async def test_finalize_timeout_with_two_rated_creates_post(prepare_db: None) ->
             anchor_catalog_item_id=None,
             source_watchlist_entry_id=None,
         )
-        watch_session.first_rated_at = dt.datetime.now(tz=dt.UTC) - FINALIZE_TIMEOUT - dt.timedelta(hours=1)
+        watch_session.first_rated_at = (
+            dt.datetime.now(tz=dt.UTC) - FINALIZE_TIMEOUT - dt.timedelta(hours=1)
+        )
         watch_session_id = watch_session.id
 
         for user_id, rating, category_id in (

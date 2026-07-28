@@ -270,9 +270,7 @@ def _pick_link_card_id(
     max_rating: float,
 ) -> int | None:
     candidates = [
-        card
-        for card in cards
-        if _card_matches_anchor(card, anchor) and card.rating == max_rating
+        card for card in cards if _card_matches_anchor(card, anchor) and card.rating == max_rating
     ]
     if not candidates:
         return None

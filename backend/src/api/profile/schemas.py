@@ -431,7 +431,9 @@ def build_watchlist_overlap_partner_response(
     )
 
 
-def build_watchlist_overlap_item_response(item: WatchlistOverlapItem) -> WatchlistOverlapItemResponse:
+def build_watchlist_overlap_item_response(
+    item: WatchlistOverlapItem,
+) -> WatchlistOverlapItemResponse:
     return WatchlistOverlapItemResponse(
         entry_id=item.entry_id,
         title=item.title,
@@ -446,7 +448,9 @@ def build_watchlist_overlap_item_response(item: WatchlistOverlapItem) -> Watchli
     )
 
 
-def build_watchlist_overlap_list_response(page: WatchlistOverlapPage) -> WatchlistOverlapListResponse:
+def build_watchlist_overlap_list_response(
+    page: WatchlistOverlapPage,
+) -> WatchlistOverlapListResponse:
     return WatchlistOverlapListResponse(
         items=[build_watchlist_overlap_item_response(it) for it in page.items],
     )

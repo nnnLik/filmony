@@ -437,9 +437,7 @@ class CreateUserCardService:
         if session_ids:
             from celery_app import app as celery_application
 
-            task = celery_application.tasks[
-                'tasks.watch_session.finalize_watch_session_if_ready'
-            ]
+            task = celery_application.tasks['tasks.watch_session.finalize_watch_session_if_ready']
             for session_id in session_ids:
                 task.delay(str(session_id))
 

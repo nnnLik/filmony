@@ -31,9 +31,9 @@ from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardS
 from services.cards.list_user_card_comments import UserCardCommentAuthor, UserCardCommentItem
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
-from services.watch_sessions.list_co_view_splits import CoViewSplit
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
+from services.watch_sessions.list_co_view_splits import CoViewSplit
 
 CURSOR_PREFIX = 'v1.'
 

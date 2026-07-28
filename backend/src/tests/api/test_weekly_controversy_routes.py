@@ -42,7 +42,11 @@ async def _seed_user(
 ) -> UUID:
     user_id = uuid4()
     slug = profile_slug or f'wc{user_id.hex[:8]}'
-    tid = telegram_user_id if telegram_user_id is not None else int(user_id.int % 9_000_000) + 1_000_000
+    tid = (
+        telegram_user_id
+        if telegram_user_id is not None
+        else int(user_id.int % 9_000_000) + 1_000_000
+    )
     session_factory = get_session_factory()
     async with session_factory() as session:
         session.add(
@@ -106,9 +110,7 @@ async def _seed_rated_card(
 async def _seed_follow(*, follower_id: UUID, following_id: UUID) -> None:
     session_factory = get_session_factory()
     async with session_factory() as session:
-        session.add(
-            UserSubscription(follower_user_id=follower_id, following_user_id=following_id)
-        )
+        session.add(UserSubscription(follower_user_id=follower_id, following_user_id=following_id))
         await session.commit()
 
 

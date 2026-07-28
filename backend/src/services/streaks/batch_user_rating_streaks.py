@@ -22,10 +22,7 @@ def compute_current_rating_streak(
     today_utc: dt.date,
 ) -> int:
     """Count consecutive UTC streak days ending at today or yesterday."""
-    if today_utc in streak_days:
-        anchor = today_utc
-    else:
-        anchor = today_utc - dt.timedelta(days=1)
+    anchor = today_utc if today_utc in streak_days else today_utc - dt.timedelta(days=1)
 
     if anchor not in streak_days:
         return 0
@@ -62,12 +59,14 @@ class BatchUserRatingStreaksService:
         streak_day = cast(func.timezone('UTC', UserCard.completed_at), Date)
         rows = (
             await self._session.execute(
-                select(UserCard.user_id, streak_day.label('streak_day')).where(
+                select(UserCard.user_id, streak_day.label('streak_day'))
+                .where(
                     UserCard.user_id.in_(unique_ids),
                     UserCard.is_planned.is_(False),
                     UserCard.rating >= 1,
                     UserCard.completed_at.isnot(None),
-                ).distinct()
+                )
+                .distinct()
             )
         ).all()
 

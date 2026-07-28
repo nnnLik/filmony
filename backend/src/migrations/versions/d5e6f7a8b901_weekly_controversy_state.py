@@ -41,7 +41,9 @@ def upgrade() -> None:
             server_default=sa.text('now()'),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(['anchor_catalog_item_id'], ['catalog_item.id'], ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(
+            ['anchor_catalog_item_id'], ['catalog_item.id'], ondelete='SET NULL'
+        ),
         sa.ForeignKeyConstraint(['anchor_film_id'], ['film.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),

@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, Uuid, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, Uuid, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 

@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
-from api.controversy.routes import router as controversy_router
 from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
 from api.cards.routes import router as cards_router
 from api.catalog.routes import router as catalog_router
+from api.controversy.routes import router as controversy_router
 from api.feed.routes import router as feed_router
 from api.feed_posts.routes import router as feed_posts_router
 from api.films.routes import router as films_router
