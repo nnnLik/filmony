@@ -18,7 +18,7 @@ export type AuthBootstrapDeps = {
 }
 
 export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
-  const { runId, isCurrent, setState, waitForInitDataRaw } = deps
+  const { isCurrent, setState, waitForInitDataRaw } = deps
 
   const resumeWithStoredBearer = async (): Promise<boolean> => {
     const token = readAccessToken()
@@ -157,3 +157,4 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
       message: e instanceof Error ? e.message : 'Сеть недоступна',
     })
   }
+}

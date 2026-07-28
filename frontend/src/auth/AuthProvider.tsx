@@ -28,7 +28,6 @@ const authBootstrapGeneration = { current: 0 }
 
 /** Cold notification/deeplink opens can inject initData after the first paint. */
 const INIT_DATA_FAST_FRAMES = 30
-const INIT_DATA_MAX_WAIT_MS = 4000
 const INIT_DATA_POLL_MS = 50
 
 function signalTelegramWebAppReady(): void {

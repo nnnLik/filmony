@@ -476,11 +476,7 @@ export function ProfilePage() {
   })
 
   if (auth.kind === 'loading') {
-    return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Вход…</p>
-      </div>
-    )
+    return <InlineLoadingState message="Вход…" />
   }
 
   if (auth.kind === 'error') {
@@ -519,9 +515,7 @@ export function ProfilePage() {
   }
 
   if (profile == null) {
-    return (
-      <InlineLoadingState message={auth.kind === 'loading' ? 'Вход…' : 'Загрузка…'} />
-    )
+    return <InlineLoadingState message="Загрузка…" />
   }
 
   const pub = toPublicShape(profile)

@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-29T012900Z-frontend-ui-boot-polish-code.md`
 - `2026-07-28T174500Z-social-depth-pack-code.md`
 - `2026-07-27T151100Z-taste-knowledge-badge-everywhere-test.md`
 - `2026-07-27T151000Z-taste-knowledge-badge-everywhere-docs.md`

@@ -12,9 +12,9 @@ export function scheduleIdleWork(work: () => void, timeoutMs = 2000): void {
       /* noop */
     }
   }
-  if ('requestIdleCallback' in window) {
+  if (typeof window.requestIdleCallback === 'function') {
     window.requestIdleCallback(run, { timeout: timeoutMs })
     return
   }
-  window.setTimeout(run, timeoutMs)
+  globalThis.setTimeout(run, timeoutMs)
 }

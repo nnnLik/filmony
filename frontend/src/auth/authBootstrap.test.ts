@@ -3,26 +3,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { runAuthBootstrap } from './authBootstrap'
 import type { AuthStatus } from './auth-context'
 
-const writeAuthSessionFlag = vi.fn()
-const writeAccessToken = vi.fn()
-const readAccessToken = vi.fn()
-const apiFetch = vi.fn()
-const apiFetchCredentialsOnly = vi.fn()
-const authTelegram = vi.fn()
+const mocks = vi.hoisted(() => ({
+  writeAuthSessionFlag: vi.fn<(value: boolean) => void>(),
+  writeAccessToken: vi.fn<(value: string | null) => void>(),
+  readAccessToken: vi.fn<() => string | null>(),
+  apiFetch: vi.fn<(path: string, init?: RequestInit) => Promise<Response>>(),
+  apiFetchCredentialsOnly: vi.fn<(path: string, init?: RequestInit) => Promise<Response>>(),
+  authTelegram: vi.fn<(raw: string) => Promise<Response>>(),
+}))
 
 vi.mock('../api/client', () => ({
-  apiFetch: (...args: unknown[]) => apiFetch(...args),
-  apiFetchCredentialsOnly: (...args: unknown[]) => apiFetchCredentialsOnly(...args),
+  apiFetch: mocks.apiFetch,
+  apiFetchCredentialsOnly: mocks.apiFetchCredentialsOnly,
 }))
 
 vi.mock('../api/profileApi', () => ({
-  authTelegram: (...args: unknown[]) => authTelegram(...args),
+  authTelegram: mocks.authTelegram,
 }))
 
 vi.mock('../lib/filmonySession', () => ({
-  readAccessToken: () => readAccessToken(),
-  writeAccessToken: (...args: unknown[]) => writeAccessToken(...args),
-  writeAuthSessionFlag: (...args: unknown[]) => writeAuthSessionFlag(...args),
+  readAccessToken: mocks.readAccessToken,
+  writeAccessToken: mocks.writeAccessToken,
+  writeAuthSessionFlag: mocks.writeAuthSessionFlag,
 }))
 
 vi.mock('../lib/myProfileBundleCache', () => ({
@@ -41,8 +43,8 @@ function mockResponse(ok: boolean, status = ok ? 200 : 401): Response {
   return {
     ok,
     status,
-    text: async () => '',
-    json: async () => ({}),
+    text: () => Promise.resolve(''),
+    json: () => Promise.resolve({}),
   } as Response
 }
 
@@ -51,12 +53,12 @@ describe('runAuthBootstrap', () => {
 
   beforeEach(() => {
     states = []
-    readAccessToken.mockReturnValue(null)
-    apiFetch.mockReset()
-    apiFetchCredentialsOnly.mockReset()
-    authTelegram.mockReset()
-    writeAuthSessionFlag.mockReset()
-    writeAccessToken.mockReset()
+    mocks.readAccessToken.mockReturnValue(null)
+    mocks.apiFetch.mockReset()
+    mocks.apiFetchCredentialsOnly.mockReset()
+    mocks.authTelegram.mockReset()
+    mocks.writeAuthSessionFlag.mockReset()
+    mocks.writeAccessToken.mockReset()
   })
 
   afterEach(() => {
@@ -64,9 +66,9 @@ describe('runAuthBootstrap', () => {
   })
 
   it('resumes with stored bearer when probe succeeds', async () => {
-    readAccessToken.mockReturnValue('valid-token')
-    apiFetch.mockResolvedValueOnce(mockResponse(true))
-    apiFetchCredentialsOnly.mockResolvedValue(mockResponse(false, 401))
+    mocks.readAccessToken.mockReturnValue('valid-token')
+    mocks.apiFetch.mockResolvedValueOnce(mockResponse(true))
+    mocks.apiFetchCredentialsOnly.mockResolvedValue(mockResponse(false, 401))
 
     await runAuthBootstrap({
       runId: 1,
@@ -74,18 +76,18 @@ describe('runAuthBootstrap', () => {
       setState: (status) => {
         states.push(status)
       },
-      waitForInitDataRaw: async () => 'init-data',
+      waitForInitDataRaw: () => Promise.resolve('init-data'),
     })
 
     expect(states).toEqual([{ kind: 'ready' }])
-    expect(writeAuthSessionFlag).toHaveBeenCalledWith(true)
-    expect(authTelegram).not.toHaveBeenCalled()
+    expect(mocks.writeAuthSessionFlag).toHaveBeenCalledWith(true)
+    expect(mocks.authTelegram).not.toHaveBeenCalled()
   })
 
   it('resumes from cookie when bearer is stale but HttpOnly session is valid', async () => {
-    readAccessToken.mockReturnValue('stale-token')
-    apiFetch.mockResolvedValueOnce(mockResponse(false, 401))
-    apiFetchCredentialsOnly.mockResolvedValueOnce(mockResponse(true))
+    mocks.readAccessToken.mockReturnValue('stale-token')
+    mocks.apiFetch.mockResolvedValueOnce(mockResponse(false, 401))
+    mocks.apiFetchCredentialsOnly.mockResolvedValueOnce(mockResponse(true))
 
     await runAuthBootstrap({
       runId: 1,
@@ -93,21 +95,21 @@ describe('runAuthBootstrap', () => {
       setState: (status) => {
         states.push(status)
       },
-      waitForInitDataRaw: async () => '',
+      waitForInitDataRaw: () => Promise.resolve(''),
     })
 
     expect(states).toEqual([{ kind: 'ready' }])
-    expect(writeAccessToken).toHaveBeenCalledWith(null)
-    expect(authTelegram).not.toHaveBeenCalled()
+    expect(mocks.writeAccessToken).toHaveBeenCalledWith(null)
+    expect(mocks.authTelegram).not.toHaveBeenCalled()
   })
 
   it('falls back to authTelegram when resume probes fail', async () => {
-    readAccessToken.mockReturnValue(null)
-    apiFetchCredentialsOnly.mockResolvedValue(mockResponse(false, 401))
-    authTelegram.mockResolvedValueOnce({
+    mocks.readAccessToken.mockReturnValue(null)
+    mocks.apiFetchCredentialsOnly.mockResolvedValue(mockResponse(false, 401))
+    mocks.authTelegram.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ access_token: 'fresh-token' }),
-    })
+      json: () => Promise.resolve({ access_token: 'fresh-token' }),
+    } as Response)
 
     await runAuthBootstrap({
       runId: 1,
@@ -115,11 +117,11 @@ describe('runAuthBootstrap', () => {
       setState: (status) => {
         states.push(status)
       },
-      waitForInitDataRaw: async () => 'telegram-init',
+      waitForInitDataRaw: () => Promise.resolve('telegram-init'),
     })
 
-    expect(authTelegram).toHaveBeenCalledWith('telegram-init')
+    expect(mocks.authTelegram).toHaveBeenCalledWith('telegram-init')
     expect(states).toEqual([{ kind: 'ready' }])
-    expect(writeAccessToken).toHaveBeenCalledWith('fresh-token')
+    expect(mocks.writeAccessToken).toHaveBeenCalledWith('fresh-token')
   })
 })

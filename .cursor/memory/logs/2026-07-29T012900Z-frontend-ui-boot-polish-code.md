@@ -1,0 +1,24 @@
+# Action log — frontend-ui-boot-polish
+
+- **Timestamp:** 2026-07-29T012900Z
+- **Feature slug:** frontend-ui-boot-polish
+- **Action type:** code
+- **Summary:** UI consistency chrome + parallel auth bootstrap + deferred boot assets for Feed/Profile/BottomNav.
+- **Files:**
+  - `frontend/src/components/layout/PageHeader.tsx`
+  - `frontend/src/components/ui/SegmentedControl.tsx`
+  - `frontend/src/components/ui/EmptyState.tsx`
+  - `frontend/src/components/ui/ListErrorState.tsx`
+  - `frontend/src/components/ui/InlineLoadingState.tsx`
+  - `frontend/src/lib/scheduleIdleWork.ts`
+  - `frontend/src/auth/authBootstrap.ts`
+  - `frontend/src/auth/AuthProvider.tsx`
+  - `frontend/src/pages/FeedPage.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/components/navigation/BottomNav.tsx`
+  - `frontend/src/layout/AppShell.tsx`
+  - `frontend/src/lib/pepeGif.ts`
+  - `frontend/src/components/MentionProfileLookupBootstrap.tsx`
+  - `frontend/src/compose/ComposeFeedPostProvider.tsx`
+  - `docs/features/frontend-ui-boot-polish.md`
+- **Verification:** `cd frontend && npm run lint && npm run test && npm run build` — lint ok, 50 tests passed, build ok
