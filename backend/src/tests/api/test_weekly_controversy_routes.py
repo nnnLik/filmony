@@ -19,6 +19,7 @@ from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.compute_weekly_controversy import ComputeWeeklyControversyService
+from services.controversy.get_current_week_controversy import GetCurrentWeekControversyService
 from services.controversy.week_bounds import week_start_for_datetime
 from services.telegram.send_weekly_controversy_digest import (
     SendWeeklyControversyTelegramDigestService,
@@ -306,7 +307,7 @@ async def test_digest_is_idempotent_per_week(prepare_db: None) -> None:
         deliver_mock.assert_awaited_once()
         html_body = deliver_mock.await_args.args[1]
         reply_markup = deliver_mock.await_args.kwargs.get('reply_markup')
-        assert '⚡' in html_body or '🔥' in html_body
+        assert '🎬' in html_body
         assert 'startapp=f' in html_body
         assert 'Посмотреть все мнения' in html_body
         assert reply_markup is not None
@@ -413,6 +414,69 @@ async def test_get_returns_persisted_state(async_client: AsyncClient) -> None:
     assert controversy is not None
     assert controversy['title'] == 'Stored Title'
     assert controversy['spread'] == 4.5
+
+
+@pytest.mark.asyncio
+async def test_get_enriches_persisted_state_with_live_fields(prepare_db: None) -> None:
+    viewer = await _seed_user(profile_slug='wce_viewer', display_name='Viewer')
+    author_a = await _seed_user(profile_slug='wce_a', display_name='Alice')
+    author_b = await _seed_user(profile_slug='wce_b', display_name='Bob')
+    author_c = await _seed_user(profile_slug='wce_c', display_name='Carol')
+    await _seed_follow(follower_id=viewer, following_id=author_a)
+    await _seed_follow(follower_id=viewer, following_id=author_b)
+    await _seed_follow(follower_id=viewer, following_id=author_c)
+
+    now = dt.datetime(2026, 7, 28, 12, 0, tzinfo=dt.UTC)
+    film_id = await _seed_film(kinopoisk_id=940901, title='Persisted Film')
+    for author, rating in [(author_a, 3.0), (author_b, 6.0), (author_c, 9.0)]:
+        await _seed_rated_card(
+            user_id=author,
+            film_id=film_id,
+            rating=rating,
+            completed_at=now - dt.timedelta(days=1),
+            kinopoisk_id=940901,
+        )
+    await _seed_rated_card(
+        user_id=viewer,
+        film_id=film_id,
+        rating=7.0,
+        completed_at=now - dt.timedelta(hours=2),
+        kinopoisk_id=940901,
+    )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            WeeklyControversyState(
+                user_id=viewer,
+                week_start=week_start_for_datetime(now),
+                anchor_film_id=film_id,
+                title='Persisted Film',
+                spread=6.0,
+                rater_count=3,
+                min_rating=3.0,
+                max_rating=9.0,
+                sent_at=now,
+            )
+        )
+        await session.commit()
+
+    async with session_factory() as session:
+        result = await GetCurrentWeekControversyService.build(session).execute(
+            viewer_user_id=viewer,
+            now=now,
+        )
+
+    assert result.controversy is not None
+    controversy = result.controversy
+    assert controversy.title == 'Persisted Film'
+    assert controversy.spread == 6.0
+    assert controversy.viewer_rating == 7.0
+    assert controversy.film_year == 2024
+    assert controversy.polar_low is not None
+    assert controversy.polar_high is not None
+    assert controversy.polar_low.rating == 3.0
+    assert controversy.polar_high.rating == 9.0
 
 
 @pytest.mark.asyncio

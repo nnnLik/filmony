@@ -175,6 +175,103 @@ class ComputeWeeklyControversyService:
 
         return WeeklyControversyBundle(primary=primary, runner_up=runner_up)
 
+    async def enrich_persisted_result(
+        self,
+        *,
+        result: WeeklyControversyResult,
+        viewer_user_id: UUID,
+        now: dt.datetime | None = None,
+    ) -> WeeklyControversyResult:
+        """Refresh live fields for a persisted week snapshot.
+
+        Keeps stored spread/min/max/rater_count/title/anchors; recomputes polar cards,
+        average, viewer rating, film year, and deeplink card from the current circle.
+        """
+        anchor = _anchor_key_from_result(result)
+        if anchor is None:
+            return result
+
+        if now is None:
+            now = dt.datetime.now(tz=dt.UTC)
+        elif now.tzinfo is None:
+            now = now.replace(tzinfo=dt.UTC)
+        else:
+            now = now.astimezone(dt.UTC)
+
+        viewer_rating = await self._load_viewer_rating(
+            viewer_user_id=viewer_user_id,
+            anchor=anchor,
+        )
+        film_year = result.film_year
+        if anchor.kind == 'film' and film_year is None:
+            film = await self._session.get(Film, anchor.id)
+            if film is not None and film.year is not None:
+                film_year = int(film.year)
+
+        following_ids = await ListFollowingUserIdsForFollowerUserService.build(
+            self._session
+        ).execute(viewer_user_id)
+        if not following_ids:
+            return WeeklyControversyResult(
+                anchor_film_id=result.anchor_film_id,
+                anchor_catalog_item_id=result.anchor_catalog_item_id,
+                title=result.title,
+                spread=result.spread,
+                rater_count=result.rater_count,
+                min_rating=result.min_rating,
+                max_rating=result.max_rating,
+                link_card_id=result.link_card_id,
+                film_year=film_year,
+                avg_rating=result.avg_rating,
+                polar_low=result.polar_low,
+                polar_high=result.polar_high,
+                viewer_rating=viewer_rating,
+            )
+
+        cards = await self._load_circle_rated_cards(following_ids)
+        window_start = rating_window_start(now)
+        anchor_cards = [card for card in cards if _card_matches_anchor(card, anchor)]
+        recent_cards = [
+            card for card in anchor_cards if _is_recent(card, window_start=window_start)
+        ]
+        effective_cards = recent_cards
+        if _spread_from_ratings(_latest_ratings_by_user(recent_cards)) is None:
+            effective_cards = anchor_cards
+
+        ratings = list(_latest_ratings_by_user(effective_cards).values())
+        avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
+
+        user_ids = {card.user_id for card in cards}
+        user_ids.add(viewer_user_id)
+        display_by_user_id = await self._load_user_displays(user_ids)
+        polar_low, polar_high = _pick_polar_cards(
+            cards=effective_cards,
+            min_rating=result.min_rating,
+            max_rating=result.max_rating,
+            display_by_user_id=display_by_user_id,
+        )
+        link_card_id = result.link_card_id or _pick_link_card_id(
+            cards=cards,
+            anchor=anchor,
+            max_rating=result.max_rating,
+        )
+
+        return WeeklyControversyResult(
+            anchor_film_id=result.anchor_film_id,
+            anchor_catalog_item_id=result.anchor_catalog_item_id,
+            title=result.title,
+            spread=result.spread,
+            rater_count=result.rater_count,
+            min_rating=result.min_rating,
+            max_rating=result.max_rating,
+            link_card_id=link_card_id,
+            film_year=film_year,
+            avg_rating=avg_rating,
+            polar_low=polar_low,
+            polar_high=polar_high,
+            viewer_rating=viewer_rating,
+        )
+
     async def _build_result_for_anchor(
         self,
         *,
@@ -329,6 +426,14 @@ def _format_user_display(user: User) -> str:
     if joined:
         return joined
     return user.profile_slug or 'Пользователь'
+
+
+def _anchor_key_from_result(result: WeeklyControversyResult) -> _AnchorKey | None:
+    if result.anchor_film_id is not None:
+        return _AnchorKey(kind='film', id=result.anchor_film_id)
+    if result.anchor_catalog_item_id is not None:
+        return _AnchorKey(kind='catalog', id=result.anchor_catalog_item_id)
+    return None
 
 
 def _anchor_key_from_parts(film_id: int | None, catalog_item_id: int | None) -> _AnchorKey | None:
