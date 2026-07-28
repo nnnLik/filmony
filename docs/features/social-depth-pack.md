@@ -36,6 +36,13 @@
 
 **API:** `GET /api/me/weekly-controversy`
 
+**Telegram digest:**
+- Отправляется только при `spread ≥ 4.0` (`MIN_SPREAD_FOR_TELEGRAM_DIGEST`)
+- Rich HTML: вариативный intro, год тайтла, полюса (min/max + авторы), персонализация по оценке viewer, runner-up
+- Deeplink: `startapp=f{film_id}` → страница сообщества; для catalog-only — `startapp=c{card_id}`
+- Inline-кнопка «Открыть в Filmony» + HTML-ссылка в теле
+- Idempotency: `weekly_controversy_state.sent_at`; при низком spread — `skipped_low_spread`, без повторной отправки
+
 **Доставка:** Celery `send_weekly_controversy_digests` (расписание в деплое) + чип на community page: «Разброс X · N друзей».
 
 ## D — Стрик оценок
@@ -52,12 +59,14 @@
 
 - `d5e6f7a89012` — `watch_session`, `feed_post.watch_session_id`
 - `d5e6f7a8b901` — `weekly_controversy_state`
+- `e6f7a8b90123` — `weekly_controversy_state.link_card_id`
 
 ## Тесты
 
 - `backend/src/tests/api/test_watchlist_overlaps_routes.py`
 - `backend/src/tests/services/test_watch_session_services.py`
-- `backend/src/tests/api/test_weekly_controversy_routes.py`
+- `backend/src/tests/services/test_build_weekly_controversy_message.py`
+- `backend/src/tests/services/test_mini_app_link.py`
 - `backend/src/tests/api/test_streaks_routes.py`
 
 Полный прогон: `make backend-test` (535 passed). Frontend: `npm run lint && npm run build`.

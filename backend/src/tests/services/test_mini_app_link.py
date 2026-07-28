@@ -4,8 +4,10 @@ import pytest
 
 from conf import settings
 from services.telegram.mini_app_link import (
+    resolve_controversy_deeplink_url,
     telegram_mini_app_card_url,
     telegram_mini_app_feed_post_url,
+    telegram_mini_app_film_url,
 )
 
 
@@ -27,3 +29,14 @@ def test_missing_username(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_feed_post_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
     assert telegram_mini_app_feed_post_url(42) == 'https://t.me/mybot/app?startapp=p42'
+
+
+def test_film_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
+    assert telegram_mini_app_film_url(7) == 'https://t.me/mybot/app?startapp=f7'
+
+
+def test_resolve_controversy_deeplink_prefers_film(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
+    url = resolve_controversy_deeplink_url(anchor_film_id=3, link_card_id=9)
+    assert url == 'https://t.me/mybot/app?startapp=f3'

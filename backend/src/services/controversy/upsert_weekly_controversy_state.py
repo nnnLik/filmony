@@ -52,6 +52,7 @@ class UpsertWeeklyControversyStateService:
             row.rater_count = None
             row.min_rating = None
             row.max_rating = None
+            row.link_card_id = None
         else:
             row.anchor_film_id = controversy.anchor_film_id
             row.anchor_catalog_item_id = controversy.anchor_catalog_item_id
@@ -60,6 +61,7 @@ class UpsertWeeklyControversyStateService:
             row.rater_count = controversy.rater_count
             row.min_rating = controversy.min_rating
             row.max_rating = controversy.max_rating
+            row.link_card_id = controversy.link_card_id
 
         if sent_at is not None:
             row.sent_at = sent_at

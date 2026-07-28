@@ -34,6 +34,11 @@ class WeeklyControversyState(Base):
     rater_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     min_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    link_card_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey('user_card.id', ondelete='SET NULL'),
+        nullable=True,
+    )
     sent_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

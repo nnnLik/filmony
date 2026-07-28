@@ -49,21 +49,26 @@ class GetCurrentWeekControversyService:
         week_start = week_start_for_datetime(now)
         stored = await self._load_state(viewer_user_id=viewer_user_id, week_start=week_start)
         if stored is not None and stored.title is not None and stored.spread is not None:
-            return CurrentWeekControversy(
-                week_start=week_start,
-                controversy=WeeklyControversyResult(
-                    anchor_film_id=stored.anchor_film_id,
-                    anchor_catalog_item_id=stored.anchor_catalog_item_id,
-                    title=stored.title,
-                    spread=float(stored.spread),
-                    rater_count=int(stored.rater_count or 0),
-                    min_rating=float(stored.min_rating or 0),
-                    max_rating=float(stored.max_rating or 0),
-                ),
+            persisted = WeeklyControversyResult(
+                anchor_film_id=stored.anchor_film_id,
+                anchor_catalog_item_id=stored.anchor_catalog_item_id,
+                title=stored.title,
+                spread=float(stored.spread),
+                rater_count=int(stored.rater_count or 0),
+                min_rating=float(stored.min_rating or 0),
+                max_rating=float(stored.max_rating or 0),
+                link_card_id=stored.link_card_id,
             )
+            controversy = await self._compute_svc.enrich_persisted_result(
+                result=persisted,
+                viewer_user_id=viewer_user_id,
+                now=now,
+            )
+            return CurrentWeekControversy(week_start=week_start, controversy=controversy)
 
         computed = await self._compute_svc.execute(viewer_user_id=viewer_user_id, now=now)
-        return CurrentWeekControversy(week_start=week_start, controversy=computed)
+        controversy = computed.primary if computed is not None else None
+        return CurrentWeekControversy(week_start=week_start, controversy=controversy)
 
     async def _load_state(
         self,

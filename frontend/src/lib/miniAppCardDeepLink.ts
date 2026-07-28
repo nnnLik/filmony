@@ -43,6 +43,24 @@ export function parseMiniAppWatchlistStartParam(startParam: string): string | nu
   return null
 }
 
+/** Parses Telegram mini-app start_param for film community deeplinks (`f…`). */
+export function parseMiniAppFilmStartParam(startParam: string): number | null {
+  const sp = startParam.trim()
+  if (sp === '') return null
+  const compact = /^f(\d+)$/i.exec(sp)
+  if (compact == null || compact[1] == null) return null
+  const filmId = Number(compact[1])
+  if (!Number.isInteger(filmId) || filmId < 1) return null
+  return filmId
+}
+
+export function buildMiniAppFilmDeepLink(filmId: number): string | null {
+  if (!Number.isInteger(filmId) || filmId < 1) return null
+  const bot = normalizeBotUsername(import.meta.env.VITE_TELEGRAM_BOT_USERNAME)
+  if (bot == null) return null
+  return `https://t.me/${bot}/app?startapp=f${filmId}`
+}
+
 export function buildMiniAppCardDeepLink(cardId: number): string | null {
   if (!Number.isInteger(cardId) || cardId < 1) return null
   const bot = normalizeBotUsername(import.meta.env.VITE_TELEGRAM_BOT_USERNAME)
