@@ -31,6 +31,7 @@ from services.cards.inline_user_card_ref_tokens import ReferencedInlineUserCardS
 from services.cards.list_user_card_comments import UserCardCommentAuthor, UserCardCommentItem
 from services.feed_posts.list_feed_post_comments import FeedPostCommentItem
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
+from services.watch_sessions.list_co_view_splits import CoViewSplit
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 
@@ -319,7 +320,10 @@ async def attach_feed_post_list_engagement(
         )
         for idx, it in enumerate(items)
     ]
-    return await enrich_feed_posts_source_comments(session, merged)
+    with_source = await enrich_feed_posts_source_comments(session, merged)
+    from services.watch_sessions.attach_co_view_splits import attach_co_view_splits_to_feed_posts
+
+    return await attach_co_view_splits_to_feed_posts(session, with_source)
 
 
 def _norm_genre(g: str) -> str:
@@ -422,6 +426,7 @@ class FeedPostFeedItem:
     body_referenced_inline_user_cards: tuple[ReferencedInlineUserCardSnippet, ...] = ()
     body_referenced_mentions: tuple[ReferencedMentionSnippet, ...] = ()
     source_comment: FeedPostSourceCommentSnippet | None = None
+    co_view_splits: tuple[CoViewSplit, ...] = ()
 
 
 FeedPageEntry = UserCardFeedItem | FeedPostFeedItem
@@ -1292,4 +1297,5 @@ class ListUserCardFeedService:
         if not ordered_post_ids:
             return []
         sources: dict[int, const.feed.StreamName] = dict.fromkeys(ordered_post_ids, 'global')
-        return await self._hydrate_feed_post_items(viewer_user_id, ordered_post_ids, sources)
+        raw = await self._hydrate_feed_post_items(viewer_user_id, ordered_post_ids, sources)
+        return await enrich_feed_post_items_for_feed_paths(self._session, raw)

@@ -30,7 +30,9 @@ import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { useTasteQuizKnowledgeOfUsers } from '../../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../../hooks/useRatingStreaksOfUsers'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
@@ -187,8 +189,19 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     }
     return [...ids]
   }, [card.user_id, isOwnCard, panelComments])
+  const streakUserIds = useMemo(() => {
+    const ids = new Set<string>()
+    ids.add(card.user_id)
+    for (const comment of panelComments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [card.user_id, panelComments])
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: tasteQuizOwnerIds.length > 0,
+  })
+  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
   })
 
   const mergedPreviewAfterCreate = useCallback(
@@ -457,6 +470,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               authorId={card.user_id}
               viewerId={viewerUserId}
             />
+            <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={card.user_id} />
           </div>
           <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-1">
             <span className="rounded-full border border-transparent bg-[color-mix(in_srgb,var(--tgui--accent_text_color)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--tgui--text_color)">
@@ -596,6 +610,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                                     knowledgeByAuthor={knowledgeByOwnerId}
                                     authorId={comment.author.id}
                                     viewerId={viewerUserId}
+                                  />
+                                  <RatingStreakAuthorBadge
+                                    streakByUserId={streakByUserId}
+                                    authorId={comment.author.id}
                                   />
                                   <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
                                 </div>

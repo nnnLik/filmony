@@ -38,6 +38,12 @@ export type FeedPostSourceCommentInFeed = {
   referenced_mentions?: ReferencedMentionSnippet[]
 }
 
+export type CoViewSplit = {
+  user_id: string
+  slug: string
+  rating: number
+}
+
 export type FeedPostReferencedCard = {
   movie_card_id: number
   film_title: string
@@ -70,6 +76,7 @@ export type FeedPostInFeed = {
   body_referenced_movie_cards?: ReferencedInlineMovieCardSnippet[]
   body_referenced_mentions?: ReferencedMentionSnippet[]
   source_comment?: FeedPostSourceCommentInFeed | null
+  co_view_splits?: CoViewSplit[]
 }
 
 /** GET /api/users/:id/feed-posts */

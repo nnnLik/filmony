@@ -24,6 +24,7 @@ from services.text.spoiler_tokens import (
 from services.user_card_categories.resolve_user_card_category_id_for_owner import (
     ResolveUserCardCategoryIdForOwnerService,
 )
+from services.watch_sessions.record_watch_session_rating import RecordWatchSessionRatingService
 
 
 def _completion_now() -> dt.datetime:
@@ -422,8 +423,26 @@ class CreateUserCardService:
         await self._session.execute(delete(CardTag).where(CardTag.card_id == entity.id))
         if custom_tags:
             self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
+
+        session_ids = await RecordWatchSessionRatingService.build(self._session).execute(
+            user_id=user_id,
+            film_id=entity.film_id,
+            catalog_item_id=entity.catalog_item_id,
+            rated_at=entity.completed_at or dt.datetime.now(dt.UTC),
+        )
+
         await self._session.commit()
         await self._session.refresh(entity)
+
+        if session_ids:
+            from celery_app import app as celery_application
+
+            task = celery_application.tasks[
+                'tasks.watch_session.finalize_watch_session_if_ready'
+            ]
+            for session_id in session_ids:
+                task.delay(str(session_id))
+
         return entity
 
     async def _create_film_backed(

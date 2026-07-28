@@ -347,6 +347,12 @@ class FeedPostSourceCommentSnippetResponse(BaseModel):
     referenced_mentions: list[ReferencedMentionSnippetResponse] = Field(default_factory=list)
 
 
+class CoViewSplitResponse(BaseModel):
+    user_id: UUID
+    slug: str
+    rating: float
+
+
 class FeedPostFeedItemResponse(BaseModel):
     kind: Literal['feed_post'] = 'feed_post'
     id: int
@@ -369,6 +375,7 @@ class FeedPostFeedItemResponse(BaseModel):
         default_factory=list,
     )
     source_comment: FeedPostSourceCommentSnippetResponse | None = None
+    co_view_splits: list[CoViewSplitResponse] = Field(default_factory=list)
 
 
 FeedPageItemResponse = UserCardFeedItemResponse | FeedPostFeedItemResponse

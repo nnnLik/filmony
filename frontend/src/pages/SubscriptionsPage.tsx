@@ -18,7 +18,9 @@ import type {
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 
 type SubscriptionsTab = 'following' | 'followers'
@@ -164,6 +166,9 @@ export function SubscriptionsPage() {
 
   const subscriptionOwnerIds = useMemo(() => items.map((item) => item.id), [items])
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(subscriptionOwnerIds, {
+    enabled: subscriptionOwnerIds.length > 0,
+  })
+  const { streakByUserId } = useRatingStreaksOfUsers(subscriptionOwnerIds, {
     enabled: subscriptionOwnerIds.length > 0,
   })
 
@@ -362,6 +367,7 @@ export function SubscriptionsPage() {
                             authorId={item.id}
                             viewerId={viewerId}
                           />
+                          <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={item.id} />
                         </div>
                         <p className="truncate text-xs text-(--tgui--hint_color)">@{item.profile_slug}</p>
                       </div>

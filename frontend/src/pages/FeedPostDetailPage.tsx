@@ -55,7 +55,9 @@ import { displayNameFromProfile } from '../lib/profileDisplay'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 
 function authorName(comment: FeedPostComment): string {
   if (comment.author.display_name && comment.author.display_name.trim() !== '') {
@@ -134,8 +136,21 @@ export function FeedPostDetailPage() {
     }
     return [...ids]
   }, [comments, post, viewerId])
+  const streakUserIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (post != null) {
+      ids.add(post.user_id)
+    }
+    for (const comment of comments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [comments, post])
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: tasteQuizOwnerIds.length > 0,
+  })
+  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
   })
 
   const followingForMentionsQuery = useQuery({
@@ -772,6 +787,10 @@ export function FeedPostDetailPage() {
                                   knowledgeByAuthor={knowledgeByOwnerId}
                                   authorId={comment.author.id}
                                   viewerId={viewerId}
+                                />
+                                <RatingStreakAuthorBadge
+                                  streakByUserId={streakByUserId}
+                                  authorId={comment.author.id}
                                 />
                                 <span className="text-xs text-(--tgui--hint_color)">
                                   {formatCommentTime(comment.created_at)}

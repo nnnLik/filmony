@@ -1,11 +1,14 @@
 import { Avatar, Button, Section, Title } from '@telegram-apps/telegram-ui'
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
+import { getMyWeeklyControversy } from '../api/controversyApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import {
   deleteMyWatchlistFilm,
   getMyPlannedCard,
@@ -21,6 +24,7 @@ import type {
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
 import {
   COMPANY_SHORT,
   MOOD_AFTER_SHORT,
@@ -29,6 +33,7 @@ import {
 } from '../components/feed/feedCardUtils'
 import { displayNameFromAuthorFields } from '../lib/authorDisplayName'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { profileInitials } from '../lib/profileDisplay'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
@@ -74,7 +79,27 @@ export function FilmDetailPage() {
     communityAuthorIds,
     { enabled: auth.kind === 'ready' && communityAuthorIds.length > 0 },
   )
+  const { streakByUserId } = useRatingStreaksOfUsers(communityAuthorIds, {
+    enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
+  })
   const [descExpanded, setDescExpanded] = useState(false)
+
+  const controversyQuery = useQuery({
+    queryKey: ['weeklyControversy'],
+    queryFn: getMyWeeklyControversy,
+    enabled: auth.kind === 'ready' && filmId >= 1,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  })
+
+  const weeklyControversyForFilm = useMemo(() => {
+    const controversy = controversyQuery.data?.controversy
+    if (controversy == null || film == null) return null
+    if (controversy.anchor_film_id != null && controversy.anchor_film_id === film.id) {
+      return controversy
+    }
+    return null
+  }, [controversyQuery.data, film])
 
   useEffect(() => {
     let alive = true
@@ -185,6 +210,17 @@ export function FilmDetailPage() {
       alive = false
     }
   }, [auth.kind, film])
+
+  const filmOverlapAnchor = useMemo(
+    () =>
+      film != null
+        ? {
+            card_id: film.kinopoisk_id > 0 ? `kp:${film.kinopoisk_id}` : null,
+            film_id: film.id,
+          }
+        : null,
+    [film],
+  )
 
   const hasMyRatedCard = film != null && film.my_card_id != null && film.my_card_id > 0
 
@@ -308,6 +344,15 @@ export function FilmDetailPage() {
                     </Title>
                     <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
                     <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
+                    {weeklyControversyForFilm != null ? (
+                      <span
+                        className="mt-2 inline-flex max-w-full items-center rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_42%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,transparent)] px-2 py-1 text-[11px] font-semibold text-(--tgui--text_color)"
+                        title={`Недельный спор: ${weeklyControversyForFilm.title}`}
+                      >
+                        Разброс {formatRating(weeklyControversyForFilm.spread)} · {weeklyControversyForFilm.rater_count}{' '}
+                        друзей
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -343,6 +388,11 @@ export function FilmDetailPage() {
 
                 {auth.kind === 'ready' ? (
                   <div className="mt-6 flex flex-col gap-2">
+                    <WatchlistOverlapAnchorBanner
+                      anchor={filmOverlapAnchor}
+                      enabled={!hasMyRatedCard}
+                      inViewerWatchlist={inWatchlist}
+                    />
                     {hasMyRatedCard ? (
                       <>
                         <p className="text-sm text-(--tgui--hint_color)">
@@ -452,6 +502,7 @@ export function FilmDetailPage() {
                                   authorId={row.author.id}
                                   viewerId={viewerId}
                                 />
+                                <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={row.author.id} />
                                 <Link
                                   to={`/cards/${encodeURIComponent(String(row.id))}`}
                                   className="shrink-0 text-xs font-semibold text-(--tgui--link_color) no-underline"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from api.cards.schemas import (
+    CoViewSplitResponse,
     FeedPostCommentPreviewResponse,
     FeedPostFeedItemResponse,
     FeedPostReferencedCardResponse,
@@ -145,4 +146,12 @@ def feed_post_feed_item_to_response(item: FeedPostFeedItem) -> FeedPostFeedItemR
             if item.source_comment is not None
             else None
         ),
+        co_view_splits=[
+            CoViewSplitResponse(
+                user_id=split.user_id,
+                slug=split.profile_slug,
+                rating=split.rating,
+            )
+            for split in item.co_view_splits
+        ],
     )

@@ -12,12 +12,15 @@ import {
   type SearchUserItem,
 } from '../api/searchApi'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
+import type { StreakBatchItem } from '../api/streaksTypes'
 import { ApiError, formatApiDetail } from '../api/client'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { getMyProfile } from '../api/profileApi'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
@@ -46,10 +49,12 @@ function userListLabel(u: SearchUserItem): string {
 function UserSuggestionRow({
   user,
   knowledgeByOwnerId,
+  streakByUserId,
   viewerId,
 }: {
   user: SearchUserItem
   knowledgeByOwnerId: Record<string, TasteQuizKnowledgeBatchItem>
+  streakByUserId: Record<string, StreakBatchItem>
   viewerId: string | null
 }) {
   const label = userListLabel(user)
@@ -72,6 +77,7 @@ function UserSuggestionRow({
             authorId={user.id}
             viewerId={viewerId}
           />
+          <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={user.id} />
         </div>
         <div className="truncate text-sm text-(--tgui--hint_color)">@{user.profile_slug}</div>
       </div>
@@ -280,6 +286,9 @@ export function SearchPage() {
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: auth.kind === 'ready' && tasteQuizOwnerIds.length > 0,
   })
+  const { streakByUserId } = useRatingStreaksOfUsers(tasteQuizOwnerIds, {
+    enabled: auth.kind === 'ready' && tasteQuizOwnerIds.length > 0,
+  })
 
   const showCatalogEmpty = canSearch && searchQuery.isSuccess && cardRows.length === 0
   const showUserEmpty = canSearch && searchQuery.isSuccess && users.length === 0
@@ -411,6 +420,7 @@ export function SearchPage() {
                         key={u.id}
                         user={u}
                         knowledgeByOwnerId={knowledgeByOwnerId}
+                        streakByUserId={streakByUserId}
                         viewerId={viewerId}
                       />
                     ))}

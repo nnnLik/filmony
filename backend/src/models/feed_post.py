@@ -31,6 +31,16 @@ class FeedPost(Base):
         nullable=True,
         index=True,
     )
+    watch_session_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey(
+            'watch_session.id',
+            ondelete='SET NULL',
+            name='fk_feed_post_watch_session_id',
+        ),
+        nullable=True,
+        index=True,
+    )
 
     __table_args__ = (
         Index(

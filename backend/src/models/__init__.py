@@ -10,6 +10,7 @@ from .game import Game
 from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .subscribed_activity_digest_state import SubscribedActivityDigestState
+from .weekly_controversy_state import WeeklyControversyState
 from .taste_quiz_enums import TasteQuizSessionStatus
 from .taste_quiz_invite import TasteQuizInvite
 from .taste_quiz_pair_progress import TasteQuizPairProgress
@@ -20,6 +21,8 @@ from .user_card import UserCard
 from .user_card_category import UserCardCategory
 from .user_reaction import UserReaction
 from .user_subscription import UserSubscription
+from .watch_session import WatchSession
+from .watch_session_enums import WatchSessionStatus
 from .watchlist_entry import WatchlistEntry
 
 __all__ = (
@@ -38,6 +41,7 @@ __all__ = (
     'ReactionTargetKind',
     'ReactionType',
     'SubscribedActivityDigestState',
+    'WeeklyControversyState',
     'TasteQuizInvite',
     'TasteQuizPairProgress',
     'TasteQuizSession',
@@ -48,5 +52,7 @@ __all__ = (
     'UserCardCategory',
     'UserReaction',
     'UserSubscription',
+    'WatchSession',
+    'WatchSessionStatus',
     'WatchlistEntry',
 )

@@ -25,6 +25,7 @@ import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { MutualWatchFriendsMultiPicker } from '../watchlist/MutualWatchFriendsMultiPicker'
+import { WatchTogetherConfirmSheet } from '../watchlist/WatchTogetherConfirmSheet'
 import { myCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
 import { useCatalogCandidates } from '../../hooks/useCatalogCandidates'
 import { createManualBinding, bindingFromResolveByUrl, mapResolveError } from '../../lib/createCardBinding'
@@ -173,6 +174,7 @@ export function WatchlistForm({
   const [shelfCreateExpanded, setShelfCreateExpanded] = useState(false)
   const [newShelfDraft, setNewShelfDraft] = useState('')
   const [createShelfBusy, setCreateShelfBusy] = useState(false)
+  const [confirmSheetOpen, setConfirmSheetOpen] = useState(false)
 
   const watchlistNoteRef = useRef<HTMLTextAreaElement>(null)
 
@@ -295,11 +297,7 @@ export function WatchlistForm({
     setResolveError(null)
   }
 
-  async function handleSubmit() {
-    if (isEditMode) {
-      await handleSaveEdit()
-      return
-    }
+  async function performCreateWatchlistEntry() {
     if (binding == null) return
     const payload = buildWatchlistCreatePayload(binding, {
       watch_tag: watchlistTag,
@@ -315,6 +313,7 @@ export function WatchlistForm({
       await postCreateWatchlistEntry(payload)
       clearMyProfileBundleCache()
       void queryClient.invalidateQueries({ queryKey: ['userWatchlist'] })
+      void queryClient.invalidateQueries({ queryKey: ['watchlistOverlaps'] })
       safeHapticSuccess()
       void navigate('/profile?movies=watchlist', { replace: true })
     } catch (e) {
@@ -334,7 +333,22 @@ export function WatchlistForm({
       }
     } finally {
       setWatchlistBusy(false)
+      setConfirmSheetOpen(false)
     }
+  }
+
+  async function handleSubmit() {
+    if (isEditMode) {
+      await handleSaveEdit()
+      return
+    }
+    if (binding == null) return
+    const partnerIds = watchlistCompany === 'alone' ? [] : watchWithUserIds
+    if (partnerIds.length > 0) {
+      setConfirmSheetOpen(true)
+      return
+    }
+    await performCreateWatchlistEntry()
   }
 
   async function handleSaveEdit() {
@@ -730,6 +744,28 @@ export function WatchlistForm({
             </div>
           </div>
         </section>
+      ) : null}
+
+      {!isEditMode && binding != null && preview != null ? (
+        <WatchTogetherConfirmSheet
+          open={confirmSheetOpen}
+          title={preview.title}
+          posterUrl={preview.posterUrl}
+          partners={watchWithUserIds.map((userId) => {
+            const friend = mutualFriends.find((row) => row.id === userId)
+            return {
+              user_id: userId,
+              slug: friend?.profile_slug ?? userId.slice(0, 8),
+              display_name: friend?.display_name ?? friend?.first_name ?? null,
+              avatar_url: friend?.photo_url ?? null,
+            }
+          })}
+          busy={watchlistBusy}
+          onClose={() => {
+            if (!watchlistBusy) setConfirmSheetOpen(false)
+          }}
+          onConfirm={() => void performCreateWatchlistEntry()}
+        />
       ) : null}
     </div>
   )

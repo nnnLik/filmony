@@ -22,6 +22,7 @@ import {
 } from '../lib/ratedCardsListQuery'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
@@ -463,8 +464,15 @@ export function PublicProfilePage() {
     if (profile == null || myUserId == null || profile.id === myUserId) return []
     return [profile.id]
   }, [profile, myUserId])
+  const streakUserIds = useMemo(() => {
+    if (profile == null) return []
+    return [profile.id]
+  }, [profile])
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: tasteQuizOwnerIds.length > 0,
+  })
+  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
   })
 
   if (auth.kind === 'loading') {
@@ -547,6 +555,7 @@ export function PublicProfilePage() {
           subtitle=""
           viewerId={myUserId}
           knowledgeByOwnerId={knowledgeByOwnerId}
+          streakByUserId={streakByUserId}
         />
         <div className="mb-4">
           <ProfileCompactMetrics

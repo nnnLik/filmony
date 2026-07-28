@@ -20,7 +20,10 @@ import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetri
 import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
+import { WatchlistOverlapSection } from '../components/watchlist/WatchlistOverlapSection'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
+import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import {
   isDefaultRatedCardsQuery,
@@ -105,6 +108,14 @@ export function ProfilePage() {
     if (favoriteStripForUserId !== profile.id) return []
     return favoriteStripFetched
   }, [profile, favoriteStripFetched, favoriteStripForUserId])
+
+  const streakUserIds = useMemo(() => {
+    if (profile == null) return []
+    return [profile.id]
+  }, [profile])
+  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
+  })
 
   useEffect(() => {
     void ensureHeaderPepeGifsPreloaded()
@@ -568,6 +579,11 @@ export function ProfilePage() {
           <Title className="mt-3" level="2" weight="2">
             {shownName}
           </Title>
+          {profile != null ? (
+            <div className="mt-1 flex justify-center">
+              <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={profile.id} />
+            </div>
+          ) : null}
           <p className="mt-1 font-mono text-[11px] text-(--tgui--hint_color)">@{profile.profile_slug}</p>
           <div className="mt-4 w-full max-w-sm">
             <ProfileCompactMetrics
@@ -744,6 +760,7 @@ export function ProfilePage() {
               </>
             ) : (
               <>
+                <WatchlistOverlapSection enabled={!watchlistLoading} />
                 {watchlistErr != null ? (
                   <p className="filmony-text-panel mb-2 text-center text-sm text-(--tgui--destructive_text_color)">
                     {watchlistErr}

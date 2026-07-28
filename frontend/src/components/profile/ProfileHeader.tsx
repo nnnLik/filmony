@@ -1,8 +1,10 @@
 import { Avatar, Title } from '@telegram-apps/telegram-ui'
 
 import type { PublicProfile } from '../../api/profileTypes'
+import type { StreakBatchItem } from '../../api/streaksTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
+import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 
 type ProfileHeaderProps = {
@@ -10,6 +12,7 @@ type ProfileHeaderProps = {
   subtitle?: string
   viewerId?: string | null
   knowledgeByOwnerId?: Record<string, TasteQuizKnowledgeBatchItem>
+  streakByUserId?: Record<string, StreakBatchItem>
 }
 
 export function ProfileHeader({
@@ -17,6 +20,7 @@ export function ProfileHeader({
   subtitle,
   viewerId = null,
   knowledgeByOwnerId = {},
+  streakByUserId = {},
 }: ProfileHeaderProps) {
   const name = displayNameFromProfile(profile)
   return (
@@ -32,6 +36,7 @@ export function ProfileHeader({
             authorId={profile.id}
             viewerId={viewerId}
           />
+          <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={profile.id} />
         </div>
         {subtitle != null && subtitle !== '' ? (
           <p className="filmony-text-panel mt-2 inline-block max-w-[min(100%,20rem)] text-sm text-(--tgui--hint_color,#94a3b8)">

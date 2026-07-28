@@ -34,9 +34,14 @@ def freeze_gc_before_worker_fork(
 def _register_all_tasks(application: Celery) -> None:
     from tasks.ping import register_tasks as register_ping_tasks
     from tasks.telegram_engagement import register_tasks as register_telegram_engagement_tasks
+    from tasks.weekly_controversy import register_tasks as register_weekly_controversy_tasks
+
+    from tasks.watch_session import register_tasks as register_watch_session_tasks
 
     register_ping_tasks(application)
     register_telegram_engagement_tasks(application)
+    register_weekly_controversy_tasks(application)
+    register_watch_session_tasks(application)
 
 
 _register_all_tasks(app)

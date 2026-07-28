@@ -21,6 +21,11 @@ from services.watchlist.list_user_watchlist_entries import (
     WatchlistEntryListItem,
     WatchlistEntryPage,
 )
+from services.watchlist.list_watchlist_overlaps import (
+    WatchlistOverlapItem,
+    WatchlistOverlapPage,
+    WatchlistOverlapPartner,
+)
 
 
 class MyUserCardCategoryResponse(BaseModel):
@@ -138,6 +143,32 @@ class WatchlistEntryPageResponse(BaseModel):
 
 class WatchlistMembershipResponse(BaseModel):
     in_watchlist: bool
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistOverlapPartnerResponse(BaseModel):
+    user_id: UUID
+    slug: str
+    display_name: str | None
+    avatar_url: str | None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistOverlapItemResponse(BaseModel):
+    title: str
+    poster_url: str | None
+    card_id: str
+    film_id: int | None = None
+    catalog_item_id: int | None = None
+    partners: list[WatchlistOverlapPartnerResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class WatchlistOverlapListResponse(BaseModel):
+    items: list[WatchlistOverlapItemResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -382,6 +413,34 @@ def build_watchlist_entry_page_response(page: WatchlistEntryPage) -> WatchlistEn
     return WatchlistEntryPageResponse(
         items=[build_watchlist_entry_item_response(it) for it in page.items],
         next_cursor=page.next_cursor,
+    )
+
+
+def build_watchlist_overlap_partner_response(
+    partner: WatchlistOverlapPartner,
+) -> WatchlistOverlapPartnerResponse:
+    return WatchlistOverlapPartnerResponse(
+        user_id=partner.user_id,
+        slug=partner.slug,
+        display_name=partner.display_name,
+        avatar_url=partner.avatar_url,
+    )
+
+
+def build_watchlist_overlap_item_response(item: WatchlistOverlapItem) -> WatchlistOverlapItemResponse:
+    return WatchlistOverlapItemResponse(
+        title=item.title,
+        poster_url=item.poster_url,
+        card_id=item.card_id,
+        film_id=item.film_id,
+        catalog_item_id=item.catalog_item_id,
+        partners=[build_watchlist_overlap_partner_response(p) for p in item.partners],
+    )
+
+
+def build_watchlist_overlap_list_response(page: WatchlistOverlapPage) -> WatchlistOverlapListResponse:
+    return WatchlistOverlapListResponse(
+        items=[build_watchlist_overlap_item_response(it) for it in page.items],
     )
 
 

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from api.controversy.routes import router as controversy_router
 from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
 from api.cards.routes import router as cards_router
@@ -12,6 +13,7 @@ from api.profile.me_routes import router as profile_me_router
 from api.profile.users_routes import router as profile_users_router
 from api.reactions.routes import router as reactions_router
 from api.search.routes import router as search_router
+from api.streaks.routes import me_streak_router, streaks_router
 from api.taste_quiz.routes import router as taste_quiz_router
 from api.watchlist.routes import router as watchlist_router
 from deps.auth import CurrentUser
@@ -32,6 +34,9 @@ router.include_router(profile_me_router)
 router.include_router(profile_users_router)
 router.include_router(watchlist_router)
 router.include_router(taste_quiz_router)
+router.include_router(streaks_router)
+router.include_router(me_streak_router)
+router.include_router(controversy_router)
 
 
 @router.get('/hello')

@@ -115,6 +115,26 @@ export type WatchlistMembership = {
   in_watchlist: boolean
 }
 
+export type WatchlistOverlapPartner = {
+  user_id: string
+  slug: string
+  display_name: string | null
+  avatar_url: string | null
+}
+
+export type WatchlistOverlapItem = {
+  title: string
+  poster_url: string | null
+  card_id: string
+  film_id: number | null
+  catalog_item_id: number | null
+  partners: WatchlistOverlapPartner[]
+}
+
+export type WatchlistOverlapListResponse = {
+  items: WatchlistOverlapItem[]
+}
+
 export type PlannedUserCard = {
   user_card_id: number
   company: CardCompany

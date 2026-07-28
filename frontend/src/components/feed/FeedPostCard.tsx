@@ -25,7 +25,9 @@ import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { useTasteQuizKnowledgeOfUsers } from '../../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../../hooks/useRatingStreaksOfUsers'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
@@ -33,6 +35,7 @@ import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPick
 import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
+import { CoViewSplitRatings } from './CoViewSplitRatings'
 import { formatCommentTime, formatRating } from './feedCardUtils'
 import { feedPostSourceBadge } from './feedPostSourceBadge'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
@@ -207,6 +210,7 @@ export function FeedPostCard({
     image_url,
     source_comment_id,
     source_comment: sourceCommentQuote,
+    co_view_splits,
   } = post
 
   const referencedCardPoster =
@@ -452,8 +456,22 @@ export function FeedPostCard({
     }
     return [...ids]
   }, [user_id, isOwn, panelComments, sourceCommentQuote])
+  const streakUserIds = useMemo(() => {
+    const ids = new Set<string>()
+    ids.add(user_id)
+    if (sourceCommentQuote != null) {
+      ids.add(sourceCommentQuote.author.id)
+    }
+    for (const comment of panelComments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [user_id, panelComments, sourceCommentQuote])
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: tasteQuizOwnerIds.length > 0,
+  })
+  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
   })
 
   const surfaceProps =
@@ -589,6 +607,10 @@ export function FeedPostCard({
                                 knowledgeByAuthor={knowledgeByOwnerId}
                                 authorId={comment.author.id}
                                 viewerId={viewerUserId}
+                              />
+                              <RatingStreakAuthorBadge
+                                streakByUserId={streakByUserId}
+                                authorId={comment.author.id}
                               />
                               <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
                             </div>
@@ -777,6 +799,7 @@ export function FeedPostCard({
                   authorId={user_id}
                   viewerId={viewerUserId}
                 />
+                <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={user_id} />
                 <span className="shrink-0 text-[11px] text-(--tgui--hint_color)">{formatCommentTime(created_at)}</span>
               </div>
             </div>
@@ -799,6 +822,10 @@ export function FeedPostCard({
                   knowledgeByAuthor={knowledgeByOwnerId}
                   authorId={sourceCommentQuote.author.id}
                   viewerId={viewerUserId}
+                />
+                <RatingStreakAuthorBadge
+                  streakByUserId={streakByUserId}
+                  authorId={sourceCommentQuote.author.id}
                 />
               </Link>
               {sourceCommentQuote.text.trim() !== '' ? (
@@ -827,6 +854,13 @@ export function FeedPostCard({
               stopPostNavClick={stopPostNavClick}
               bodyInlineMovieCardRefs={bodyInlineRefMap}
               bodyReferencedMentions={body_referenced_mentions}
+            />
+          ) : null}
+
+          {co_view_splits != null && co_view_splits.length > 0 ? (
+            <CoViewSplitRatings
+              splits={co_view_splits}
+              onLinkClick={linkToDetail ? stopPostNavClick : undefined}
             />
           ) : null}
 

@@ -23,8 +23,10 @@ from api.profile.schemas import (
     WatchlistEntryUpdateRequest,
     WatchlistFilmCreateRequest,
     WatchlistMembershipResponse,
+    WatchlistOverlapListResponse,
     build_my_profile_response,
     build_watchlist_entry_item_response,
+    build_watchlist_overlap_list_response,
 )
 from conf import settings
 from core.database import get_db
@@ -56,6 +58,7 @@ from services.watchlist.create_watchlist_entry_from_film import (
 from services.watchlist.delete_watchlist_entry import DeleteWatchlistEntryService
 from services.watchlist.get_my_watchlist_presence import GetMyWatchlistPresenceService
 from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
+from services.watchlist.list_watchlist_overlaps import ListWatchlistOverlapsService
 from services.watchlist.update_watchlist_entry import UpdateWatchlistEntryService
 from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
 
@@ -328,6 +331,20 @@ async def get_my_planned_card(
         category_id=planned.category_id,
         watch_note=planned.watch_note,
     )
+
+
+@router.get(
+    '/watchlist/overlaps',
+    response_model=WatchlistOverlapListResponse,
+    summary='Совпадения «Позже» с взаимными подписками',
+)
+async def get_my_watchlist_overlaps(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(default=20, ge=1, le=50),
+) -> WatchlistOverlapListResponse:
+    page = await ListWatchlistOverlapsService.build(db).execute(user.id, limit=limit)
+    return build_watchlist_overlap_list_response(page)
 
 
 @router.get(

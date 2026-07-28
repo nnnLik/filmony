@@ -26,6 +26,7 @@ from services.watchlist.normalize_watch_with_partners import (
     primary_watch_with_user_id,
     watch_with_user_ids_as_json,
 )
+from services.watch_sessions.create_watch_session import CreateWatchSessionService
 
 
 def _normalize_watch_note(raw: str) -> str:
@@ -124,7 +125,7 @@ class CreateWatchlistEntryService:
             await self._session.rollback()
             raise self.WatchlistEntryAlreadyExistsError from exc
 
-        await self._planned_card_service.execute(
+        planned_card = await self._planned_card_service.execute(
             actor_user_id,
             card_id,
             provider_meta,
@@ -132,6 +133,20 @@ class CreateWatchlistEntryService:
             category_id=category_id,
             watch_note=normalized_note,
         )
+
+        if partner_ids:
+            anchor_film_id = int(planned_card.film_id) if planned_card.film_id is not None else None
+            anchor_catalog_item_id = None
+            if anchor_film_id is None and planned_card.catalog_item_id is not None:
+                anchor_catalog_item_id = int(planned_card.catalog_item_id)
+            if anchor_film_id is not None or anchor_catalog_item_id is not None:
+                await CreateWatchSessionService.build(self._session).execute(
+                    initiator_user_id=actor_user_id,
+                    partner_user_ids=partner_ids,
+                    anchor_film_id=anchor_film_id,
+                    anchor_catalog_item_id=anchor_catalog_item_id,
+                    source_watchlist_entry_id=int(actor_entry.id),
+                )
 
         invited_entries: list[WatchlistEntry] = []
         invitee_planned_card_ids: dict[UUID, int] = {}

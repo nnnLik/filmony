@@ -45,8 +45,11 @@ import { hasMeaningfulCardRating } from '../lib/ratingDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
+import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
+import type { StreakBatchItem } from '../api/streaksTypes'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
@@ -76,6 +79,7 @@ import {
 import { kinopoiskTitleUrlFromCard, openExternalUrl } from '../lib/openExternalUrl'
 import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
+import { watchlistOverlapAnchorFromMovieCard } from '../lib/watchlistOverlapUtils'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
 import { CommentHeaderActions } from '../components/comments/CommentHeaderActions'
@@ -86,6 +90,7 @@ import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { PlannedCardBadge } from '../components/cards/PlannedCardBadge'
 import { PlannedWatchPartnersList } from '../components/cards/PlannedWatchPartnersList'
+import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
 import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
@@ -315,8 +320,21 @@ export function MovieCardDetailPage() {
     }
     return [...ids]
   }, [card, viewerId, comments])
+  const streakUserIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (card?.user_id != null) {
+      ids.add(card.user_id)
+    }
+    for (const comment of comments) {
+      ids.add(comment.author.id)
+    }
+    return [...ids]
+  }, [card, comments])
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: tasteQuizOwnerIds.length > 0,
+  })
+  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
   })
 
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
@@ -988,6 +1006,7 @@ export function MovieCardDetailPage() {
               void handleDeleteComment(commentId)
             }}
             tasteQuizKnowledgeByAuthor={knowledgeByOwnerId}
+            streakByUserId={streakByUserId}
           />
           </MentionProfileLookupProvider>
         ) : null}
@@ -1054,6 +1073,7 @@ type MovieCardDetailLoadedBodyProps = {
   onSaveEditComment: (commentId: number, imageUrl: string | null) => Promise<void>
   onDeleteComment: (commentId: number) => void
   tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
+  streakByUserId: Record<string, StreakBatchItem>
 }
 
 function MovieCardDetailLoadedBody({
@@ -1114,6 +1134,7 @@ function MovieCardDetailLoadedBody({
   onSaveEditComment,
   onDeleteComment,
   tasteQuizKnowledgeByAuthor,
+  streakByUserId,
 }: MovieCardDetailLoadedBodyProps) {
   const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
   const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
@@ -1137,6 +1158,7 @@ function MovieCardDetailLoadedBody({
   const watchNoteText = movieCardWatchNotePlainText(card)
   const showWatchNote = watchNoteText.trim().length > 0
   const isPlannedCard = card.is_planned === true
+  const cardOverlapAnchor = useMemo(() => watchlistOverlapAnchorFromMovieCard(card), [card])
   const showCardRating = hasMeaningfulCardRating(card)
   const hasCardAudio = card.audio_url != null && card.audio_url.trim() !== ''
   const cardAudioUrlTrimmed = (card.audio_url ?? '').trim()
@@ -1234,6 +1256,13 @@ function MovieCardDetailLoadedBody({
                         Ещё не посмотрел — в списке «Позже»
                       </p>
                     ) : null}
+                    <div className="mt-3">
+                      <WatchlistOverlapAnchorBanner
+                        anchor={cardOverlapAnchor}
+                        enabled={!showCardRating || isPlannedCard}
+                        inViewerWatchlist={isPlannedCard && isOwner ? true : false}
+                      />
+                    </div>
                     <CardCategoryChip category={card.category} className="mt-2" />
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {detailCardAuthor != null ? (
@@ -1243,6 +1272,10 @@ function MovieCardDetailLoadedBody({
                             knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
                             authorId={detailCardAuthor.id}
                             viewerId={viewerId}
+                          />
+                          <RatingStreakAuthorBadge
+                            streakByUserId={streakByUserId}
+                            authorId={detailCardAuthor.id}
                           />
                         </>
                       ) : null}
@@ -1684,6 +1717,10 @@ function MovieCardDetailLoadedBody({
                                   knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
                                   authorId={cardComment.author.id}
                                   viewerId={viewerId}
+                                />
+                                <RatingStreakAuthorBadge
+                                  streakByUserId={streakByUserId}
+                                  authorId={cardComment.author.id}
                                 />
                                 <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(cardComment.created_at)}</span>
                               </div>

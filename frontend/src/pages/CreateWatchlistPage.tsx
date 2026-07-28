@@ -17,6 +17,7 @@ import {
   watchlistBindingFromMovieCard,
   type WatchlistBinding,
 } from '../lib/watchlistBinding'
+import { parseWatchWithUserIdsParam } from '../lib/watchlistOverlapUtils'
 
 function CreateWatchlistShell({
   title,
@@ -155,6 +156,21 @@ function WatchlistEntryPageContent() {
     const filmIdRaw = searchParams.get('filmId')
     const catalogItemIdRaw = searchParams.get('catalogItemId')
     const watchlistCardIdRaw = searchParams.get('watchlistCardId')
+    const watchWithUserIds = parseWatchWithUserIdsParam(searchParams.get('watchWithUserIds'))
+    const companyRaw = searchParams.get('company')
+    const prefilledCompany: CardCompany =
+      companyRaw === 'partner' || companyRaw === 'family'
+        ? companyRaw
+        : watchWithUserIds.length > 0
+          ? 'friends'
+          : 'alone'
+
+    if (watchWithUserIds.length > 0) {
+      queueMicrotask(() => {
+        setInitialWatchWithUserIds(watchWithUserIds)
+        setInitialCompany(prefilledCompany)
+      })
+    }
 
     if (filmIdRaw != null && filmIdRaw !== '') {
       const filmId = Number(filmIdRaw)

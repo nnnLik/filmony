@@ -7,6 +7,7 @@ import type {
 } from './profileTypes'
 import type { ReferencedInlineMovieCardSnippet, ReferencedMentionSnippet } from './inlineReferenceSnippetTypes'
 import type {
+  CoViewSplit,
   FeedPostAuthorInFeed,
   FeedPostInFeed,
   FeedPostSourceCommentInFeed,
@@ -94,16 +95,38 @@ export async function createFeedPost(body: CreateFeedPostBody): Promise<FeedPost
   })
 }
 
+function parseCoViewSplits(raw: unknown): CoViewSplit[] {
+  if (!Array.isArray(raw)) return []
+  const out: CoViewSplit[] = []
+  for (const item of raw) {
+    if (item == null || typeof item !== 'object') continue
+    const o = item as Record<string, unknown>
+    let userId = ''
+    if (typeof o.user_id === 'string') {
+      userId = o.user_id
+    } else if (typeof o.user_id === 'number' && Number.isFinite(o.user_id)) {
+      userId = String(o.user_id)
+    }
+    const slug = typeof o.slug === 'string' ? o.slug.trim() : ''
+    const rating = typeof o.rating === 'number' ? o.rating : Number(o.rating)
+    if (userId === '' || slug === '' || !Number.isFinite(rating)) continue
+    out.push({ user_id: userId, slug, rating })
+  }
+  return out
+}
+
 export function normalizeFeedPostInFeed(raw: Record<string, unknown>): FeedPostInFeed {
   const commentsCount = typeof raw.comments_count === 'number' ? raw.comments_count : 0
   const preview = Array.isArray(raw.comments_preview) ? (raw.comments_preview as FeedPostComment[]) : []
   const source_comment = parseFeedPostSourceComment(raw.source_comment)
+  const co_view_splits = parseCoViewSplits(raw.co_view_splits)
   return {
     ...(raw as unknown as FeedPostInFeed),
     kind: 'feed_post',
     comments_count: commentsCount,
     comments_preview: preview,
     source_comment: source_comment ?? undefined,
+    co_view_splits,
   }
 }
 
