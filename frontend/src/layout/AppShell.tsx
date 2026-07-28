@@ -6,9 +6,11 @@ import { BottomNav } from '../components/navigation/BottomNav'
 import {
   PEPE_DANCING_GIF_URL,
   SIDE_DISCO_RAIN_GIF_URL,
-  prewarmAllPepeDiscoAssets,
+  ensureSideDiscoRainGifPreloaded,
+  scheduleDeferredSideDiscoPrewarm,
   toggleHeaderPepeGifAfterDiscoCompletes,
 } from '../lib/pepeGif'
+import { scheduleIdleWork } from '../lib/scheduleIdleWork'
 
 import './AppShell.css'
 
@@ -55,13 +57,24 @@ const DISCO_RAIN_RIGHT_SPRITES = buildDiscoRainSideSprites(1)
 
 export function AppShell() {
   const [discoSides, setDiscoSides] = useState(false)
+  const [discoDecodeWarm, setDiscoDecodeWarm] = useState(false)
   /** True while side disco visuals are active; kept in sync in the click handler and disco timeout only (never during render — eslint `react-hooks/refs`). */
   const discoSidesRef = useRef(false)
   const discoOffTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pepeClickCountRef = useRef(0)
 
   useEffect(() => {
-    void prewarmAllPepeDiscoAssets()
+    if (typeof window === 'undefined') {
+      return
+    }
+    if (!window.matchMedia('(min-width: 1200px)').matches) {
+      return
+    }
+    scheduleIdleWork(() => {
+      void ensureSideDiscoRainGifPreloaded().then(() => {
+        setDiscoDecodeWarm(true)
+      })
+    }, 4000)
   }, [])
 
   useEffect(() => {
@@ -73,6 +86,8 @@ export function AppShell() {
   }, [])
 
   const handleSidePepeClick = useCallback(() => {
+    scheduleDeferredSideDiscoPrewarm()
+    setDiscoDecodeWarm(true)
     pepeClickCountRef.current += 1
     if (pepeClickCountRef.current < SIDE_PEPE_CLICKS_FOR_DISCO) {
       return
@@ -115,16 +130,18 @@ export function AppShell() {
 
   return (
     <div className={shellClassName}>
-      <img
-        className="app-shell__disco-rain-decode-warm"
-        src={SIDE_DISCO_RAIN_GIF_URL}
-        alt=""
-        aria-hidden
-        decoding="async"
-        width={1}
-        height={1}
-        draggable={false}
-      />
+      {discoDecodeWarm ? (
+        <img
+          className="app-shell__disco-rain-decode-warm"
+          src={SIDE_DISCO_RAIN_GIF_URL}
+          alt=""
+          aria-hidden
+          decoding="async"
+          width={1}
+          height={1}
+          draggable={false}
+        />
+      ) : null}
       <div className="app-shell__body">
         <aside className={sideClassLeft}>
           <div className="app-shell__side-stack">

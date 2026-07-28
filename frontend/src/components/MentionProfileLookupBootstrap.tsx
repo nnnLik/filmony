@@ -1,5 +1,5 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, type ReactNode } from 'react'
 
 import { getUserSubscriptions } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
@@ -7,6 +7,7 @@ import { MentionProfileLookupProvider } from '../context/MentionProfileLookupPro
 import { authorLikeToMentionRow } from '../lib/mentionProfileLookupUtils'
 import { subscriptionToMentionRow } from '../lib/subscriptionToMentionRow'
 import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { scheduleIdleWork } from '../lib/scheduleIdleWork'
 
 /**
  * Регистрирует профили из «мои подписки» и кэша своего профиля, чтобы @упоминания
@@ -15,11 +16,20 @@ import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 export function MentionProfileLookupBootstrap({ children }: { children: ReactNode }) {
   const auth = useAuthStatus()
   const myUserId = auth.kind === 'ready' ? (readMyProfileBundleCache()?.profile.id ?? null) : null
+  const [deferReady, setDeferReady] = useState(false)
+
+  useEffect(() => {
+    scheduleIdleWork(() => {
+      queueMicrotask(() => {
+        setDeferReady(true)
+      })
+    })
+  }, [])
 
   const followingQuery = useQuery({
     queryKey: ['userSubscriptions', myUserId, 'following'],
     queryFn: () => getUserSubscriptions(myUserId as string, 'following'),
-    enabled: myUserId != null,
+    enabled: myUserId != null && deferReady,
     staleTime: 60_000,
   })
 

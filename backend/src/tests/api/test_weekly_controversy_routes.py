@@ -231,6 +231,7 @@ async def test_compute_prefers_recent_window_over_all_time_fallback(prepare_db: 
     assert result is not None
     assert result.spread == 9.0
     assert result.rater_count == 3
+    assert result.link_card_id is not None
 
 
 @pytest.mark.asyncio
@@ -300,6 +301,10 @@ async def test_digest_is_idempotent_per_week(prepare_db: None) -> None:
             )
         assert first.outcome == WeeklyControversyDeliveryOutcome.sent
         deliver_mock.assert_awaited_once()
+        html_body = deliver_mock.await_args.args[1]
+        assert '⚡' in html_body
+        assert 'startapp=c' in html_body
+        assert 'Посмотреть мнения подписок' in html_body
 
         async with session_factory() as session:
             second = await SendWeeklyControversyTelegramDigestService.build(session).execute(

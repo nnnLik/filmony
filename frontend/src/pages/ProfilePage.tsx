@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { Download } from 'lucide-react'
+import { Download, Settings } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -22,6 +22,9 @@ import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { WatchlistOverlapSection } from '../components/watchlist/WatchlistOverlapSection'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
+import { PageHeader } from '../components/layout/PageHeader'
+import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
@@ -40,7 +43,7 @@ import {
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useProfileMoviesSegmentFromUrl } from '../hooks/useProfileMoviesSegmentFromUrl'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
-import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
 import './ProfilePage.css'
 
 type ProfileMainTab = 'movies' | 'posts' | 'stats'
@@ -65,7 +68,6 @@ function toPublicShape(p: MyProfile): PublicProfile {
 }
 
 export function ProfilePage() {
-  const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const navigate = useNavigate()
   const initialBundle = useMemo(() => readMyProfileBundleCache(), [])
@@ -118,7 +120,7 @@ export function ProfilePage() {
   })
 
   useEffect(() => {
-    void ensureHeaderPepeGifsPreloaded()
+    scheduleDeferredPepeDancingPrewarm()
   }, [])
 
   useEffect(() => {
@@ -518,9 +520,7 @@ export function ProfilePage() {
 
   if (profile == null) {
     return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
+      <InlineLoadingState message={auth.kind === 'loading' ? 'Вход…' : 'Загрузка…'} />
     )
   }
 
@@ -531,23 +531,11 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 pr-2">
-            <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-              Профиль
-            </h1>
-            <img
-              className="profile-page__title-pepe"
-              src={headerPepeSrc}
-              alt=""
-              width={28}
-              height={28}
-              decoding="async"
-              aria-hidden
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-0.5">
+      <PageHeader
+        title="Профиль"
+        pepeClassName="profile-page__title-pepe"
+        actions={
+          <>
             <IconButton
               type="button"
               size="s"
@@ -558,16 +546,14 @@ export function ProfilePage() {
             >
               <Download className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
             </IconButton>
-            <Link
-              to="/profile/edit"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-lg text-(--tgui--link_color) no-underline active:opacity-70"
-              aria-label="Настройки профиля"
-            >
-              ⚙
+            <Link to="/profile/edit" className="no-underline" aria-label="Настройки профиля">
+              <IconButton type="button" size="s" mode="gray" aria-label="Настройки профиля">
+                <Settings className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+              </IconButton>
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="px-4 py-6">
         <div className="flex flex-col items-center text-center">
@@ -648,40 +634,19 @@ export function ProfilePage() {
           </p>
         ) : null}
 
-        <div className="mt-6 grid grid-cols-3 gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
-          <button
-            type="button"
-            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
-              mainTab === 'movies'
-                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                : 'text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setMainTab('movies')}
-          >
-            Карточки
-          </button>
-          <button
-            type="button"
-            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
-              mainTab === 'posts'
-                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                : 'text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setMainTab('posts')}
-          >
-            Посты
-          </button>
-          <button
-            type="button"
-            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
-              mainTab === 'stats'
-                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                : 'text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setMainTab('stats')}
-          >
-            Статистика
-          </button>
+        <div className="mt-6">
+          <SegmentedControl
+            value={mainTab}
+            onChange={setMainTab}
+            ariaLabel="Раздел профиля"
+            layout="grid"
+            gridColsClassName="grid-cols-3"
+            segments={[
+              { value: 'movies', label: 'Карточки' },
+              { value: 'posts', label: 'Посты' },
+              { value: 'stats', label: 'Статистика' },
+            ]}
+          />
         </div>
 
         {mainTab === 'movies' ? (

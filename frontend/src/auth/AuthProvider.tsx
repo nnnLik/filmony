@@ -1,16 +1,11 @@
 import { isTMA, retrieveRawInitData } from '@telegram-apps/sdk'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
-import { apiFetch } from '../api/client'
-import { authTelegram } from '../api/profileApi'
+import { runAuthBootstrap } from './authBootstrap'
 import { AuthStateContext, type AuthStatus } from './auth-context'
-import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
-import { clearMovieCardTagStatsSessionCaches } from '../lib/movieCardTagStatsStorage'
-import { clearUserCardCategoriesSessionCaches } from '../lib/userCardCategoriesStorage'
 import {
   readAccessToken,
   readAuthSessionFlag,
-  writeAccessToken,
   writeAuthSessionFlag,
 } from '../lib/filmonySession'
 
@@ -95,35 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const runId = ++authBootstrapGeneration.current
 
-    const resumeWithStoredBearer = async (): Promise<boolean> => {
-      const token = readAccessToken()
-      if (!token) {
-        return false
-      }
-      try {
-        const probe = await apiFetch('/api/me', {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (runId !== authBootstrapGeneration.current) {
-          return false
-        }
-        if (!probe.ok) {
-          writeAuthSessionFlag(false)
-          writeAccessToken(null)
-          return false
-        }
-        writeAuthSessionFlag(true)
-        setState({ kind: 'ready' })
-        return true
-      } catch {
-        return false
-      }
-    }
-
     void (async () => {
       signalTelegramWebAppReady()
       await new Promise<void>((resolve) => {
@@ -133,113 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      if (await resumeWithStoredBearer()) {
-        return
-      }
-
-      const tryResumeFromCookie = async (): Promise<boolean> => {
-        try {
-          const probe = await apiFetch('/api/me/profile', {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-          })
-          if (runId !== authBootstrapGeneration.current) {
-            return false
-          }
-          if (!probe.ok) {
-            return false
-          }
-          writeAuthSessionFlag(true)
-          setState({ kind: 'ready' })
-          return true
-        } catch {
-          return false
-        }
-      }
-
-      // Сессия по HttpOnly cookie: бэкенд уже знает пользователя, Bearer в storage не нужен.
-      if (await tryResumeFromCookie()) {
-        return
-      }
-
-      const raw = await waitForInitDataRaw(INIT_DATA_MAX_WAIT_MS, () => runId === authBootstrapGeneration.current)
-      if (runId !== authBootstrapGeneration.current) {
-        return
-      }
-
-      if (!raw) {
-        if (await tryResumeFromCookie()) {
-          return
-        }
-        writeAuthSessionFlag(false)
-        writeAccessToken(null)
-        clearMyProfileBundleCache()
-        clearMovieCardTagStatsSessionCaches()
-        clearUserCardCategoriesSessionCaches()
-        setState({
-          kind: 'error',
-          message: 'Пустой initData — откройте приложение из Telegram.',
-        })
-        return
-      }
-
-      try {
-        const res = await authTelegram(raw)
-        if (runId !== authBootstrapGeneration.current) {
-          return
-        }
-        if (!res.ok) {
-          const t = await res.text()
-          writeAuthSessionFlag(false)
-          writeAccessToken(null)
-          clearMyProfileBundleCache()
-          clearMovieCardTagStatsSessionCaches()
-          clearUserCardCategoriesSessionCaches()
-          setState({
-            kind: 'error',
-            message: t.trim() || `Ошибка входа (HTTP ${res.status})`,
-          })
-          return
-        }
-        let accessToken: string | null = null
-        try {
-          const data = (await res.json()) as { access_token?: string }
-          accessToken =
-            typeof data.access_token === 'string' && data.access_token.trim()
-              ? data.access_token.trim()
-              : null
-        } catch {
-          accessToken = null
-        }
-        if (!accessToken) {
-          writeAuthSessionFlag(false)
-          writeAccessToken(null)
-          clearMyProfileBundleCache()
-          clearMovieCardTagStatsSessionCaches()
-          clearUserCardCategoriesSessionCaches()
-          setState({
-            kind: 'error',
-            message: 'Ответ входа без access_token',
-          })
-          return
-        }
-        writeAccessToken(accessToken)
-        writeAuthSessionFlag(true)
-        setState({ kind: 'ready' })
-      } catch (e) {
-        if (runId !== authBootstrapGeneration.current) {
-          return
-        }
-        writeAuthSessionFlag(false)
-        writeAccessToken(null)
-        clearMyProfileBundleCache()
-        clearMovieCardTagStatsSessionCaches()
-        clearUserCardCategoriesSessionCaches()
-        setState({
-          kind: 'error',
-          message: e instanceof Error ? e.message : 'Сеть недоступна',
-        })
-      }
+      await runAuthBootstrap({
+        runId,
+        isCurrent: () => runId === authBootstrapGeneration.current,
+        setState,
+        waitForInitDataRaw,
+      })
     })()
   }, [])
 

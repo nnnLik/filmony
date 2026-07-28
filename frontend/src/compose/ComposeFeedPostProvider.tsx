@@ -1,5 +1,8 @@
 import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
+import { getUserSubscriptions } from '../api/profileApi'
+import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { ComposeFeedPostContext } from './composeFeedPostContext'
 import type { FeedComposeSourceCommentPreview, OpenComposeFeedPostPayload } from './feedComposeTypes'
 
@@ -9,6 +12,7 @@ const FeedComposeSheet = lazy(async () => {
 })
 
 export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [composeSessionKey, setComposeSessionKey] = useState(0)
   const [sourceCommentId, setSourceCommentId] = useState<number | null>(null)
@@ -17,6 +21,14 @@ export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
   const [sourceCommentPreview, setSourceCommentPreview] = useState<FeedComposeSourceCommentPreview | null>(null)
 
   const openCompose = useCallback((payload?: OpenComposeFeedPostPayload) => {
+    const myUserId = readMyProfileBundleCache()?.profile.id ?? null
+    if (myUserId != null) {
+      void queryClient.prefetchQuery({
+        queryKey: ['userSubscriptions', myUserId, 'following'],
+        queryFn: () => getUserSubscriptions(myUserId, 'following'),
+        staleTime: 60_000,
+      })
+    }
     setSourceCommentId(payload?.sourceCommentId ?? null)
     setReferencedMovieCardId(payload?.referencedMovieCardId ?? null)
     setSourceCommentImageUrl(
@@ -37,7 +49,7 @@ export function ComposeFeedPostProvider({ children }: { children: ReactNode }) {
     }
     setComposeSessionKey((k) => k + 1)
     setOpen(true)
-  }, [])
+  }, [queryClient])
 
   const closeCompose = useCallback(() => {
     setOpen(false)

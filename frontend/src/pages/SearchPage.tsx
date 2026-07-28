@@ -25,7 +25,7 @@ import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { getMyProfile } from '../api/profileApi'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 import { profileInitials } from '../lib/profileDisplay'
-import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+import { scheduleDeferredPepeDancingPrewarm, useHeaderPepeGifSrc } from '../lib/pepeGif'
 
 import './SearchPage.css'
 
@@ -226,7 +226,7 @@ export function SearchPage() {
   }, [viewerId])
 
   useEffect(() => {
-    void ensureHeaderPepeGifsPreloaded()
+    scheduleDeferredPepeDancingPrewarm()
   }, [])
 
   useEffect(() => {

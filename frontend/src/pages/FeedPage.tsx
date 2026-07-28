@@ -20,6 +20,10 @@ import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
 import { CreateActionSheet } from '../components/feed/CreateActionSheet'
 import { FeedTopFab } from '../components/feed/FeedTopFab'
 import { RecentCardsStrip } from '../components/feed/RecentCardsStrip'
+import { PageHeader } from '../components/layout/PageHeader'
+import { EmptyState } from '../components/ui/EmptyState'
+import { ListErrorState } from '../components/ui/ListErrorState'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
 import {
   MY_PROFILE_BUNDLE_CHANGED_EVENT,
   readMyProfileBundleCache,
@@ -35,7 +39,7 @@ import {
   isGlobalFeedPostDetailOpened,
 } from '../lib/globalFeedViewedIds'
 import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
-import { ensureHeaderPepeGifsPreloaded, useHeaderPepeGifSrc } from '../lib/pepeGif'
+import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
 import { buildRouteKey, registerScrollContainer } from '../features/scrollRestore'
 
 import './FeedPage.css'
@@ -80,7 +84,6 @@ type RecentCardsStripItems = ComponentProps<typeof RecentCardsStrip>['items']
 const getEmptyRecentStrip = (): RecentCardsStripItems => []
 
 export function FeedPage() {
-  const headerPepeSrc = useHeaderPepeGifSrc()
   const auth = useAuthStatus()
   const queryClient = useQueryClient()
   const location = useLocation()
@@ -113,7 +116,7 @@ export function FeedPage() {
   const routeKey = useMemo(() => buildRouteKeySafe(location, ['q', 'filter']), [location])
 
   useEffect(() => {
-    void ensureHeaderPepeGifsPreloaded()
+    scheduleDeferredPepeDancingPrewarm()
   }, [])
 
   useEffect(() => {
@@ -330,78 +333,56 @@ export function FeedPage() {
   return (
     <FeedCardGlobalAudioProvider>
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
-        <div className="px-4 pb-3 pt-3">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
-              <h1 className="min-w-0 shrink truncate bg-linear-to-r from-(--filmony-mint,#5eead4) via-(--filmony-text,#e8f0f7) to-(--filmony-amber,#e8b86d) bg-clip-text text-lg font-semibold tracking-tight text-transparent">
-                Лента
-              </h1>
-              <img
-                className="feed-page__title-pepe"
-                src={headerPepeSrc}
-                alt=""
-                width={28}
-                height={28}
-                decoding="async"
-                aria-hidden
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {auth.kind === 'ready' ? (
-                <IconButton
-                  type="button"
-                  mode={hideMine ? 'bezeled' : 'gray'}
-                  size="s"
-                  onClick={onToggleHideMine}
-                  aria-label={hideMine ? 'Показывать в ленте мои посты и карточки' : 'Скрыть из ленты мои посты и карточки'}
-                  aria-pressed={hideMine}
-                  title={
-                    hideMine
-                      ? 'Показать мои посты и карточки на этой вкладке'
-                      : 'Скрыть мои посты и карточки на этой вкладке'
-                  }
-                >
-                  <UserRoundX className="block size-[18px]" strokeWidth={2} />
-                </IconButton>
-              ) : null}
-              {auth.kind === 'ready' ? (
-                <Button mode="gray" size="s" onClick={() => setCreateSheetOpen(true)}>
-                  Создать
-                </Button>
-              ) : null}
-            </div>
-          </div>
-          <div
-            className="flex w-full rounded-xl bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] p-0.5"
-            role="tablist"
-            aria-label="Тип ленты"
-          >
-            {FEED_KIND_TABS.map((entry) => {
-              const selected = feedKind === entry.value
-              return (
-                <button
-                  key={entry.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  className={`min-w-0 flex-1 truncate rounded-lg px-1.5 py-2 text-[13px] font-medium transition active:scale-[0.99] ${
-                    selected
-                      ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-[0_1px_2px_rgba(0,0,0,0.12)]'
-                      : 'text-(--tgui--hint_color)'
-                  }`}
-                  onClick={() => setFeedKind(entry.value)}
-                >
-                  {entry.segmentLabel}
-                </button>
-              )
-            })}
-          </div>
+      <PageHeader
+        title="Лента"
+        pepeClassName="feed-page__title-pepe"
+        actions={
+          <>
+            {auth.kind === 'ready' ? (
+              <IconButton
+                type="button"
+                mode={hideMine ? 'bezeled' : 'gray'}
+                size="s"
+                onClick={onToggleHideMine}
+                aria-label={
+                  hideMine
+                    ? 'Показывать в ленте мои посты и карточки'
+                    : 'Скрыть из ленты мои посты и карточки'
+                }
+                aria-pressed={hideMine}
+                title={
+                  hideMine
+                    ? 'Показать мои посты и карточки на этой вкладке'
+                    : 'Скрыть мои посты и карточки на этой вкладке'
+                }
+              >
+                <UserRoundX className="block size-[18px]" strokeWidth={2} />
+              </IconButton>
+            ) : null}
+            {auth.kind === 'ready' ? (
+              <Button mode="gray" size="s" onClick={() => setCreateSheetOpen(true)}>
+                Создать
+              </Button>
+            ) : null}
+          </>
+        }
+        tabs={
+          <SegmentedControl
+            value={feedKind}
+            onChange={setFeedKind}
+            ariaLabel="Тип ленты"
+            segments={FEED_KIND_TABS.map((entry) => ({
+              value: entry.value,
+              label: entry.segmentLabel,
+            }))}
+          />
+        }
+        subtitle={
           <p className="mt-2 text-[12px] leading-snug text-(--tgui--hint_color)">
             Публичная лента приложения по времени публикации.
           </p>
-        </div>
-      </header>
+        }
+      />
 
       <RecentCardsStrip items={recentStrip} />
 
@@ -420,27 +401,27 @@ export function FeedPage() {
           )}
 
           {!authPending && errorMessage != null && items.length === 0 && (
-            <div className="rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-4">
-              <p className="text-[14px] text-(--tgui--hint_color)">{errorMessage}</p>
-              <Button stretched className="mt-4" onClick={() => void feedQuery.refetch()}>
-                Повторить
-              </Button>
-            </div>
+            <ListErrorState
+              message={errorMessage}
+              onRetry={() => {
+                void feedQuery.refetch()
+              }}
+            />
           )}
 
           {!authPending && errorMessage == null && items.length === 0 && !showSkeleton && (
-            <div className="flex flex-col items-center gap-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-10">
-              <p className="text-center text-[14px] leading-relaxed text-(--tgui--hint_color)">
-                {emptyFeedGreeting != null
+            <EmptyState
+              message={
+                emptyFeedGreeting != null
                   ? `${emptyFeedGreeting}, здесь пока пусто`
-                  : 'Здесь появятся публичные посты и карточки пользователей.'}
-              </p>
-              {auth.kind === 'ready' ? (
-                <Button stretched onClick={() => setCreateSheetOpen(true)}>
-                  Создать
-                </Button>
-              ) : null}
-            </div>
+                  : 'Здесь появятся публичные посты и карточки пользователей.'
+              }
+              action={
+                auth.kind === 'ready'
+                  ? { label: 'Создать', onClick: () => setCreateSheetOpen(true) }
+                  : undefined
+              }
+            />
           )}
 
           {items.length > 0 && (

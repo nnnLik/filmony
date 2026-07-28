@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
+import { scheduleIdleWork } from './scheduleIdleWork'
+
 /** Shared dancing-Pepe asset used by feed chrome and desktop side rails */
 export const PEPE_DANCING_GIF_URL = 'https://i.gifer.com/3nRK.gif'
 
@@ -159,4 +161,29 @@ export function prewarmAllPepeDiscoAssets(): Promise<void> {
   ensureLinkPreloadImage(PEPE_DANCING_GIF_URL, 'filmony-preload-pepe-dancing-gif')
   ensureLinkPreloadImage(SIDE_DISCO_RAIN_GIF_URL, 'filmony-preload-side-disco-rain-gif')
   return ensureHeaderPepeGifsPreloaded()
+}
+
+let deferredDancingScheduled = false
+let deferredDiscoScheduled = false
+
+/** Tier-1: preload dancing Pepe when idle (header on Feed/Search/Profile). */
+export function scheduleDeferredPepeDancingPrewarm(): void {
+  if (typeof window === 'undefined' || deferredDancingScheduled) {
+    return
+  }
+  deferredDancingScheduled = true
+  scheduleIdleWork(() => {
+    void ensurePepeDancingGifPreloaded()
+  })
+}
+
+/** Tier-2: preload side-disco GIF on idle or first easter-egg interaction. */
+export function scheduleDeferredSideDiscoPrewarm(): void {
+  if (typeof window === 'undefined' || deferredDiscoScheduled) {
+    return
+  }
+  deferredDiscoScheduled = true
+  scheduleIdleWork(() => {
+    void ensureSideDiscoRainGifPreloaded()
+  }, 4000)
 }

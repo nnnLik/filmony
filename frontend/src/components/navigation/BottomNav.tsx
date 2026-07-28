@@ -1,47 +1,21 @@
-import { Search } from 'lucide-react'
+import { Home, Search, User } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 
-function IconFeed({ active }: { active: boolean }) {
+function NavIcon({
+  active,
+  children,
+}: {
+  active: boolean
+  children: ReactNode
+}) {
   return (
-    <svg
-      aria-hidden
-      className="size-[22px] transition-[stroke,transform] duration-200 ease-out"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={active ? 2.25 : 1.55}
+    <span
+      className="block transition-[stroke,transform] duration-200 ease-out [&>svg]:block [&>svg]:size-[22px]"
       style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
     >
-      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function IconSearch({ active }: { active: boolean }) {
-  return (
-    <Search
-      aria-hidden
-      className="size-[22px] transition-[stroke,transform] duration-200 ease-out"
-      strokeWidth={active ? 2.35 : 1.65}
-      style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
-    />
-  )
-}
-
-function IconUser({ active }: { active: boolean }) {
-  return (
-    <svg
-      aria-hidden
-      className="size-[22px] transition-[stroke,transform] duration-200 ease-out"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={active ? 2.25 : 1.55}
-      style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
-    >
-      <circle cx="12" cy="9" r="3.5" />
-      <path d="M6.5 20.2c.7-3.2 3.4-5.2 5.5-5.2s4.8 2 5.5 5.2" strokeLinecap="round" />
-    </svg>
+      {children}
+    </span>
   )
 }
 
@@ -77,7 +51,9 @@ export function BottomNav() {
                   />
                 ) : null}
                 <span className="relative z-[1] flex flex-col items-center gap-0.5">
-                  <IconFeed active={isActive} />
+                  <NavIcon active={isActive}>
+                    <Home aria-hidden strokeWidth={isActive ? 2.25 : 1.55} />
+                  </NavIcon>
                   Лента
                 </span>
               </>
@@ -98,9 +74,9 @@ export function BottomNav() {
                   />
                 ) : null}
                 <span className="relative z-[1] flex flex-col items-center gap-0.5">
-                  <span className="block [&>svg]:block">
-                    <IconSearch active={isActive} />
-                  </span>
+                  <NavIcon active={isActive}>
+                    <Search aria-hidden strokeWidth={isActive ? 2.35 : 1.65} />
+                  </NavIcon>
                   Поиск
                 </span>
               </>
@@ -121,7 +97,9 @@ export function BottomNav() {
                   />
                 ) : null}
                 <span className="relative z-[1] flex flex-col items-center gap-0.5">
-                  <IconUser active={isActive} />
+                  <NavIcon active={isActive}>
+                    <User aria-hidden strokeWidth={isActive ? 2.25 : 1.55} />
+                  </NavIcon>
                   Профиль
                 </span>
               </>

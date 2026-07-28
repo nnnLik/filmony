@@ -44,6 +44,18 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   })
 }
 
+/** Cookie-only session probe — never attaches stored Bearer (avoids stale token masking HttpOnly session). */
+export async function apiFetchCredentialsOnly(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(resolveApiUrl(path), {
+    ...init,
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  })
+}
+
 export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await apiFetch(path, {
     ...init,

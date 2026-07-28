@@ -29,6 +29,7 @@ class WeeklyControversyResult:
     rater_count: int
     min_rating: float
     max_rating: float
+    link_card_id: int | None = None
 
 
 AnchorKind = Literal['film', 'catalog']
@@ -42,6 +43,7 @@ class _AnchorKey:
 
 @dataclass(frozen=True, slots=True)
 class _RatedCardRow:
+    card_id: int
     user_id: UUID
     film_id: int | None
     catalog_item_id: int | None
@@ -112,6 +114,11 @@ class ComputeWeeklyControversyService:
                     rater_count=stats.rater_count,
                     min_rating=stats.min_rating,
                     max_rating=stats.max_rating,
+                    link_card_id=_pick_link_card_id(
+                        cards=cards,
+                        anchor=anchor,
+                        max_rating=stats.max_rating,
+                    ),
                 )
         return best
 
@@ -121,6 +128,7 @@ class ComputeWeeklyControversyService:
     ) -> list[_RatedCardRow]:
         stmt = (
             select(
+                UserCard.id,
                 UserCard.user_id,
                 UserCard.film_id,
                 UserCard.catalog_item_id,
@@ -136,6 +144,7 @@ class ComputeWeeklyControversyService:
         rows = (await self._session.execute(stmt)).all()
         return [
             _RatedCardRow(
+                card_id=int(card_id),
                 user_id=user_id,
                 film_id=film_id,
                 catalog_item_id=catalog_item_id,
@@ -143,7 +152,7 @@ class ComputeWeeklyControversyService:
                 rating=float(rating),
                 completed_at=completed_at,
             )
-            for user_id, film_id, catalog_item_id, display_title, rating, completed_at in rows
+            for card_id, user_id, film_id, catalog_item_id, display_title, rating, completed_at in rows
         ]
 
     async def _resolve_title(
@@ -252,6 +261,29 @@ def _controversy_for_anchor(
     if recent_stats is not None:
         return recent_stats
     return _spread_from_ratings(_latest_ratings_by_user(anchor_cards))
+
+
+def _pick_link_card_id(
+    *,
+    cards: list[_RatedCardRow],
+    anchor: _AnchorKey,
+    max_rating: float,
+) -> int | None:
+    candidates = [
+        card
+        for card in cards
+        if _card_matches_anchor(card, anchor) and card.rating == max_rating
+    ]
+    if not candidates:
+        return None
+    best = max(
+        candidates,
+        key=lambda card: (
+            _normalize_completed_at(card.completed_at) or dt.datetime.min.replace(tzinfo=dt.UTC),
+            card.card_id,
+        ),
+    )
+    return best.card_id
 
 
 def _is_better_candidate(
