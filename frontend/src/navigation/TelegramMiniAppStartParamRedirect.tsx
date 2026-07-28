@@ -1,9 +1,13 @@
 import { isTMA } from '@telegram-apps/sdk'
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { useAuthStatus } from '../auth/useAuthStatus'
-import { parseMiniAppWatchlistStartParam, parseMiniAppTasteQuizStartParam } from '../lib/miniAppCardDeepLink'
+import {
+  parseMiniAppFilmStartParam,
+  parseMiniAppTasteQuizStartParam,
+  parseMiniAppWatchlistStartParam,
+} from '../lib/miniAppCardDeepLink'
 
 function readTelegramStartParam(): string | undefined {
   const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
@@ -55,6 +59,18 @@ export function TelegramMiniAppStartParamRedirect() {
       void navigate(`/taste-quiz/invite/${encodeURIComponent(tasteQuizToken)}`, {
         replace: true,
       })
+      return
+    }
+
+    const filmId = parseMiniAppFilmStartParam(sp)
+    if (filmId != null) {
+      const key = `filmony.handled_start_param.${sp}`
+      if (sessionStorage.getItem(key) === '1') {
+        return
+      }
+      ran.current = true
+      sessionStorage.setItem(key, '1')
+      void navigate(`/films/${filmId}`, { replace: true })
       return
     }
 

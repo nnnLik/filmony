@@ -2,7 +2,7 @@ import { Avatar, Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import {
   searchCatalog,
@@ -18,6 +18,7 @@ import { formatRating } from '../components/feed/feedCardUtils'
 import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
+import { PlayfulHint } from '../components/ui/PlayfulHint'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
@@ -390,9 +391,12 @@ export function SearchPage() {
               <ResultsSection title="Карточки" subtitle="Оценки и заметки участников">
                 {showCatalogEmpty ? (
                   <div className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4">
-                    <p className="mb-3 text-[14px] leading-relaxed text-(--tgui--text_color)">
-                      Пока нет карточек по этому запросу. Можете добавить первой — например по ссылке из внешнего каталога.
-                    </p>
+                    <PlayfulHint
+                      poolKey="search_cards_empty"
+                      fallback="Пока нет карточек по этому запросу. Можете добавить первой — например по ссылке из внешнего каталога."
+                      userId={viewerId}
+                      className="mb-3 text-[14px] leading-relaxed text-(--tgui--text_color)"
+                    />
                     <Link to="/cards/new" className="block w-full no-underline">
                       <Button mode="filled" stretched>
                         Добавить карточку

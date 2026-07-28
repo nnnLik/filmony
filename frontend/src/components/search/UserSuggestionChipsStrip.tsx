@@ -1,5 +1,5 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { SearchUserItem } from '../../api/searchApi'
 import { profileInitials } from '../../lib/profileDisplay'

@@ -1,5 +1,5 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { ProfileInsightItem, SocialTastePeerItem, TagTasteItem } from '../../api/profileTypes'
 

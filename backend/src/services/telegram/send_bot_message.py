@@ -166,9 +166,15 @@ class SendTelegramBotMessageService:
         text: str,
         *,
         parse_mode: str | None = None,
+        reply_markup: dict[str, object] | None = None,
     ) -> None:
         try:
-            result = await self._client.send_message(chat_id, text, parse_mode=parse_mode)
+            result = await self._client.send_message(
+                chat_id,
+                text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup,
+            )
         except Exception as e:
             raise self.TelegramDeliveryFailed('telegram transport error') from e
 

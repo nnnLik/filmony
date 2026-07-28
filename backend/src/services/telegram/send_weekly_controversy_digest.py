@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.compute_weekly_controversy import ComputeWeeklyControversyService
+from services.controversy.constants import MIN_SPREAD_FOR_TELEGRAM_DIGEST
 from services.controversy.upsert_weekly_controversy_state import UpsertWeeklyControversyStateService
 from services.controversy.week_bounds import week_start_for_datetime
 from services.telegram.build_weekly_controversy_message import BuildWeeklyControversyMessageService
@@ -28,6 +29,7 @@ class WeeklyControversyDeliveryOutcome(StrEnum):
     skipped_no_telegram = 'skipped_no_telegram'
     skipped_no_controversy = 'skipped_no_controversy'
     skipped_already_sent = 'skipped_already_sent'
+    skipped_low_spread = 'skipped_low_spread'
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,11 +91,11 @@ class SendWeeklyControversyTelegramDigestService:
                 recipient_user_id=recipient_user_id,
             )
 
-        controversy = await self._compute_svc.execute(
+        bundle = await self._compute_svc.execute(
             viewer_user_id=recipient_user_id,
             now=now,
         )
-        if controversy is None:
+        if bundle is None:
             await self._upsert_svc.execute(
                 user_id=recipient_user_id,
                 week_start=week_start,
@@ -106,13 +108,35 @@ class SendWeeklyControversyTelegramDigestService:
                 recipient_user_id=recipient_user_id,
             )
 
-        body = self._message_svc.execute(controversy=controversy)
-        await deliver_engagement_html_message(int(recipient.telegram_user_id), body)
+        primary = bundle.primary
+        if primary.spread < MIN_SPREAD_FOR_TELEGRAM_DIGEST:
+            await self._upsert_svc.execute(
+                user_id=recipient_user_id,
+                week_start=week_start,
+                controversy=primary,
+                sent_at=now,
+            )
+            await self._session.commit()
+            return WeeklyControversyDeliveryResult(
+                outcome=WeeklyControversyDeliveryOutcome.skipped_low_spread,
+                recipient_user_id=recipient_user_id,
+            )
+
+        payload = self._message_svc.execute(
+            bundle=bundle,
+            recipient_user_id=recipient_user_id,
+            week_start=week_start,
+        )
+        await deliver_engagement_html_message(
+            int(recipient.telegram_user_id),
+            payload.html,
+            reply_markup=payload.reply_markup,
+        )
 
         await self._upsert_svc.execute(
             user_id=recipient_user_id,
             week_start=week_start,
-            controversy=controversy,
+            controversy=primary,
             sent_at=now,
         )
         await self._session.commit()

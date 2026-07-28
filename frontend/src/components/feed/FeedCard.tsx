@@ -1,7 +1,9 @@
 import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
 import { Music } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
+
+import { PlayfulHint } from '../ui/PlayfulHint'
 
 import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
@@ -679,7 +681,12 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-(--tgui--hint_color)">Пока нет комментариев. Будьте первым.</p>
+                <PlayfulHint
+                  poolKey="comments_empty"
+                  fallback="Пока нет комментариев. Будьте первым."
+                  userId={viewerUserId}
+                  className="text-xs text-(--tgui--hint_color)"
+                />
               )}
 
               <div className="flex min-w-0 flex-col gap-1">

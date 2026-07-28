@@ -1,6 +1,6 @@
 import { Home, Search, User } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router'
 
 function NavIcon({
   active,

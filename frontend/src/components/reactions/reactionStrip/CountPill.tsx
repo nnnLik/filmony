@@ -1,7 +1,7 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { ReactionActor } from '../../../api/profileTypes'
 import { displayActorName } from './displayActorName'

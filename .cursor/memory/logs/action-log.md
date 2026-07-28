@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-07-29T014200Z-pet-project-micro-fun-code.md`
+- `2026-07-29T013600Z-social-depth-pack-controversy-tg-upgrade-code.md`
 - `2026-07-29T012900Z-frontend-ui-boot-polish-code.md`
 - `2026-07-28T174500Z-social-depth-pack-code.md`
 - `2026-07-27T151100Z-taste-knowledge-badge-everywhere-test.md`

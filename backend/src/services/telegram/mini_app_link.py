@@ -31,6 +31,18 @@ def telegram_mini_app_feed_post_url(post_id: int) -> str | None:
     return f'{base}?startapp=p{post_id}'
 
 
+def telegram_mini_app_film_url(film_id: int) -> str | None:
+    """Deep link into Mini App film community page (handled by start_param ``f<id>``)."""
+    raw = settings.telegram.bot_username
+    if raw is None:
+        return None
+    name = raw.strip().lstrip('@')
+    if not name:
+        return None
+    base = f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
+    return f'{base}?startapp=f{film_id}'
+
+
 def telegram_mini_app_taste_quiz_url(invite_token: str) -> str | None:
     raw = settings.telegram.bot_username
     if raw is None:
@@ -70,6 +82,15 @@ def telegram_mini_app_url() -> str | None:
     return f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
 
 
+def html_film_deep_link_block(film_id: int, *, link_text: str | None = None) -> str:
+    url = telegram_mini_app_film_url(film_id)
+    if url is None:
+        return '📱 Откройте приложение Filmony из Telegram'
+    esc_url = html.escape(url, quote=True)
+    label = html.escape(link_text or _DEFAULT_LINK_LABEL)
+    return f'🔗 <a href="{esc_url}">{label}</a>'
+
+
 def html_app_deep_link_block(*, link_text: str | None = None) -> str:
     url = telegram_mini_app_url()
     if url is None:
@@ -77,3 +98,29 @@ def html_app_deep_link_block(*, link_text: str | None = None) -> str:
     esc_url = html.escape(url, quote=True)
     label = html.escape(link_text or _DEFAULT_LINK_LABEL)
     return f'🔗 <a href="{esc_url}">{label}</a>'
+
+
+def resolve_controversy_deeplink_url(
+    *,
+    anchor_film_id: int | None,
+    link_card_id: int | None,
+) -> str | None:
+    if anchor_film_id is not None:
+        return telegram_mini_app_film_url(anchor_film_id)
+    if link_card_id is not None:
+        return telegram_mini_app_card_url(link_card_id)
+    return telegram_mini_app_url()
+
+
+def controversy_deeplink_html_block(
+    *,
+    anchor_film_id: int | None,
+    link_card_id: int | None,
+    link_text: str | None = None,
+) -> str:
+    label = link_text or 'Посмотреть все мнения'
+    if anchor_film_id is not None:
+        return html_film_deep_link_block(anchor_film_id, link_text=label)
+    if link_card_id is not None:
+        return html_card_deep_link_block(link_card_id, link_text=label)
+    return html_app_deep_link_block(link_text=label)

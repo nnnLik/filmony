@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { Share2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMovieCardById, shareMovieCardWithFollowers } from '../api/cardApi'

@@ -9,11 +9,21 @@ from services.telegram.send_bot_message import SendTelegramBotMessageService
 logger = logging.getLogger(__name__)
 
 
-async def deliver_engagement_html_message(chat_id: int, html_text: str) -> None:
+async def deliver_engagement_html_message(
+    chat_id: int,
+    html_text: str,
+    *,
+    reply_markup: dict[str, object] | None = None,
+) -> None:
     """Send one HTML message; swallow Telegram recipient errors."""
     send_svc = SendTelegramBotMessageService.build()
     try:
-        await send_svc.execute(chat_id, html_text, parse_mode='HTML')
+        await send_svc.execute(
+            chat_id,
+            html_text,
+            parse_mode='HTML',
+            reply_markup=reply_markup,
+        )
     except SendTelegramBotMessageService.TelegramChatUnavailable:
         logger.info('telegram engagement skipped (no chat) chat_id=%s', chat_id)
     except SendTelegramBotMessageService.TelegramDeliveryFailed as exc:

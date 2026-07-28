@@ -1,6 +1,6 @@
 import { Avatar, Button, Input, Section, Title } from '@telegram-apps/telegram-ui'
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { postNotificationPing } from '../api/notificationApi'

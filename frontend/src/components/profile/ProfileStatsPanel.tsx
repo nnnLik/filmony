@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../../api/client'
 import { getUserCards, getUserMovieCardStats, getUserPublicCardCategories } from '../../api/profileApi'

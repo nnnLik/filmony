@@ -2,7 +2,7 @@ import { Avatar, Button } from '@telegram-apps/telegram-ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../../api/client'
 import { patchMyWatchlistEntry } from '../../api/profileApi'

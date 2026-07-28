@@ -39,11 +39,14 @@ class TelegramBotApiClient:
         text: str,
         *,
         parse_mode: str | None = None,
+        reply_markup: dict[str, object] | None = None,
     ) -> TelegramSendMessageResult:
         url = f'https://api.telegram.org/bot{self._token}/sendMessage'
         payload: dict[str, object] = {'chat_id': chat_id, 'text': text}
         if parse_mode:
             payload['parse_mode'] = parse_mode
+        if reply_markup is not None:
+            payload['reply_markup'] = reply_markup
         return await self._post_json(url, payload)
 
     async def send_photo(

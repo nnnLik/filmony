@@ -28,10 +28,20 @@
 
 **Frontend:** `WatchlistOverlapSection`, `WatchTogetherConfirmSheet`, `CoViewSplitRatings`, `RatingStreakBadge`, streak/overlap/controversy API clients, wired into feed/profile/search surfaces
 
-## Verification
+### Slice C — Weekly controversy (Telegram upgrade)
+- `WeeklyControversyBundle` with runner-up, polar cards, avg/year, viewer rating
+- Film deeplink `startapp=f{id}` + frontend redirect
+- Rich TG HTML + inline button; spread≥4 send gate; `link_card_id` in state
 
-- `make backend-test` — 535 passed
-- `cd frontend && npm run lint && npm run build` — pass
+## Verification (2026-07-29 upgrade)
+
+- `make backend-test-one target=src/tests/services/test_build_weekly_controversy_message.py` — 6 passed
+- `make backend-test-one target=src/tests/api/test_weekly_controversy_routes.py` — 9 passed
+- `make backend-test-one target=src/tests/services/test_mini_app_link.py` — 6 passed
+- `alembic upgrade head` in Docker — `e6f7a8b90123`
+- `cd frontend && npm run lint` — pass
+
+## Verification (initial)
 
 ## Known limitations
 

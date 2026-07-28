@@ -39,6 +39,7 @@ async def _seed_user(
     *,
     telegram_user_id: int | None = None,
     profile_slug: str | None = None,
+    display_name: str = 'Controversy User',
 ) -> UUID:
     user_id = uuid4()
     slug = profile_slug or f'wc{user_id.hex[:8]}'
@@ -54,7 +55,7 @@ async def _seed_user(
                 id=user_id,
                 telegram_user_id=tid,
                 profile_slug=slug,
-                display_name='Controversy User',
+                display_name=display_name,
             )
         )
         await session.commit()
@@ -231,9 +232,9 @@ async def test_compute_prefers_recent_window_over_all_time_fallback(prepare_db: 
         )
 
     assert result is not None
-    assert result.spread == 9.0
-    assert result.rater_count == 3
-    assert result.link_card_id is not None
+    assert result.primary.spread == 9.0
+    assert result.primary.rater_count == 3
+    assert result.primary.link_card_id is not None
 
 
 @pytest.mark.asyncio
@@ -304,9 +305,11 @@ async def test_digest_is_idempotent_per_week(prepare_db: None) -> None:
         assert first.outcome == WeeklyControversyDeliveryOutcome.sent
         deliver_mock.assert_awaited_once()
         html_body = deliver_mock.await_args.args[1]
-        assert '⚡' in html_body
-        assert 'startapp=c' in html_body
-        assert 'Посмотреть мнения подписок' in html_body
+        reply_markup = deliver_mock.await_args.kwargs.get('reply_markup')
+        assert '⚡' in html_body or '🔥' in html_body
+        assert 'startapp=f' in html_body
+        assert 'Посмотреть все мнения' in html_body
+        assert reply_markup is not None
 
         async with session_factory() as session:
             second = await SendWeeklyControversyTelegramDigestService.build(session).execute(
@@ -328,6 +331,54 @@ async def test_digest_is_idempotent_per_week(prepare_db: None) -> None:
         assert row.sent_at is not None
         assert row.title == 'Digest Film'
         assert row.spread == 6.0
+        assert row.link_card_id is not None
+
+
+@pytest.mark.asyncio
+async def test_digest_skips_low_spread_but_marks_sent(prepare_db: None) -> None:
+    recipient = await _seed_user(telegram_user_id=940701, profile_slug='wcl1')
+    author_a = await _seed_user(profile_slug='wcl2')
+    author_b = await _seed_user(profile_slug='wcl3')
+    author_c = await _seed_user(profile_slug='wcl4')
+    await _seed_follow(follower_id=recipient, following_id=author_a)
+    await _seed_follow(follower_id=recipient, following_id=author_b)
+    await _seed_follow(follower_id=recipient, following_id=author_c)
+
+    now = dt.datetime(2026, 7, 28, 11, 0, tzinfo=dt.UTC)
+    film_id = await _seed_film(kinopoisk_id=940701, title='Mild Film')
+    for author, rating in [(author_a, 6.0), (author_b, 7.0), (author_c, 9.0)]:
+        await _seed_rated_card(
+            user_id=author,
+            film_id=film_id,
+            rating=rating,
+            completed_at=now - dt.timedelta(days=1),
+            kinopoisk_id=940701,
+        )
+
+    session_factory = get_session_factory()
+    with patch(
+        'services.telegram.send_weekly_controversy_digest.deliver_engagement_html_message',
+        new_callable=AsyncMock,
+    ) as deliver_mock:
+        async with session_factory() as session:
+            result = await SendWeeklyControversyTelegramDigestService.build(session).execute(
+                recipient_user_id=recipient,
+                now=now,
+            )
+        assert result.outcome == WeeklyControversyDeliveryOutcome.skipped_low_spread
+        deliver_mock.assert_not_awaited()
+
+    async with session_factory() as session:
+        row = (
+            await session.execute(
+                select(WeeklyControversyState).where(
+                    WeeklyControversyState.user_id == recipient,
+                    WeeklyControversyState.week_start == week_start_for_datetime(now),
+                )
+            )
+        ).scalar_one()
+        assert row.sent_at is not None
+        assert row.spread == 3.0
 
 
 @pytest.mark.asyncio
@@ -362,3 +413,52 @@ async def test_get_returns_persisted_state(async_client: AsyncClient) -> None:
     assert controversy is not None
     assert controversy['title'] == 'Stored Title'
     assert controversy['spread'] == 4.5
+
+
+@pytest.mark.asyncio
+async def test_compute_returns_runner_up_and_polar_cards(prepare_db: None) -> None:
+    viewer = await _seed_user(profile_slug='wcr_viewer', display_name='Viewer')
+    author_a = await _seed_user(profile_slug='wcr_a', display_name='Alice')
+    author_b = await _seed_user(profile_slug='wcr_b', display_name='Bob')
+    author_c = await _seed_user(profile_slug='wcr_c', display_name='Carol')
+    await _seed_follow(follower_id=viewer, following_id=author_a)
+    await _seed_follow(follower_id=viewer, following_id=author_b)
+    await _seed_follow(follower_id=viewer, following_id=author_c)
+
+    now = dt.datetime(2026, 7, 28, 12, 0, tzinfo=dt.UTC)
+    film_hot = await _seed_film(kinopoisk_id=940801, title='Hot Film')
+    film_mild = await _seed_film(kinopoisk_id=940802, title='Mild Film')
+
+    for author, rating in [(author_a, 1.0), (author_b, 5.0), (author_c, 10.0)]:
+        await _seed_rated_card(
+            user_id=author,
+            film_id=film_hot,
+            rating=rating,
+            completed_at=now - dt.timedelta(days=1),
+            kinopoisk_id=940801,
+        )
+    for author, rating in [(author_a, 5.0), (author_b, 7.0), (author_c, 9.0)]:
+        await _seed_rated_card(
+            user_id=author,
+            film_id=film_mild,
+            rating=rating,
+            completed_at=now - dt.timedelta(days=1),
+            kinopoisk_id=940802,
+        )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        bundle = await ComputeWeeklyControversyService.build(session).execute(
+            viewer_user_id=viewer,
+            now=now,
+        )
+
+    assert bundle is not None
+    assert bundle.primary.title == 'Hot Film'
+    assert bundle.primary.spread == 9.0
+    assert bundle.primary.film_year == 2024
+    assert bundle.primary.avg_rating == pytest.approx(5.3)
+    assert bundle.primary.polar_low is not None
+    assert bundle.primary.polar_high is not None
+    assert bundle.runner_up is not None
+    assert bundle.runner_up.title == 'Mild Film'

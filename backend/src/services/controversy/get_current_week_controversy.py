@@ -59,11 +59,13 @@ class GetCurrentWeekControversyService:
                     rater_count=int(stored.rater_count or 0),
                     min_rating=float(stored.min_rating or 0),
                     max_rating=float(stored.max_rating or 0),
+                    link_card_id=stored.link_card_id,
                 ),
             )
 
         computed = await self._compute_svc.execute(viewer_user_id=viewer_user_id, now=now)
-        return CurrentWeekControversy(week_start=week_start, controversy=computed)
+        controversy = computed.primary if computed is not None else None
+        return CurrentWeekControversy(week_start=week_start, controversy=controversy)
 
     async def _load_state(
         self,

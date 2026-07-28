@@ -1,7 +1,7 @@
 import { init, isTMA } from '@telegram-apps/sdk'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router'
 
 import App from './App'
 import './index.css'

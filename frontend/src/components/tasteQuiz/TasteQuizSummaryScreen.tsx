@@ -1,5 +1,5 @@
 import { Button } from '@telegram-apps/telegram-ui'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { TasteQuizPairProgress, TasteQuizSession } from '../../api/tasteQuizTypes'
 import { formatRating } from '../../lib/createCardBinding'

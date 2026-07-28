@@ -1,7 +1,7 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
 import { Download, Settings } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { getMyProfile, getUserCards, getUserFeedPosts, getUserWatchlist, postExportMyCardsCsv } from '../api/profileApi'

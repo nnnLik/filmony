@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import type { ReactionGroupedCatalog } from '../../api/profileTypes'
 import type { ReferencedMentionSnippet } from '../../api/inlineReferenceSnippetTypes'

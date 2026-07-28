@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useMatch, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useMatch, useNavigate, useSearchParams } from 'react-router'
 
 import { getMovieCardById } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'

@@ -1,5 +1,5 @@
 import { act, render, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_RATED_CARDS_QUERY } from '../../lib/ratedCardsListQuery'

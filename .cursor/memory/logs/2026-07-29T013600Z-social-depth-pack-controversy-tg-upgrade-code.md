@@ -1,0 +1,23 @@
+# Action Log Entry
+
+- **Timestamp:** 2026-07-29T01:36:00Z
+- **Feature slug:** social-depth-pack
+- **Action type:** code
+- **Summary:** Weekly controversy Telegram upgrade — film deeplink, enriched digest HTML, inline button, spread≥4 gate, link_card_id persistence.
+- **Files:**
+  - `backend/src/services/controversy/compute_weekly_controversy.py`
+  - `backend/src/services/controversy/constants.py`
+  - `backend/src/services/telegram/build_weekly_controversy_message.py`
+  - `backend/src/services/telegram/send_weekly_controversy_digest.py`
+  - `backend/src/services/telegram/mini_app_link.py`
+  - `backend/src/integrations/telegram/bot_api_client.py`
+  - `backend/src/migrations/versions/e6f7a8b90123_weekly_controversy_state_link_card_id.py`
+  - `frontend/src/lib/miniAppCardDeepLink.ts`
+  - `frontend/src/navigation/TelegramMiniAppStartParamRedirect.tsx`
+  - `docs/features/social-depth-pack.md`
+- **Verification:**
+  - `make backend-test-one target=src/tests/services/test_build_weekly_controversy_message.py` — 6 passed
+  - `make backend-test-one target=src/tests/api/test_weekly_controversy_routes.py` — 9 passed
+  - `make backend-test-one target=src/tests/services/test_mini_app_link.py` — 6 passed
+  - `docker exec filmony-backend uv run alembic upgrade head`
+  - `cd frontend && npm run lint` — pass

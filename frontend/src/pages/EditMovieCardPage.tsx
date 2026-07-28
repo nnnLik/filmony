@@ -1,7 +1,7 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router'
 
 import { getMovieCardById, updateMovieCard, uploadUserCardAudio, deleteUserCardAudio } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'

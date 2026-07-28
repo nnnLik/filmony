@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useRef, useCallback, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import type { CardCompany, CardMoodAfter, CardMoodBefore, MyMovieCardTagStatItem } from '../../api/profileTypes'
 import { getMyPlannedCard } from '../../api/profileApi'
