@@ -50,9 +50,7 @@ def _format_stats_line(controversy: WeeklyControversyResult) -> str:
     count = controversy.rater_count
     count_word = 'оценка' if count == 1 else ('оценки' if 2 <= count <= 4 else 'оценок')
     avg_suffix = (
-        f' (ср. {controversy.avg_rating:.1f})'
-        if controversy.avg_rating is not None
-        else ''
+        f' (ср. {controversy.avg_rating:.1f})' if controversy.avg_rating is not None else ''
     )
     return (
         f'Ваш круг разошёлся: от {low:g} до {high:g}{avg_suffix} '
@@ -80,9 +78,8 @@ def _viewer_position_label(controversy: WeeklyControversyResult) -> str:
 def _format_viewer_line(controversy: WeeklyControversyResult) -> str | None:
     if controversy.viewer_rating is not None:
         position = _viewer_position_label(controversy)
-        return (
-            f'Ваша оценка: <b>{controversy.viewer_rating:.0f}/10</b>'
-            + (f' — {position}' if position else '')
+        return f'Ваша оценка: <b>{controversy.viewer_rating:.0f}/10</b>' + (
+            f' — {position}' if position else ''
         )
     return 'Вы ещё не оценивали — куда бы вы поставили?'
 

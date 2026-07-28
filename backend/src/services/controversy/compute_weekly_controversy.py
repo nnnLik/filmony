@@ -135,7 +135,11 @@ class ComputeWeeklyControversyService:
             return None
 
         candidates.sort(
-            key=lambda item: (-item.stats.spread, -item.stats.rater_count, _anchor_sort_key(item.anchor)),
+            key=lambda item: (
+                -item.stats.spread,
+                -item.stats.rater_count,
+                _anchor_sort_key(item.anchor),
+            ),
         )
 
         user_ids = {card.user_id for card in cards}
@@ -182,7 +186,9 @@ class ComputeWeeklyControversyService:
         display_by_user_id: dict[UUID, str],
     ) -> WeeklyControversyResult:
         anchor_cards = [card for card in cards if _card_matches_anchor(card, anchor)]
-        recent_cards = [card for card in anchor_cards if _is_recent(card, window_start=window_start)]
+        recent_cards = [
+            card for card in anchor_cards if _is_recent(card, window_start=window_start)
+        ]
         effective_cards = recent_cards
         if _spread_from_ratings(_latest_ratings_by_user(recent_cards)) is None:
             effective_cards = anchor_cards
@@ -253,8 +259,8 @@ class ComputeWeeklyControversyService:
         if not user_ids:
             return {}
         rows = (
-            await self._session.execute(select(User).where(User.id.in_(user_ids)))
-        ).scalars().all()
+            (await self._session.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()
+        )
         return {user.id: _format_user_display(user) for user in rows}
 
     async def _load_circle_rated_cards(
@@ -378,7 +384,9 @@ def _latest_card_by_user(cards: list[_RatedCardRow]) -> dict[UUID, _RatedCardRow
         if prev is None:
             picked[card.user_id] = card
             continue
-        prev_ts = _normalize_completed_at(prev.completed_at) or dt.datetime.min.replace(tzinfo=dt.UTC)
+        prev_ts = _normalize_completed_at(prev.completed_at) or dt.datetime.min.replace(
+            tzinfo=dt.UTC
+        )
         if ts > prev_ts or (ts == prev_ts and card.card_id > prev.card_id):
             picked[card.user_id] = card
     return picked
