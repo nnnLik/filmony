@@ -1,67 +1,98 @@
 .rating-streak-badge {
   --streak-heat: 0;
+  --streak-flame-top: #ffb347;
+  --streak-flame-mid: #ff6b00;
+  --streak-flame-base: #c41e00;
+  --streak-glow-alpha: 0.35;
+  --streak-glow-spread: 2px;
+  --streak-glow-blur: 4px;
+  --streak-flicker-speed: 1.2s;
+
   display: inline-flex;
   align-items: center;
-  gap: 0.125rem;
-  font-size: 0.75rem;
   line-height: 1;
+  vertical-align: middle;
 }
 
-.rating-streak-badge__fire {
+.rating-streak-badge__digit {
   display: inline-block;
-  animation: rating-streak-flicker 1.15s ease-in-out infinite;
-  filter: drop-shadow(
-    0 0 calc(2px + 5px * var(--streak-heat))
-      color-mix(in srgb, #ff8c00 calc(35% + 65% * var(--streak-heat)), transparent)
-  );
-  transform-origin: center bottom;
-}
-
-.rating-streak-badge__number {
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: color-mix(
-    in srgb,
-    #ff8c00 calc(35% + 65% * var(--streak-heat)),
-    var(--tgui--hint_color)
+  letter-spacing: -0.02em;
+
+  background: linear-gradient(
+    165deg,
+    var(--streak-flame-top) 0%,
+    var(--streak-flame-mid) 42%,
+    var(--streak-flame-base) 100%
   );
+  background-size: 100% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  filter: drop-shadow(0 0 var(--streak-glow-spread) rgb(255 120 20 / var(--streak-glow-alpha)))
+    drop-shadow(0 0 var(--streak-glow-blur) rgb(255 180 60 / calc(var(--streak-glow-alpha) * 0.65)));
+
+  animation:
+    rating-streak-burn-flicker var(--streak-flicker-speed) ease-in-out infinite,
+    rating-streak-burn-shift calc(var(--streak-flicker-speed) * 2.4) ease-in-out infinite;
 }
 
-.rating-streak-badge__number--pop {
-  animation: rating-streak-number-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+.rating-streak-badge__digit--pop {
+  animation:
+    rating-streak-digit-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    rating-streak-burn-flicker var(--streak-flicker-speed) ease-in-out infinite,
+    rating-streak-burn-shift calc(var(--streak-flicker-speed) * 2.4) ease-in-out infinite;
 }
 
-@keyframes rating-streak-flicker {
+@keyframes rating-streak-burn-flicker {
   0%,
   100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
+    filter: drop-shadow(0 0 var(--streak-glow-spread) rgb(255 120 20 / var(--streak-glow-alpha)))
+      drop-shadow(0 0 var(--streak-glow-blur) rgb(255 180 60 / calc(var(--streak-glow-alpha) * 0.65)))
+      brightness(calc(1 + 0.06 * var(--streak-heat)));
   }
 
-  22% {
-    transform: scale(1.1) rotate(-4deg);
-    opacity: 0.9;
+  20% {
+    filter: drop-shadow(0 0 calc(var(--streak-glow-spread) * 1.4) rgb(255 80 0 / calc(var(--streak-glow-alpha) * 1.2)))
+      drop-shadow(0 0 calc(var(--streak-glow-blur) * 1.25) rgb(255 230 120 / calc(var(--streak-glow-alpha) * 0.9)))
+      brightness(calc(1.14 + 0.14 * var(--streak-heat)));
   }
 
-  48% {
-    transform: scale(0.94) rotate(3deg);
-    opacity: 1;
+  45% {
+    filter: drop-shadow(0 0 calc(var(--streak-glow-spread) * 0.8) rgb(255 150 40 / calc(var(--streak-glow-alpha) * 0.7)))
+      drop-shadow(0 0 calc(var(--streak-glow-blur) * 0.85) rgb(255 140 30 / calc(var(--streak-glow-alpha) * 0.45)))
+      brightness(calc(0.92 + 0.05 * var(--streak-heat)));
   }
 
-  72% {
-    transform: scale(1.06) rotate(-2deg);
-    opacity: 0.94;
+  70% {
+    filter: drop-shadow(0 0 calc(var(--streak-glow-spread) * 1.25) rgb(255 50 0 / calc(var(--streak-glow-alpha) * 1.1)))
+      drop-shadow(0 0 calc(var(--streak-glow-blur) * 1.15) rgb(255 200 90 / calc(var(--streak-glow-alpha) * 0.75)))
+      brightness(calc(1.08 + 0.1 * var(--streak-heat)));
   }
 }
 
-@keyframes rating-streak-number-pop {
+@keyframes rating-streak-burn-shift {
+  0%,
+  100% {
+    background-position: 50% 0%;
+  }
+
+  50% {
+    background-position: 50% 100%;
+  }
+}
+
+@keyframes rating-streak-digit-pop {
   0% {
-    transform: scale(0.55);
-    opacity: 0.45;
+    transform: scale(0.5);
+    opacity: 0.35;
   }
 
   55% {
-    transform: scale(1.18);
+    transform: scale(calc(1.22 + 0.08 * var(--streak-heat)));
   }
 
   100% {
@@ -71,8 +102,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rating-streak-badge__fire,
-  .rating-streak-badge__number--pop {
+  .rating-streak-badge__digit,
+  .rating-streak-badge__digit--pop {
     animation: none;
   }
 }

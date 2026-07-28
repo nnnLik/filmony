@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 
 import type { StreakBatchItem } from '../../api/streaksTypes'
-import { streakHeat } from '../../lib/streakHeat'
+import { streakFlameStyleVars, streakHeat } from '../../lib/streakHeat'
 
 import './ratingStreakStyles.css'
 
@@ -33,16 +33,14 @@ export function RatingStreakBadge({ item, className = '' }: RatingStreakBadgePro
   }
 
   const heat = streakHeat(current)
-  const style = { '--streak-heat': String(heat) } as CSSProperties
+  const style = {
+    '--streak-heat': String(heat),
+    ...streakFlameStyleVars(heat),
+  } as CSSProperties
 
   return (
     <span className={`rating-streak-badge ${className}`} style={style} aria-label={`Серия оценок ${current} дней`}>
-      <span className="rating-streak-badge__fire" aria-hidden>
-        🔥
-      </span>
-      <span className={`rating-streak-badge__number ${pop ? 'rating-streak-badge__number--pop' : ''}`}>
-        {current}
-      </span>
+      <span className={`rating-streak-badge__digit ${pop ? 'rating-streak-badge__digit--pop' : ''}`}>{current}</span>
     </span>
   )
 }
