@@ -9,6 +9,9 @@ from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.user import User
 from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.compute_weekly_controversy import ComputeWeeklyControversyService
@@ -17,8 +20,6 @@ from services.controversy.upsert_weekly_controversy_state import UpsertWeeklyCon
 from services.controversy.week_bounds import week_start_for_datetime
 from services.telegram.build_weekly_controversy_message import BuildWeeklyControversyMessageService
 from services.telegram.engagement_delivery import deliver_engagement_html_message
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.user import User
 from models.user_card import UserCard
 from models.user_subscription import UserSubscription
@@ -13,8 +16,6 @@ from services.watchlist.list_user_watchlist_entries import (
     ListUserWatchlistEntriesService,
     _collect_hydration_keys,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

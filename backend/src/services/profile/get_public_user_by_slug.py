@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from models.user import User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import User
 
 
 class GetPublicUserBySlugService:

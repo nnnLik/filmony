@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from services.text.spoiler_tokens import (
     SPOILER_CLOSE,
     SPOILER_OPEN,

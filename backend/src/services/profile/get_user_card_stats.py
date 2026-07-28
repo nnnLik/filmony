@@ -6,12 +6,13 @@ from math import floor
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.card_tag import CardTag
 from models.film import Film
 from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
-from sqlalchemy import desc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
 ACTIVITY_WINDOW_DAYS = 180

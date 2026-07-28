@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from models.user import User
-from models.user_subscription import UserSubscription
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import User
+from models.user_subscription import UserSubscription
 
 
 class TargetUserNotFoundError(Exception):

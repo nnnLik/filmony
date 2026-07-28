@@ -3,11 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.reaction_target_kind import ReactionTargetKind
 from models.user import User
 from models.user_reaction import UserReaction
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

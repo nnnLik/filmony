@@ -7,14 +7,15 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.compute_weekly_controversy import (
     ComputeWeeklyControversyService,
     WeeklyControversyResult,
 )
 from services.controversy.week_bounds import week_start_for_datetime
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

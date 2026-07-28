@@ -5,18 +5,18 @@ from uuid import UUID
 
 import orjson
 import pytest
+from httpx import AsyncClient
+from sqlalchemy import select
+
 from celery_app import app as celery_app_instance
 from conf import settings
 from core.database import get_session_factory
-from httpx import AsyncClient
 from models.card_comment import CardComment
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.reaction_type import ReactionType
 from models.user import User
 from models.user_card import UserCard
-from sqlalchemy import select
-
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 

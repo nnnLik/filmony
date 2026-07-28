@@ -3,13 +3,14 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from api.cards.schemas import (
     ReferencedInlineUserCardSnippetResponse,
     ReferencedMentionSnippetResponse,
     UserCardCommentAuthorResponse,
 )
 from api.reactions.schemas import ReactionSummaryResponse
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class FeedPostCreateRequest(BaseModel):

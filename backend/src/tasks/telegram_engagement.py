@@ -9,6 +9,7 @@ from uuid import UUID
 
 import orjson
 from celery import Celery
+
 from models.reaction_target_kind import ReactionTargetKind
 from services.telegram.notify_comment_reply import run_notify_comment_reply_safe
 from services.telegram.notify_feed_post_comment_mention import (

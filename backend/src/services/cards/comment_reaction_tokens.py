@@ -3,6 +3,9 @@ from __future__ import annotations
 import re
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.reaction_type import ReactionType
 from services.cards.inline_user_card_ref_tokens import (
     InlineUserCardRefTokenValidationError,
@@ -16,8 +19,6 @@ from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 COMMENT_TEXT_MAX_LEN = 250
 REACTION_TOKEN_RE = re.compile(r'⟦r(\d+)⟧')

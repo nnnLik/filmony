@@ -4,14 +4,15 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.card_comment import CardComment
 from services.cards.comment_reaction_tokens import (
     CommentReactionTokenError,
     validate_comment_text_with_reaction_tokens,
 )
 from services.cards.user_card_comment_image_url import normalize_user_card_comment_image_url
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UserCardCommentNotFoundError(Exception):

@@ -7,12 +7,13 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import exists, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.subscribed_activity_digest_state import SubscribedActivityDigestState
 from models.user import User
 from models.user_subscription import UserSubscription
 from services.telegram.subscribed_activity_digest_candidates import DIGEST_INTERVAL
-from sqlalchemy import exists, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

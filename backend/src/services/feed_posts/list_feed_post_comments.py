@@ -4,6 +4,10 @@ import datetime as dt
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import Select, asc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
+
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
@@ -14,9 +18,6 @@ from services.feed_posts.get_feed_post_by_id import FeedPostNotFoundError
 from services.profile.batch_resolve_inline_mentions import ReferencedMentionSnippet
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
-from sqlalchemy import Select, asc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
 
 @dataclass(frozen=True, slots=True)

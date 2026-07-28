@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import desc, func, select, union
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.user import User
 from models.user_card import UserCard
 from models.user_subscription import UserSubscription
-from sqlalchemy import desc, func, select, union
-from sqlalchemy.ext.asyncio import AsyncSession
 
 TASTE_PEERS_LIMIT = 5
 

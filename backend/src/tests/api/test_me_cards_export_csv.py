@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID
 
 import pytest
-from conf import settings
 from httpx import AsyncClient
-from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 
+from conf import settings
+from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -60,7 +60,6 @@ async def test_export_cards_csv_sent_with_row(logged_in_client: AsyncClient) -> 
     from models.catalog_item import CatalogProvider
     from models.film import Film
     from models.user_card import UserCard
-
     from tests.support.user_card_category import ensure_default_category
 
     session_factory = get_session_factory()

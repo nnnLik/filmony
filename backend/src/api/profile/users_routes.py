@@ -4,10 +4,30 @@ import datetime as dt
 from typing import Annotated, Literal
 from uuid import UUID
 
-from core.database import get_db
-from deps.auth import CurrentUser
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
+from api.cards.schemas import UserFeedPostsPageResponse
+from api.profile.schemas import (
+    MyUserCardCategoryListResponse,
+    MyUserCardCategoryResponse,
+    MyUserCardTagStatItem,
+    MyUserCardTagStatsResponse,
+    PublicProfileResponse,
+    SubscriptionListResponse,
+    UserCardPageResponse,
+    UserCardStatsApiResponse,
+    WatchlistEntryPageResponse,
+    build_public_profile_response,
+    build_subscription_list_response,
+    build_user_card_page_response,
+    build_user_card_stats_response,
+    build_watchlist_entry_page_response,
+)
+from core.database import get_db
+from deps.auth import CurrentUser
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
@@ -43,26 +63,6 @@ from services.user_card_categories.list_public_user_card_categories import (
     ListPublicUserCardCategoriesService,
 )
 from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.cards.feed_post_feed_mapping import feed_post_feed_item_to_response
-from api.cards.schemas import UserFeedPostsPageResponse
-from api.profile.schemas import (
-    MyUserCardCategoryListResponse,
-    MyUserCardCategoryResponse,
-    MyUserCardTagStatItem,
-    MyUserCardTagStatsResponse,
-    PublicProfileResponse,
-    SubscriptionListResponse,
-    UserCardPageResponse,
-    UserCardStatsApiResponse,
-    WatchlistEntryPageResponse,
-    build_public_profile_response,
-    build_subscription_list_response,
-    build_user_card_page_response,
-    build_user_card_stats_response,
-    build_watchlist_entry_page_response,
-)
 
 router = APIRouter(prefix='/users', tags=['users'])
 

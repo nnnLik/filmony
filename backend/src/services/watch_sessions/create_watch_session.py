@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.watch_session import WatchSession
 from models.watch_session_enums import WatchSessionStatus
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _participant_ids_json(*, initiator_user_id: UUID, partner_user_ids: list[UUID]) -> list[str]:

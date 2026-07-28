@@ -3,10 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Self
 
-from models.film import Film
-from services.search.ilike_escape import escape_ilike_pattern
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.film import Film
+from services.search.ilike_escape import escape_ilike_pattern
 
 
 @dataclass(frozen=True, slots=True)

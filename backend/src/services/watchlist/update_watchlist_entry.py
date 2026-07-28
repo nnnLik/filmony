@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany
 from models.user_card import UserCard
@@ -23,9 +27,6 @@ from services.watchlist.normalize_watch_with_partners import (
     primary_watch_with_user_id,
     watch_with_user_ids_as_json,
 )
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _normalize_watch_note(raw: str) -> str:

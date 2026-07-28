@@ -10,6 +10,10 @@ from typing import Literal, Self
 from uuid import UUID
 
 import orjson
+from sqlalchemy import Integer, String, and_, or_, select, union_all
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import literal
+
 from models.feed_post import FeedPost
 from models.user_card import UserCard
 from services.cards.list_user_card_feed import (
@@ -17,9 +21,6 @@ from services.cards.list_user_card_feed import (
     ListUserCardFeedService,
     UserCardFeedPage,
 )
-from sqlalchemy import Integer, String, and_, or_, select, union_all
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import literal
 
 GlobalFeedKind = Literal['all', 'posts', 'cards']
 

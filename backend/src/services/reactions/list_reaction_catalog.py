@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from conf.settings import settings
 from const.reaction_packs import REACTION_TAB_ORDER
 from models.reaction_type import ReactionType
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from utils.reaction_urls import resolve_reaction_media_url
 
 

@@ -4,6 +4,9 @@ import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
@@ -17,8 +20,6 @@ from services.cards.list_user_card_comments import UserCardCommentAuthor
 from services.reactions import GetReactionSummariesForTargetsService
 from services.reactions.types import ReactionTargetSummary
 from services.watchlist.watchlist_card_id import watchlist_card_id_from_user_card
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

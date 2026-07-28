@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from typing import Literal, Self
 
 import orjson
-from conf.settings import settings
-from models.catalog_item import CatalogProvider
-from models.game import Game
-from services.search.ilike_escape import escape_ilike_pattern
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf.settings import settings
+from models.catalog_item import CatalogProvider
+from models.game import Game
 from providers.rawg import RawgGamesListQueryParams, RawgProviderTransport
+from services.search.ilike_escape import escape_ilike_pattern
 
 from .catalog_search_query_normalize import normalize_catalog_search_query
 from .ensure_rawg_catalog_item_service import EnsureRawgCatalogItemService

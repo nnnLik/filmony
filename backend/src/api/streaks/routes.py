@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.streaks.schemas import (
     STREAK_BATCH_MIN_CURRENT,
     MyStreakResponse,
@@ -11,9 +14,7 @@ from api.streaks.schemas import (
 )
 from core.database import get_db
 from deps.auth import CurrentUser
-from fastapi import APIRouter, Depends
 from services.streaks.batch_user_rating_streaks import BatchUserRatingStreaksService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 streaks_router = APIRouter(prefix='/streaks', tags=['streaks'])
 me_streak_router = APIRouter(prefix='/me', tags=['streaks'])

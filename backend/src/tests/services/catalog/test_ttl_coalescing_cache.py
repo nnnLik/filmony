@@ -4,6 +4,7 @@ import asyncio
 from unittest.mock import patch
 
 import pytest
+
 from services.catalog.ttl_coalescing_cache import TtlCoalescingCache
 
 

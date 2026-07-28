@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from services.kinopoisk.parse_url import KinopoiskUrlParseError, parse_kinopoisk_film_id
 
 

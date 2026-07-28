@@ -5,11 +5,12 @@ from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.taste_quiz_pair_progress import TasteQuizPairProgress
 from models.user import User
 from services.taste_quiz.scoring import compute_accuracy_pct
-from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TasteQuizKnowledgeDirection(StrEnum):

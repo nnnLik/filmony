@@ -4,10 +4,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from uuid import UUID
 
-from models.user import User
-from models.user_subscription import UserSubscription
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import User
+from models.user_subscription import UserSubscription
 
 
 class SubscriptionListType(StrEnum):

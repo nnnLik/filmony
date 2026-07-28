@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from models.feed_post_comment import FeedPostComment
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.feed_post_comment import FeedPostComment
 
 
 class FeedPostCommentNotFoundError(Exception):

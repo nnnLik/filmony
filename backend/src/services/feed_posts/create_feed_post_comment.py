@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from services.cards.comment_reaction_tokens import (
@@ -10,8 +13,6 @@ from services.cards.comment_reaction_tokens import (
     validate_comment_text_with_reaction_tokens,
 )
 from services.feed_posts.get_feed_post_by_id import FeedPostNotFoundError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

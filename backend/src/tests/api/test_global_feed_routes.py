@@ -3,15 +3,15 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
+from httpx import AsyncClient
+from sqlalchemy import select
+
 from conf import settings
 from core.database import get_session_factory
-from httpx import AsyncClient
 from models.feed_post import FeedPost
 from models.film import Film
 from models.user import User
 from models.user_card import UserCard
-from sqlalchemy import select
-
 from tests.auth.telegram_init_data import build_init_data
 
 

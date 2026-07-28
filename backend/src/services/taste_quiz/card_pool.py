@@ -3,11 +3,12 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
+from sqlalchemy import Select, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.film import Film
 from models.user_card import UserCard
 from services.taste_quiz.constants import SESSION_CARD_COUNT
-from sqlalchemy import Select, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def meaningful_rated_cards_stmt(owner_user_id) -> Select[tuple[UserCard, Film | None]]:

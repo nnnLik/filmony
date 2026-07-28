@@ -4,10 +4,11 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 from api.reactions.schemas import ReactionSummaryResponse
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogProvider
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class UserCardCategorySnippet(BaseModel):

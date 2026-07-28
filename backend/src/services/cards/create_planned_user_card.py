@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogItem, CatalogProvider
@@ -17,9 +21,6 @@ from services.text.spoiler_tokens import (
 from services.user_card_categories.resolve_user_card_category_id_for_owner import (
     ResolveUserCardCategoryIdForOwnerService,
 )
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _provider_from_meta(provider_meta: dict, card_id: str) -> str:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from services.taste_quiz.scoring import (
     TasteQuizRatingValidationError,
     compute_accuracy_pct,

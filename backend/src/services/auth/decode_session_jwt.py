@@ -3,8 +3,9 @@ from __future__ import annotations
 from uuid import UUID
 
 import jwt
-from conf import settings
 from jwt import InvalidTokenError
+
+from conf import settings
 
 
 class DecodeSessionJwtService:

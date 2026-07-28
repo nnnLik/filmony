@@ -7,9 +7,11 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
+from httpx import AsyncClient
+from sqlalchemy import select
+
 from conf import settings
 from core.database import get_session_factory
-from httpx import AsyncClient
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.user import User
@@ -23,8 +25,6 @@ from services.telegram.send_weekly_controversy_digest import (
     SendWeeklyControversyTelegramDigestService,
     WeeklyControversyDeliveryOutcome,
 )
-from sqlalchemy import select
-
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 

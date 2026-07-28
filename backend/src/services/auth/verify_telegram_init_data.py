@@ -6,6 +6,7 @@ import time
 from urllib.parse import parse_qsl
 
 import orjson
+
 from services.auth.dto import TelegramWebAppUser
 from services.auth.errors import TelegramInitDataInvalidError
 

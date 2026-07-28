@@ -5,8 +5,10 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from core.database import get_session_factory
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from core.database import get_session_factory
 from models.card_comment import CardComment
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.film import Film
@@ -32,7 +34,6 @@ from services.cards.update_user_card_comment import (
     UserCardCommentNotFoundError,
     UserCardCommentValidationError,
 )
-from sqlalchemy import select
 from tests.support.user_card_category import ensure_default_category
 
 

@@ -8,6 +8,7 @@ import logging
 from uuid import UUID
 
 from celery import Celery
+
 from core.database import disposable_async_session
 from services.watch_sessions.finalize_watch_session_if_ready import (
     FinalizeWatchSessionIfReadyService,

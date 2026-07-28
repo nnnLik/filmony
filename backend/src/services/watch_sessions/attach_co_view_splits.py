@@ -3,11 +3,12 @@ from __future__ import annotations
 from dataclasses import replace
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.feed_post import FeedPost
 from services.cards.list_user_card_feed import FeedPostFeedItem
 from services.watch_sessions.list_co_view_splits import CoViewSplit, ListCoViewSplitsService
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def attach_co_view_splits_to_feed_posts(

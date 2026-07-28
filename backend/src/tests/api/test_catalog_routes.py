@@ -4,15 +4,14 @@ import logging
 from http import HTTPStatus
 
 import pytest
+from httpx import AsyncClient
+from sqlalchemy import select
+
 from conf import settings
 from core.database import get_session_factory
-from httpx import AsyncClient
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
-from services.kinopoisk.client import KinopoiskClientError
-from sqlalchemy import select
-
 from providers.base_provider_http_transport import BaseProviderHttpTransport
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.kinopoisk.kinopoisk_search_dto import (
@@ -22,6 +21,7 @@ from providers.kinopoisk.kinopoisk_search_dto import (
 from providers.rawg.rawg_openapi_dto import RawgGamesListQueryParams, RawgGamesListResponseDTO
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from providers.youtube.youtube_oembed_client import YoutubeOembedClient
+from services.kinopoisk.client import KinopoiskClientError
 from tests.auth.telegram_init_data import build_init_data
 
 

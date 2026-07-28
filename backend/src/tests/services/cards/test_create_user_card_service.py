@@ -6,8 +6,9 @@ from dataclasses import replace
 from uuid import UUID
 
 import pytest
-from core.database import get_session_factory
 from httpx import AsyncClient
+
+from core.database import get_session_factory
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film

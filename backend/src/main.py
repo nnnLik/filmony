@@ -1,6 +1,7 @@
 import uvicorn
-from conf import settings
 from fastapi import FastAPI
+
+from conf import settings
 from utils.app_utils import get_app, setup_app
 
 app: FastAPI = setup_app(get_app())

@@ -3,8 +3,10 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from core.database import get_session_factory
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
@@ -13,7 +15,6 @@ from models.user_card import UserCard
 from services.telegram.send_watchlist_invite_notification import (
     SendWatchlistInviteNotificationService,
 )
-from sqlalchemy import select
 from tests.support.user_card_category import ensure_default_category
 
 

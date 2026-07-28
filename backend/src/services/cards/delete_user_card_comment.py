@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from models.card_comment import CardComment
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.card_comment import CardComment
 
 
 class UserCardCommentNotFoundError(Exception):

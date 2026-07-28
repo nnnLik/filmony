@@ -6,6 +6,10 @@ from dataclasses import dataclass, replace
 from math import isfinite
 from uuid import UUID
 
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
@@ -21,9 +25,6 @@ from services.user_card_categories.resolve_user_card_category_id_for_owner impor
     ResolveUserCardCategoryIdForOwnerService,
 )
 from services.watch_sessions.record_watch_session_rating import RecordWatchSessionRatingService
-from sqlalchemy import delete, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _completion_now() -> dt.datetime:

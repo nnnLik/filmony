@@ -5,8 +5,10 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from core.database import get_session_factory
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from core.database import get_session_factory
 from models.feed_post import FeedPost
 from models.feed_post_comment import FeedPostComment
 from models.user import User
@@ -29,7 +31,6 @@ from services.feed_posts.update_feed_post_comment import (
     FeedPostCommentValidationError,
     UpdateFeedPostCommentService,
 )
-from sqlalchemy import select
 
 
 async def _create_user(*, telegram_user_id: int) -> User:

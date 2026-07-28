@@ -6,8 +6,9 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-import celery_app
 import pytest
+
+import celery_app
 from services.telegram.send_subscribed_activity_digest import (
     DigestDeliveryOutcome,
     DigestDeliveryResult,

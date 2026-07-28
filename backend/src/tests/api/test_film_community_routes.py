@@ -3,13 +3,13 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
+from httpx import AsyncClient
+
 from conf import settings
 from core.database import get_session_factory
-from httpx import AsyncClient
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
-
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 

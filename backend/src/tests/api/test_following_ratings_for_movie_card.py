@@ -5,14 +5,14 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from core.database import get_session_factory
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
 from models.user_card import UserCard
-from sqlalchemy import select
-
 from tests.api.test_profile_routes import _login, _seed_movie_card
 from tests.support.user_card_category import ensure_default_category
 

@@ -3,12 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Annotated
 
-from core.database import get_db
-from deps.auth import CurrentUser
 from fastapi import APIRouter, Depends, HTTPException, Query
-from services.search.search_catalog_cards import SearchCatalogCardsService
-from services.search.search_catalog_users import SearchCatalogUsersService
-from services.search.search_user_suggestions import SearchUserSuggestionsService
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.search.schemas import (
@@ -17,6 +12,11 @@ from api.search.schemas import (
     SearchSuggestionsResponse,
     SearchUserItemResponse,
 )
+from core.database import get_db
+from deps.auth import CurrentUser
+from services.search.search_catalog_cards import SearchCatalogCardsService
+from services.search.search_catalog_users import SearchCatalogUsersService
+from services.search.search_user_suggestions import SearchUserSuggestionsService
 
 router = APIRouter(prefix='/search', tags=['search'])
 

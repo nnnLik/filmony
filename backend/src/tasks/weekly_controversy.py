@@ -12,6 +12,7 @@ import datetime as dt
 import logging
 
 from celery import Celery
+
 from services.telegram.send_weekly_controversy_digest import (
     run_weekly_controversy_digest_for_recipient_safe,
 )

@@ -4,10 +4,11 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from models.user import User
-from services.search.ilike_escape import escape_ilike_pattern
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import User
+from services.search.ilike_escape import escape_ilike_pattern
 
 
 @dataclass(frozen=True, slots=True)

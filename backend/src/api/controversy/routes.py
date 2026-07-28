@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.controversy.schemas import WeeklyControversyItemResponse, WeeklyControversyResponse
 from core.database import get_db
 from deps.auth import CurrentUser
-from fastapi import APIRouter, Depends
 from services.controversy.get_current_week_controversy import GetCurrentWeekControversyService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix='/me', tags=['controversy'])
 

@@ -8,8 +8,9 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from conf.settings import settings
 from redis.asyncio import Redis
+
+from conf.settings import settings
 
 logger = logging.getLogger(__name__)
 

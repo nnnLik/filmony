@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from conf import settings
 from services.telegram.mini_app_link import (
     resolve_controversy_deeplink_url,

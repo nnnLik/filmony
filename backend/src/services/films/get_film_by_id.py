@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from models.film import Film
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.film import Film
 
 
 class GetFilmByIdService:

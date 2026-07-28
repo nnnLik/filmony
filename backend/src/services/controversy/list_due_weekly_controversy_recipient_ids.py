@@ -7,12 +7,13 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import exists, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.user import User
 from models.user_subscription import UserSubscription
 from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.week_bounds import week_start_for_datetime
-from sqlalchemy import exists, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

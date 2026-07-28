@@ -12,6 +12,9 @@ from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.card_tag import CardTag
 from models.feed_post import FeedPost
 from models.film import Film
@@ -20,8 +23,6 @@ from models.user_card import UserCard
 from services.subscriptions.list_following_user_ids_for_follower_user import (
     ListFollowingUserIdsForFollowerUserService,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 DIGEST_INTERVAL = dt.timedelta(hours=48)
 MIN_CANDIDATE_SCORE = 40.0

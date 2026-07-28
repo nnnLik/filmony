@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from typing import Literal, Self
 from uuid import UUID
 
+from sqlalchemy import or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.film import Film
 from models.user import User
 from models.user_card import UserCard
@@ -15,8 +18,6 @@ from services.controversy.week_bounds import rating_window_start
 from services.subscriptions.list_following_user_ids_for_follower_user import (
     ListFollowingUserIdsForFollowerUserService,
 )
-from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 MIN_RATER_COUNT = 3
 

@@ -4,10 +4,11 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 
 
 @dataclass

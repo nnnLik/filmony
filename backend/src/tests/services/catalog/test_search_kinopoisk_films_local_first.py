@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import select
+
 from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
-from services.catalog.search_kinopoisk_films_local_first import (
-    PAGE_SIZE,
-    SearchKinopoiskFilmsLocalFirstService,
-)
-from sqlalchemy import select
-
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     KinopoiskFilmSearchResponseDTO,
+)
+from services.catalog.search_kinopoisk_films_local_first import (
+    PAGE_SIZE,
+    SearchKinopoiskFilmsLocalFirstService,
 )
 
 

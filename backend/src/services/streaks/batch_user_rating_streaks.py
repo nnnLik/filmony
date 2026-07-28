@@ -5,9 +5,10 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from models.user_card import UserCard
 from sqlalchemy import Date, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user_card import UserCard
 
 
 @dataclass(frozen=True, slots=True)

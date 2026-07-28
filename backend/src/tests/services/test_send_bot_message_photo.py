@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from integrations.telegram.bot_api_client import TelegramSendMessageResult
 from services.telegram.send_bot_message import (
     SendTelegramBotMessageService,

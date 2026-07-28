@@ -9,6 +9,9 @@ from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.subscribed_activity_digest_state import SubscribedActivityDigestState
 from models.user import User
 from services.subscriptions.list_following_user_ids_for_follower_user import (
@@ -26,8 +29,6 @@ from services.telegram.subscribed_activity_digest_candidates import (
     _ensure_naive_utc,
     digest_payload_hash,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

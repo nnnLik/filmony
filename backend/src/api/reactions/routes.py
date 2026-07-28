@@ -4,6 +4,10 @@ import asyncio
 from typing import Annotated
 
 import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.reactions.schemas import (
     ReactionActorResponse,
     ReactionActorsListResponse,
@@ -23,8 +27,6 @@ from core.rustfs_s3_client import (
     get_rustfs_object_bytes,
 )
 from deps.auth import CurrentUser
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
 from models.reaction_target_kind import ReactionTargetKind
 from services.reactions.list_reaction_actors import ListReactionActorsService
 from services.reactions.list_reaction_catalog import (
@@ -38,7 +40,6 @@ from services.reactions.set_or_toggle_user_reaction import (
     SetOrToggleUserReactionService,
     SetUserReactionInput,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 from utils.reaction_asset_key import is_safe_reaction_asset_key
 
 router = APIRouter(prefix='/reactions', tags=['reactions'])

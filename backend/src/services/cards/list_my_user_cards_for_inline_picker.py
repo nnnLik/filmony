@@ -6,10 +6,11 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from models.film import Film
-from models.user_card import UserCard
 from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.film import Film
+from models.user_card import UserCard
 
 
 @dataclass(frozen=True, slots=True)

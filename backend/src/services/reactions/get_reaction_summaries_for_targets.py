@@ -3,13 +3,14 @@ from __future__ import annotations
 from collections import defaultdict
 from uuid import UUID
 
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from conf.settings import settings
 from models.reaction_target_kind import ReactionTargetKind
 from models.reaction_type import ReactionType
 from models.user import User
 from models.user_reaction import UserReaction
-from sqlalchemy import and_, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from utils.reaction_urls import resolve_reaction_media_url
 
 from .types import ReactionActorEntry, ReactionCountEntry, ReactionTargetSummary

@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.card_comment import CardComment
 from models.feed_post import FeedPost
 from models.user_card import UserCard
@@ -11,8 +14,6 @@ from services.feed_posts.validate_feed_post_body import (
     FeedPostBodyValidationError,
     validate_feed_post_body,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

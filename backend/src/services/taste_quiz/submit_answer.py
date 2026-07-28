@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.taste_quiz_enums import TasteQuizSessionStatus
 from models.taste_quiz_session import TasteQuizSession
 from models.taste_quiz_session_card import TasteQuizSessionCard
@@ -25,8 +28,6 @@ from services.taste_quiz.session_mapper import (
     map_session,
     map_session_card,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

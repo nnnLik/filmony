@@ -3,6 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.catalog.schemas import (
     CatalogCandidateResponse,
     CatalogCandidatesMetaResponse,
@@ -18,9 +22,10 @@ from api.catalog.schemas import (
 from api.films.schemas import FilmResponse
 from core.database import get_db
 from deps.auth import CurrentUser
-from fastapi import APIRouter, Depends, HTTPException, Query
 from models.catalog_item import CatalogProvider
 from models.user_card import UserCard
+from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
+from providers.rawg.rawg_provider_transport import RawgProviderTransport
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
 from services.catalog.catalog_candidate_dto import CatalogCandidateDTO
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
@@ -39,11 +44,6 @@ from services.kinopoisk.resolve_kinopoisk_film import (
     KinopoiskClientError,
     KinopoiskUrlParseError,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
-from providers.rawg.rawg_provider_transport import RawgProviderTransport
 
 router = APIRouter(prefix='/catalog', tags=['catalog'])
 logger = logging.getLogger(__name__)

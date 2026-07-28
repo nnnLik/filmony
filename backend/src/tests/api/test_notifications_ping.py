@@ -5,10 +5,10 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from conf import settings
 from httpx import AsyncClient
-from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 
+from conf import settings
+from integrations.telegram.bot_api_client import TelegramBotApiClient, TelegramSendMessageResult
 from tests.auth.telegram_init_data import build_init_data
 
 

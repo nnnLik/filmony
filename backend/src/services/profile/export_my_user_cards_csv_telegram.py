@@ -9,10 +9,11 @@ import re
 from dataclasses import dataclass
 from typing import Self
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.user import User
 from services.profile.list_user_cards import ListUserCardsService, UserCardListItem
 from services.telegram.send_bot_message import SendTelegramBotMessageService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _safe_export_filename_slug(profile_slug: str) -> str:

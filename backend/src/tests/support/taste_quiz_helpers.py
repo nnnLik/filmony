@@ -8,7 +8,6 @@ from models.film import Film
 from models.user import User
 from models.user_card import UserCard
 from models.user_subscription import UserSubscription
-
 from tests.support.user_card_category import ensure_default_category
 
 

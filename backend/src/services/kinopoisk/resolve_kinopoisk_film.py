@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.film import Film
 from services.kinopoisk.client import KinopoiskClient, KinopoiskClientError
 from services.kinopoisk.parse_url import KinopoiskUrlParseError, parse_kinopoisk_film_id
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ResolveKinopoiskFilmService:

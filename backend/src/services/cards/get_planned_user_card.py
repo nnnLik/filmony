@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.card_enums import CardCompany
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.user_card import UserCard
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

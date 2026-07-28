@@ -5,10 +5,11 @@ from __future__ import annotations
 import re
 from uuid import UUID
 
-from models.user import User
-from models.user_subscription import UserSubscription
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import User
+from models.user_subscription import UserSubscription
 
 _MENTION_TOKEN_RE = re.compile(r'⟦@([^⟧]+)⟧')
 _SLUG_IN_MENTION_RE = re.compile(r'^[A-Za-z0-9_-]{1,32}$')

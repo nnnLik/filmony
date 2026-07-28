@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from math import isfinite
 from uuid import UUID
 
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
@@ -17,8 +20,6 @@ from services.text.spoiler_tokens import (
 from services.user_card_categories.resolve_user_card_category_id_for_owner import (
     ResolveUserCardCategoryIdForOwnerService,
 )
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UserCardNotFoundError(Exception):

@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+
 from core.database import get_session_factory
 from models.catalog_item import CatalogProvider
 from models.film import Film
