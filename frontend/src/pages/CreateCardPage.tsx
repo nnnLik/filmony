@@ -117,6 +117,8 @@ export function CreateCardPage() {
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  const viewerUserId = readMyProfileBundleCache()?.profile.id ?? null
+
   const fromCardBootstrapSeq = useRef(0)
   const resolveAppliedRef = useRef<string | null>(null)
 
@@ -768,6 +770,7 @@ export function CreateCardPage() {
                   setScreen('search')
                   setSubmitError(null)
                 }}
+                viewerUserId={viewerUserId}
               />
             </div>
           </section>

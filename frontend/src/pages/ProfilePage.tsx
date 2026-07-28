@@ -23,6 +23,7 @@ import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { WatchlistOverlapSection } from '../components/watchlist/WatchlistOverlapSection'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { PageHeader } from '../components/layout/PageHeader'
+import { PlayfulHint } from '../components/ui/PlayfulHint'
 import { InlineLoadingState } from '../components/ui/InlineLoadingState'
 import { SegmentedControl } from '../components/ui/SegmentedControl'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
@@ -764,7 +765,12 @@ export function ProfilePage() {
             ) : null}
             {!postsLoading && feedPosts != null && feedPosts.items.length === 0 ? (
               <div className="filmony-text-panel py-8 text-center">
-                <p className="text-sm text-(--tgui--hint_color)">Пока нет постов в ленте</p>
+                <PlayfulHint
+                  poolKey="profile_posts_empty"
+                  fallback="Пока нет постов в ленте"
+                  userId={profile.id}
+                  className="text-sm text-(--tgui--hint_color)"
+                />
               </div>
             ) : null}
             {!postsLoading && feedPosts != null && feedPosts.items.length > 0 ? (

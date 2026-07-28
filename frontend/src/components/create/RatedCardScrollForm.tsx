@@ -19,6 +19,7 @@ import {
 } from '../../lib/createCardBinding'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
+import { useMicroFunLine } from '../../lib/microFun'
 import { MAX_WATCH_NOTE_LEN } from '../../lib/watchNoteLimits'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -97,6 +98,7 @@ export type RatedCardScrollFormProps = {
   submitLoading: boolean
   onSubmit: () => void
   onBackToSearch: () => void
+  viewerUserId?: string | number | null
 }
 
 function renderChoiceChips<T extends string>(
@@ -140,6 +142,11 @@ function FormSection({ title, children }: { title: string; children: ReactNode }
 export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
   const navigate = useNavigate()
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+  const watchNotePlaceholder = useMicroFunLine(
+    'watch_note_placeholder',
+    'Например: неожиданно тихий финал…',
+    props.viewerUserId ?? null,
+  )
 
   const plannedParams = useMemo(() => plannedCardLookupParams(props.binding), [props.binding])
   const plannedQuery = useQuery({
@@ -496,7 +503,7 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
             ref={watchNoteRef}
             value={props.watchNote}
             onChange={props.onWatchNoteChange}
-            placeholder="Например: неожиданно тихий финал…"
+            placeholder={watchNotePlaceholder}
             ariaLabel="Заметка к карточке"
             maxLength={MAX_WATCH_NOTE_LEN}
             rows={4}
