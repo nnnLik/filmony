@@ -81,3 +81,21 @@ export function parseWatchWithUserIdsParam(raw: string | null): string[] {
   }
   return out
 }
+
+export function overlapPartnersToInvite(item: WatchlistOverlapItem): WatchlistOverlapItem['partners'] {
+  const existing = new Set(item.watch_with_user_ids)
+  return item.partners.filter((partner) => !existing.has(partner.user_id))
+}
+
+export function mergedOverlapWatchWithUserIds(
+  item: WatchlistOverlapItem,
+  toInvite: WatchlistOverlapItem['partners'],
+): string[] {
+  const merged = [...item.watch_with_user_ids]
+  for (const partner of toInvite) {
+    if (!merged.includes(partner.user_id)) {
+      merged.push(partner.user_id)
+    }
+  }
+  return merged
+}

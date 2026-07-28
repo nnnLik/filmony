@@ -123,11 +123,15 @@ export type WatchlistOverlapPartner = {
 }
 
 export type WatchlistOverlapItem = {
+  entry_id: number
   title: string
   poster_url: string | null
   card_id: string
   film_id: number | null
   catalog_item_id: number | null
+  watch_with_user_ids: string[]
+  company: CardCompany
+  watch_note: string
   partners: WatchlistOverlapPartner[]
 }
 

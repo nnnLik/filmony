@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
+from models.user_card import UserCard
 from models.user_subscription import UserSubscription
 from models.watchlist_entry import WatchlistEntry
 from services.watchlist.list_user_watchlist_entries import (
@@ -27,11 +28,15 @@ class WatchlistOverlapPartner:
 
 @dataclass(frozen=True, slots=True)
 class WatchlistOverlapItem:
+    entry_id: int
     title: str
     poster_url: str | None
     card_id: str
     film_id: int | None
     catalog_item_id: int | None
+    watch_with_user_ids: list[UUID]
+    company: str
+    watch_note: str
     partners: list[WatchlistOverlapPartner]
 
 
@@ -69,21 +74,28 @@ class ListWatchlistOverlapsService:
 
         list_svc = ListUserWatchlistEntriesService(self._session)
         maps = await list_svc._load_hydration_maps(_collect_hydration_keys(actor_entries))
-        empty_planned: dict[str, int] = {}
+        planned_by_key = await list_svc._load_planned_user_card_ids_by_key(actor_user_id)
+        planned_meta = await self._load_planned_meta_by_card_id(actor_user_id, planned_by_key)
 
         items: list[WatchlistOverlapItem] = []
         for entry in actor_entries:
             partners = partners_by_card.get(entry.card_id, [])
             if not partners:
                 continue
-            hydrated = list_svc._hydrate_entry(entry, maps, empty_planned)
+            hydrated = list_svc._hydrate_entry(entry, maps, planned_by_key)
+            existing_partners = _partner_ids_from_entry(entry, actor_user_id)
+            meta = planned_meta.get(entry.card_id, ('alone', ''))
             items.append(
                 WatchlistOverlapItem(
+                    entry_id=int(entry.id),
                     title=hydrated.title,
                     poster_url=hydrated.poster_url,
                     card_id=hydrated.card_id,
                     film_id=hydrated.film_id,
                     catalog_item_id=hydrated.catalog_item_id,
+                    watch_with_user_ids=existing_partners,
+                    company=str(meta[0]),
+                    watch_note=str(meta[1]),
                     partners=partners,
                 )
             )
@@ -130,6 +142,35 @@ class ListWatchlistOverlapsService:
         )
         return list((await self._session.execute(stmt)).scalars().all())
 
+    async def _load_planned_meta_by_card_id(
+        self,
+        actor_user_id: UUID,
+        planned_by_key: dict[str, int],
+    ) -> dict[str, tuple[str, str]]:
+        if not planned_by_key:
+            return {}
+        card_ids = list(planned_by_key.keys())
+        card_row_ids = list(planned_by_key.values())
+        rows = (
+            await self._session.execute(
+                select(UserCard).where(
+                    UserCard.user_id == actor_user_id,
+                    UserCard.id.in_(card_row_ids),
+                    UserCard.is_planned.is_(True),
+                )
+            )
+        ).scalars().all()
+        by_id = {int(row.id): row for row in rows}
+        out: dict[str, tuple[str, str]] = {}
+        for card_key, user_card_id in planned_by_key.items():
+            card = by_id.get(int(user_card_id))
+            if card is None:
+                continue
+            company_raw = card.company
+            company = company_raw.value if hasattr(company_raw, 'value') else str(company_raw)
+            out[card_key] = (company, str(card.watch_note or ''))
+        return out
+
     async def _load_partners_by_card_id(
         self,
         mutual_ids: set[UUID],
@@ -165,3 +206,20 @@ class ListWatchlistOverlapsService:
                 )
             )
         return dict(out)
+
+
+def _partner_ids_from_entry(entry: WatchlistEntry, actor_user_id: UUID) -> list[UUID]:
+    partner_ids: list[UUID] = []
+    seen: set[UUID] = {actor_user_id}
+    for raw in entry.watch_with_user_ids or []:
+        try:
+            partner_id = UUID(str(raw))
+        except (TypeError, ValueError):
+            continue
+        if partner_id in seen:
+            continue
+        seen.add(partner_id)
+        partner_ids.append(partner_id)
+    if entry.watch_with_user_id is not None and entry.watch_with_user_id not in seen:
+        partner_ids.append(entry.watch_with_user_id)
+    return partner_ids

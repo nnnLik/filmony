@@ -157,11 +157,15 @@ class WatchlistOverlapPartnerResponse(BaseModel):
 
 
 class WatchlistOverlapItemResponse(BaseModel):
+    entry_id: int
     title: str
     poster_url: str | None
     card_id: str
     film_id: int | None = None
     catalog_item_id: int | None = None
+    watch_with_user_ids: list[UUID] = Field(default_factory=list)
+    company: str = 'alone'
+    watch_note: str = ''
     partners: list[WatchlistOverlapPartnerResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
@@ -429,11 +433,15 @@ def build_watchlist_overlap_partner_response(
 
 def build_watchlist_overlap_item_response(item: WatchlistOverlapItem) -> WatchlistOverlapItemResponse:
     return WatchlistOverlapItemResponse(
+        entry_id=item.entry_id,
         title=item.title,
         poster_url=item.poster_url,
         card_id=item.card_id,
         film_id=item.film_id,
         catalog_item_id=item.catalog_item_id,
+        watch_with_user_ids=list(item.watch_with_user_ids),
+        company=item.company,
+        watch_note=item.watch_note,
         partners=[build_watchlist_overlap_partner_response(p) for p in item.partners],
     )
 

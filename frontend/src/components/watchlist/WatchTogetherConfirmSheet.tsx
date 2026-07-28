@@ -25,6 +25,7 @@ function partnerInitials(partner: WatchlistOverlapPartner): string {
 
 export type WatchTogetherConfirmSheetProps = {
   open: boolean
+  mode?: 'create' | 'invite'
   title: string
   posterUrl: string | null
   partners: WatchlistOverlapPartner[]
@@ -35,6 +36,7 @@ export type WatchTogetherConfirmSheetProps = {
 
 export function WatchTogetherConfirmSheet({
   open,
+  mode = 'create',
   title,
   posterUrl,
   partners,
@@ -45,6 +47,8 @@ export function WatchTogetherConfirmSheet({
   if (!open) {
     return null
   }
+
+  const isInvite = mode === 'invite'
 
   return createPortal(
     <div
@@ -69,7 +73,7 @@ export function WatchTogetherConfirmSheet({
             id="watch-together-sheet-title"
             className="min-w-0 flex-1 truncate text-[16px] font-semibold tracking-tight text-(--tgui--text_color)"
           >
-            Смотрим вместе
+            {isInvite ? 'Пригласить смотреть' : 'Смотрим вместе'}
           </h2>
           <IconButton mode="gray" size="s" onClick={onClose} aria-label="Закрыть" disabled={busy}>
             <X className="block size-5" strokeWidth={2} />
@@ -91,7 +95,9 @@ export function WatchTogetherConfirmSheet({
               <p className="truncate text-sm font-semibold text-(--tgui--text_color)">{title}</p>
               <p className="mt-1 flex items-center gap-1 text-xs text-(--tgui--hint_color)">
                 <Users className="block" size={13} strokeWidth={2} aria-hidden />
-                Добавить в «Позже» с выбранными друзьями
+                {isInvite
+                  ? 'Отправить приглашение друзьям, которые тоже хотят посмотреть'
+                  : 'Добавить в «Позже» с выбранными друзьями'}
               </p>
             </div>
           </div>
@@ -117,7 +123,13 @@ export function WatchTogetherConfirmSheet({
           ) : null}
 
           <Button stretched disabled={busy} onClick={onConfirm}>
-            {busy ? 'Добавляем…' : 'Добавить в «Позже»'}
+            {busy
+              ? isInvite
+                ? 'Отправляем…'
+                : 'Добавляем…'
+              : isInvite
+                ? 'Пригласить'
+                : 'Добавить в «Позже»'}
           </Button>
           <Button mode="gray" stretched disabled={busy} onClick={onClose}>
             Отмена

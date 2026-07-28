@@ -152,6 +152,7 @@ async def test_watchlist_overlaps_returns_shared_titles_with_partners(
     assert len(body['items']) == 1
     item = body['items'][0]
     assert item['card_id'] == 'kp:920100'
+    assert item['entry_id'] is not None
     assert item['title'] == 'Shared Overlap Film'
     assert item['poster_url'] == 'https://example.com/overlap.jpg'
     assert item['film_id'] is not None
