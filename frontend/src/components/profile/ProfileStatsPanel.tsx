@@ -19,6 +19,16 @@ import type {
 import { profileStatsMoviePrimaryTitle } from '../../lib/movieCardDisplay'
 import { mergeShelfDistributionWithMetadata } from '../../lib/profileShelfDistribution'
 import {
+  aggregateYearDistributionToDecades,
+  COMPANY_DONUT_COLORS,
+  DECADE_DONUT_COLORS,
+  findPeakRatedYear,
+  MOOD_AFTER_DONUT_COLORS,
+  RATING_DONUT_COLORS,
+  SHELF_DONUT_COLORS,
+  type DonutSegmentInput,
+} from '../../lib/statsDonutChart'
+import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
   ratedCardsToListParams,
@@ -29,9 +39,8 @@ import { ProfileActivityHeatmap } from './ProfileActivityHeatmap'
 import {
   ProfileInsightsGrid,
   SocialTastePeers,
-  StatsDistributionBars,
+  StatsDonutChart,
   TagBubbleChart,
-  TasteFlowStrip,
   TastePolarityChart,
 } from './ProfileStatsCharts'
 import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCard } from './ProfileStatsSummaryCard'
@@ -368,15 +377,6 @@ export function ProfileStatsPanel({
     staleTime: 45_000,
   })
 
-  const ratingMax = useMemo(
-    () => Math.max(0, ...(stats?.rating_distribution.map((item) => item.count) ?? [0])),
-    [stats],
-  )
-  const yearMax = useMemo(
-    () => Math.max(0, ...(stats?.year_distribution.map((item) => item.count) ?? [0])),
-    [stats],
-  )
-
   const shelfDistributionRows = useMemo(
     () =>
       mergeShelfDistributionWithMetadata(
@@ -386,48 +386,54 @@ export function ProfileStatsPanel({
     [stats?.category_distribution, shelvesQuery.data?.items],
   )
 
-  const shelfDistributionUi = useMemo(() => {
+  const ratingDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const list = stats?.rating_distribution ?? []
+    return [...list]
+      .sort((a, b) => a.rating - b.rating)
+      .map((item, idx) => ({
+        label: String(item.rating),
+        count: item.count,
+        color: RATING_DONUT_COLORS[(item.rating - 1 + RATING_DONUT_COLORS.length) % RATING_DONUT_COLORS.length] ?? RATING_DONUT_COLORS[idx % RATING_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [stats])
+
+  const decadeDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const buckets = aggregateYearDistributionToDecades(stats?.year_distribution ?? [])
+    return buckets.map((bucket, idx) => ({
+      label: bucket.label,
+      count: bucket.count,
+      value: bucket.value,
+      color: DECADE_DONUT_COLORS[idx % DECADE_DONUT_COLORS.length] ?? '#5de1d4',
+    }))
+  }, [stats?.year_distribution])
+
+  const peakRatedYear = useMemo(
+    () => findPeakRatedYear(stats?.rated_year_distribution),
+    [stats?.rated_year_distribution],
+  )
+
+  const shelfDonutSegments = useMemo((): DonutSegmentInput[] => {
     const rows = shelfDistributionRows
-    if (rows.length === 0) {
-      return {
-        hasShelves: false,
-        shelfMax: 0,
-        shelfUncatBarItems: [] as { label: string; count: number }[],
-        shelfCatBarItems: [] as { label: string; count: number }[],
-      }
-    }
-    const shelfMax = Math.max(0, ...rows.map((item) => item.count))
+    if (rows.length === 0) return []
+
     const nameHits = new Map<string, number>()
     for (const row of rows) {
       nameHits.set(row.name, (nameHits.get(row.name) ?? 0) + 1)
     }
-    const shelfUncatBarItems: { label: string; count: number }[] = []
-    const shelfCatBarItems: { label: string; count: number }[] = []
-    for (const row of rows) {
-      if (row.category_id == null) {
-        shelfUncatBarItems.push({ label: row.name, count: row.count })
-      } else {
-        const label =
-          (nameHits.get(row.name) ?? 0) > 1 ? `${row.name} (#${row.category_id})` : row.name
-        shelfCatBarItems.push({ label, count: row.count })
+
+    return rows.map((row, idx) => {
+      const label =
+        row.category_id != null && (nameHits.get(row.name) ?? 0) > 1
+          ? `${row.name} (#${row.category_id})`
+          : row.name
+      return {
+        label,
+        count: row.count,
+        value: row.category_id != null ? String(row.category_id) : undefined,
+        color: SHELF_DONUT_COLORS[idx % SHELF_DONUT_COLORS.length] ?? '#5de1d4',
       }
-    }
-    return { hasShelves: true, shelfMax, shelfUncatBarItems, shelfCatBarItems }
+    })
   }, [shelfDistributionRows])
-
-  const ratingBarItems = useMemo(() => {
-    const list = stats?.rating_distribution ?? []
-    return [...list]
-      .sort((a, b) => a.rating - b.rating)
-      .map((item) => ({ label: String(item.rating), count: item.count }))
-  }, [stats])
-
-  const yearBarItems = useMemo(() => {
-    const list = stats?.year_distribution ?? []
-    return [...list]
-      .sort((a, b) => a.year - b.year)
-      .map((item) => ({ label: String(item.year), count: item.count }))
-  }, [stats])
 
   const sentiment = useMemo(() => {
     const low = (stats?.rating_distribution ?? [])
@@ -491,35 +497,24 @@ export function ProfileStatsPanel({
     })
   }, [stats, cardsQuery, onCardsQueryChange, onDrillToRatedCards])
 
-  const handleYearDistributionDrill = (label: string) => {
-    const y = Number(label)
-    if (!Number.isFinite(y)) return
-    const yi = Math.trunc(y)
+  const handleDecadeDistributionDrill = (decadeStartValue: string) => {
+    const decadeStart = Number(decadeStartValue)
+    if (!Number.isFinite(decadeStart)) return
+    const start = Math.trunc(decadeStart)
     onCardsQueryChange({
       ...cardsQuery,
-      yearMin: String(yi),
-      yearMax: String(yi),
+      yearMin: String(start),
+      yearMax: String(start + 9),
     })
     onDrillToRatedCards?.()
   }
 
-  const handleShelfDistributionDrill = (label: string) => {
-    const rows = stats?.category_distribution ?? []
-    if (rows.length === 0) return
-    const nameHits = new Map<string, number>()
-    for (const row of rows) {
-      nameHits.set(row.name, (nameHits.get(row.name) ?? 0) + 1)
-    }
-    const hit = rows.find((row) => {
-      if (row.category_id == null) return false
-      const rowLabel =
-        (nameHits.get(row.name) ?? 0) > 1 ? `${row.name} (#${row.category_id})` : row.name
-      return rowLabel === label
-    })
-    if (hit == null || hit.category_id == null) return
+  const handleShelfDistributionDrill = (categoryIdValue: string) => {
+    const categoryId = Number(categoryIdValue)
+    if (!Number.isInteger(categoryId) || categoryId < 1) return
     onCardsQueryChange({
       ...cardsQuery,
-      categoryId: String(hit.category_id),
+      categoryId: String(categoryId),
     })
     onDrillToRatedCards?.()
   }
@@ -536,23 +531,25 @@ export function ProfileStatsPanel({
     [stats, sentiment],
   )
 
-  const companyFlowSegments = useMemo(() => {
+  const companyDonutSegments = useMemo((): DonutSegmentInput[] => {
     const raw = stats?.watch_with_distribution ?? []
     const narrowed = cardsQuery.company === '' ? raw : raw.filter((item) => item.value === cardsQuery.company)
-    return narrowed.map((item) => ({
+    return narrowed.map((item, idx) => ({
       label: COMPANY_LABELS[item.value] ?? item.value,
       count: item.count,
       value: item.value,
+      color: COMPANY_DONUT_COLORS[idx % COMPANY_DONUT_COLORS.length] ?? '#5de1d4',
     }))
   }, [stats, cardsQuery.company])
 
-  const moodFlowSegments = useMemo(() => {
+  const moodDonutSegments = useMemo((): DonutSegmentInput[] => {
     const raw = stats?.mood_after_distribution ?? []
     const narrowed = cardsQuery.moodAfter === '' ? raw : raw.filter((item) => item.value === cardsQuery.moodAfter)
-    return narrowed.map((item) => ({
+    return narrowed.map((item, idx) => ({
       label: MOOD_AFTER_LABELS[item.value] ?? item.value,
       count: item.count,
       value: item.value,
+      color: MOOD_AFTER_DONUT_COLORS[idx % MOOD_AFTER_DONUT_COLORS.length] ?? '#5de1d4',
     }))
   }, [stats, cardsQuery.moodAfter])
 
@@ -636,7 +633,7 @@ export function ProfileStatsPanel({
         <>
           <ProfileStatsSectionCard title="Оценки по шкале">
             {hasRatings ? (
-              <StatsDistributionBars items={ratingBarItems} maxCount={ratingMax} />
+              <StatsDonutChart segments={ratingDonutSegments} />
             ) : (
               <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
             )}
@@ -656,8 +653,8 @@ export function ProfileStatsPanel({
           </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="Компания">
-            <TasteFlowStrip
-              segments={companyFlowSegments}
+            <StatsDonutChart
+              segments={companyDonutSegments}
               activeValue={cardsQuery.company === '' ? undefined : cardsQuery.company}
               onSegmentClick={(value) => {
                 const v = value as CardCompany
@@ -669,8 +666,8 @@ export function ProfileStatsPanel({
           </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="После просмотра">
-            <TasteFlowStrip
-              segments={moodFlowSegments}
+            <StatsDonutChart
+              segments={moodDonutSegments}
               activeValue={cardsQuery.moodAfter === '' ? undefined : cardsQuery.moodAfter}
               onSegmentClick={(value) => {
                 const v = value as CardMoodAfter
@@ -682,36 +679,39 @@ export function ProfileStatsPanel({
           </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="По полкам">
-            {shelfDistributionUi.hasShelves ? (
-              <div className="flex w-full min-w-0 flex-col gap-2.5">
-                {shelfDistributionUi.shelfUncatBarItems.length > 0 ? (
-                  <StatsDistributionBars
-                    items={shelfDistributionUi.shelfUncatBarItems}
-                    maxCount={shelfDistributionUi.shelfMax}
-                  />
-                ) : null}
-                {shelfDistributionUi.shelfCatBarItems.length > 0 ? (
-                  <StatsDistributionBars
-                    items={shelfDistributionUi.shelfCatBarItems}
-                    maxCount={shelfDistributionUi.shelfMax}
-                    onItemActivate={handleShelfDistributionDrill}
-                    itemActionHint="Показать карточки на полке"
-                  />
-                ) : null}
-              </div>
+            {shelfDonutSegments.length > 0 ? (
+              <StatsDonutChart
+                segments={shelfDonutSegments}
+                activeValue={cardsQuery.categoryId === '' ? undefined : cardsQuery.categoryId}
+                onSegmentClick={handleShelfDistributionDrill}
+              />
             ) : (
               <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
             )}
           </ProfileStatsSectionCard>
 
-          <ProfileStatsSectionCard title="По годам выпуска">
-            {stats.year_distribution.length > 0 ? (
-              <StatsDistributionBars
-                items={yearBarItems}
-                maxCount={yearMax}
-                onItemActivate={handleYearDistributionDrill}
-                itemActionHint="Показать карточки за год"
-              />
+          <ProfileStatsSectionCard title="По десятилетиям">
+            {decadeDonutSegments.length > 0 ? (
+              <div className="flex w-full min-w-0 flex-col gap-4">
+                <StatsDonutChart
+                  segments={decadeDonutSegments}
+                  onSegmentClick={handleDecadeDistributionDrill}
+                />
+                {peakRatedYear != null ? (
+                  <div className="rounded-xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,var(--tgui--bg_color))] px-3 py-2.5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_12%,transparent)]">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">
+                      Пик активности
+                    </p>
+                    <p className="mt-1 text-sm text-(--tgui--text_color)">
+                      Больше всего оценок в{' '}
+                      <span className="font-semibold tabular-nums">{peakRatedYear.year}</span>
+                    </p>
+                    <p className="mt-0.5 text-xs tabular-nums text-(--tgui--hint_color)">
+                      {peakRatedYear.count} {peakRatedYear.count === 1 ? 'оценка' : peakRatedYear.count < 5 ? 'оценки' : 'оценок'}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
             )}
@@ -824,10 +824,7 @@ export function ProfileStatsPanel({
         <ProfilePassportPanel
           userId={userId}
           isOwnProfile={showTasteQuizTeaser}
-          onMarathonDrill={(marathon: MarathonAchievement) => {
-            onMarathonDrill?.(marathon)
-            onDrillToRatedCards?.()
-          }}
+          onMarathonDrill={onMarathonDrill}
         />
       ) : null}
     </div>

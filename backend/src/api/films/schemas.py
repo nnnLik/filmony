@@ -16,6 +16,8 @@ class FilmResponse(BaseModel):
     id: int
     kinopoisk_id: int
     genres: list[str] = Field(default_factory=list)
+    primary_director_kinopoisk_id: int | None = None
+    primary_director_name: str | None = None
     title: str
     year: int | None
     poster_url: str | None

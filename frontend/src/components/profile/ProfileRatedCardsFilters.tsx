@@ -1,14 +1,15 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   getMyCardCategories,
   getUserMovieCardTags,
   getUserPublicCardCategories,
+  getUserRatedDirectors,
 } from '../../api/profileApi'
-import type { ProfileCardsSort } from '../../api/profileApi'
+import type { ProfileCardsSort, UserRatedDirectorsResponse } from '../../api/profileApi'
 import type {
   CardCompany,
   CardMoodAfter,
@@ -22,6 +23,7 @@ import {
   userMovieCardTagStatsQueryKey,
   myCardCategoriesQueryKey,
   publicProfileCardCategoriesQueryKey,
+  userRatedDirectorsQueryKey,
 } from '../../feed/feedQueryKeys'
 import {
   DEFAULT_RATED_CARDS_QUERY,
@@ -97,6 +99,17 @@ export function ProfileRatedCardsFilters({
   const fetchShelvesEnabled =
     enableCategoryFilter && profileUserId !== '' && filtersOpen
 
+  const fetchDirectorsEnabled =
+    profileUserId !== '' && (filtersOpen || cardsQuery.directorKinopoiskId.trim() !== '')
+
+  const directorsQuery = useQuery<UserRatedDirectorsResponse>({
+    queryKey: userRatedDirectorsQueryKey(profileUserId),
+    queryFn: () => getUserRatedDirectors(profileUserId),
+    enabled: fetchDirectorsEnabled,
+    staleTime: 15 * 60_000,
+    gcTime: 60 * 60_000,
+  })
+
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
     queryKey: useMyCardCategoriesLookup
       ? myCardCategoriesQueryKey()
@@ -127,12 +140,23 @@ export function ProfileRatedCardsFilters({
   })
 
   const shelfItems = shelvesQuery.data?.items ?? []
+  const directorItems = useMemo(
+    () => directorsQuery.data?.items ?? [],
+    [directorsQuery.data?.items],
+  )
   const shelvesErr: string | null =
     enableCategoryFilter && filtersOpen && shelvesQuery.isError
     ? shelvesQuery.error instanceof ApiError
       ? formatApiDetail(shelvesQuery.error.detail)
       : 'Не удалось загрузить полки'
     : null
+
+  const directorsErr: string | null =
+    filtersOpen && directorsQuery.isError
+      ? directorsQuery.error instanceof ApiError
+        ? formatApiDetail(directorsQuery.error.detail)
+        : 'Не удалось загрузить режиссёров'
+      : null
 
   const tagItems: MyMovieCardTagStatItem[] = tagsQuery.data?.items ?? []
   const tagsErr: string | null = tagsQuery.isError
@@ -148,6 +172,31 @@ export function ProfileRatedCardsFilters({
   }
 
   const hasActive = !isDefaultRatedCardsQuery(cardsQuery)
+
+  const activeDirectorName = useMemo(() => {
+    const id = cardsQuery.directorKinopoiskId.trim()
+    if (id === '') {
+      return null
+    }
+    const match = directorItems.find((row) => String(row.kinopoisk_id) === id)
+    return match?.name ?? null
+  }, [cardsQuery.directorKinopoiskId, directorItems])
+
+  const activeFilterHint = useMemo(() => {
+    const parts: string[] = []
+    if (activeDirectorName != null) {
+      parts.push(`режиссёр: ${activeDirectorName}`)
+    } else if (cardsQuery.directorKinopoiskId.trim() !== '') {
+      parts.push('режиссёр')
+    }
+    if (cardsQuery.franchiseKey.trim() !== '') {
+      parts.push('франшиза')
+    }
+    if (cardsQuery.filmTitle.trim() !== '') {
+      parts.push('поиск')
+    }
+    return parts.length > 0 ? parts.join(' · ') : null
+  }, [activeDirectorName, cardsQuery.directorKinopoiskId, cardsQuery.franchiseKey, cardsQuery.filmTitle])
 
   return (
     <div className="mb-3 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
@@ -193,7 +242,8 @@ export function ProfileRatedCardsFilters({
             <span className="block text-sm font-semibold text-(--tgui--text_color)">Фильтры и сортировка</span>
             <span className="mt-0.5 block truncate text-[11px] text-(--tgui--hint_color)">
               {filtersOpen ? 'Настройте список ниже' : profileRatedCardsSortLabel(cardsQuery.sort)}
-              {hasActive && !filtersOpen ? ' · заданы условия' : ''}
+              {!filtersOpen && activeFilterHint != null ? ` · ${activeFilterHint}` : null}
+              {hasActive && !filtersOpen && activeFilterHint == null ? ' · заданы условия' : null}
             </span>
           </span>
         </button>
@@ -269,6 +319,35 @@ export function ProfileRatedCardsFilters({
               ) : null}
             </label>
           ) : null}
+
+          <label className="block text-xs font-medium text-(--tgui--hint_color)">
+            Режиссёр
+            <select
+              className={`${SELECT_CLASS} mt-1`}
+              value={cardsQuery.directorKinopoiskId}
+              onChange={(e) =>
+                onChange({
+                  ...cardsQuery,
+                  directorKinopoiskId: e.currentTarget.value,
+                  franchiseKey: e.currentTarget.value !== '' ? '' : cardsQuery.franchiseKey,
+                })
+              }
+              aria-label="Фильтр: режиссёр"
+            >
+              <option value="">Все режиссёры</option>
+              {directorItems.map((row) => (
+                <option key={row.kinopoisk_id} value={String(row.kinopoisk_id)}>
+                  {row.name}
+                  {row.count > 1 ? ` · ${row.count}` : ''}
+                </option>
+              ))}
+            </select>
+            {directorsErr != null ? (
+              <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{directorsErr}</p>
+            ) : directorsQuery.isFetching && directorItems.length === 0 ? (
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка режиссёров…</p>
+            ) : null}
+          </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="text-xs font-medium text-(--tgui--hint_color)">

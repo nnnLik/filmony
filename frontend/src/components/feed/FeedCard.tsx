@@ -36,6 +36,7 @@ import { useRatingStreaksOfUsers } from '../../hooks/useRatingStreaksOfUsers'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
+import { DirectorChip } from '../films/DirectorChip'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { ReactionStrip } from '../reactions/ReactionStrip'
@@ -500,6 +501,16 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             ) : null}
           </div>
         </div>
+
+        {card.film_primary_director_kinopoisk_id != null &&
+        card.film_primary_director_name != null &&
+        card.film_primary_director_name.trim() !== '' ? (
+          <DirectorChip
+            kinopoiskId={card.film_primary_director_kinopoisk_id}
+            name={card.film_primary_director_name}
+            className="mt-0.5"
+          />
+        ) : null}
 
         <FilmGenreChips genres={card.film_genres} maxVisible={3} className="mt-0.5" />
 

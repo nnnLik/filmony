@@ -65,6 +65,29 @@ Card list/detail responses include `community_avg_rating` and `is_contrarian` wh
 
 Film metadata columns: `countries`, `primary_director_kinopoisk_id`, `primary_director_name`, `franchise_key`.
 
+## Director filters (v1.1)
+
+- `GET /api/users/{id}/cards?director_kinopoisk_id=` — rated cards by primary director.
+- `GET /api/users/{id}/cards?franchise_key=` — rated cards in the same Kinopoisk franchise cluster.
+- `GET /api/users/{id}/rated-directors` — dropdown source: `{ kinopoisk_id, name, count }[]`.
+- Profile UI: director filter in rated-cards panel; marathon chip drill-down sets director/franchise filter (not title search).
+
+## Passport stamps (v1.1 additions)
+
+| Stamp | Rule |
+|-------|------|
+| `director_first_{kp_id}` | First rated film per director |
+| `director_fan_{kp_id}` | 3 films by same director (progress 3/3) |
+| `genres_total_{5,10,15}` | Distinct genres milestone |
+| `first_rating_10` / `first_rating_1` | First 10 or 1 rating |
+| `binge_day` | 3+ ratings same calendar day |
+| `chrono_year_{2020..2030}` | 3 film decades in one calendar year |
+| `horror_survivor` | 5+ horror/ужасы films |
+| `high_streak_3` | 3 consecutive ratings ≥ 9 |
+| `mood_swings` | Within 7 days: rating ≤3 and ≥9 |
+
+Collection UI groups stamps by category: country, decade, director, genre, vibe, extreme, milestone.
+
 Populated lazily on Kinopoisk resolve and via backfill:
 
 ```bash

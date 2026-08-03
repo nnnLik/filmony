@@ -43,6 +43,10 @@ export type GetUserCardsParams = {
   categoryId?: number | null
   /** ISO date YYYY-MM-DD — только карточки, завершённые в этот день. */
   completedOn?: string | null
+  /** Kinopoisk staff id основного режиссёра фильма. */
+  directorKinopoiskId?: number | null
+  /** Стабильный ключ франшизы фильма, напр. `kp_franchise:301`. */
+  franchiseKey?: string | null
 }
 
 export type CreateWatchlistEntryBody = {
@@ -163,6 +167,12 @@ export async function getUserCards(userId: string, params: GetUserCardsParams): 
   if (params.completedOn != null && params.completedOn.trim() !== '') {
     q.set('completed_on', params.completedOn.trim())
   }
+  if (params.directorKinopoiskId != null && params.directorKinopoiskId >= 1) {
+    q.set('director_kinopoisk_id', String(params.directorKinopoiskId))
+  }
+  if (params.franchiseKey != null && params.franchiseKey.trim() !== '') {
+    q.set('franchise_key', params.franchiseKey.trim())
+  }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)
 }
@@ -205,6 +215,12 @@ export async function renameMyCardCategory(
 export async function getUserMovieCardTags(userId: string): Promise<MyMovieCardTagStatsResponse> {
   return apiJson<MyMovieCardTagStatsResponse>(
     `/api/users/${encodeURIComponent(userId)}/movie-card-tags`,
+  )
+}
+
+export async function getUserRatedDirectors(userId: string): Promise<UserRatedDirectorsResponse> {
+  return apiJson<UserRatedDirectorsResponse>(
+    `/api/users/${encodeURIComponent(userId)}/rated-directors`,
   )
 }
 
@@ -375,6 +391,16 @@ export async function getUserSubscriptions(
 
 export type MovieCardsExportCsvResponse = {
   status: string
+}
+
+export type UserRatedDirectorItem = {
+  kinopoisk_id: number
+  name: string
+  count: number
+}
+
+export type UserRatedDirectorsResponse = {
+  items: UserRatedDirectorItem[]
 }
 
 export async function postExportMyCardsCsv(): Promise<MovieCardsExportCsvResponse> {

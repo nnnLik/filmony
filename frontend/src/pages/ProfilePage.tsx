@@ -31,6 +31,7 @@ import { SegmentedControl } from '../components/ui/SegmentedControl'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { marathonDrillToRatedQuery } from '../lib/marathonDrillToRatedQuery'
 import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
@@ -455,13 +456,10 @@ export function ProfilePage() {
 
   const handleMarathonDrill = useCallback(
     (marathon: MarathonAchievement) => {
-      setRatedQuery({
-        ...ratedQuery,
-        filmTitle: marathon.label,
-      })
+      setRatedQuery((prev) => marathonDrillToRatedQuery(prev, marathon))
       drillToRatedCards()
     },
-    [drillToRatedCards, ratedQuery, setRatedQuery],
+    [drillToRatedCards, setRatedQuery],
   )
 
   const drillToWatchlist = useCallback(() => {

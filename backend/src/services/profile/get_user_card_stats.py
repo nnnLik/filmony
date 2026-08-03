@@ -86,6 +86,7 @@ class UserCardStats:
     average_rating: float
     rating_distribution: list[RatingDistributionItem]
     year_distribution: list[YearDistributionItem]
+    rated_year_distribution: list[YearDistributionItem]
     popular_tags: list[TagDistributionItem]
     tag_taste: list[TagTasteItem]
     insights: ProfileInsights
@@ -145,6 +146,8 @@ class GetUserCardStatsService:
                     UserCard.rating,
                     UserCard.company,
                     UserCard.mood_after,
+                    UserCard.completed_at,
+                    UserCard.created_at,
                     Film.title,
                     Film.year,
                     Film.poster_url,
@@ -165,6 +168,7 @@ class GetUserCardStatsService:
         rating_counts = dict.fromkeys(range(1, 11), 0)
         rating_sum = 0.0
         year_counts: dict[int, int] = {}
+        rated_year_counts: dict[int, int] = {}
         company_counts: dict[str, int] = {}
         mood_after_counts: dict[str, int] = {}
         category_counts: dict[int | None, int] = {}
@@ -178,6 +182,9 @@ class GetUserCardStatsService:
             rating_counts[rating_bucket] += 1
             if row.year is not None:
                 year_counts[int(row.year)] = year_counts.get(int(row.year), 0) + 1
+            rated_at = row.completed_at or row.created_at
+            rated_year = rated_at.year
+            rated_year_counts[rated_year] = rated_year_counts.get(rated_year, 0) + 1
             company_counts[row.company] = company_counts.get(row.company, 0) + 1
             mood_after_counts[row.mood_after] = mood_after_counts.get(row.mood_after, 0) + 1
             if row.shelf_category_id is not None:
@@ -206,6 +213,12 @@ class GetUserCardStatsService:
         year_distribution = [
             YearDistributionItem(year=year, count=count)
             for year, count in sorted(year_counts.items(), key=lambda item: item[0], reverse=True)
+        ]
+        rated_year_distribution = [
+            YearDistributionItem(year=year, count=count)
+            for year, count in sorted(
+                rated_year_counts.items(), key=lambda item: item[0], reverse=True
+            )
         ]
         watch_with_distribution = [
             ValueDistributionItem(value=value, count=count)
@@ -296,6 +309,7 @@ class GetUserCardStatsService:
             average_rating=average_rating,
             rating_distribution=rating_distribution,
             year_distribution=year_distribution,
+            rated_year_distribution=rated_year_distribution,
             popular_tags=popular_tags,
             tag_taste=tag_taste,
             insights=insights,

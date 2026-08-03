@@ -97,6 +97,7 @@ import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { DirectorChip } from '../components/films/DirectorChip'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
@@ -1294,6 +1295,16 @@ function MovieCardDetailLoadedBody({
                         {movieCardReleasePrimaryLabel(card)}
                       </p>
                     </div>
+                    {card.film_primary_director_kinopoisk_id != null &&
+                    card.film_primary_director_name != null &&
+                    card.film_primary_director_name.trim() !== '' ? (
+                      <DirectorChip
+                        kinopoiskId={card.film_primary_director_kinopoisk_id}
+                        name={card.film_primary_director_name}
+                        size="md"
+                        className="mt-2"
+                      />
+                    ) : null}
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
                     <FilmSynopsisBlock
                       shortDescription={synopsisShort}

@@ -16,6 +16,7 @@ import type { Film, FilmCommunityCardItem } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { CommunityRatingsList } from '../components/catalog/CommunityRatingsList'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { DirectorChip } from '../components/films/DirectorChip'
 import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
@@ -316,6 +317,16 @@ export function FilmDetailPage() {
                       {film.title}
                     </Title>
                     <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
+                    {film.primary_director_kinopoisk_id != null &&
+                    film.primary_director_name != null &&
+                    film.primary_director_name.trim() !== '' ? (
+                      <DirectorChip
+                        kinopoiskId={film.primary_director_kinopoisk_id}
+                        name={film.primary_director_name}
+                        size="md"
+                        className="mt-2"
+                      />
+                    ) : null}
                     <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
                     {weeklyControversyForFilm != null ? (
                       <span

@@ -503,6 +503,9 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
         key='year',
         expected={2024: 1, 2023: 2, 2021: 1, 2020: 1, 2010: 1},
     )
+    assert 'rated_year_distribution' in body
+    assert isinstance(body['rated_year_distribution'], list)
+    assert sum(item['count'] for item in body['rated_year_distribution']) == 6
     _assert_distribution_counts(
         body['popular_tags'],
         key='tag',

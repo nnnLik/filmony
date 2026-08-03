@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -44,6 +44,7 @@ async def _create_film(
     title: str = 'Test Film',
     year: int | None = 2010,
     countries: list[str] | None = None,
+    genres: list[str] | None = None,
     primary_director_kinopoisk_id: int | None = None,
     primary_director_name: str | None = None,
     franchise_key: str | None = None,
@@ -55,7 +56,7 @@ async def _create_film(
             title=title,
             year=year,
             poster_url='https://example.com/poster.jpg',
-            genres=['drama'],
+            genres=genres if genres is not None else ['drama'],
             countries=countries or [],
             primary_director_kinopoisk_id=primary_director_kinopoisk_id,
             primary_director_name=primary_director_name,
@@ -398,3 +399,223 @@ async def test_contrarian_hidden_for_non_owner_viewer(async_client: AsyncClient)
     body = detail.json()
     assert body['community_avg_rating'] == 6.2
     assert body['is_contrarian'] is False
+
+
+@pytest.mark.asyncio
+async def test_rated_directors_requires_auth(async_client: AsyncClient) -> None:
+    response = await async_client.get(f'/api/users/{uuid4()}/rated-directors')
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_rated_directors_lists_directors_with_counts(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=940100)
+    user_id = await _user_id_for_telegram(940100)
+    nolan = 525
+    for index in range(3):
+        film = await _create_film(
+            kinopoisk_id=9401000 + index,
+            title=f'Nolan Film {index}',
+            primary_director_kinopoisk_id=nolan,
+            primary_director_name='Christopher Nolan',
+        )
+        await _seed_rated_card(user_id=user_id, film=film, rating=8.0)
+    other = await _create_film(
+        kinopoisk_id=9401009,
+        title='Other Director Film',
+        primary_director_kinopoisk_id=999,
+        primary_director_name='Other Director',
+    )
+    await _seed_rated_card(user_id=user_id, film=other, rating=7.0)
+
+    await _login(async_client, telegram_user_id=940100)
+    response = await async_client.get(f'/api/users/{user_id}/rated-directors')
+    assert response.status_code == 200
+    items = response.json()['items']
+    assert len(items) == 2
+    assert items[0]['kinopoisk_id'] == nolan
+    assert items[0]['name'] == 'Christopher Nolan'
+    assert items[0]['count'] == 3
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_filter_by_director(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=940110)
+    user_id = UUID(str(me['id']))
+    nolan_id = 525
+    nolan_film = await _create_film(
+        kinopoisk_id=9401101,
+        title='Inception',
+        primary_director_kinopoisk_id=nolan_id,
+        primary_director_name='Christopher Nolan',
+    )
+    other_film = await _create_film(
+        kinopoisk_id=9401102,
+        title='Other Film',
+        primary_director_kinopoisk_id=999,
+    )
+    await _seed_rated_card(user_id=user_id, film=nolan_film, rating=9.0)
+    await _seed_rated_card(user_id=user_id, film=other_film, rating=8.0)
+
+    response = await async_client.get(
+        f'/api/users/{user_id}/cards',
+        params={'director_kinopoisk_id': nolan_id},
+    )
+    assert response.status_code == 200
+    items = response.json()['items']
+    assert len(items) == 1
+    assert items[0]['film_title'] == 'Inception'
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_filter_by_franchise(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=940120)
+    user_id = UUID(str(me['id']))
+    franchise = 'kp_franchise:301'
+    matrix_film = await _create_film(
+        kinopoisk_id=9401201,
+        title='Matrix',
+        franchise_key=franchise,
+    )
+    other_film = await _create_film(
+        kinopoisk_id=9401202,
+        title='Standalone',
+        franchise_key='kp_franchise:999',
+    )
+    await _seed_rated_card(user_id=user_id, film=matrix_film, rating=9.0)
+    await _seed_rated_card(user_id=user_id, film=other_film, rating=8.0)
+
+    response = await async_client.get(
+        f'/api/users/{user_id}/cards',
+        params={'franchise_key': franchise},
+    )
+    assert response.status_code == 200
+    items = response.json()['items']
+    assert len(items) == 1
+    assert items[0]['film_title'] == 'Matrix'
+
+
+@pytest.mark.asyncio
+async def test_passport_director_first_and_fan_stamps(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=940130)
+    user_id = await _user_id_for_telegram(940130)
+    director_id = 777
+    for index in range(3):
+        film = await _create_film(
+            kinopoisk_id=9401300 + index,
+            title=f'Director Film {index}',
+            primary_director_kinopoisk_id=director_id,
+            primary_director_name='Test Director',
+        )
+        await _seed_rated_card(user_id=user_id, film=film, rating=8.0)
+
+    response = await async_client.get('/api/me/gamification')
+    assert response.status_code == 200
+    stamp_ids = {stamp['stamp_id'] for stamp in response.json()['passport']['stamps']}
+    assert f'director_first_{director_id}' in stamp_ids
+    assert f'director_fan_{director_id}' in stamp_ids
+
+
+@pytest.mark.asyncio
+async def test_passport_genres_total_and_first_rating_stamps(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=940140)
+    user_id = await _user_id_for_telegram(940140)
+    genres = ['drama', 'comedy', 'thriller', 'sci-fi', 'romance']
+    for index, genre in enumerate(genres):
+        film = await _create_film(
+            kinopoisk_id=9401400 + index,
+            title=f'Genre Film {index}',
+            genres=[genre],
+        )
+        rating = 10.0 if index == 0 else 8.0
+        await _seed_rated_card(user_id=user_id, film=film, rating=rating)
+
+    response = await async_client.get('/api/me/gamification')
+    assert response.status_code == 200
+    stamps = {stamp['stamp_id']: stamp for stamp in response.json()['passport']['stamps']}
+    assert stamps['genres_total_5']['unlocked'] is True
+    assert stamps['first_rating_10']['unlocked'] is True
+
+
+@pytest.mark.asyncio
+async def test_passport_binge_day_and_high_streak_stamps(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=940150)
+    user_id = await _user_id_for_telegram(940150)
+    binge_day = datetime(2025, 3, 15, 12, 0, tzinfo=UTC)
+    for index in range(3):
+        film = await _create_film(kinopoisk_id=9401500 + index, title=f'Binge {index}')
+        await _seed_rated_card(
+            user_id=user_id,
+            film=film,
+            rating=9.5,
+            completed_at=binge_day + timedelta(hours=index),
+        )
+    for index in range(3, 6):
+        film = await _create_film(kinopoisk_id=9401500 + index, title=f'Streak {index}')
+        await _seed_rated_card(
+            user_id=user_id,
+            film=film,
+            rating=9.0,
+            completed_at=binge_day + timedelta(days=index),
+        )
+
+    response = await async_client.get('/api/me/gamification')
+    assert response.status_code == 200
+    stamps = {stamp['stamp_id']: stamp for stamp in response.json()['passport']['stamps']}
+    assert stamps['binge_day']['unlocked'] is True
+    assert stamps['binge_day']['progress_current'] == 3
+    assert stamps['high_streak_3']['unlocked'] is True
+
+
+@pytest.mark.asyncio
+async def test_passport_chrono_year_horror_mood_swings(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=940160)
+    user_id = await _user_id_for_telegram(940160)
+    base = datetime(2024, 6, 1, tzinfo=UTC)
+    years = [1965, 1975, 1985]
+    for index, year in enumerate(years):
+        film = await _create_film(
+            kinopoisk_id=9401600 + index,
+            title=f'Chrono {year}',
+            year=year,
+        )
+        await _seed_rated_card(
+            user_id=user_id,
+            film=film,
+            rating=8.0,
+            completed_at=base + timedelta(days=index),
+        )
+    for index in range(5):
+        film = await _create_film(
+            kinopoisk_id=9401610 + index,
+            title=f'Horror {index}',
+            genres=['Ужасы'],
+        )
+        await _seed_rated_card(
+            user_id=user_id,
+            film=film,
+            rating=6.0,
+            completed_at=base + timedelta(days=10 + index),
+        )
+    low_film = await _create_film(kinopoisk_id=9401620, title='Low Mood')
+    high_film = await _create_film(kinopoisk_id=9401621, title='High Mood')
+    await _seed_rated_card(
+        user_id=user_id,
+        film=low_film,
+        rating=2.0,
+        completed_at=base + timedelta(days=20),
+    )
+    await _seed_rated_card(
+        user_id=user_id,
+        film=high_film,
+        rating=10.0,
+        completed_at=base + timedelta(days=22),
+    )
+
+    response = await async_client.get('/api/me/gamification')
+    assert response.status_code == 200
+    stamps = {stamp['stamp_id']: stamp for stamp in response.json()['passport']['stamps']}
+    assert stamps['chrono_year_2024']['unlocked'] is True
+    assert stamps['horror_survivor']['unlocked'] is True
+    assert stamps['mood_swings']['unlocked'] is True
+    assert stamps['first_rating_1']['unlocked'] is False

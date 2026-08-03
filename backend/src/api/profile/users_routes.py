@@ -212,6 +212,16 @@ async def list_user_cards(
         default=None,
         description='Только карточки, завершённые в указанный день (UTC, YYYY-MM-DD)',
     ),
+    director_kinopoisk_id: int | None = Query(
+        default=None,
+        ge=1,
+        description='Фильтр по Kinopoisk ID режиссёра (primary_director_kinopoisk_id фильма)',
+    ),
+    franchise_key: str | None = Query(
+        default=None,
+        max_length=64,
+        description='Фильтр по ключу франшизы фильма',
+    ),
 ) -> UserCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
@@ -239,6 +249,8 @@ async def list_user_cards(
             film_title_search=film_title,
             category_id=category_id,
             completed_on=completed_on,
+            director_kinopoisk_id=director_kinopoisk_id,
+            franchise_key=franchise_key,
         )
     except ListUserCardsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None

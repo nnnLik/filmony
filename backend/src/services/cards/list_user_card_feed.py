@@ -358,6 +358,8 @@ class UserCardFeedItem:
     film_id: int | None
     film_kinopoisk_id: int | None
     film_genres: list[str]
+    film_primary_director_kinopoisk_id: int | None
+    film_primary_director_name: str | None
     film_title: str
     film_year: int | None
     release_year: int | None
@@ -1147,6 +1149,16 @@ class ListUserCardFeedService:
                     film_id=film.id if film is not None else None,
                     film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
                     film_genres=list(film.genres or []) if film is not None else [],
+                    film_primary_director_kinopoisk_id=(
+                        int(film.primary_director_kinopoisk_id)
+                        if film is not None and film.primary_director_kinopoisk_id is not None
+                        else None
+                    ),
+                    film_primary_director_name=(
+                        str(film.primary_director_name)
+                        if film is not None and film.primary_director_name
+                        else None
+                    ),
                     film_title=film_title_dep,
                     film_year=film_year_val,
                     release_year=release_year,
