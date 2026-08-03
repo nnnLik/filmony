@@ -15,7 +15,7 @@ import argparse
 import asyncio
 import logging
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from core.database import get_session_factory
 from models.film import Film
@@ -29,9 +29,12 @@ _log = logging.getLogger(__name__)
 def _needs_enrichment(force: bool) -> object:
     if force:
         return True
-    return or_(
+    countries_missing = or_(
         Film.countries.is_(None),
-        Film.countries == [],  # type: ignore[comparison-overlap]
+        func.coalesce(func.json_array_length(Film.countries), 0) == 0,
+    )
+    return or_(
+        countries_missing,
         Film.primary_director_kinopoisk_id.is_(None),
         Film.franchise_key.is_(None),
     )
