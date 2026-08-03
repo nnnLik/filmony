@@ -219,6 +219,7 @@ async def _card_response_from_user_card(
         mood_before=card.mood_before,
         mood_after=card.mood_after,
         custom_tags=list(tags),
+        watch_note=card.watch_note or '',
         category=UserCardCategorySnippet(id=cat.id, name=cat.name),
         is_favorite=bool(card.is_favorite),
         audio_url=card.audio_url,

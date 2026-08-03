@@ -88,7 +88,7 @@ export function toggleSpoilerAtSelection(
   value: string,
   selectionStart: number | null,
   selectionEnd: number | null,
-  maxLen: number,
+  maxLen?: number,
 ): { nextValue: string; caret: number } | null {
   const start = selectionStart ?? value.length
   const end = selectionEnd ?? value.length
@@ -97,7 +97,7 @@ export function toggleSpoilerAtSelection(
   if (start === end) {
     const snippet = `${SPOILER_OPEN}${SPOILER_PLACEHOLDER}${SPOILER_CLOSE}`
     const nextValue = `${value.slice(0, start)}${snippet}${value.slice(end)}`
-    if (nextValue.length > maxLen) {
+    if (maxLen != null && nextValue.length > maxLen) {
       return null
     }
     return {
@@ -108,7 +108,7 @@ export function toggleSpoilerAtSelection(
 
   if (isSelectionWrappedBySpoiler(value, start, end, selected)) {
     const unwrapped = unwrapSpoilerSelection(value, start, end, selected)
-    if (unwrapped.nextValue.length > maxLen) {
+    if (maxLen != null && unwrapped.nextValue.length > maxLen) {
       return null
     }
     return unwrapped
@@ -116,7 +116,7 @@ export function toggleSpoilerAtSelection(
 
   const wrapped = `${SPOILER_OPEN}${selected}${SPOILER_CLOSE}`
   const nextValue = `${value.slice(0, start)}${wrapped}${value.slice(end)}`
-  if (nextValue.length > maxLen) {
+  if (maxLen != null && nextValue.length > maxLen) {
     return null
   }
   return { nextValue, caret: start + wrapped.length }

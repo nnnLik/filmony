@@ -32,7 +32,6 @@ import { createManualBinding, bindingFromResolveByUrl, mapResolveError } from '.
 import { clearMyProfileBundleCache } from '../../lib/myProfileBundleCache'
 import { filterMutualSubscriptions } from '../../lib/mutualSubscriptionFilter'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
-import { MAX_WATCH_NOTE_LEN } from '../../lib/watchNoteLimits'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import {
   buildWatchlistCreatePayload,
@@ -212,7 +211,6 @@ export function WatchlistForm({
     }
   }, [])
 
-  const watchlistNoteTooLong = watchlistNote.length > MAX_WATCH_NOTE_LEN
   const preview = binding != null ? watchlistBindingPreview(binding) : null
 
   const toggleSpoilerInWatchlistNote = useCallback(() => {
@@ -221,7 +219,6 @@ export function WatchlistForm({
       watchlistNote,
       el?.selectionStart ?? null,
       el?.selectionEnd ?? null,
-      MAX_WATCH_NOTE_LEN,
     )
     if (toggled == null) return
     setWatchlistNote(toggled.nextValue)
@@ -355,7 +352,7 @@ export function WatchlistForm({
     if (editMode == null) return
     const body: PatchWatchlistEntryBody = {
       company: watchlistCompany,
-      watch_note: watchlistNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
+      watch_note: watchlistNote.trim(),
       watch_with_user_ids: watchlistCompany === 'alone' ? [] : watchWithUserIds,
     }
     if (watchlistShelfId != null && watchlistShelfId > 0) {
@@ -688,7 +685,7 @@ export function WatchlistForm({
               <div className="mt-6 border-t border-(--tgui--divider_color) pt-5">
                 <p className="text-sm font-medium text-(--tgui--text_color)">Заметка</p>
                 <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                  По желанию — до {MAX_WATCH_NOTE_LEN} символов. Перенесётся, когда поставите оценку.
+                  По желанию. Перенесётся, когда поставите оценку.
                 </p>
                 <div className="mt-2 flex gap-2">
                   <CommentDraftMultiline
@@ -700,26 +697,14 @@ export function WatchlistForm({
                     }}
                     placeholder="Например: посмотреть в выходные с друзьями…"
                     ariaLabel="Заметка для списка «Позже»"
-                    maxLength={MAX_WATCH_NOTE_LEN}
                     rows={4}
                     wrapperClassName={`min-h-24 flex-1 ${TEXT_FIELD_CLASS}`}
                   />
                   <div className="flex shrink-0 flex-col justify-start pt-1">
-                    <CommentSpoilerToggleButton
-                      allowInsert={watchlistNote.length < MAX_WATCH_NOTE_LEN}
-                      onToggleSpoiler={toggleSpoilerInWatchlistNote}
-                    />
+                    <CommentSpoilerToggleButton onToggleSpoiler={toggleSpoilerInWatchlistNote} />
                   </div>
                 </div>
-                {watchlistNoteTooLong ? (
-                  <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">
-                    Не больше {MAX_WATCH_NOTE_LEN} символов
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                    {watchlistNote.length}/{MAX_WATCH_NOTE_LEN}
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-(--tgui--hint_color) tabular-nums">{watchlistNote.length}</p>
               </div>
 
               {watchlistError != null ? (
@@ -729,7 +714,7 @@ export function WatchlistForm({
               <div className="mt-5 flex flex-col gap-2">
                 <Button
                   stretched
-                  disabled={watchlistBusy || watchlistNoteTooLong}
+                  disabled={watchlistBusy}
                   onClick={() => void handleSubmit()}
                 >
                   {watchlistBusy

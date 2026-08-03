@@ -10,7 +10,6 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
@@ -100,8 +99,6 @@ def _normalize_tags(tags: Sequence[str]) -> list[str]:
 
 def _normalize_watch_note(raw: str) -> str:
     s = (raw or '').strip()
-    if len(s) > WATCH_NOTE_MAX_LEN:
-        raise UserCardValidationError(f'watch note max length is {WATCH_NOTE_MAX_LEN}')
     try:
         return validate_spoiler_tokens(s)
     except SpoilerTokenValidationError as e:

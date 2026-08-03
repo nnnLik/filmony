@@ -60,7 +60,6 @@ import {
   movieCardReleaseCompactSuffix,
 } from '../lib/movieCardDisplay'
 import { safeHapticSuccess } from '../lib/safeHaptic'
-import { MAX_WATCH_NOTE_LEN } from '../lib/watchNoteLimits'
 
 type CreateScreen = 'search' | 'form'
 
@@ -446,7 +445,7 @@ export function CreateCardPage() {
     setSubmitLoading(true)
     setSubmitError(null)
     try {
-      const watchNotePayload = watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN)
+      const watchNotePayload = watchNote.trim()
       const ratingPayload = normalizeRating(rating)
       const shelfOpt =
         selectedShelfId != null && Number.isFinite(selectedShelfId) && selectedShelfId >= 1

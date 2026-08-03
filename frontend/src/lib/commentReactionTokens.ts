@@ -190,12 +190,12 @@ export function insertSnippetAtCaret(
   selectionStart: number | null,
   selectionEnd: number | null,
   snippet: string,
-  maxLen: number,
+  maxLen?: number,
 ): { nextValue: string; caret: number } | null {
   const start = selectionStart ?? value.length
   const end = selectionEnd ?? value.length
   const nextValue = `${value.slice(0, start)}${snippet}${value.slice(end)}`
-  if (nextValue.length > maxLen) {
+  if (maxLen != null && nextValue.length > maxLen) {
     return null
   }
   return { nextValue, caret: start + snippet.length }

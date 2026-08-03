@@ -79,7 +79,7 @@ class UserCard(Base):
         nullable=True,
     )
     watch_note: Mapped[str] = mapped_column(
-        String(1000),
+        Text,
         nullable=False,
         default='',
         server_default=text("''"),

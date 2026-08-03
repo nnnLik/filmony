@@ -13,7 +13,6 @@ import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoile
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
-import { MAX_WATCH_NOTE_LEN } from '../lib/watchNoteLimits'
 import { myCardCategoriesQueryKey } from '../feed/feedQueryKeys'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
@@ -121,7 +120,6 @@ export function EditMovieCardPage() {
         el?.selectionStart ?? null,
         el?.selectionEnd ?? null,
         token,
-        MAX_WATCH_NOTE_LEN,
       )
       if (!inserted) return
       setWatchNote(inserted.nextValue)
@@ -141,7 +139,6 @@ export function EditMovieCardPage() {
       watchNote,
       el?.selectionStart ?? null,
       el?.selectionEnd ?? null,
-      MAX_WATCH_NOTE_LEN,
     )
     if (toggled == null) return
     setWatchNote(toggled.nextValue)
@@ -325,7 +322,7 @@ export function EditMovieCardPage() {
         mood_before: moodBefore,
         mood_after: moodAfter,
         custom_tags: customTags,
-        watch_note: watchNote.trim().slice(0, MAX_WATCH_NOTE_LEN),
+        watch_note: watchNote.trim(),
         ...shelfPatch,
       })
       clearMyProfileBundleCache()
@@ -495,7 +492,7 @@ export function EditMovieCardPage() {
 
             <Section header="Заметка к карточке">
               <div className="px-3 py-3">
-                <p className="text-xs text-(--tgui--hint_color)">До {MAX_WATCH_NOTE_LEN} символов.</p>
+                <p className="text-xs text-(--tgui--hint_color)">По желанию.</p>
                 <div className="mt-2 flex gap-2">
                   <CommentDraftMultiline
                     ref={watchNoteRef}
@@ -504,26 +501,21 @@ export function EditMovieCardPage() {
                     placeholder="Коротко о впечатлении…"
                     ariaLabel="Заметка к карточке"
                     disabled={saving}
-                    maxLength={MAX_WATCH_NOTE_LEN}
                     rows={5}
                     wrapperClassName="min-h-28 flex-1 focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]"
                   />
                   <div className="flex shrink-0 flex-col justify-start gap-1 pt-1">
                     <CommentReactionTokenPicker
-                      allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
                       disabled={saving}
                       onPickReactionTypeId={insertReactionIntoWatchNote}
                     />
                     <CommentSpoilerToggleButton
-                      allowInsert={watchNote.length < MAX_WATCH_NOTE_LEN}
                       disabled={saving}
                       onToggleSpoiler={toggleSpoilerInWatchNote}
                     />
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-(--tgui--hint_color)">
-                  {watchNote.length}/{MAX_WATCH_NOTE_LEN}
-                </p>
+                <p className="mt-1 text-xs text-(--tgui--hint_color) tabular-nums">{watchNote.length}</p>
               </div>
             </Section>
 

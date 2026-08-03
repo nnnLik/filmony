@@ -69,7 +69,7 @@ class WatchlistFilmCreateRequest(BaseModel):
     watch_tag: WatchTag = WatchTag.watch_later
     company: CardCompany = CardCompany.alone
     category_id: int | None = Field(default=None, ge=1)
-    watch_note: str = Field(default='', max_length=1000)
+    watch_note: str = Field(default='')
     watch_with_user_id: UUID | None = None
     watch_with_user_ids: list[UUID] = Field(default_factory=list, max_length=20)
 
@@ -86,7 +86,7 @@ class WatchlistFilmCreateRequest(BaseModel):
 class WatchlistEntryUpdateRequest(BaseModel):
     company: CardCompany = CardCompany.alone
     category_id: int | None = Field(default=None, ge=1)
-    watch_note: str = Field(default='', max_length=1000)
+    watch_note: str = Field(default='')
     watch_with_user_id: UUID | None = None
     watch_with_user_ids: list[UUID] = Field(default_factory=list, max_length=20)
 

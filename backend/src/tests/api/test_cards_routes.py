@@ -646,9 +646,10 @@ async def test_create_card_watch_note_accepts_spoiler_tokens(async_client: Async
 
 
 @pytest.mark.asyncio
-async def test_create_card_watch_note_rejects_over_1000_chars(async_client: AsyncClient) -> None:
+async def test_create_card_watch_note_accepts_over_1000_chars(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=6292)
     film = await _create_film(kinopoisk_id=1006292)
+    long_note = 'x' * 1500
     created = await async_client.post(
         '/api/cards',
         json={
@@ -660,10 +661,40 @@ async def test_create_card_watch_note_rejects_over_1000_chars(async_client: Asyn
             'mood_before': 'relax',
             'mood_after': 'enjoyed',
             'custom_tags': [],
-            'watch_note': 'x' * 1001,
+            'watch_note': long_note,
         },
     )
-    assert created.status_code == 422
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    fetched = await async_client.get(f'/api/cards/{card_id}')
+    assert fetched.status_code == 200
+    assert fetched.json()['watch_note'] == long_note
+
+
+@pytest.mark.asyncio
+async def test_patch_card_watch_note_accepts_over_1000_chars(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=6293)
+    film = await _create_film(kinopoisk_id=1006293)
+    created = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film.id,
+            'kinopoisk_id': film.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+            'watch_note': 'short',
+        },
+    )
+    assert created.status_code == 200
+    card_id = created.json()['id']
+    long_note = 'y' * 5000
+    patched = await async_client.patch(f'/api/cards/{card_id}', json={'watch_note': long_note})
+    assert patched.status_code == 200
+    assert patched.json()['watch_note'] == long_note
 
 
 @pytest.mark.asyncio

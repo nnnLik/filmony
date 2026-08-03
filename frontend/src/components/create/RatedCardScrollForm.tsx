@@ -20,7 +20,6 @@ import {
 import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { useMicroFunLine } from '../../lib/microFun'
-import { MAX_WATCH_NOTE_LEN } from '../../lib/watchNoteLimits'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -186,10 +185,9 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
   }, [props.tagInput, props.myTagStats, customTagsLower])
 
   const tagInputTooLong = props.tagInput.trim().length > MAX_CUSTOM_TAG_LEN
-  const watchNoteTooLong = props.watchNote.length > MAX_WATCH_NOTE_LEN
   const titleMissing = props.title.trim() === ''
   const canSubmit =
-    !tagInputTooLong && !watchNoteTooLong && !titleMissing && !props.submitLoading
+    !tagInputTooLong && !titleMissing && !props.submitLoading
 
   const insertReactionIntoWatchNote = useCallback(
     (id: number) => {
@@ -200,7 +198,6 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
         el?.selectionStart ?? null,
         el?.selectionEnd ?? null,
         token,
-        MAX_WATCH_NOTE_LEN,
       )
       if (!inserted) return
       props.onWatchNoteChange(inserted.nextValue)
@@ -220,7 +217,6 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
       props.watchNote,
       el?.selectionStart ?? null,
       el?.selectionEnd ?? null,
-      MAX_WATCH_NOTE_LEN,
     )
     if (toggled == null) return
     props.onWatchNoteChange(toggled.nextValue)
@@ -496,7 +492,7 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
 
       <FormSection title="Заметка к карточке">
         <p className="mt-1 text-xs text-(--tgui--hint_color)">
-          По желанию — до {MAX_WATCH_NOTE_LEN} символов. Реакции можно вставить кнопкой справа.
+          По желанию. Реакции можно вставить кнопкой справа.
         </p>
         <div className="mt-2 flex gap-2">
           <CommentDraftMultiline
@@ -505,30 +501,15 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
             onChange={props.onWatchNoteChange}
             placeholder={watchNotePlaceholder}
             ariaLabel="Заметка к карточке"
-            maxLength={MAX_WATCH_NOTE_LEN}
             rows={4}
             wrapperClassName={`min-h-24 flex-1 ${CREATE_CARD_TEXT_FIELD_CLASS}`}
           />
           <div className="flex shrink-0 flex-col justify-start gap-1 pt-1">
-            <CommentReactionTokenPicker
-              allowInsert={props.watchNote.length < MAX_WATCH_NOTE_LEN}
-              onPickReactionTypeId={insertReactionIntoWatchNote}
-            />
-            <CommentSpoilerToggleButton
-              allowInsert={props.watchNote.length < MAX_WATCH_NOTE_LEN}
-              onToggleSpoiler={toggleSpoilerInWatchNote}
-            />
+            <CommentReactionTokenPicker onPickReactionTypeId={insertReactionIntoWatchNote} />
+            <CommentSpoilerToggleButton onToggleSpoiler={toggleSpoilerInWatchNote} />
           </div>
         </div>
-        {watchNoteTooLong ? (
-          <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">
-            Не больше {MAX_WATCH_NOTE_LEN} символов
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-(--tgui--hint_color)">
-            {props.watchNote.length}/{MAX_WATCH_NOTE_LEN}
-          </p>
-        )}
+        <p className="mt-1 text-xs text-(--tgui--hint_color) tabular-nums">{props.watchNote.length}</p>
       </FormSection>
 
       {props.submitError != null ? (

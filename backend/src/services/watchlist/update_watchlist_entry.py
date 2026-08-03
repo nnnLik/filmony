@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from const.text_limits import WATCH_NOTE_MAX_LEN
 from models.card_enums import CardCompany
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
@@ -31,8 +30,6 @@ from services.watchlist.normalize_watch_with_partners import (
 
 def _normalize_watch_note(raw: str) -> str:
     s = (raw or '').strip()
-    if len(s) > WATCH_NOTE_MAX_LEN:
-        raise ValueError(f'watch note max length is {WATCH_NOTE_MAX_LEN}')
     try:
         return validate_spoiler_tokens(s)
     except SpoilerTokenValidationError as e:
