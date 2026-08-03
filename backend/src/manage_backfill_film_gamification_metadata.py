@@ -2,8 +2,11 @@
 
 Запуск внутри backend (DATABASE_URL, KINOPOISK_* из env):
 
+  alembic upgrade head   # обязательно до первого прогона
   docker compose exec -w /opt/app backend \\
     python src/manage_backfill_film_gamification_metadata.py [--dry-run] [--limit N]
+
+Покрытие: ``src/tests/scripts/test_manage_backfill_film_gamification_metadata.py``
 
 Опции: --dry-run, --force, --sleep SEC (default 0.15), --limit N,
        --skip-staff, --skip-sequels (только countries из get_film)
