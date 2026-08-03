@@ -1,0 +1,15 @@
+- Timestamp: 2026-08-04T011600Z
+- Feature slug: catalog-community-page
+- Action type: code
+- Summary: Catalog community hub API + CatalogDetailPage for games; film list delegates to shared service.
+- Files:
+  - backend/src/services/catalog/list_catalog_community_cards.py
+  - backend/src/services/catalog/get_catalog_item_detail.py
+  - backend/src/services/catalog/community_card_dto.py
+  - backend/src/services/cards/get_my_user_card_id_for_catalog_item.py
+  - backend/src/api/catalog/routes.py
+  - backend/src/tests/api/test_catalog_community_routes.py
+  - frontend/src/pages/CatalogDetailPage.tsx
+  - frontend/src/components/catalog/CommunityRatingsList.tsx
+  - docs/features/catalog-community-page.md
+- Verification: `make backend-test-one target=src/tests/api/test_catalog_community_routes.py` — 6 passed; film regression 4 passed; frontend lint/build pass

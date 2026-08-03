@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -18,6 +20,7 @@ class CatalogSearchProvider(StrEnum):
 
 CatalogSearchHitKind = Literal['film', 'game']
 CatalogSearchHitSource = Literal['local', 'remote']
+CatalogDetailKind = Literal['film', 'game']
 
 
 class CatalogSearchHitResponse(BaseModel):
@@ -94,3 +97,50 @@ class CatalogResolveByUrlResponse(BaseModel):
     film: FilmResponse | None = None
     source_url: str | None = None
     my_card_id: int | None = None
+
+
+class CatalogItemDetailResponse(BaseModel):
+    catalog_item_id: int
+    provider: CatalogProvider
+    external_id: str
+    kind: CatalogDetailKind
+    title: str
+    year: int | None = None
+    poster_url: str | None = None
+    short_description: str | None = None
+    description: str | None = None
+    film_id: int | None = None
+    game_id: int | None = None
+    genres: list[str] = Field(default_factory=list)
+    my_card_id: int | None = Field(
+        default=None,
+        description='Id карточки текущего пользователя для этого тайтла, если уже оценивал',
+    )
+
+
+class CatalogCommunityAuthorResponse(BaseModel):
+    id: UUID
+    profile_slug: str
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    photo_url: str | None = None
+    display_name: str | None = None
+
+
+class CatalogCommunityCardItemResponse(BaseModel):
+    id: int
+    author: CatalogCommunityAuthorResponse
+    rating: float
+    company: str
+    mood_before: str
+    mood_after: str
+    watch_note: str = ''
+    custom_tags: list[str] = Field(default_factory=list)
+    updated_at: datetime
+    is_favorite: bool = False
+
+
+class CatalogCommunityCardsPageResponse(BaseModel):
+    items: list[CatalogCommunityCardItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None

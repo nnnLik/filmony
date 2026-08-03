@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { isLikelyUrl } from '../api/catalogApi'
@@ -711,9 +711,19 @@ export function CreateCardPage() {
         {fromCardPrefillDone && !bootstrapBusy && screen === 'form' && creationBinding != null ? (
           <section className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="border-b border-(--tgui--divider_color) px-4 py-3">
-              <h2 className="text-[15px] font-semibold tracking-tight text-(--tgui--text_color)">
-                Карточка
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[15px] font-semibold tracking-tight text-(--tgui--text_color)">
+                  Карточка
+                </h2>
+                {creationBinding.kind === 'catalog_game' ? (
+                  <Link
+                    to={`/catalog/${encodeURIComponent(String(creationBinding.catalogItemId))}`}
+                    className="text-xs font-semibold text-(--tgui--link_color) no-underline"
+                  >
+                    Все оценки →
+                  </Link>
+                ) : null}
+              </div>
             </div>
             <div className="p-4">
               <RatedCardScrollForm

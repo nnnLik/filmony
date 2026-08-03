@@ -11,6 +11,10 @@ from api.catalog.schemas import (
     CatalogCandidateResponse,
     CatalogCandidatesMetaResponse,
     CatalogCandidatesResponse,
+    CatalogCommunityAuthorResponse,
+    CatalogCommunityCardItemResponse,
+    CatalogCommunityCardsPageResponse,
+    CatalogItemDetailResponse,
     CatalogResolveByUrlRequest,
     CatalogResolveByUrlResponse,
     CatalogResolveRequest,
@@ -22,13 +26,16 @@ from api.catalog.schemas import (
 from api.films.schemas import FilmResponse
 from core.database import get_db
 from deps.auth import CurrentUser
-from models.catalog_item import CatalogProvider
+from models.catalog_item import CatalogItem, CatalogProvider
 from models.user_card import UserCard
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
+from services.cards.get_my_user_card_id_for_catalog_item import GetMyUserCardIdForCatalogItemService
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
 from services.catalog.catalog_candidate_dto import CatalogCandidateDTO
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
+from services.catalog.get_catalog_item_detail import GetCatalogItemDetailService
+from services.catalog.list_catalog_community_cards import ListCatalogCommunityCardsService
 from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from services.catalog.resolve_catalog_by_url_service import ResolveCatalogByUrlService
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
@@ -89,6 +96,100 @@ def _catalog_candidate(item: CatalogCandidateDTO) -> CatalogCandidateResponse:
         source=item.source,
         degraded=item.degraded,
     )
+
+
+def _community_page_response(
+    page,
+) -> CatalogCommunityCardsPageResponse:
+    return CatalogCommunityCardsPageResponse(
+        items=[
+            CatalogCommunityCardItemResponse(
+                id=item.id,
+                author=CatalogCommunityAuthorResponse(
+                    id=item.author.id,
+                    profile_slug=item.author.profile_slug,
+                    username=item.author.username,
+                    first_name=item.author.first_name,
+                    last_name=item.author.last_name,
+                    photo_url=item.author.photo_url,
+                    display_name=item.author.display_name,
+                ),
+                rating=item.rating,
+                company=item.company,
+                mood_before=item.mood_before,
+                mood_after=item.mood_after,
+                watch_note=item.watch_note,
+                custom_tags=list(item.custom_tags),
+                updated_at=item.updated_at,
+                is_favorite=item.is_favorite,
+            )
+            for item in page.items
+        ],
+        next_cursor=page.next_cursor,
+    )
+
+
+@router.get(
+    '/items/{catalog_item_id}',
+    response_model=CatalogItemDetailResponse,
+    summary='Метаданные элемента каталога для community hub',
+)
+async def get_catalog_item_detail(
+    catalog_item_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CatalogItemDetailResponse:
+    try:
+        detail = await GetCatalogItemDetailService.build(db).execute(catalog_item_id)
+    except GetCatalogItemDetailService.CatalogItemNotFound as e:
+        raise HTTPException(status_code=404, detail='catalog item not found') from e
+
+    my_card_id = await GetMyUserCardIdForCatalogItemService.build(db).execute(
+        viewer.id,
+        catalog_item_id,
+    )
+    return CatalogItemDetailResponse(
+        catalog_item_id=detail.catalog_item_id,
+        provider=detail.provider,
+        external_id=detail.external_id,
+        kind=detail.kind,
+        title=detail.title,
+        year=detail.year,
+        poster_url=detail.poster_url,
+        short_description=detail.short_description,
+        description=detail.description,
+        film_id=detail.film_id,
+        game_id=detail.game_id,
+        genres=list(detail.genres),
+        my_card_id=my_card_id,
+    )
+
+
+@router.get(
+    '/items/{catalog_item_id}/community-cards',
+    response_model=CatalogCommunityCardsPageResponse,
+    summary='Публичные оценки пользователей по элементу каталога',
+)
+async def list_catalog_community_cards(
+    catalog_item_id: int,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: str | None = None,
+    limit: int = Query(default=20, ge=1, le=50),
+) -> CatalogCommunityCardsPageResponse:
+    item = await db.get(CatalogItem, catalog_item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail='catalog item not found')
+    try:
+        page = await ListCatalogCommunityCardsService.build(db).execute(
+            cursor,
+            limit,
+            catalog_item_id=catalog_item_id,
+            film_id=item.film_id,
+        )
+    except ListCatalogCommunityCardsService.InvalidCursor:
+        raise HTTPException(status_code=422, detail='invalid cursor') from None
+    return _community_page_response(page)
 
 
 @router.get(

@@ -30,6 +30,11 @@ import {
   readMyProfileBundleCache,
 } from '../lib/myProfileBundleCache'
 import { globalFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
+import { formatOfflineCacheTimestamp } from '../lib/formatOfflineCacheTimestamp'
+import {
+  readCachedGlobalFeedPage,
+  writeCachedGlobalFeedPage,
+} from '../lib/globalFeedCacheStorage'
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
@@ -115,6 +120,7 @@ export function FeedPage() {
 
   const [liveHeadVersion, setLiveHeadVersion] = useState(0)
   const [ackHeadVersion, setAckHeadVersion] = useState(0)
+  const [offlineCacheStoredAt, setOfflineCacheStoredAt] = useState<number | null>(null)
   const routeKey = useMemo(() => buildRouteKeySafe(location, ['q', 'filter']), [location])
 
   useEffect(() => {
@@ -137,6 +143,31 @@ export function FeedPage() {
   }, [])
 
   const excludeOwn = auth.kind === 'ready' && hideMine
+
+  useEffect(() => {
+    if (viewerUserIdString == null) {
+      queueMicrotask(() => {
+        setOfflineCacheStoredAt(null)
+      })
+      return
+    }
+    let cancelled = false
+    void readCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn).then((blob) => {
+      if (cancelled || blob == null) {
+        return
+      }
+      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(
+        globalFeedQueryKey(feedKind, excludeOwn),
+        blob.payload,
+      )
+      queueMicrotask(() => {
+        setOfflineCacheStoredAt(blob.storedAt)
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [viewerUserIdString, feedKind, excludeOwn, queryClient])
 
   const feedQuery = useInfiniteQuery<
     FeedMovieCardPage,
@@ -161,6 +192,32 @@ export function FeedPage() {
     staleTime: 2 * 60_000,
     gcTime: 60 * 60_000,
   })
+
+  useEffect(() => {
+    if (
+      viewerUserIdString == null ||
+      !feedQuery.isSuccess ||
+      feedQuery.data?.pages[0] == null
+    ) {
+      return
+    }
+    queueMicrotask(() => {
+      setOfflineCacheStoredAt(null)
+    })
+    void writeCachedGlobalFeedPage(
+      viewerUserIdString,
+      feedKind,
+      excludeOwn,
+      feedQuery.data,
+    )
+  }, [
+    viewerUserIdString,
+    feedKind,
+    excludeOwn,
+    feedQuery.isSuccess,
+    feedQuery.data,
+    feedQuery.dataUpdatedAt,
+  ])
 
   useEffect(() => {
     const p0 = feedQuery.data?.pages[0]
@@ -261,12 +318,17 @@ export function FeedPage() {
     }
   }, [refreshRecentStrip, refreshProfileBundle])
 
+  const showOfflineStaleBanner =
+    offlineCacheStoredAt != null &&
+    items.length > 0 &&
+    (feedQuery.isError || (feedQuery.isFetching && !feedQuery.isFetchedAfterMount))
+
   const onCommentsState = useCallback(
-    (cardId: number, next: { comments_count: number; comments_preview: MovieCardComment[] }) => {
+    (cardId: number, nextState: { comments_count: number; comments_preview: MovieCardComment[] }) => {
       const key = globalFeedQueryKey(feedKind, excludeOwn)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
-        return {
+        const updated: InfiniteData<FeedMovieCardPage, string | null> = {
           ...old,
           pages: old.pages.map((page) => ({
             ...page,
@@ -277,21 +339,25 @@ export function FeedPage() {
               if (entry.id !== cardId) {
                 return entry
               }
-              return { ...entry, ...next }
+              return { ...entry, ...nextState }
             }),
           })),
         }
+        if (viewerUserIdString != null) {
+          void writeCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn, updated)
+        }
+        return updated
       })
     },
-    [queryClient, feedKind, excludeOwn],
+    [queryClient, feedKind, excludeOwn, viewerUserIdString],
   )
 
   const onFeedPostCommentsState = useCallback(
-    (postId: number, next: { comments_count: number; comments_preview: FeedPostComment[] }) => {
+    (postId: number, nextState: { comments_count: number; comments_preview: FeedPostComment[] }) => {
       const key = globalFeedQueryKey(feedKind, excludeOwn)
       queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
         if (old == null) return old
-        return {
+        const next = {
           ...old,
           pages: old.pages.map((page) => ({
             ...page,
@@ -299,13 +365,17 @@ export function FeedPage() {
               if (entry.kind !== 'feed_post' || entry.id !== postId) {
                 return entry
               }
-              return { ...entry, ...next }
+              return { ...entry, ...nextState }
             }),
           })),
         }
+        if (viewerUserIdString != null) {
+          void writeCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn, next)
+        }
+        return next
       })
     },
-    [queryClient, feedKind, excludeOwn],
+    [queryClient, feedKind, excludeOwn, viewerUserIdString],
   )
 
   const onToggleHideMine = useCallback(() => {
@@ -439,6 +509,26 @@ export function FeedPage() {
               }
             />
           )}
+
+          {showOfflineStaleBanner ? (
+            <div className="rounded-xl border border-(--tgui--separator_color) bg-(--tgui--secondary_bg_color) px-3 py-2 text-[12px] leading-snug text-(--tgui--hint_color)">
+              Данные от {formatOfflineCacheTimestamp(offlineCacheStoredAt)}.
+              {feedQuery.isError ? (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="text-(--tgui--link_color) underline-offset-2 hover:underline"
+                    onClick={() => {
+                      void feedQuery.refetch()
+                    }}
+                  >
+                    Обновить
+                  </button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
 
           {items.length > 0 && (
             <>

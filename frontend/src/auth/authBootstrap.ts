@@ -1,6 +1,7 @@
 import { apiFetch, apiFetchCredentialsOnly } from '../api/client'
 import { authTelegram } from '../api/profileApi'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { clearGlobalFeedCache } from '../lib/globalFeedCacheStorage'
 import { clearMovieCardTagStatsSessionCaches } from '../lib/movieCardTagStatsStorage'
 import { clearUserCardCategoriesSessionCaches } from '../lib/userCardCategoriesStorage'
 import {
@@ -93,6 +94,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
     clearMyProfileBundleCache()
     clearMovieCardTagStatsSessionCaches()
     clearUserCardCategoriesSessionCaches()
+    void clearGlobalFeedCache()
     setState({
       kind: 'error',
       message: 'Пустой initData — откройте приложение из Telegram.',
@@ -112,6 +114,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
       clearMyProfileBundleCache()
       clearMovieCardTagStatsSessionCaches()
       clearUserCardCategoriesSessionCaches()
+      void clearGlobalFeedCache()
       setState({
         kind: 'error',
         message: t.trim() || `Ошибка входа (HTTP ${res.status})`,
@@ -134,6 +137,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
       clearMyProfileBundleCache()
       clearMovieCardTagStatsSessionCaches()
       clearUserCardCategoriesSessionCaches()
+      void clearGlobalFeedCache()
       setState({
         kind: 'error',
         message: 'Ответ входа без access_token',
@@ -152,6 +156,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
     clearMyProfileBundleCache()
     clearMovieCardTagStatsSessionCaches()
     clearUserCardCategoriesSessionCaches()
+    void clearGlobalFeedCache()
     setState({
       kind: 'error',
       message: e instanceof Error ? e.message : 'Сеть недоступна',

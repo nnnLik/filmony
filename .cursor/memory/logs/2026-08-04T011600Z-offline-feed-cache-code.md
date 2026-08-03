@@ -1,0 +1,12 @@
+- Timestamp: 2026-08-04T011600Z
+- Feature slug: offline-feed-cache
+- Action type: code
+- Summary: IndexedDB offline cache for global feed first page + stale banner on FeedPage.
+- Files:
+  - frontend/src/lib/globalFeedCacheStorage.ts
+  - frontend/src/lib/globalFeedCacheStorage.test.ts
+  - frontend/src/lib/formatOfflineCacheTimestamp.ts
+  - frontend/src/pages/FeedPage.tsx
+  - frontend/src/auth/authBootstrap.ts
+  - docs/features/offline-feed-cache.md
+- Verification: `cd frontend && npm run lint && npm run test && npm run build` — 65 passed

@@ -1454,8 +1454,22 @@ function MovieCardDetailLoadedBody({
 
             {!isPlannedCard ? (
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Друзья оценили</p>
-              <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">Сравнить с подписками.</p>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Друзья оценили</p>
+                  <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">Сравнить с подписками.</p>
+                </div>
+                {card.provider === 'rawg' &&
+                card.catalog_item_id != null &&
+                card.catalog_item_id > 0 ? (
+                  <Link
+                    to={`/catalog/${encodeURIComponent(String(card.catalog_item_id))}`}
+                    className="shrink-0 text-xs font-semibold text-(--tgui--link_color) no-underline"
+                  >
+                    Все оценки →
+                  </Link>
+                ) : null}
+              </div>
               {followingRatings == null ? (
                 <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
               ) : followingRatings.length === 0 ? (

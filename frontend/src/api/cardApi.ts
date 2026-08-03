@@ -16,6 +16,7 @@ import type {
   MovieCardCommentPage,
   UserCardProvider,
 } from './profileTypes'
+import type { CatalogCommunityCardsPage, CatalogItemDetail } from './catalogTypes'
 import type { FeedMovieCardPage, FeedPageItem } from './feedListPageTypes'
 import type { FeedPostInFeed } from './feedInFeedTypes'
 import type { WatchedInlinePickerItem } from './watchedInlinePickerTypes'
@@ -159,6 +160,27 @@ export async function getFilmCommunityCardsPage(
   }
   const q = sp.toString()
   return apiJson<FilmCommunityCardsPage>(`/api/films/${filmId}/community-cards${q ? `?${q}` : ''}`)
+}
+
+export async function getCatalogItemById(catalogItemId: number): Promise<CatalogItemDetail> {
+  return apiJson<CatalogItemDetail>(`/api/catalog/items/${catalogItemId}`)
+}
+
+export async function getCatalogCommunityCardsPage(
+  catalogItemId: number,
+  params?: { cursor?: string | null; limit?: number },
+): Promise<CatalogCommunityCardsPage> {
+  const sp = new URLSearchParams()
+  if (params?.cursor != null && params.cursor !== '') {
+    sp.set('cursor', params.cursor)
+  }
+  if (params?.limit != null) {
+    sp.set('limit', String(params.limit))
+  }
+  const q = sp.toString()
+  return apiJson<CatalogCommunityCardsPage>(
+    `/api/catalog/items/${catalogItemId}/community-cards${q ? `?${q}` : ''}`,
+  )
 }
 
 export async function getMovieCardById(cardId: number): Promise<MovieCard> {
