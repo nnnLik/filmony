@@ -55,7 +55,15 @@ export function richMirrorCaretPositionInRoot(
   const clamped = Math.max(0, Math.min(caret, fullText.length))
   const els = [...mirrorRoot.querySelectorAll('[data-segment][data-char-start][data-char-end]')] as HTMLElement[]
   if (els.length === 0) {
-    return null
+    const range = document.createRange()
+    const firstChild = mirrorRoot.firstChild
+    if (firstChild != null) {
+      range.setStart(firstChild, 0)
+    } else {
+      range.setStart(mirrorRoot, 0)
+    }
+    range.collapse(true)
+    return rectRelativeToPositionRoot(range, positionRoot, fallbackLineHeightPx)
   }
 
   const range = document.createRange()

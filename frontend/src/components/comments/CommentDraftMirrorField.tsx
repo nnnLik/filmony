@@ -28,6 +28,15 @@ function assignRef<T>(instance: T | null, ref: Ref<T> | undefined) {
 
 type FakeCaret = { left: number; top: number; height: number; caretColor: string }
 
+/** Native field uses caret-transparent; overlay must use an explicit theme color. */
+function resolveFakeCaretColor(mirrorEl: HTMLElement): string {
+  const mirrorColor = getComputedStyle(mirrorEl).color
+  if (mirrorColor !== '' && mirrorColor !== 'transparent') {
+    return mirrorColor
+  }
+  return 'var(--tgui--link_color)'
+}
+
 function useFakeCaretOverlay(
   value: string,
   fieldRef: RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
@@ -60,7 +69,7 @@ function useFakeCaretOverlay(
     const end = el.selectionEnd ?? el.value.length
     const caretIdx = start !== end ? end : start
     const pos = richMirrorCaretPositionInRoot(mirror, wrap, value, caretIdx, lineHeight)
-    const caretColor = getComputedStyle(el).caretColor || 'CanvasText'
+    const caretColor = resolveFakeCaretColor(mirror)
     if (pos == null) {
       setFakeCaret(null)
       return
