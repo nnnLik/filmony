@@ -19,6 +19,8 @@ export const RATED_CARDS_FILTER_PARAM_KEYS = [
   'favoritesOnly',
   'categoryId',
   'completedOn',
+  'directorKinopoiskId',
+  'franchiseKey',
 ] as const
 
 export type RatedCardsListQuery = {
@@ -36,6 +38,10 @@ export type RatedCardsListQuery = {
   categoryId: string
   /** ISO date YYYY-MM-DD — завершённые в этот день. */
   completedOn: string
+  /** Kinopoisk staff id режиссёра; пустая строка = все. */
+  directorKinopoiskId: string
+  /** Стабильный ключ франшизы, напр. `kp_franchise:301`; пустая строка = все. */
+  franchiseKey: string
 }
 
 export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
@@ -50,6 +56,8 @@ export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   favoritesOnly: false,
   categoryId: '',
   completedOn: '',
+  directorKinopoiskId: '',
+  franchiseKey: '',
 }
 
 export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
@@ -64,7 +72,9 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
     q.moodAfter === '' &&
     !q.favoritesOnly &&
     q.categoryId.trim() === '' &&
-    q.completedOn.trim() === ''
+    q.completedOn.trim() === '' &&
+    q.directorKinopoiskId.trim() === '' &&
+    q.franchiseKey.trim() === ''
   )
 }
 
@@ -81,6 +91,8 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
     fav: q.favoritesOnly,
     shelf: q.categoryId.trim(),
     completed: q.completedOn.trim(),
+    dir: q.directorKinopoiskId.trim(),
+    franchise: q.franchiseKey.trim(),
   })
 }
 
@@ -167,6 +179,14 @@ export function ratedCardsQueryToSearchParams(query: RatedCardsListQuery): URLSe
   if (completedOn !== '') {
     params.set('completedOn', completedOn)
   }
+  const directorKinopoiskId = query.directorKinopoiskId.trim()
+  if (directorKinopoiskId !== '') {
+    params.set('directorKinopoiskId', directorKinopoiskId)
+  }
+  const franchiseKey = query.franchiseKey.trim()
+  if (franchiseKey !== '') {
+    params.set('franchiseKey', franchiseKey)
+  }
 
   return params
 }
@@ -184,6 +204,8 @@ export function ratedCardsQueryFromSearchParams(searchParams: URLSearchParams): 
     favoritesOnly: parseFavoritesOnlyParam(searchParams.get('favoritesOnly')),
     categoryId: searchParams.get('categoryId') ?? '',
     completedOn: searchParams.get('completedOn') ?? '',
+    directorKinopoiskId: searchParams.get('directorKinopoiskId') ?? '',
+    franchiseKey: searchParams.get('franchiseKey') ?? '',
   }
 }
 
@@ -211,6 +233,11 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
   const categoryNum = cs === '' ? null : Number(cs)
   const categoryId =
     categoryNum != null && Number.isInteger(categoryNum) && categoryNum >= 1 ? categoryNum : null
+  const dirRaw = q.directorKinopoiskId.trim()
+  const dirNum = dirRaw === '' ? null : Number(dirRaw)
+  const directorKinopoiskId =
+    dirNum != null && Number.isInteger(dirNum) && dirNum >= 1 ? dirNum : null
+  const franchiseKey = q.franchiseKey.trim() === '' ? null : q.franchiseKey.trim()
 
   return {
     sort: q.sort,
@@ -224,5 +251,7 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
     moodAfter: q.moodAfter === '' ? null : q.moodAfter,
     categoryId,
     completedOn: q.completedOn.trim() === '' ? null : q.completedOn.trim(),
+    directorKinopoiskId,
+    franchiseKey,
   }
 }

@@ -87,6 +87,8 @@ def _global_feed_domain_to_response(
                 film_id=item.film_id,
                 film_kinopoisk_id=item.film_kinopoisk_id,
                 film_genres=item.film_genres,
+                film_primary_director_kinopoisk_id=item.film_primary_director_kinopoisk_id,
+                film_primary_director_name=item.film_primary_director_name,
                 film_title=item.film_title,
                 film_year=item.film_year,
                 release_year=item.release_year,

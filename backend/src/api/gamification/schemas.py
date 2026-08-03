@@ -58,3 +58,17 @@ class PublicPassportResponse(BaseModel):
     unlocked_count: int = 0
 
     model_config = ConfigDict(extra='forbid')
+
+
+class RatedDirectorItemResponse(BaseModel):
+    kinopoisk_id: int
+    name: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class RatedDirectorsListResponse(BaseModel):
+    items: list[RatedDirectorItemResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')

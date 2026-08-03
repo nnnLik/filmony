@@ -181,6 +181,8 @@ class WatchlistFilmItemResponse(BaseModel):
     film_id: int
     film_kinopoisk_id: int
     film_genres: list[str] = Field(default_factory=list)
+    film_primary_director_kinopoisk_id: int | None = None
+    film_primary_director_name: str | None = None
     film_title: str
     film_year: int | None
     film_poster_url: str | None
@@ -250,6 +252,8 @@ class UserCardItemResponse(BaseModel):
     film_id: int | None = None
     film_kinopoisk_id: int | None = None
     film_genres: list[str] = Field(default_factory=list)
+    film_primary_director_kinopoisk_id: int | None = None
+    film_primary_director_name: str | None = None
     film_title: str
     film_year: int | None
     release_year: int | None = None
@@ -377,6 +381,7 @@ class UserCardStatsApiResponse(BaseModel):
     average_rating: float
     rating_distribution: list[RatingDistributionItemResponse] = Field(default_factory=list)
     year_distribution: list[YearDistributionItemResponse] = Field(default_factory=list)
+    rated_year_distribution: list[YearDistributionItemResponse] = Field(default_factory=list)
     popular_tags: list[TagDistributionItemResponse] = Field(default_factory=list)
     tag_taste: list[TagTasteItemResponse] = Field(default_factory=list)
     insights: ProfileInsightsResponse
@@ -513,6 +518,8 @@ def build_user_card_page_response(
                 film_id=item.film_id,
                 film_kinopoisk_id=item.film_kinopoisk_id,
                 film_genres=item.film_genres,
+                film_primary_director_kinopoisk_id=item.film_primary_director_kinopoisk_id,
+                film_primary_director_name=item.film_primary_director_name,
                 film_title=item.film_title,
                 film_year=item.film_year,
                 release_year=item.release_year,
@@ -572,6 +579,10 @@ def build_user_card_stats_response(
         year_distribution=[
             YearDistributionItemResponse(year=item.year, count=item.count)
             for item in stats.year_distribution
+        ],
+        rated_year_distribution=[
+            YearDistributionItemResponse(year=item.year, count=item.count)
+            for item in stats.rated_year_distribution
         ],
         popular_tags=[
             TagDistributionItemResponse(tag=item.tag, count=item.count)

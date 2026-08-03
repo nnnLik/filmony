@@ -171,6 +171,8 @@ class CardDetailResponse(BaseModel):
     film_id: int | None = None
     film_kinopoisk_id: int | None = None
     film_genres: list[str] = Field(default_factory=list)
+    film_primary_director_kinopoisk_id: int | None = None
+    film_primary_director_name: str | None = None
     film_title: str
     film_year: int | None
     release_year: int | None = None

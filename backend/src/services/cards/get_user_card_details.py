@@ -40,6 +40,8 @@ class UserCardDetails:
     film_id: int | None
     film_kinopoisk_id: int | None
     film_genres: list[str]
+    film_primary_director_kinopoisk_id: int | None
+    film_primary_director_name: str | None
     film_title: str
     film_year: int | None
     film_poster_url: str | None
@@ -144,6 +146,16 @@ class GetUserCardDetailsService:
             film_id=film.id if film is not None else None,
             film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
             film_genres=list(film.genres or []) if film is not None else [],
+            film_primary_director_kinopoisk_id=(
+                int(film.primary_director_kinopoisk_id)
+                if film is not None and film.primary_director_kinopoisk_id is not None
+                else None
+            ),
+            film_primary_director_name=(
+                str(film.primary_director_name)
+                if film is not None and film.primary_director_name
+                else None
+            ),
             film_title=film_title_deprecated,
             film_year=film_year_val,
             film_poster_url=film.poster_url if film is not None else None,

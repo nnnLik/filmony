@@ -2,6 +2,7 @@ import { Avatar } from '@telegram-apps/telegram-ui'
 import { Link } from 'react-router'
 
 import type { ProfileInsightItem, SocialTastePeerItem, TagTasteItem } from '../../api/profileTypes'
+import { buildConicGradient, type DonutSegmentInput } from '../../lib/statsDonutChart'
 
 type BarItem = { label: string; count: number }
 
@@ -81,6 +82,83 @@ type SentimentParts = {
   total: number
   midPct: number
   highPct: number
+}
+
+export function StatsDonutChart({
+  segments,
+  centerTitle = 'всего',
+  onSegmentClick,
+  activeValue,
+}: {
+  segments: DonutSegmentInput[]
+  centerTitle?: string
+  onSegmentClick?: (value: string) => void
+  activeValue?: string
+}) {
+  const visibleSegments = segments.filter((segment) => segment.count > 0)
+  if (visibleSegments.length === 0) {
+    return <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+  }
+
+  const total = visibleSegments.reduce((acc, segment) => acc + segment.count, 0)
+  const gradient = buildConicGradient(visibleSegments)
+
+  return (
+    <div className="flex w-full min-w-0 flex-col items-center gap-4">
+      <div
+        className="relative size-28 shrink-0 rounded-full sm:size-32"
+        style={{ background: gradient }}
+      >
+        <div className="absolute inset-3 flex items-center justify-center rounded-full bg-(--tgui--secondary_bg_color) text-center sm:inset-3.5">
+          <div>
+            <p className="text-[10px] text-(--tgui--hint_color)">{centerTitle}</p>
+            <p className="text-lg font-bold tabular-nums sm:text-xl">{total}</p>
+          </div>
+        </div>
+      </div>
+      <ul className="grid w-full min-w-0 max-w-[18rem] gap-1.5 sm:max-w-none">
+        {visibleSegments.map((segment) => {
+          const clickable = onSegmentClick != null && segment.value != null && segment.count > 0
+          const active = activeValue != null && segment.value === activeValue
+          const row = (
+            <>
+              <span className="flex min-w-0 items-center gap-2">
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: segment.color }}
+                  aria-hidden
+                />
+                <span
+                  className={`min-w-0 truncate ${active ? 'font-medium text-(--tgui--text_color)' : 'text-(--tgui--hint_color)'}`}
+                >
+                  {segment.label}
+                </span>
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums text-(--tgui--text_color)">{segment.count}</span>
+            </>
+          )
+
+          return (
+            <li key={`${segment.label}-${segment.value ?? ''}`}>
+              {clickable ? (
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-0.5 text-xs outline-none transition-opacity active:opacity-90 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) sm:text-sm"
+                  aria-pressed={active}
+                  aria-label={`Применить фильтр: ${segment.label}`}
+                  onClick={() => onSegmentClick(segment.value ?? '')}
+                >
+                  {row}
+                </button>
+              ) : (
+                <div className="flex items-center justify-between gap-2 px-1 py-0.5 text-xs sm:text-sm">{row}</div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 export function TastePolarityChart({ sentiment }: { sentiment: SentimentParts }) {

@@ -9,13 +9,16 @@ function shownCount(value: number | undefined): string {
   return typeof value === 'number' ? String(value) : '0'
 }
 
+const METRIC_CHIP_CLASS =
+  'flex min-w-[3.5rem] flex-col items-center rounded-xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_28%,var(--tgui--divider_color))] bg-(--tgui--secondary_bg_color) px-3 py-2 shadow-[0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_8%,transparent),0_4px_14px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_6%,transparent)] sm:min-w-[4rem] sm:px-3.5 sm:py-2.5'
+
 function MetricChipButton({ chip }: { chip: MetricChip }) {
   const content = (
     <>
-      <span className="text-sm font-semibold tabular-nums leading-none text-(--tgui--text_color) sm:text-base">
+      <span className="text-base font-bold tabular-nums leading-none text-(--tgui--text_color) sm:text-lg">
         {shownCount(chip.value)}
       </span>
-      <span className="mt-0.5 text-[9px] leading-tight text-(--tgui--hint_color) sm:text-[10px]">{chip.label}</span>
+      <span className="mt-1 text-[10px] leading-tight text-(--tgui--hint_color) sm:text-[11px]">{chip.label}</span>
     </>
   )
 
@@ -23,7 +26,7 @@ function MetricChipButton({ chip }: { chip: MetricChip }) {
     return (
       <button
         type="button"
-        className="flex min-w-[3.25rem] shrink-0 flex-col items-center rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-1.5 outline-none transition-opacity active:opacity-80 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) sm:min-w-[3.5rem] sm:px-2.5 sm:py-2"
+        className={`${METRIC_CHIP_CLASS} outline-none transition-opacity active:opacity-80 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color)`}
         onClick={chip.onClick}
         aria-label={`${chip.label}: ${shownCount(chip.value)}`}
       >
@@ -33,10 +36,7 @@ function MetricChipButton({ chip }: { chip: MetricChip }) {
   }
 
   return (
-    <div
-      className="flex min-w-[3.25rem] shrink-0 flex-col items-center rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-2 py-1.5 sm:min-w-[3.5rem] sm:px-2.5 sm:py-2"
-      aria-label={`${chip.label}: ${shownCount(chip.value)}`}
-    >
+    <div className={METRIC_CHIP_CLASS} aria-label={`${chip.label}: ${shownCount(chip.value)}`}>
       {content}
     </div>
   )
@@ -77,12 +77,12 @@ export function ProfileCompactMetrics({
 
   return (
     <div
-      className="flex w-full gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="grid w-full grid-cols-5 justify-items-center gap-3 max-[380px]:grid-cols-3 max-[380px]:gap-2"
       role="list"
       aria-label="Сводка профиля"
     >
       {chips.map((chip) => (
-        <div key={chip.key} role="listitem">
+        <div key={chip.key} role="listitem" className="w-full max-w-[5.5rem]">
           <MetricChipButton chip={chip} />
         </div>
       ))}

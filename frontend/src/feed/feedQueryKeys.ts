@@ -19,3 +19,7 @@ export const myCardCategoriesQueryKey = () => ['myCardCategories'] as const
 /** Полки выбранного пользователя для публичного профиля (`GET /api/users/:id/card-categories`). */
 export const publicProfileCardCategoriesQueryKey = (userId: string) =>
   ['publicProfileCardCategories', userId] as const
+
+/** Режиссёры с оценёнными фильмами пользователя (`GET /api/users/:id/rated-directors`). */
+export const userRatedDirectorsQueryKey = (userId: string) =>
+  ['userRatedDirectors', userId] as const

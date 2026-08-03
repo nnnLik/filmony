@@ -2,7 +2,12 @@ import { useMemo, useState } from 'react'
 
 import type { MarathonAchievement, PassportStamp } from '../../../api/gamificationTypes'
 import { useGamification, usePublicPassport } from '../../../hooks/useGamification'
-import { getPassportStampMeta } from '../../../lib/gamification/passportStamps'
+import {
+  getPassportStampMeta,
+  PASSPORT_STAMP_CATEGORY_LABELS,
+  PASSPORT_STAMP_CATEGORY_ORDER,
+  type PassportStampCategory,
+} from '../../../lib/gamification/passportStamps'
 import { ProfileStatsSectionCard } from '../ProfileStatsSummaryCard'
 import { MarathonShelfFrame } from './MarathonShelfFrame'
 
@@ -122,6 +127,17 @@ function StampDetailModal({
   )
 }
 
+function groupStampsByCategory(stamps: PassportStamp[]): Map<PassportStampCategory, PassportStamp[]> {
+  const grouped = new Map<PassportStampCategory, PassportStamp[]>()
+  for (const stamp of stamps) {
+    const category = getPassportStampMeta(stamp.stamp_id).category
+    const bucket = grouped.get(category) ?? []
+    bucket.push(stamp)
+    grouped.set(category, bucket)
+  }
+  return grouped
+}
+
 export function ProfilePassportPanel({ userId, isOwnProfile, onMarathonDrill }: ProfilePassportPanelProps) {
   const ownQuery = useGamification({ enabled: isOwnProfile })
   const publicQuery = usePublicPassport(userId, { enabled: !isOwnProfile })
@@ -146,6 +162,13 @@ export function ProfilePassportPanel({ userId, isOwnProfile, onMarathonDrill }: 
 
   const marathons = isOwnProfile ? (ownQuery.data?.marathons ?? []) : []
 
+  const visibleStamps = useMemo(
+    () => (isOwnProfile ? stamps : stamps.filter((stamp) => stamp.unlocked)),
+    [isOwnProfile, stamps],
+  )
+
+  const stampsByCategory = useMemo(() => groupStampsByCategory(visibleStamps), [visibleStamps])
+
   if (loading) {
     return <p className="text-sm text-(--tgui--hint_color)">Загрузка коллекции…</p>
   }
@@ -157,8 +180,6 @@ export function ProfilePassportPanel({ userId, isOwnProfile, onMarathonDrill }: 
       </p>
     )
   }
-
-  const visibleStamps = isOwnProfile ? stamps : stamps.filter((stamp) => stamp.unlocked)
 
   return (
     <>
@@ -173,10 +194,25 @@ export function ProfilePassportPanel({ userId, isOwnProfile, onMarathonDrill }: 
         {visibleStamps.length === 0 ? (
           <p className="text-sm text-(--tgui--hint_color)">Пока нет штампов для показа.</p>
         ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {visibleStamps.map((stamp) => (
-              <StampTile key={stamp.stamp_id} stamp={stamp} onSelect={setSelectedStamp} />
-            ))}
+          <div className="space-y-4">
+            {PASSPORT_STAMP_CATEGORY_ORDER.map((category) => {
+              const sectionStamps = stampsByCategory.get(category)
+              if (sectionStamps == null || sectionStamps.length === 0) {
+                return null
+              }
+              return (
+                <section key={category}>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-(--tgui--hint_color)">
+                    {PASSPORT_STAMP_CATEGORY_LABELS[category]}
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {sectionStamps.map((stamp) => (
+                      <StampTile key={stamp.stamp_id} stamp={stamp} onSelect={setSelectedStamp} />
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         )}
       </ProfileStatsSectionCard>

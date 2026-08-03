@@ -9,13 +9,21 @@ import {
   ratedCardsQueryToSearchParams,
 } from '../lib/ratedCardsListQuery'
 
+type SetRatedCardsQuery = (
+  next: RatedCardsListQuery | ((prev: RatedCardsListQuery) => RatedCardsListQuery),
+) => void
+
 /** Keeps profile rated-cards filters in sync with URL search params. */
-export function useRatedCardsQueryFromUrl(): [RatedCardsListQuery, (next: RatedCardsListQuery) => void] {
+export function useRatedCardsQueryFromUrl(): [RatedCardsListQuery, SetRatedCardsQuery] {
   const location = useLocation()
   const navigate = useNavigate()
-  const [ratedQuery, setRatedQuery] = useState<RatedCardsListQuery>(() =>
+  const [ratedQuery, setRatedQueryState] = useState<RatedCardsListQuery>(() =>
     ratedCardsQueryFromSearchParams(new URLSearchParams(location.search)),
   )
+
+  const setRatedQuery: SetRatedCardsQuery = (next) => {
+    setRatedQueryState((prev) => (typeof next === 'function' ? next(prev) : next))
+  }
 
   useEffect(() => {
     const fromUrl = ratedCardsQueryFromSearchParams(new URLSearchParams(location.search))

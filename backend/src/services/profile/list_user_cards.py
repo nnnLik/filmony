@@ -88,6 +88,8 @@ class UserCardListItem:
     film_id: int | None
     film_kinopoisk_id: int | None
     film_genres: list[str]
+    film_primary_director_kinopoisk_id: int | None
+    film_primary_director_name: str | None
     film_title: str
     film_year: int | None
     release_year: int | None
@@ -141,6 +143,16 @@ def _rows_to_items(
                 film_id=film.id if film is not None else None,
                 film_kinopoisk_id=film.kinopoisk_id if film is not None else None,
                 film_genres=list(film.genres or []) if film is not None else [],
+                film_primary_director_kinopoisk_id=(
+                    int(film.primary_director_kinopoisk_id)
+                    if film is not None and film.primary_director_kinopoisk_id is not None
+                    else None
+                ),
+                film_primary_director_name=(
+                    str(film.primary_director_name)
+                    if film is not None and film.primary_director_name
+                    else None
+                ),
                 film_title=film_title,
                 film_year=film_year_val,
                 release_year=release_year,
@@ -194,6 +206,8 @@ class ListUserCardsService:
         film_title_search: str | None = None,
         category_id: int | None = None,
         completed_on: dt.date | None = None,
+        director_kinopoisk_id: int | None = None,
+        franchise_key: str | None = None,
     ) -> UserCardListPage:
         tags = list(tags_all or [])
         title_q = _normalize_film_title_search(film_title_search)
@@ -223,6 +237,8 @@ class ListUserCardsService:
                 film_title_search=title_q,
                 category_id=category_id,
                 completed_on=completed_on,
+                director_kinopoisk_id=director_kinopoisk_id,
+                franchise_key=franchise_key,
             )
         return await self._execute_default(
             user_id,
@@ -238,6 +254,8 @@ class ListUserCardsService:
             film_title_search=title_q,
             category_id=category_id,
             completed_on=completed_on,
+            director_kinopoisk_id=director_kinopoisk_id,
+            franchise_key=franchise_key,
         )
 
     def _apply_filters(
@@ -253,6 +271,8 @@ class ListUserCardsService:
         film_title_search: str | None,
         category_id: int | None,
         completed_on: dt.date | None,
+        director_kinopoisk_id: int | None,
+        franchise_key: str | None,
     ) -> SASelect[tuple[UserCard, Film | None, Game | None]]:
         for tag in tags_all:
             query = query.where(
@@ -288,6 +308,10 @@ class ListUserCardsService:
         if completed_on is not None:
             completion = func.coalesce(UserCard.completed_at, UserCard.created_at)
             query = query.where(func.date(completion) == completed_on)
+        if director_kinopoisk_id is not None:
+            query = query.where(Film.primary_director_kinopoisk_id == director_kinopoisk_id)
+        if franchise_key is not None:
+            query = query.where(Film.franchise_key == franchise_key)
         return query
 
     async def _execute_default(
@@ -306,6 +330,8 @@ class ListUserCardsService:
         film_title_search: str | None,
         category_id: int | None,
         completed_on: dt.date | None,
+        director_kinopoisk_id: int | None,
+        franchise_key: str | None,
     ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
@@ -326,6 +352,8 @@ class ListUserCardsService:
             film_title_search=film_title_search,
             category_id=category_id,
             completed_on=completed_on,
+            director_kinopoisk_id=director_kinopoisk_id,
+            franchise_key=franchise_key,
         )
 
         if sort == 'recent':
@@ -403,6 +431,8 @@ class ListUserCardsService:
         film_title_search: str | None,
         category_id: int | None,
         completed_on: dt.date | None,
+        director_kinopoisk_id: int | None,
+        franchise_key: str | None,
     ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
@@ -428,6 +458,8 @@ class ListUserCardsService:
             film_title_search=film_title_search,
             category_id=category_id,
             completed_on=completed_on,
+            director_kinopoisk_id=director_kinopoisk_id,
+            franchise_key=franchise_key,
         )
 
         if sort == 'rating_desc':

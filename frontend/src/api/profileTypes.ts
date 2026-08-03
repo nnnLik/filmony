@@ -228,6 +228,8 @@ export type MovieCard = {
   film_id: number | null
   film_kinopoisk_id: number | null
   film_genres: string[]
+  film_primary_director_kinopoisk_id?: number | null
+  film_primary_director_name?: string | null
   film_title: string
   film_year: number | null
   /** Kinopoisk: mirrors ``film_year``. RAWG: from ``Game.released``. */
@@ -383,6 +385,8 @@ export type Film = {
   id: number
   kinopoisk_id: number
   genres: string[]
+  primary_director_kinopoisk_id?: number | null
+  primary_director_name?: string | null
   title: string
   year: number | null
   poster_url: string | null
@@ -510,6 +514,8 @@ export type UserMovieCardStats = {
   average_rating: number
   rating_distribution: RatingDistributionItem[]
   year_distribution: YearDistributionItem[]
+  /** Год с наибольшим числом оценок (GET /stats rated_year_distribution). */
+  rated_year_distribution?: YearDistributionItem[]
   category_distribution: CategoryDistributionItem[]
   popular_tags: TagDistributionItem[]
   watch_with_distribution: ValueDistributionItem[]
