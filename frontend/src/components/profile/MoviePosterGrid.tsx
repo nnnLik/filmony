@@ -6,15 +6,23 @@ import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../../lib/movieCa
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { FeedRatingRing } from '../feed/FeedRatingRing'
 import { FavoriteCardHeartButton } from '../cards/FavoriteCardHeartButton'
+import { ContrarianBadge } from '../gamification/ContrarianBadge'
 
 type MoviePosterGridProps = {
   items: MovieCard[]
   /** Показывать сердце и переключать избранное (только на своём профиле) */
   showFavoriteToggle?: boolean
+  /** Показывать бейдж «контр-культ» (только на своём профиле) */
+  showContrarianBadge?: boolean
   onFavoriteToggled?: (cardId: number, nextFavorite: boolean) => void
 }
 
-export function MoviePosterGrid({ items, showFavoriteToggle = false, onFavoriteToggled }: MoviePosterGridProps) {
+export function MoviePosterGrid({
+  items,
+  showFavoriteToggle = false,
+  showContrarianBadge = false,
+  onFavoriteToggled,
+}: MoviePosterGridProps) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {items.map((card) => (
@@ -22,6 +30,7 @@ export function MoviePosterGrid({ items, showFavoriteToggle = false, onFavoriteT
           key={card.id}
           card={card}
           showFavoriteToggle={showFavoriteToggle}
+          showContrarianBadge={showContrarianBadge}
           onFavoriteToggled={onFavoriteToggled}
         />
       ))}
@@ -32,10 +41,12 @@ export function MoviePosterGrid({ items, showFavoriteToggle = false, onFavoriteT
 function PosterCell({
   card,
   showFavoriteToggle,
+  showContrarianBadge,
   onFavoriteToggled,
 }: {
   card: MovieCard
   showFavoriteToggle: boolean
+  showContrarianBadge: boolean
   onFavoriteToggled?: (cardId: number, nextFavorite: boolean) => void
 }) {
   const primaryTitle = movieCardPrimaryTitle(card)
@@ -65,6 +76,15 @@ function PosterCell({
             Нет постера
           </div>
         )}
+        {showContrarianBadge ? (
+          <div className="absolute left-1 top-1 z-[3]">
+            <ContrarianBadge
+              rating={card.rating}
+              communityAvgRating={card.community_avg_rating}
+              isContrarian={card.is_contrarian}
+            />
+          </div>
+        ) : null}
         <FeedRatingRing
           rating={card.rating}
           positionClassName={

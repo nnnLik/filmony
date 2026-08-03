@@ -13,6 +13,7 @@ from models.film import Film
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
+    countries_for_film_model,
     genres_for_film_model,
 )
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
@@ -260,6 +261,7 @@ class SearchKinopoiskFilmsLocalFirstService:
         year = item.year_as_int()
         poster = item.poster_url_normalized()
         genres = genres_for_film_model(item)
+        countries = countries_for_film_model(item)
         summary_text = (
             item.description.strip() if item.description and item.description.strip() else None
         )
@@ -269,6 +271,7 @@ class SearchKinopoiskFilmsLocalFirstService:
             existing.year = year
             existing.poster_url = poster
             existing.genres = genres
+            existing.countries = countries
             if summary_text is not None:
                 existing.short_description = summary_text
         else:
@@ -278,6 +281,7 @@ class SearchKinopoiskFilmsLocalFirstService:
                 year=year,
                 poster_url=poster,
                 genres=genres,
+                countries=countries,
                 short_description=summary_text,
                 description=None,
             )

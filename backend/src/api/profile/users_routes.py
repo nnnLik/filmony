@@ -30,6 +30,7 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
+from services.catalog.card_community_fields import load_card_community_fields
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_card_stats import GetUserCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
@@ -176,7 +177,7 @@ async def list_public_user_card_categories(
 )
 async def list_user_cards(
     user_id: UUID,
-    _viewer: CurrentUser,
+    viewer: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: str | None = None,
     limit: int = Query(default=20, ge=1),
@@ -243,7 +244,17 @@ async def list_user_cards(
         raise HTTPException(status_code=422, detail='invalid cursor') from None
     except ListUserCardsService.InvalidCategoryFilter:
         raise HTTPException(status_code=422, detail='invalid category for user') from None
-    return build_user_card_page_response(page)
+    community = await load_card_community_fields(
+        db,
+        cards=page.items,
+        viewer_user_id=viewer.id,
+        owner_user_id=user_id,
+    )
+    community_by_card_id = {
+        card_id: (fields.community_avg_rating, fields.is_contrarian)
+        for card_id, fields in community.items()
+    }
+    return build_user_card_page_response(page, community_by_card_id=community_by_card_id)
 
 
 @router.get(

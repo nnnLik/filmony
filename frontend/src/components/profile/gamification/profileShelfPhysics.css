@@ -1,0 +1,63 @@
+.profile-shelf-physics {
+  position: relative;
+}
+
+.profile-shelf-physics__rail {
+  height: 0.45rem;
+  margin: 0 0.35rem 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tgui--hint_color) 28%, transparent),
+    color-mix(in srgb, var(--tgui--divider_color) 72%, transparent)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.profile-shelf-physics--slump .profile-shelf-physics__rail {
+  transform: rotate(-0.6deg) translateY(2px);
+  filter: saturate(0.72);
+}
+
+.profile-shelf-physics--glow .profile-shelf-physics__rail {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px color-mix(in srgb, #34d399 24%, transparent),
+    0 0 14px color-mix(in srgb, #34d399 28%, transparent);
+}
+
+.profile-shelf-physics--glow:not(.profile-shelf-physics--reduce-motion) .profile-shelf-physics__rail {
+  animation: profile-shelf-glow-pulse 2.4s ease-in-out infinite;
+}
+
+.profile-shelf-physics--slump .profile-shelf-physics__grid {
+  filter: saturate(0.92);
+}
+
+.profile-shelf-physics--glow .profile-shelf-physics__grid {
+  border-radius: 1rem;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #34d399 18%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-shelf-physics--glow .profile-shelf-physics__rail {
+    animation: none;
+  }
+}
+
+@keyframes profile-shelf-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 0 1px color-mix(in srgb, #34d399 20%, transparent),
+      0 0 10px color-mix(in srgb, #34d399 18%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 0 0 1px color-mix(in srgb, #34d399 32%, transparent),
+      0 0 18px color-mix(in srgb, #34d399 34%, transparent);
+  }
+}

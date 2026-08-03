@@ -266,6 +266,10 @@ export type MovieCard = {
   planned_watch_partners?: PlannedWatchPartner[]
   /** Связанная запись watchlist; только GET /api/cards/:id для is_planned. */
   watchlist_entry_id?: number | null
+  /** Средняя оценка сообщества по тайтлу (owner paths / detail). */
+  community_avg_rating?: number | null
+  /** Расхождение с community avg ≥ 4 при ratings_count ≥ 3. */
+  is_contrarian?: boolean
 }
 
 export type MyUserCardCategory = {

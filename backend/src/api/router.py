@@ -8,6 +8,7 @@ from api.controversy.routes import router as controversy_router
 from api.feed.routes import router as feed_router
 from api.feed_posts.routes import router as feed_posts_router
 from api.films.routes import router as films_router
+from api.gamification.routes import router as gamification_router
 from api.notifications.routes import router as notifications_router
 from api.profile.me_routes import router as profile_me_router
 from api.profile.users_routes import router as profile_users_router
@@ -37,6 +38,7 @@ router.include_router(taste_quiz_router)
 router.include_router(streaks_router)
 router.include_router(me_streak_router)
 router.include_router(controversy_router)
+router.include_router(gamification_router)
 
 
 @router.get('/hello')

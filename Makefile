@@ -9,7 +9,7 @@ RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
 RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
 RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata
 
 start: build up
 
@@ -80,3 +80,13 @@ sync-reactions-rustfs:
 	  export RUSTFS_SECRET_KEY="$${RUSTFS_SECRET_KEY:-rustfsadmin}"; \
 	  export RUSTFS_BUCKET="$${RUSTFS_BUCKET:-filmony-reactions}"; \
 	  uv run --project backend python scripts/upload_reactions_to_rustfs.py $$DB_FLAG $(ARGS)'
+
+backfill-film-gamification-metadata:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	FRC=$${FORCE:+--force}; \
+	LIM=$${LIMIT:+--limit $$LIMIT}; \
+	SKP_STAFF=$${SKIP_STAFF:+--skip-staff}; \
+	SKP_SEQ=$${SKIP_SEQUELS:+--skip-sequels}; \
+	SLE=$${SLEEP:+--sleep $$SLEEP}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_backfill_film_gamification_metadata.py \
+	  $$DRY $$FRC $$LIM $$SKP_STAFF $$SKP_SEQ $$SLE $(ARGS)

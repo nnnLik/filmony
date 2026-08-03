@@ -14,6 +14,8 @@ import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myPr
 import { insertSnippetAtCaret, reactionTokenFromId } from '../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
 import { myCardCategoriesQueryKey } from '../feed/feedQueryKeys'
+import { usePepeExtremeRatingJudge } from '../hooks/usePepeExtremeRatingJudge'
+import { PepeExtremeRatingBubble } from '../components/ui/PepeExtremeRatingBubble'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -110,6 +112,8 @@ export function EditMovieCardPage() {
     const fallback = shelfRows[0]?.id
     return typeof fallback === 'number' && fallback >= 1 ? fallback : null
   }, [draftCategoryId, shelfRows])
+
+  const pepeJudge = usePepeExtremeRatingJudge(rating, viewerId)
 
   const insertReactionIntoWatchNote = useCallback(
     (id: number) => {
@@ -400,6 +404,7 @@ export function EditMovieCardPage() {
                     +0.5
                   </Button>
                 </div>
+                <PepeExtremeRatingBubble message={pepeJudge.message} onDismiss={pepeJudge.dismiss} />
               </div>
             </Section>
 

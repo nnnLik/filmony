@@ -269,6 +269,8 @@ class UserCardItemResponse(BaseModel):
     category: UserCardCategorySnippet
     is_favorite: bool = False
     audio_url: str | None = None
+    community_avg_rating: float | None = None
+    is_contrarian: bool = False
 
 
 class UserCardPageResponse(BaseModel):
@@ -496,35 +498,44 @@ def build_public_profile_response(user: User, counts: UserProfileCounts) -> Publ
     )
 
 
-def build_user_card_page_response(page: UserCardListPage) -> UserCardPageResponse:
-    items = [
-        UserCardItemResponse(
-            id=item.id,
-            film_id=item.film_id,
-            film_kinopoisk_id=item.film_kinopoisk_id,
-            film_genres=item.film_genres,
-            film_title=item.film_title,
-            film_year=item.film_year,
-            release_year=item.release_year,
-            release_date=item.release_date,
-            film_poster_url=item.film_poster_url,
-            catalog_item_id=item.catalog_item_id,
-            provider=item.provider,
-            external_id=item.external_id,
-            display_title=item.display_title,
-            display_cover_url=item.display_cover_url,
-            rating=item.rating,
-            company=item.company,
-            mood_before=item.mood_before,
-            mood_after=item.mood_after,
-            custom_tags=item.custom_tags,
-            watch_note=item.watch_note,
-            category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
-            is_favorite=item.is_favorite,
-            audio_url=item.audio_url,
+def build_user_card_page_response(
+    page: UserCardListPage,
+    *,
+    community_by_card_id: dict[int, tuple[float | None, bool]] | None = None,
+) -> UserCardPageResponse:
+    community = community_by_card_id or {}
+    items = []
+    for item in page.items:
+        avg, contrarian = community.get(item.id, (None, False))
+        items.append(
+            UserCardItemResponse(
+                id=item.id,
+                film_id=item.film_id,
+                film_kinopoisk_id=item.film_kinopoisk_id,
+                film_genres=item.film_genres,
+                film_title=item.film_title,
+                film_year=item.film_year,
+                release_year=item.release_year,
+                release_date=item.release_date,
+                film_poster_url=item.film_poster_url,
+                catalog_item_id=item.catalog_item_id,
+                provider=item.provider,
+                external_id=item.external_id,
+                display_title=item.display_title,
+                display_cover_url=item.display_cover_url,
+                rating=item.rating,
+                company=item.company,
+                mood_before=item.mood_before,
+                mood_after=item.mood_after,
+                custom_tags=item.custom_tags,
+                watch_note=item.watch_note,
+                category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
+                is_favorite=item.is_favorite,
+                audio_url=item.audio_url,
+                community_avg_rating=avg,
+                is_contrarian=contrarian,
+            )
         )
-        for item in page.items
-    ]
     return UserCardPageResponse(items=items, next_cursor=page.next_cursor)
 
 

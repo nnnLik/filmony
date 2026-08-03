@@ -122,6 +122,8 @@ class CardResponse(BaseModel):
     category: UserCardCategorySnippet
     is_favorite: bool = False
     audio_url: str | None = None
+    community_avg_rating: float | None = None
+    is_contrarian: bool = False
 
 
 class ReferencedInlineUserCardSnippetResponse(BaseModel):
@@ -194,6 +196,8 @@ class CardDetailResponse(BaseModel):
     is_planned: bool = False
     reactions: ReactionSummaryResponse = Field(default_factory=ReactionSummaryResponse)
     audio_url: str | None = None
+    community_avg_rating: float | None = None
+    is_contrarian: bool = False
 
 
 class PlannedWatchPartnerResponse(UserCardCommentAuthorResponse):

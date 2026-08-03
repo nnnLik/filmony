@@ -2088,11 +2088,20 @@ async def test_resolve_film_and_get_by_id(
             year=1999,
             poster_url='https://example.com/matrix.jpg',
             genres=['фантастика', 'боевик'],
+            countries=['США'],
             short_description='Коротко.',
             description='Длинное описание фильма.',
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
+
+    async def fake_enrich_execute(self, session, film, **kwargs):
+        _ = (self, session, film, kwargs)
+
+    monkeypatch.setattr(
+        'services.gamification.enrich_film_gamification_metadata.EnrichFilmGamificationMetadataService.execute',
+        fake_enrich_execute,
+    )
 
     resolved = await async_client.post(
         '/api/films/resolve',
@@ -2192,11 +2201,20 @@ async def test_resolve_film_series_url(
             year=2024,
             poster_url=None,
             genres=['драма'],
+            countries=[],
             short_description=None,
             description=None,
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
+
+    async def fake_enrich_execute(self, session, film, **kwargs):
+        _ = (self, session, film, kwargs)
+
+    monkeypatch.setattr(
+        'services.gamification.enrich_film_gamification_metadata.EnrichFilmGamificationMetadataService.execute',
+        fake_enrich_execute,
+    )
 
     resolved = await async_client.post(
         '/api/films/resolve',

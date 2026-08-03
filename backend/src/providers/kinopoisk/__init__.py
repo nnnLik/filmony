@@ -8,8 +8,11 @@ from .kinopoisk_provider_transport import KinopoiskEndpointEnum, KinopoiskProvid
 from .kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     KinopoiskFilmSearchResponseDTO,
+    countries_for_film_model,
     genres_for_film_model,
 )
+from .kinopoisk_sequels_dto import KinopoiskSequelFilmDTO
+from .kinopoisk_staff_dto import KinopoiskStaffMemberDTO
 
 KinopoiskProviderTransportError = KinopoiskProviderTransport.KinopoiskProviderTransportError
 
@@ -23,5 +26,8 @@ __all__ = [
     'KinopoiskGenreDTO',
     'KinopoiskProviderTransport',
     'KinopoiskProviderTransportError',
+    'KinopoiskSequelFilmDTO',
+    'KinopoiskStaffMemberDTO',
+    'countries_for_film_model',
     'genres_for_film_model',
 ]

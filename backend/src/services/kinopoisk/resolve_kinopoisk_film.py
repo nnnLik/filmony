@@ -4,6 +4,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
+from services.gamification.enrich_film_gamification_metadata import (
+    EnrichFilmGamificationMetadataService,
+)
 from services.kinopoisk.client import KinopoiskClient, KinopoiskClientError
 from services.kinopoisk.parse_url import KinopoiskUrlParseError, parse_kinopoisk_film_id
 
@@ -12,6 +15,7 @@ class ResolveKinopoiskFilmService:
     def __init__(self, session: AsyncSession, client: KinopoiskClient | None = None) -> None:
         self._session = session
         self._client = client or KinopoiskClient()
+        self._enricher = EnrichFilmGamificationMetadataService.build()
 
     async def execute(self, url: str) -> Film:
         kinopoisk_id = parse_kinopoisk_film_id(url)
@@ -25,8 +29,10 @@ class ResolveKinopoiskFilmService:
             film.year = payload.year
             film.poster_url = payload.poster_url
             film.genres = payload.genres
+            film.countries = payload.countries
             film.short_description = payload.short_description
             film.description = payload.description
+            await self._enricher.execute(self._session, film)
             await self._session.commit()
             await self._session.refresh(film)
             return film
@@ -37,10 +43,13 @@ class ResolveKinopoiskFilmService:
             year=payload.year,
             poster_url=payload.poster_url,
             genres=payload.genres,
+            countries=payload.countries,
             short_description=payload.short_description,
             description=payload.description,
         )
         self._session.add(film)
+        await self._session.flush()
+        await self._enricher.execute(self._session, film)
         await self._session.commit()
         await self._session.refresh(film)
         return film

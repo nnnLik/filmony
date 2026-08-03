@@ -46,11 +46,20 @@ async def test_catalog_resolve_kinopoisk_creates_catalog_item(
             year=2021,
             poster_url='https://example.com/cat.jpg',
             genres=['комедия'],
+            countries=['Россия'],
             short_description='Кратко.',
             description='Полное описание.',
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
+
+    async def fake_enrich_execute(self, session, film, **kwargs):
+        _ = (self, session, film, kwargs)
+
+    monkeypatch.setattr(
+        'services.gamification.enrich_film_gamification_metadata.EnrichFilmGamificationMetadataService.execute',
+        fake_enrich_execute,
+    )
 
     r = await async_client.post(
         '/api/catalog/resolve',
@@ -119,11 +128,20 @@ async def test_catalog_resolve_by_url_kinopoisk_happy_path(
             year=2022,
             poster_url='https://example.com/by-url.jpg',
             genres=['драма'],
+            countries=[],
             short_description='Краткое.',
             description='Полное.',
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
+
+    async def fake_enrich_execute(self, session, film, **kwargs):
+        _ = (self, session, film, kwargs)
+
+    monkeypatch.setattr(
+        'services.gamification.enrich_film_gamification_metadata.EnrichFilmGamificationMetadataService.execute',
+        fake_enrich_execute,
+    )
 
     r = await async_client.post(
         '/api/catalog/resolve-by-url',

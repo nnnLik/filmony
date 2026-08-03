@@ -39,6 +39,7 @@ import { FilmGenreChips } from '../films/FilmGenreChips'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { ReactionStrip } from '../reactions/ReactionStrip'
+import { ContrarianBadge } from '../gamification/ContrarianBadge'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
 import { FeedRatingRing } from './FeedRatingRing'
 import {
@@ -429,6 +430,15 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                     positionClassName="relative z-10"
                   />
                 </div>
+              </div>
+            ) : null}
+            {isOwnCard ? (
+              <div className="pointer-events-none absolute left-2.5 top-2.5 z-3">
+                <ContrarianBadge
+                  rating={card.rating}
+                  communityAvgRating={card.community_avg_rating}
+                  isContrarian={card.is_contrarian}
+                />
               </div>
             ) : null}
           </div>

@@ -20,6 +20,7 @@ class KinopoiskFilmPayload:
     year: int | None
     poster_url: str | None
     genres: list[str]
+    countries: list[str]
     short_description: str | None
     description: str | None
 
@@ -52,6 +53,28 @@ def _parse_genres(payload: object) -> list[str]:
         seen.add(key)
         genres.append(genre)
     return genres
+
+
+def _parse_countries(payload: object) -> list[str]:
+    if not isinstance(payload, list):
+        return []
+    countries: list[str] = []
+    seen: set[str] = set()
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        value = item.get('country')
+        if not isinstance(value, str):
+            continue
+        country = value.strip()
+        if country == '':
+            continue
+        key = country.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        countries.append(country)
+    return countries
 
 
 class KinopoiskClient:
@@ -87,6 +110,7 @@ class KinopoiskClient:
         )
         poster_url = payload.get('posterUrl')
         genres = _parse_genres(payload.get('genres'))
+        countries = _parse_countries(payload.get('countries'))
         poster_norm = normalize_absolute_http_url(
             poster_url if isinstance(poster_url, str) else None
         )
@@ -98,6 +122,7 @@ class KinopoiskClient:
             year=year,
             poster_url=poster_norm,
             genres=genres,
+            countries=countries,
             short_description=short_description,
             description=description,
         )

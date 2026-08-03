@@ -19,6 +19,8 @@ import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
 import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
 import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
+import { ProfileShelfPhysics } from '../components/profile/gamification/ProfileShelfPhysics'
+import { MarathonShelfFrame } from '../components/profile/gamification/MarathonShelfFrame'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { WatchlistOverlapSection } from '../components/watchlist/WatchlistOverlapSection'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
@@ -42,8 +44,11 @@ import {
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
+import { useGamification } from '../hooks/useGamification'
 import { useProfileMoviesSegmentFromUrl } from '../hooks/useProfileMoviesSegmentFromUrl'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
+import { computeShelfPhysicsFromCards } from '../lib/gamification/shelfPhysicsFallback'
+import type { MarathonAchievement } from '../api/gamificationTypes'
 import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
 import './ProfilePage.css'
 
@@ -119,6 +124,20 @@ export function ProfilePage() {
   const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
     enabled: streakUserIds.length > 0,
   })
+  const gamificationQuery = useGamification({ enabled: auth.kind === 'ready' && profile != null })
+
+  const shelfPhysicsMode = useMemo(() => {
+    if (gamificationQuery.data?.shelf_physics.mode != null) {
+      return gamificationQuery.data.shelf_physics.mode
+    }
+    const items = myCards?.items
+    if (items != null && items.length > 0 && isDefaultRatedCardsQuery(ratedQuery)) {
+      return computeShelfPhysicsFromCards(items).mode
+    }
+    return 'neutral' as const
+  }, [gamificationQuery.data, myCards, ratedQuery])
+
+  const unlockedMarathons = gamificationQuery.data?.marathons ?? []
 
   useEffect(() => {
     scheduleDeferredPepeDancingPrewarm()
@@ -434,6 +453,17 @@ export function ProfilePage() {
     })
   }, [setMoviesSegment])
 
+  const handleMarathonDrill = useCallback(
+    (marathon: MarathonAchievement) => {
+      setRatedQuery({
+        ...ratedQuery,
+        filmTitle: marathon.label,
+      })
+      drillToRatedCards()
+    },
+    [drillToRatedCards, ratedQuery, setRatedQuery],
+  )
+
   const drillToWatchlist = useCallback(() => {
     setMainTab('movies')
     setMoviesSegment('watchlist')
@@ -702,11 +732,16 @@ export function ProfilePage() {
                 ) : null}
                 {myCards != null && myCards.items.length > 0 ? (
                   <div className="px-1">
-                    <MoviePosterGrid
-                      items={myCards.items}
-                      showFavoriteToggle
-                      onFavoriteToggled={handleFavoriteToggled}
-                    />
+                    <MarathonShelfFrame marathons={unlockedMarathons} onMarathonDrill={handleMarathonDrill}>
+                      <ProfileShelfPhysics mode={shelfPhysicsMode}>
+                        <MoviePosterGrid
+                          items={myCards.items}
+                          showFavoriteToggle
+                          showContrarianBadge
+                          onFavoriteToggled={handleFavoriteToggled}
+                        />
+                      </ProfileShelfPhysics>
+                    </MarathonShelfFrame>
                   </div>
                 ) : null}
                 {canLoadMore ? (
@@ -799,6 +834,8 @@ export function ProfilePage() {
               onCardsQueryChange={setRatedQuery}
               enableCategoryFilter
               showTasteQuizTeaser
+              showPassportCollection
+              onMarathonDrill={handleMarathonDrill}
               onDrillToRatedCards={drillToRatedCards}
             />
           </div>

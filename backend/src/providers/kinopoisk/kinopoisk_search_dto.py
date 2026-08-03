@@ -132,3 +132,18 @@ def genres_for_film_model(item: KinopoiskFilmSearchItemDTO) -> list[str]:
         seen.add(key)
         ordered.append(name)
     return ordered
+
+
+def countries_for_film_model(item: KinopoiskFilmSearchItemDTO) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for c in item.countries:
+        name = c.country.strip()
+        if name == '':
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(name)
+    return ordered

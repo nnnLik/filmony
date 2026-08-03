@@ -91,6 +91,7 @@ import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { PlannedCardBadge } from '../components/cards/PlannedCardBadge'
 import { PlannedWatchPartnersList } from '../components/cards/PlannedWatchPartnersList'
+import { ContrarianBadge } from '../components/gamification/ContrarianBadge'
 import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
 import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
@@ -1228,6 +1229,15 @@ function MovieCardDetailLoadedBody({
                         </span>
                       </div>
                     </div>
+                  </div>
+                ) : null}
+                {isOwner && showCardRating ? (
+                  <div className="pointer-events-none absolute left-[4.75rem] top-3 z-10 sm:left-[5.25rem] sm:top-3.5">
+                    <ContrarianBadge
+                      rating={card.rating}
+                      communityAvgRating={card.community_avg_rating}
+                      isContrarian={card.is_contrarian}
+                    />
                   </div>
                 ) : null}
                 {hasCardAudio ? (

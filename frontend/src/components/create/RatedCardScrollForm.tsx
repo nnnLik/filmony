@@ -20,6 +20,8 @@ import {
 import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { useMicroFunLine } from '../../lib/microFun'
+import { usePepeExtremeRatingJudge } from '../../hooks/usePepeExtremeRatingJudge'
+import { PepeExtremeRatingBubble } from '../ui/PepeExtremeRatingBubble'
 
 const COMPANY_OPTIONS: Array<{ value: CardCompany; label: string }> = [
   { value: 'alone', label: 'Один' },
@@ -146,6 +148,7 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
     'Например: неожиданно тихий финал…',
     props.viewerUserId ?? null,
   )
+  const pepeJudge = usePepeExtremeRatingJudge(props.rating, props.viewerUserId ?? null)
 
   const plannedParams = useMemo(() => plannedCardLookupParams(props.binding), [props.binding])
   const plannedQuery = useQuery({
@@ -323,6 +326,7 @@ export function RatedCardScrollForm(props: RatedCardScrollFormProps) {
               +0.5
             </Button>
           </div>
+          <PepeExtremeRatingBubble message={pepeJudge.message} onDismiss={pepeJudge.dismiss} />
         </div>
       </FormSection>
 

@@ -181,6 +181,7 @@ from services.cards.upload_user_card_audio import (
     UserCardAudioUploadError,
 )
 from services.cards.upload_user_card_cover import UploadUserCardCoverService
+from services.catalog.card_community_fields import load_single_card_community_fields
 from services.feed.global_feed_head_broker import bump_global_feed_head_version
 from services.feed_posts import (
     FEED_POST_IMAGE_MAX_BYTES,
@@ -718,6 +719,14 @@ async def get_card(
         card = await GetUserCardDetailsService(db).execute(card_id, viewer.id)
     except UserCardNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
+    community = await load_single_card_community_fields(
+        db,
+        catalog_item_id=card.catalog_item_id,
+        film_id=card.film_id,
+        user_rating=card.rating,
+        viewer_user_id=viewer.id,
+        owner_user_id=card.user_id,
+    )
     return UserCardDetailResponse(
         id=card.id,
         user_id=card.user_id,
@@ -757,6 +766,8 @@ async def get_card(
         is_favorite=card.is_favorite,
         is_planned=card.is_planned,
         audio_url=card.audio_url,
+        community_avg_rating=community.community_avg_rating,
+        is_contrarian=community.is_contrarian,
         watchlist_entry_id=card.watchlist_entry_id,
         planned_watch_partners=[
             PlannedWatchPartnerResponse(

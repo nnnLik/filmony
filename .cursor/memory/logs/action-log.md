@@ -17,6 +17,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T104900Z-profile-gamification-stamps-docs.md`
 - `2026-08-04T011600Z-offline-feed-cache-code.md`
 - `2026-08-04T011600Z-catalog-community-page-code.md`
 - `2026-08-04T095400Z-unlimited-watch-note-code.md`

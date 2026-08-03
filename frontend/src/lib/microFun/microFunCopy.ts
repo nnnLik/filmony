@@ -6,6 +6,8 @@ export type MicroFunPoolKey =
   | 'profile_cards_empty'
   | 'watch_note_placeholder'
   | 'feed_scroll_depth_secret'
+  | 'extreme_rating_low'
+  | 'extreme_rating_high'
 
 export const MICRO_FUN_POOLS: Record<MicroFunPoolKey, readonly string[]> = {
   feed_empty: [
@@ -62,6 +64,26 @@ export const MICRO_FUN_POOLS: Record<MicroFunPoolKey, readonly string[]> = {
     'Дно ленты достигнуто. Можно жить дальше.',
     'Три раза до конца — ты серьёзно?',
     'Scroll master detected. Pepe одобряет.',
+  ],
+  extreme_rating_low: [
+    'Единичка? Pepe смотрит на тебя как на режиссёра «Морби».',
+    'Оценка 1 — смелый ход. Pepe одобряет честность.',
+    'Так низко только в подвале кинотеатра. И в твоей оценке.',
+    'Pepe: «Это правда настолько плохо?»',
+    'Один балл — редкий вид спорта.',
+    'Filmony запомнит. Pepe тоже.',
+    'Жёстко. Pepe молча кивает.',
+    'Единичка — не приговор, но Pepe уже перекрестился.',
+  ],
+  extreme_rating_high: [
+    'Десятка! Pepe встаёт и аплодирует.',
+    '10/10 — Pepe бы пересмотрел ещё раз.',
+    'Максимум. Pepe одобряет этот культ.',
+    'Так высоко только у Pepe настроение в пятницу.',
+    'Десять баллов — редкость. Pepe заметил.',
+    'Pepe: «Шедевр или ты просто добрый?»',
+    '10 — Pepe уже ставит это в избранное.',
+    'Идеал по твоей шкале. Pepe не спорит.',
   ],
 }
 

@@ -38,14 +38,17 @@ import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCa
 import { TasteQuizKnowledgeList } from '../tasteQuiz/TasteQuizKnowledgeList'
 import { listTasteQuizKnowledge } from '../../api/tasteQuizApi'
 import type { TasteQuizKnowledgeItem } from '../../api/tasteQuizTypes'
+import type { MarathonAchievement } from '../../api/gamificationTypes'
+import { ProfilePassportPanel } from './gamification/ProfilePassportPanel'
 
-type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings'
+type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'collection'
 
 const STATS_SUB_TABS: { id: StatsSubTab; label: string }[] = [
   { id: 'overview', label: 'Обзор' },
   { id: 'taste', label: 'Вкус' },
   { id: 'social', label: 'Социальность' },
   { id: 'rankings', label: 'Рейтинги' },
+  { id: 'collection', label: 'Коллекция' },
 ]
 
 type ProfileStatsPanelProps = {
@@ -58,6 +61,9 @@ type ProfileStatsPanelProps = {
   onDrillToRatedCards?: () => void
   /** Блок «Угадай вкус» на вкладке «Социальность» (только свой профиль). */
   showTasteQuizTeaser?: boolean
+  /** Показывать коллекцию штампов (свой профиль — полная, чужой — только открытые). */
+  showPassportCollection?: boolean
+  onMarathonDrill?: (marathon: MarathonAchievement) => void
 }
 
 const COMPANY_LABELS: Record<string, string> = {
@@ -235,6 +241,8 @@ export function ProfileStatsPanel({
   onCardsQueryChange,
   onDrillToRatedCards,
   showTasteQuizTeaser = false,
+  showPassportCollection = false,
+  onMarathonDrill,
 }: ProfileStatsPanelProps) {
   const [statsSubTab, setStatsSubTab] = useState<StatsSubTab>('overview')
   const [stats, setStats] = useState<UserMovieCardStats | null>(null)
@@ -810,6 +818,17 @@ export function ProfileStatsPanel({
             </ProfileStatsSectionCard>
           ) : null}
         </>
+      ) : null}
+
+      {statsSubTab === 'collection' && showPassportCollection ? (
+        <ProfilePassportPanel
+          userId={userId}
+          isOwnProfile={showTasteQuizTeaser}
+          onMarathonDrill={(marathon: MarathonAchievement) => {
+            onMarathonDrill?.(marathon)
+            onDrillToRatedCards?.()
+          }}
+        />
       ) : null}
     </div>
   )
