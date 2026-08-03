@@ -1,10 +1,12 @@
 """Integration tests for manage_backfill_film_gamification_metadata selection SQL.
 
 The backfill script must run its PostgreSQL query without errors (no ``json = json``).
+Kinopoisk HTTP is never called — tests inject FakeKinopoiskGamificationTransport.
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,7 +15,51 @@ from sqlalchemy import select
 from core.database import get_session_factory
 from manage_backfill_film_gamification_metadata import _needs_enrichment, _run
 from models.film import Film
-from services.gamification.enrich_film_gamification_metadata import FilmGamificationMetadataPreview
+from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
+from providers.kinopoisk.kinopoisk_sequels_dto import KinopoiskSequelFilmDTO
+from providers.kinopoisk.kinopoisk_staff_dto import KinopoiskStaffMemberDTO
+from services.gamification.enrich_film_gamification_metadata import (
+    EnrichFilmGamificationMetadataService,
+)
+from tests.support.fake_kinopoisk_gamification_transport import (
+    FakeKinopoiskGamificationTransport,
+    minimal_kinopoisk_film_dto,
+)
+
+
+def _no_real_kinopoisk_http() -> None:
+    """Fail fast if tests accidentally call live Kinopoisk transport."""
+    raise AssertionError('real Kinopoisk HTTP must not be called in tests')
+
+
+@contextmanager
+def _backfill_with_fake_transport(fake_transport: FakeKinopoiskGamificationTransport):
+    enricher = EnrichFilmGamificationMetadataService.build(transport=fake_transport)
+    with (
+        patch(
+            'manage_backfill_film_gamification_metadata.EnrichFilmGamificationMetadataService.build',
+            return_value=enricher,
+        ),
+        patch.object(
+            KinopoiskProviderTransport,
+            'get_film_by_id',
+            new_callable=AsyncMock,
+            side_effect=_no_real_kinopoisk_http,
+        ),
+        patch.object(
+            KinopoiskProviderTransport,
+            'get_staff_by_film_id',
+            new_callable=AsyncMock,
+            side_effect=_no_real_kinopoisk_http,
+        ),
+        patch.object(
+            KinopoiskProviderTransport,
+            'get_sequels_and_prequels',
+            new_callable=AsyncMock,
+            side_effect=_no_real_kinopoisk_http,
+        ),
+    ):
+        yield
 
 
 async def _insert_film(
@@ -51,6 +97,14 @@ async def _ids_needing_enrichment(*, force: bool = False, limit: int | None = No
             q = q.limit(limit)
         result = await session.execute(q)
         return [int(row[0]) for row in result.all()]
+
+
+async def _get_film(film_id: int) -> Film:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        row = await session.get(Film, film_id)
+        assert row is not None
+        return row
 
 
 @pytest.mark.asyncio
@@ -94,21 +148,23 @@ async def test_needs_enrichment_selects_film_missing_director_only(prepare_db: N
 
 
 @pytest.mark.asyncio
-async def test_run_dry_run_completes_for_needing_film(prepare_db: None) -> None:
+async def test_run_dry_run_uses_fake_kinopoisk_transport(prepare_db: None) -> None:
     film = await _insert_film(kinopoisk_id=9_910_004, countries=[])
 
-    preview = FilmGamificationMetadataPreview(
-        countries=['США'],
-        primary_director_kinopoisk_id=1,
-        primary_director_name='Director',
-        franchise_key='kp_franchise:301',
+    fake_transport = FakeKinopoiskGamificationTransport(
+        film_dto=minimal_kinopoisk_film_dto(kinopoisk_id=film.kinopoisk_id),
+        staff=(
+            KinopoiskStaffMemberDTO(
+                staff_id=11,
+                name_ru='Director',
+                name_en=None,
+                profession_key='DIRECTOR',
+            ),
+        ),
+        sequels=(KinopoiskSequelFilmDTO(film_id=999, name_ru='Other', relation_type='SEQUEL'),),
     )
-    mock_preview = AsyncMock(return_value=preview)
 
-    with patch(
-        'manage_backfill_film_gamification_metadata.EnrichFilmGamificationMetadataService'
-    ) as mock_service_cls:
-        mock_service_cls.build.return_value.preview = mock_preview
+    with _backfill_with_fake_transport(fake_transport):
         await _run(
             dry_run=True,
             force=False,
@@ -118,6 +174,41 @@ async def test_run_dry_run_completes_for_needing_film(prepare_db: None) -> None:
             skip_sequels=False,
         )
 
-    assert mock_preview.await_count >= 1
-    called_kp_ids = [call.kwargs['kinopoisk_id'] for call in mock_preview.await_args_list]
-    assert film.kinopoisk_id in called_kp_ids
+    assert film.kinopoisk_id in fake_transport.get_film_by_id_calls
+    assert film.kinopoisk_id in fake_transport.get_staff_by_film_id_calls
+    assert film.kinopoisk_id in fake_transport.get_sequels_and_prequels_calls
+
+
+@pytest.mark.asyncio
+async def test_run_updates_film_without_real_kinopoisk_http(prepare_db: None) -> None:
+    film = await _insert_film(kinopoisk_id=9_910_005, countries=[])
+
+    fake_transport = FakeKinopoiskGamificationTransport(
+        film_dto=minimal_kinopoisk_film_dto(kinopoisk_id=film.kinopoisk_id),
+        staff=(
+            KinopoiskStaffMemberDTO(
+                staff_id=42,
+                name_ru='Режиссёр',
+                name_en='Director',
+                profession_key='DIRECTOR',
+            ),
+        ),
+        sequels=(),
+    )
+
+    with _backfill_with_fake_transport(fake_transport):
+        await _run(
+            dry_run=False,
+            force=False,
+            sleep_s=0,
+            limit=5000,
+            skip_staff=False,
+            skip_sequels=False,
+        )
+
+    updated = await _get_film(film.id)
+    assert updated.countries == ['США', 'Австралия']
+    assert updated.primary_director_kinopoisk_id == 42
+    assert updated.primary_director_name == 'Режиссёр'
+    assert updated.franchise_key == f'kp_franchise:{film.kinopoisk_id}'
+    assert film.kinopoisk_id in fake_transport.get_film_by_id_calls
