@@ -13,8 +13,8 @@ Status rules:
 - `done` means the feature has a published doc in `docs/features/...`
 - `blocked` and `cancelled` are recorded in the feature metadata when needed
 
-Machine-readable registry:
-- `.cursor/features/index.yaml`
+Hot feature registry (in-progress + 3 recent completed):
+- `.cursor/HOT.md`
 
 Recommended source:
 - copy `.cursor/features/templates/feature-request-template.md`

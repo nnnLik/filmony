@@ -1,0 +1,22 @@
+# 2026-08-04T120000Z — cursor-memory-hot-archive closeout
+
+- **Timestamp:** 2026-08-04T120000Z
+- **Feature slug:** cursor-memory-hot-archive
+- **Action type:** docs
+- **Summary:** Phase C complete — deleted index.yaml, HOT canonical registry, orchestration docs simplified, catalog-community-page evicted to archive, feature closed out.
+- **Files:**
+  - `.cursor/HOT.md`
+  - `.cursor/features/index.yaml` (deleted)
+  - `.cursor/agents/README.md`
+  - `docs/ai/README.md`
+  - `.cursor/rules/composer-token-economy.mdc`
+  - `.cursor/skills/composer-token-economy-orchestrator/SKILL.md`
+  - `.cursor/skills/feature-agent-pipeline/SKILL.md`
+  - `.cursor/features/README.md`
+  - `.cursor/active/cursor-memory-hot-archive/{plan,progress,result}.md`
+  - `docs/features/cursor-memory-hot-archive.md`
+  - `.cursor/archive/active/catalog-community-page/` (moved from active)
+- **Verification:**
+  - `test ! -f .cursor/features/index.yaml`
+  - Active dirs: 5 (+ templates); archive active: 67; hot logs: 26
+  - webtorrent plan confirmed under `.cursor/archive/plans/`

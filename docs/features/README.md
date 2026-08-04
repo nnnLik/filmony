@@ -7,7 +7,7 @@ Path format:
 
 Planning and backlog specs live in `.cursor/features/<feature-slug>/feature.md`.
 In-progress execution artifacts live in `.cursor/active/<feature-slug>/`.
-Use `.cursor/features/index.yaml` for the machine-readable feature status registry.
+Use `.cursor/HOT.md` for the hot feature registry (in-progress + three recent completed).
 
 Each file should include:
 - feature goal

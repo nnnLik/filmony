@@ -1,7 +1,9 @@
 ---
-description: MANDATORY. Always apply composer-token-economy-orchestrator skill.
+description: MANDATORY. Delegate mechanical work via composer-token-economy-orchestrator (delegation-only; lifecycle stays in feature-delivery-workflow.mdc).
 alwaysApply: true
 ---
 # Composer Token Economy Orchestrator
-**ALWAYS** apply the skill `composer-token-economy-orchestrator`. Follow its instructions.
+
+**ALWAYS** apply the skill `composer-token-economy-orchestrator` for **mechanical delegation only** (search, reads, edits, checks → `composer-common-agent`). Feature lifecycle (HOT-first, closeout, action-log) remains in `feature-delivery-workflow.mdc` — this rule does not replace it.
+
 @../skills/composer-token-economy-orchestrator/SKILL.md

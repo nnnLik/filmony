@@ -1,13 +1,15 @@
 ---
 name: feature-agent-pipeline
 description: >
-  Multi-step feature delivery driven by `.cursor/agents/`: business-analyst outputs slice matrix + agent queue;
-  each implementation Task gets one slice only; handoff grows per slice (notes, optional review gates).
-  Use for full pipelines or agent-driven delivery.
+  OPTIONAL multi-step feature delivery via `.cursor/agents/` (slice matrix + agent queue).
+  Not always-applied — use only when explicitly invoking this skill or multi-agent mode.
+  Lifecycle SoT remains feature-delivery-workflow.mdc + HOT.md.
 disable-model-invocation: false
 ---
 
-# Feature agent pipeline (kino)
+# Feature agent pipeline (kino) — **optional**
+
+> **Not always-applied.** Default delivery follows `.cursor/rules/feature-delivery-workflow.mdc` and `.cursor/HOT.md`. Invoke this skill only when you want multi-agent slice orchestration (see `.cursor/agents/README.md`).
 
 ## Goal
 
