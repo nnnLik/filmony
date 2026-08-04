@@ -9,6 +9,7 @@ import { useAuthStatus } from '../auth/useAuthStatus'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { directorChipStyles } from '../lib/directorColor'
+import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 
 function directorSummaryQueryKey(kinopoiskId: number) {
   return ['directorSummary', kinopoiskId] as const
@@ -48,6 +49,10 @@ export function DirectorDetailPage() {
   const summary = summaryQuery.data
   const films = filmsQuery.data?.pages.flatMap((page) => page.items) ?? []
   const accent = kinopoiskId >= 1 ? directorChipStyles(kinopoiskId) : null
+  const directorPhotoSrc =
+    summary?.poster_url != null && summary.poster_url.trim() !== ''
+      ? (resolveApiMediaUrl(summary.poster_url) ?? summary.poster_url)
+      : null
 
   if (auth.kind === 'loading' || auth.kind === 'skipped') {
     return (
@@ -102,22 +107,35 @@ export function DirectorDetailPage() {
             <div
               className={`rounded-2xl border px-4 py-4 ${accent.borderClass} ${accent.backgroundClass}`}
             >
-              <Title level="2" weight="2">
-                {summary.name}
-              </Title>
-              <div className="mt-3 flex flex-wrap gap-3 text-sm tabular-nums text-(--tgui--hint_color)">
-                <span>
-                  <span className="font-semibold text-(--tgui--text_color)">{summary.films_count}</span> фильмов с
-                  оценками
-                </span>
-                {summary.avg_community_rating != null ? (
-                  <span>
-                    средняя{' '}
-                    <span className="font-semibold text-(--tgui--text_color)">
-                      {formatRating(summary.avg_community_rating)}
-                    </span>
-                  </span>
+              <div className={directorPhotoSrc != null ? 'flex items-center gap-4' : undefined}>
+                {directorPhotoSrc != null ? (
+                  <img
+                    src={directorPhotoSrc}
+                    alt=""
+                    className="size-20 shrink-0 rounded-full object-cover bg-(--tgui--secondary_bg_color)"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 ) : null}
+                <div className="min-w-0 flex-1">
+                  <Title level="2" weight="2">
+                    {summary.name}
+                  </Title>
+                  <div className="mt-3 flex flex-wrap gap-3 text-sm tabular-nums text-(--tgui--hint_color)">
+                    <span>
+                      <span className="font-semibold text-(--tgui--text_color)">{summary.films_count}</span>{' '}
+                      фильмов с оценками
+                    </span>
+                    {summary.avg_community_rating != null ? (
+                      <span>
+                        средняя{' '}
+                        <span className="font-semibold text-(--tgui--text_color)">
+                          {formatRating(summary.avg_community_rating)}
+                        </span>
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </div>
 

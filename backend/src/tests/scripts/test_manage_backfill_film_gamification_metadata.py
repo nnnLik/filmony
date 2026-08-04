@@ -261,6 +261,68 @@ async def test_rated_only_selects_rated_card(prepare_db: None) -> None:
 
 
 @pytest.mark.asyncio
+async def test_needs_enrichment_selects_film_missing_director_poster_only(
+    prepare_db: None,
+) -> None:
+    film = await _insert_film(
+        kinopoisk_id=9_910_015,
+        countries=['США'],
+        primary_director_kinopoisk_id=66539,
+        primary_director_name='Test Director',
+        franchise_key='kp_franchise:301',
+    )
+
+    ids = await _ids_needing_enrichment(limit=5000)
+
+    assert film.id in ids
+
+
+@pytest.mark.asyncio
+async def test_run_backfills_director_poster_for_film_with_director_only(
+    prepare_db: None,
+) -> None:
+    film = await _insert_film(
+        kinopoisk_id=9_910_016,
+        countries=['США'],
+        primary_director_kinopoisk_id=66539,
+        primary_director_name='Test Director',
+        franchise_key='kp_franchise:301',
+    )
+    await _attach_user_card(film)
+
+    fake_transport = FakeKinopoiskGamificationTransport(
+        film_dto=minimal_kinopoisk_film_dto(kinopoisk_id=film.kinopoisk_id),
+        staff=(
+            KinopoiskStaffMemberDTO(
+                staff_id=66539,
+                name_ru='Test Director',
+                name_en=None,
+                profession_key='DIRECTOR',
+                poster_url='https://kinopoisk.example/staff/66539.jpg',
+            ),
+        ),
+        sequels=(),
+    )
+
+    with _backfill_with_fake_transport(fake_transport):
+        await _run(
+            dry_run=False,
+            force=False,
+            rated_only=False,
+            sleep_s=0,
+            limit=5000,
+            skip_staff=False,
+            skip_sequels=True,
+            concurrency=1,
+        )
+
+    updated = await _get_film(film.id)
+    assert updated.primary_director_poster_url == 'https://kinopoisk.example/staff/66539.jpg'
+    assert film.kinopoisk_id in fake_transport.get_staff_by_film_id_calls
+    assert film.kinopoisk_id not in fake_transport.get_sequels_and_prequels_calls
+
+
+@pytest.mark.asyncio
 async def test_run_dry_run_uses_fake_kinopoisk_transport(prepare_db: None) -> None:
     film = await _insert_film(kinopoisk_id=9_910_004, countries=[])
     await _attach_user_card(film)
@@ -273,6 +335,7 @@ async def test_run_dry_run_uses_fake_kinopoisk_transport(prepare_db: None) -> No
                 name_ru='Director',
                 name_en=None,
                 profession_key='DIRECTOR',
+                poster_url='https://kinopoisk.example/staff/11.jpg',
             ),
         ),
         sequels=(KinopoiskSequelFilmDTO(film_id=999, name_ru='Other', relation_type='SEQUEL'),),
@@ -333,6 +396,7 @@ async def test_run_updates_film_without_real_kinopoisk_http(prepare_db: None) ->
                 name_ru='Режиссёр',
                 name_en='Director',
                 profession_key='DIRECTOR',
+                poster_url='https://kinopoisk.example/staff/42.jpg',
             ),
         ),
         sequels=(),
@@ -354,5 +418,6 @@ async def test_run_updates_film_without_real_kinopoisk_http(prepare_db: None) ->
     assert updated.countries == ['США', 'Австралия']
     assert updated.primary_director_kinopoisk_id == 42
     assert updated.primary_director_name == 'Режиссёр'
+    assert updated.primary_director_poster_url == 'https://kinopoisk.example/staff/42.jpg'
     assert updated.franchise_key == f'kp_franchise:{film.kinopoisk_id}'
     assert film.kinopoisk_id in fake_transport.get_film_by_id_calls

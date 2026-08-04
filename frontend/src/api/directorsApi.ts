@@ -3,6 +3,7 @@ import { apiJson } from './client'
 export type DirectorSummary = {
   kinopoisk_id: number
   name: string
+  poster_url: string | null
   films_count: number
   avg_community_rating: number | null
 }
