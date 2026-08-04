@@ -16,6 +16,7 @@ from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
+from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -464,6 +465,8 @@ class CreateUserCardService:
             raise UserCardValidationError('kinopoisk_id does not match film_id')
         if genres != (film.genres or []):
             film.genres = genres
+
+        await ResolveKinopoiskFilmService(self._session).sync_metadata_for_film(film)
 
         planned = await self._find_planned_film(user_id, payload.film_id)
         if planned is not None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from unittest.mock import AsyncMock, patch
 from uuid import UUID
 
 import pytest
@@ -29,6 +30,7 @@ from services.cards.create_user_card import (
     _normalize_tags,
     _validate_create_subject_modes,
 )
+from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 from tests.support.user_card_category import ensure_default_category
 
 
@@ -156,6 +158,30 @@ def _base_payload(**overrides: object) -> CreateUserCardInput:
     }
     defaults.update(overrides)
     return CreateUserCardInput(**defaults)  # type: ignore[arg-type]
+
+
+@pytest.mark.asyncio
+async def test_create_film_backed_syncs_metadata_on_create(async_client: AsyncClient) -> None:
+    user = await _create_user(telegram_user_id=892020)
+    film = await _create_film(kinopoisk_id=892020)
+    session_factory = get_session_factory()
+    sync_mock = AsyncMock()
+    with patch.object(ResolveKinopoiskFilmService, 'sync_metadata_for_film', sync_mock):
+        async with session_factory() as session:
+            await ensure_default_category(session, user.id)
+            svc = CreateUserCardService(session)
+            card = await svc.execute(
+                user.id,
+                _base_payload(
+                    film_id=film.id,
+                    kinopoisk_id=film.kinopoisk_id,
+                    genres=film.genres or [],
+                ),
+            )
+    sync_mock.assert_awaited_once()
+    synced_film = sync_mock.await_args.args[0]
+    assert synced_film.id == film.id
+    assert card.film_id == film.id
 
 
 @pytest.mark.asyncio
@@ -368,6 +394,47 @@ async def test_create_film_backed_upgrades_planned_card(async_client: AsyncClien
         )
         assert upgraded.id == planned.id
         assert upgraded.is_planned is False
+
+
+@pytest.mark.asyncio
+async def test_create_film_backed_upgrades_planned_syncs_metadata(
+    async_client: AsyncClient,
+) -> None:
+    user = await _create_user(telegram_user_id=892021)
+    film = await _create_film(kinopoisk_id=892021)
+    session_factory = get_session_factory()
+    sync_mock = AsyncMock()
+    with patch.object(ResolveKinopoiskFilmService, 'sync_metadata_for_film', sync_mock):
+        async with session_factory() as session:
+            category_id = await ensure_default_category(session, user.id)
+            planned = UserCard(
+                user_id=user.id,
+                category_id=category_id,
+                film_id=film.id,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
+                is_planned=True,
+                display_title=film.title,
+                rating=0,
+                company=CardCompany.alone.value,
+                mood_before=CardMoodBefore.relax.value,
+                mood_after=CardMoodAfter.enjoyed.value,
+                watch_note='',
+            )
+            session.add(planned)
+            await session.commit()
+            svc = CreateUserCardService(session)
+            upgraded = await svc.execute(
+                user.id,
+                _base_payload(
+                    film_id=film.id,
+                    kinopoisk_id=film.kinopoisk_id,
+                    genres=film.genres or [],
+                ),
+            )
+    sync_mock.assert_awaited_once()
+    assert upgraded.id == planned.id
+    assert upgraded.is_planned is False
 
 
 @pytest.mark.asyncio

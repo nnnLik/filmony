@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -10,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from core.database import dispose_engine
 from services.feed.global_feed_head_broker import reset_global_feed_head_broker_for_tests
+from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 from tests.support import db_setup
 from utils.app_utils import get_app, setup_app
 
@@ -22,6 +24,17 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         await dispose_engine()
 
     asyncio.run(_bootstrap_worker_schema())
+
+
+@pytest.fixture(autouse=True)
+def _noop_film_metadata_sync_on_card_create() -> None:
+    """Card create triggers TMDB sync; API tests must not call live TMDB."""
+    with patch.object(
+        ResolveKinopoiskFilmService,
+        'sync_metadata_for_film',
+        new_callable=AsyncMock,
+    ):
+        yield
 
 
 @pytest_asyncio.fixture

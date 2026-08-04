@@ -58,6 +58,10 @@ class ResolveKinopoiskFilmService:
         await self._session.refresh(film)
         return film
 
+    async def sync_metadata_for_film(self, film: Film) -> None:
+        """Sync TMDB + optional KP director metadata onto an existing Film row."""
+        await self._sync_metadata(film)
+
     async def _sync_metadata(self, film: Film) -> None:
         await self._tmdb_sync.execute(
             self._session,
