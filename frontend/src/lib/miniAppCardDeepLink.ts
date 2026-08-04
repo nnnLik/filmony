@@ -119,3 +119,114 @@ export function buildMiniAppRecapDeepLink(year: number, month: number, botUserna
   const bot = botUsername.trim().replace(/^@/, '')
   return `https://t.me/${bot}/app?startapp=mr${year}-${month}`
 }
+
+export const HANDLED_START_PARAM_KEY_PREFIX = 'filmony.handled_start_param.'
+
+export function startParamHandledKey(startParam: string): string {
+  return `${HANDLED_START_PARAM_KEY_PREFIX}${startParam}`
+}
+
+export function isStartParamHandled(startParam: string): boolean {
+  return sessionStorage.getItem(startParamHandledKey(startParam)) === '1'
+}
+
+export function markStartParamHandled(startParam: string): void {
+  sessionStorage.setItem(startParamHandledKey(startParam), '1')
+}
+
+/** Reads Telegram mini-app start_param synchronously (WebApp API or URL fallback). */
+export function readTelegramStartParamSync(): string | undefined {
+  const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
+  if (fromUnsafe) {
+    return fromUnsafe
+  }
+  return new URLSearchParams(window.location.search).get('tgWebAppStartParam')?.trim() || undefined
+}
+
+export type StartParamRouteTarget = {
+  path: string
+  state?: unknown
+}
+
+/** Maps a Telegram start_param value to an in-app route (path + optional router state). */
+export function resolveStartParamToPath(startParam: string): StartParamRouteTarget | null {
+  const sp = startParam.trim()
+  if (sp === '') {
+    return null
+  }
+
+  const watchlistCardId = parseMiniAppWatchlistStartParam(sp)
+  if (watchlistCardId != null) {
+    return {
+      path: '/profile?movies=watchlist',
+      state: {
+        watchlistInviteCardId: watchlistCardId,
+      },
+    }
+  }
+
+  const recapTarget = parseMiniAppRecapStartParam(sp)
+  if (recapTarget != null) {
+    return { path: `/me/recap/${recapTarget.year}/${recapTarget.month}` }
+  }
+
+  const tasteQuizToken = parseMiniAppTasteQuizStartParam(sp)
+  if (tasteQuizToken != null) {
+    return { path: `/taste-quiz/invite/${encodeURIComponent(tasteQuizToken)}` }
+  }
+
+  const filmId = parseMiniAppFilmStartParam(sp)
+  if (filmId != null) {
+    return { path: `/films/${filmId}` }
+  }
+
+  const cardMatch = /^c(\d+)$/i.exec(sp)
+  if (cardMatch != null) {
+    const cardId = Number(cardMatch[1])
+    if (Number.isInteger(cardId) && cardId >= 1) {
+      return {
+        path: `/cards/${cardId}`,
+        state: { cardEntry: 'telegram_start_param' as const },
+      }
+    }
+  }
+
+  const postMatch = /^p(\d+)$/i.exec(sp)
+  if (postMatch != null) {
+    const postId = Number(postMatch[1])
+    if (Number.isInteger(postId) && postId >= 1) {
+      return {
+        path: `/feed-posts/${postId}`,
+        state: { fromFeed: true },
+      }
+    }
+  }
+
+  return null
+}
+
+/** Returns unresolved start_param deeplink target, or null if absent/already handled. */
+export function getPendingStartParamRedirect(): (StartParamRouteTarget & { startParam: string }) | null {
+  const startParam = readTelegramStartParamSync()
+  if (startParam == null || startParam === '') {
+    return null
+  }
+  if (isStartParamHandled(startParam)) {
+    return null
+  }
+  const resolved = resolveStartParamToPath(startParam)
+  if (resolved == null) {
+    return null
+  }
+  return { ...resolved, startParam }
+}
+
+/** Applies start_param path to the browser URL before React mounts (pathname + search only). */
+export function applyEarlyStartParamPathReplace(): void {
+  const pending = getPendingStartParamRedirect()
+  if (pending == null) {
+    return
+  }
+  const url = new URL(pending.path, window.location.origin)
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`)
+}

@@ -580,7 +580,7 @@ export function FeedPostDetailPage() {
 
         {!showLoading && post != null ? (
           <MentionProfileLookupProvider value={mentionRowsForPostDetail}>
-            <FeedPostCard post={post} viewerUserId={viewerId} linkToDetail={false} inlineComments={false} />
+            <FeedPostCard post={post} viewerUserId={viewerId} linkToDetail={false} inlineComments={false} onPostUpdated={setPost} />
 
             <section className="mt-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 sm:p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">

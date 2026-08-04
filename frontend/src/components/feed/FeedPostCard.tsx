@@ -12,7 +12,7 @@ import {
   feedPostReferencedCardTitle,
   movieCardReleaseCompactSuffix,
 } from '../../lib/movieCardDisplay'
-import { createFeedPostComment, listAllFeedPostComments } from '../../api/feedPostApi'
+import { createFeedPostComment, listAllFeedPostComments, updateFeedPost } from '../../api/feedPostApi'
 import type { FeedPostComment, ReactionSummary, ReferencedMentionSnippet } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
@@ -26,12 +26,11 @@ import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
-import { useTasteQuizKnowledgeOfUsers } from '../../hooks/useTasteQuizKnowledgeOfUsers'
-import { useRatingStreaksOfUsers } from '../../hooks/useRatingStreaksOfUsers'
+import { useFeedCardAuthorBadges } from '../../hooks/useFeedCardAuthorBadges'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
-import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
+import { CommentDraftMultiline, CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
 import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
@@ -57,6 +56,8 @@ export type FeedPostCardProps = {
     postId: number,
     next: { comments_count: number; comments_preview: FeedPostComment[] },
   ) => void
+  /** Called after the viewer successfully edits their own post body. */
+  onPostUpdated?: (post: FeedPostInFeed) => void
 }
 
 function feedPostImageSrc(url: string): string {
@@ -198,6 +199,7 @@ export function FeedPostCard({
   linkToDetail = true,
   inlineComments = true,
   onCommentsState,
+  onPostUpdated,
 }: FeedPostCardProps) {
   const navigate = useNavigate()
   const {
@@ -260,6 +262,20 @@ export function FeedPostCard({
   const [panelComments, setPanelComments] = useState<FeedPostComment[]>([])
   const [panelLoading, setPanelLoading] = useState(false)
   const [panelError, setPanelError] = useState<string | null>(null)
+  const [editingPost, setEditingPost] = useState(false)
+  const [editBody, setEditBody] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [bodyOverride, setBodyOverride] = useState<string | null>(null)
+  const [editSync, setEditSync] = useState(() => ({ postId: post.id, body }))
+  const displayBody = bodyOverride ?? body
+  if (post.id !== editSync.postId || body !== editSync.body) {
+    setEditSync({ postId: post.id, body })
+    setBodyOverride(null)
+    setEditingPost(false)
+    setEditBody('')
+    setEditError(null)
+  }
   if (post.id !== previewSync.postId || post.comments_preview !== previewSync.comments_preview) {
     setPreviewSync({ postId: post.id, comments_preview: post.comments_preview })
     setPreviewReactions({})
@@ -278,6 +294,33 @@ export function FeedPostCard({
     }
     return rows
   }, [author, post.comments_preview, panelComments, sourceCommentQuote])
+
+  const handleCancelPostEdit = useCallback(() => {
+    setEditingPost(false)
+    setEditBody('')
+    setEditError(null)
+  }, [])
+
+  const handleSavePostEdit = useCallback(async () => {
+    if (editBusy) return
+    const trimmed = editBody.trim()
+    const hasImage = (image_url ?? '').trim() !== ''
+    if (trimmed === '' && !hasImage) return
+    setEditBusy(true)
+    setEditError(null)
+    try {
+      const updated = await updateFeedPost(id, { body: editBody })
+      setBodyOverride(updated.body)
+      onPostUpdated?.(updated)
+      setEditingPost(false)
+      setEditBody('')
+      safeHapticSuccess()
+    } catch (e) {
+      setEditError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось сохранить пост')
+    } finally {
+      setEditBusy(false)
+    }
+  }, [editBody, editBusy, id, image_url, onPostUpdated])
 
   useEffect(() => {
     let cancelled = false
@@ -445,35 +488,32 @@ export function FeedPostCard({
   const isOwn =
     viewerUserId != null && viewerUserId !== '' && user_id === viewerUserId
 
-  const tasteQuizOwnerIds = useMemo(() => {
-    const ids = new Set<string>()
+  const panelCommentAuthorIds = useMemo(
+    () => panelComments.map((comment) => comment.author.id),
+    [panelComments],
+  )
+  const primaryTasteQuizOwnerIds = useMemo(() => {
+    const ids: string[] = []
     if (!isOwn) {
-      ids.add(user_id)
+      ids.push(user_id)
     }
     if (sourceCommentQuote != null) {
-      ids.add(sourceCommentQuote.author.id)
+      ids.push(sourceCommentQuote.author.id)
     }
-    for (const comment of panelComments) {
-      ids.add(comment.author.id)
-    }
-    return [...ids]
-  }, [user_id, isOwn, panelComments, sourceCommentQuote])
-  const streakUserIds = useMemo(() => {
-    const ids = new Set<string>()
-    ids.add(user_id)
+    return ids
+  }, [isOwn, sourceCommentQuote, user_id])
+  const primaryStreakUserIds = useMemo(() => {
+    const ids = [user_id]
     if (sourceCommentQuote != null) {
-      ids.add(sourceCommentQuote.author.id)
+      ids.push(sourceCommentQuote.author.id)
     }
-    for (const comment of panelComments) {
-      ids.add(comment.author.id)
-    }
-    return [...ids]
-  }, [user_id, panelComments, sourceCommentQuote])
-  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
-    enabled: tasteQuizOwnerIds.length > 0,
-  })
-  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
-    enabled: streakUserIds.length > 0,
+    return ids
+  }, [sourceCommentQuote, user_id])
+  const { knowledgeByOwnerId, streakByUserId } = useFeedCardAuthorBadges({
+    scopeKey: `feed_post:${id}`,
+    tasteQuizOwnerIds: primaryTasteQuizOwnerIds,
+    streakUserIds: primaryStreakUserIds,
+    panelCommentAuthorIds,
   })
 
   const surfaceProps =
@@ -808,6 +848,21 @@ export function FeedPostCard({
                 />
                 <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={user_id} />
                 <span className="shrink-0 text-[11px] text-(--tgui--hint_color)">{formatCommentTime(created_at)}</span>
+                {isOwn && !editingPost ? (
+                  <button
+                    type="button"
+                    onMouseDown={linkToDetail ? stopPostNav : undefined}
+                    onClick={(e) => {
+                      if (linkToDetail) stopPostNavClick(e)
+                      setEditingPost(true)
+                      setEditBody(displayBody)
+                      setEditError(null)
+                    }}
+                    className="shrink-0 text-[11px] font-medium text-(--tgui--link_color)"
+                  >
+                    Редактировать
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -852,10 +907,42 @@ export function FeedPostCard({
             </div>
           ) : null}
 
-          {body.trim() !== '' ? (
+          {editingPost ? (
+            <div
+              className="space-y-2"
+              onMouseDown={linkToDetail ? stopPostNav : undefined}
+              onClick={linkToDetail ? stopPostNavClick : undefined}
+            >
+              <CommentDraftMultiline
+                value={editBody}
+                onChange={setEditBody}
+                disabled={editBusy}
+                rows={4}
+                placeholder="Редактировать пост"
+                inlineMovieCardRefs={bodyInlineRefMap}
+              />
+              {editError != null ? (
+                <p className="text-xs text-(--tgui--destructive_text_color)">{editError}</p>
+              ) : null}
+              <div className="flex gap-2">
+                <Button
+                  size="s"
+                  disabled={
+                    editBusy || (editBody.trim() === '' && (image_url ?? '').trim() === '')
+                  }
+                  onClick={() => void handleSavePostEdit()}
+                >
+                  {editBusy ? 'Сохранение…' : 'Сохранить'}
+                </Button>
+                <Button size="s" mode="gray" disabled={editBusy} onClick={handleCancelPostEdit}>
+                  Отмена
+                </Button>
+              </div>
+            </div>
+          ) : displayBody.trim() !== '' ? (
             <FeedPostCardBody
               key={post.id}
-              body={body}
+              body={displayBody}
               linkToDetail={linkToDetail}
               stopPostNav={stopPostNav}
               stopPostNavClick={stopPostNavClick}

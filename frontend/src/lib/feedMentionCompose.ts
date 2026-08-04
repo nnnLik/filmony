@@ -37,12 +37,12 @@ export function applyMentionPick(
   caret: number,
   atIndex: number,
   token: string,
-  maxLen: number,
+  maxLen?: number,
 ): { nextValue: string; caret: number } | null {
   const before = value.slice(0, atIndex)
   const after = value.slice(caret)
   const nextValue = `${before}${token}${after}`
-  if (nextValue.length > maxLen) {
+  if (maxLen != null && nextValue.length > maxLen) {
     return null
   }
   return { nextValue, caret: atIndex + token.length }

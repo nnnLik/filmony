@@ -1,0 +1,24 @@
+# Action log entry
+
+- **Timestamp:** 2026-08-04T030800Z
+- **Feature slug:** frontend-perf-pass
+- **Action type:** code
+- **Summary:** Implemented six frontend performance optimizations: feed batch badges, lazy profile stats chunk, RQ profile migration with deferred fetches, Tailwind/CSS trim, Telegram deeplink early route rewrite, stats panel RQ cleanup.
+- **Files:**
+  - `frontend/src/lib/feedVisibleAuthorIds.ts`
+  - `frontend/src/context/FeedAuthorBadgesProvider.tsx`
+  - `frontend/src/lib/profileQueryKeys.ts`
+  - `frontend/src/hooks/useMyProfileQuery.ts` (+ 6 related hooks)
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+  - `frontend/src/pages/FeedPage.tsx`
+  - `frontend/src/components/feed/FeedCard.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/lib/miniAppCardDeepLink.ts`
+  - `frontend/src/main.tsx`
+  - `frontend/src/App.tsx`
+  - `frontend/src/index.css`
+  - `frontend/src/pages/movieCardDetailAnimations.css`
+  - `docs/features/frontend-perf-pass.md`
+- **Verification:** `cd frontend && npm run lint && npm run build && npm run test` — lint clean, build pass, 90/90 tests pass.

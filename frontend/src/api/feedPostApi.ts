@@ -185,6 +185,15 @@ export async function updateFeedPostComment(
   })
 }
 
+export async function updateFeedPost(postId: number, body: { body: string }): Promise<FeedPostInFeed> {
+  const raw = await apiJson<Record<string, unknown>>(`/api/feed-posts/${postId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return normalizeFeedPostInFeed(raw)
+}
+
 export async function deleteFeedPostComment(postId: number, commentId: number): Promise<void> {
   const res = await apiFetch(`/api/feed-posts/${postId}/comments/${commentId}`, {
     method: 'DELETE',

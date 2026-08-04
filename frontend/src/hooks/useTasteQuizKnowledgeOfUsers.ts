@@ -12,6 +12,8 @@ import { tasteQuizKnowledgeOfUsersQueryKey } from '../lib/tasteQuizQueryKeys'
 
 export type UseTasteQuizKnowledgeOfUsersOptions = {
   enabled?: boolean
+  staleTime?: number
+  gcTime?: number
 }
 
 function normalizeOwnerUserIds(ownerUserIds: readonly string[]): string[] {
@@ -38,6 +40,8 @@ export function useTasteQuizKnowledgeOfUsers(
     queryKey: tasteQuizKnowledgeOfUsersQueryKey(sortedIds),
     queryFn: () => batchTasteQuizKnowledgeAsGuesser(sortedIds),
     enabled,
+    ...(options?.staleTime != null ? { staleTime: options.staleTime } : {}),
+    ...(options?.gcTime != null ? { gcTime: options.gcTime } : {}),
   })
 
   const knowledgeByOwnerId: Record<string, TasteQuizKnowledgeBatchItem> =

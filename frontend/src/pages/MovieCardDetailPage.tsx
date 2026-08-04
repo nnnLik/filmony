@@ -17,6 +17,8 @@ import {
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { createPortal } from 'react-dom'
 
+import './movieCardDetailAnimations.css'
+
 import {
   createMovieCardComment as submitMovieCardCommentApi,
   deleteMovieCardComment,

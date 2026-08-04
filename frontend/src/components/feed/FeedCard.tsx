@@ -31,8 +31,7 @@ import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
-import { useTasteQuizKnowledgeOfUsers } from '../../hooks/useTasteQuizKnowledgeOfUsers'
-import { useRatingStreaksOfUsers } from '../../hooks/useRatingStreaksOfUsers'
+import { useFeedCardAuthorBadges } from '../../hooks/useFeedCardAuthorBadges'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
@@ -184,29 +183,15 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     return map
   }, [panelComments])
 
-  const tasteQuizOwnerIds = useMemo(() => {
-    const ids = new Set<string>()
-    if (!isOwnCard) {
-      ids.add(card.user_id)
-    }
-    for (const comment of panelComments) {
-      ids.add(comment.author.id)
-    }
-    return [...ids]
-  }, [card.user_id, isOwnCard, panelComments])
-  const streakUserIds = useMemo(() => {
-    const ids = new Set<string>()
-    ids.add(card.user_id)
-    for (const comment of panelComments) {
-      ids.add(comment.author.id)
-    }
-    return [...ids]
-  }, [card.user_id, panelComments])
-  const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
-    enabled: tasteQuizOwnerIds.length > 0,
-  })
-  const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
-    enabled: streakUserIds.length > 0,
+  const panelCommentAuthorIds = useMemo(
+    () => panelComments.map((comment) => comment.author.id),
+    [panelComments],
+  )
+  const { knowledgeByOwnerId, streakByUserId } = useFeedCardAuthorBadges({
+    scopeKey: `movie_card:${card.id}`,
+    tasteQuizOwnerIds: isOwnCard ? [] : [card.user_id],
+    streakUserIds: [card.user_id],
+    panelCommentAuthorIds,
   })
 
   const mergedPreviewAfterCreate = useCallback(

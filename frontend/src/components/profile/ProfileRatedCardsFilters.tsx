@@ -91,7 +91,7 @@ export function ProfileRatedCardsFilters({
       writeCachedUserMovieCardTagStats(profileUserId, res)
       return res
     },
-    enabled: profileUserId !== '',
+    enabled: profileUserId !== '' && (filtersOpen || cardsQuery.tags.length > 0),
     staleTime: 2 * 60_000,
     gcTime: 60 * 60_000,
     placeholderData: (): MyMovieCardTagStatsResponse | undefined =>

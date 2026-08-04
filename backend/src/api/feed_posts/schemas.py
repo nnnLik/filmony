@@ -14,7 +14,7 @@ from api.reactions.schemas import ReactionSummaryResponse
 
 
 class FeedPostCreateRequest(BaseModel):
-    body: str = Field(default='', max_length=2000)
+    body: str = Field(default='')
     image_url: str | None = Field(default=None, max_length=2048)
     referenced_movie_card_id: int | None = Field(default=None, ge=1)
     source_comment_id: int | None = Field(default=None, ge=1)
@@ -70,5 +70,11 @@ class FeedPostCommentCreateRequest(BaseModel):
 
 class FeedPostCommentUpdateRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=250)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class FeedPostUpdateRequest(BaseModel):
+    body: str = Field(..., min_length=0)
 
     model_config = ConfigDict(extra='forbid')

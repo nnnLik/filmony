@@ -25,6 +25,7 @@ from api.feed_posts.schemas import (
     FeedPostCreateRequest,
     FeedPostImageUploadResponse,
     FeedPostResponse,
+    FeedPostUpdateRequest,
 )
 from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
@@ -78,6 +79,13 @@ from services.feed_posts.list_feed_post_comments import (
     FeedPostCommentItem,
     ListFeedPostCommentsService,
 )
+from services.feed_posts.update_feed_post import (
+    FeedPostForbiddenError as UpdateFeedPostForbiddenError,
+)
+from services.feed_posts.update_feed_post import (
+    FeedPostUpdateValidationError as UpdateFeedPostValidationError,
+)
+from services.feed_posts.update_feed_post import UpdateFeedPostService
 from services.feed_posts.update_feed_post_comment import (
     FeedPostCommentForbiddenError as UpdateFeedPostCommentForbiddenError,
 )
@@ -505,6 +513,35 @@ async def delete_feed_post_comment_route(
     except DeleteFeedPostCommentForbiddenError:
         raise HTTPException(status_code=403, detail='forbidden') from None
     return Response(status_code=204)
+
+
+@router.patch(
+    '/{post_id}', response_model=FeedPostFeedItemResponse, summary='Редактировать пост ленты'
+)
+async def update_feed_post_route(
+    post_id: int,
+    payload: FeedPostUpdateRequest,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FeedPostFeedItemResponse:
+    try:
+        await UpdateFeedPostService.build(db).execute(
+            feed_post_id=post_id,
+            actor_user_id=user.id,
+            body=payload.body,
+        )
+    except FeedPostNotFoundError:
+        raise HTTPException(status_code=404, detail='feed post not found') from None
+    except UpdateFeedPostForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    except UpdateFeedPostValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        item = await GetFeedPostFeedItemService.build(db).execute(post_id, user.id)
+    except FeedPostNotFoundError:
+        raise HTTPException(status_code=404, detail='feed post not found') from None
+    return feed_post_feed_item_to_response(item)
 
 
 @router.get('/{post_id}', response_model=FeedPostFeedItemResponse)

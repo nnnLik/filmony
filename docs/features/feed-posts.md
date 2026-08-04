@@ -1,6 +1,6 @@
 # Посты ленты (FeedPost)
 
-Текстовый элемент глобальной ленты: до **2000** символов plain text, опционально одна картинка, опциональная привязка к `movie_card` и/или публикация из **своего** комментария к карточке.
+Текстовый элемент глобальной ленты: plain text **без продуктового лимита символов** (серверный safety cap **100_000** — см. [`feed-post-edit-unlimited.md`](./feed-post-edit-unlimited.md)), опционально одна картинка, опциональная привязка к `movie_card` и/или публикация из **своего** комментария к карточке.
 
 ## Модель
 
@@ -13,6 +13,7 @@
 | Метод | Путь | Ответ (суть) |
 |--------|------|----------------|
 | `POST` | `/api/feed-posts` | `FeedPostResponse` — сырой пост после создания |
+| `PATCH` | `/api/feed-posts/{post_id}` | `FeedPostFeedItemResponse` — автор редактирует `body` |
 | `GET` | `/api/feed-posts/{post_id}` | `FeedPostFeedItemResponse` — как элемент ленты: автор, реакции, превью комментариев, сниппеты по телу и `source_comment` |
 | `POST` | `/api/feed-posts/upload` | `{ "url": string }` — картинка в RustFS |
 | `GET` | `/api/feed-posts/media/{media_key}` | бинарный поток (**без** Bearer, для `<img src>`) |
@@ -48,6 +49,7 @@
 | Зона | Файлы |
 |------|--------|
 | Создание / валидация тела | `create_feed_post.py`, `validate_feed_post_body.py` |
+| Редактирование тела | `update_feed_post.py` |
 | Образ ленты по id | `get_feed_post_feed_item.py` |
 | Картинка | `upload_feed_post_image.py` (лимит байт — `FEED_POST_IMAGE_MAX_BYTES` в пакете `services.feed_posts`) |
 | Комментарии | `create_feed_post_comment.py`, `list_feed_post_comments.py` |
@@ -69,6 +71,7 @@ make backend-test-one target=src/tests/api/test_feed_posts_routes.py
 
 ## Не делаем / ограничения
 
-- Нет редактирования и удаления постов.
+- Нет удаления постов.
+- Редактирование только текста (`body`); картинка и ссылки на карточку не меняются через PATCH.
 - DM не уходит без чата с ботом у получателя.
 - Смена `profile_slug` ломает старые `⟦@…⟧` в сохранённом тексте.

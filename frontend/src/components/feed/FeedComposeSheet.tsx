@@ -40,8 +40,6 @@ import { displayNameFromProfile } from '../../lib/profileDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { useMentionPopoverLayout } from '../../lib/useMentionPopoverLayout'
 
-const FEED_POST_BODY_MAX = 2000
-
 export type FeedComposeSheetProps = {
   onClose: () => void
   sourceCommentId: number | null
@@ -168,7 +166,6 @@ export function FeedComposeSheet({
 
   const fromComment = sourceCommentId != null
   const allowImageUpload = !fromComment
-  const charsLeft = FEED_POST_BODY_MAX - body.length
 
   const hasPostImage = (imageUrl ?? '').trim() !== ''
 
@@ -184,7 +181,7 @@ export function FeedComposeSheet({
       const endCaret = mentionPicker.atIndex + 1 + mentionPicker.query.length
       const caret = Math.min(endCaret, body.length)
       const token = mentionReplacementFromSlug(slug)
-      const res = applyMentionPick(body, caret, mentionPicker.atIndex, token, FEED_POST_BODY_MAX)
+      const res = applyMentionPick(body, caret, mentionPicker.atIndex, token)
       if (res == null) return
       setBody(res.nextValue)
       setMentionPicker(null)
@@ -207,7 +204,6 @@ export function FeedComposeSheet({
         el?.selectionStart ?? null,
         el?.selectionEnd ?? null,
         token,
-        FEED_POST_BODY_MAX,
       )
       if (inserted == null) return
       setBody(inserted.nextValue)
@@ -229,7 +225,6 @@ export function FeedComposeSheet({
       el?.selectionStart ?? null,
       el?.selectionEnd ?? null,
       token,
-      FEED_POST_BODY_MAX,
     )
     if (inserted == null) return
     setBody(inserted.nextValue)
@@ -252,7 +247,6 @@ export function FeedComposeSheet({
       body,
       el?.selectionStart ?? null,
       el?.selectionEnd ?? null,
-      FEED_POST_BODY_MAX,
     )
     if (toggled == null) return
     setBody(toggled.nextValue)
@@ -265,10 +259,9 @@ export function FeedComposeSheet({
 
   const handleBodyChange = useCallback(
     (v: string, meta?: { caret: number }) => {
-      const next = v.slice(0, FEED_POST_BODY_MAX)
-      setBody(next)
-      const caret = meta?.caret ?? next.length
-      queueMicrotask(() => syncMentionFromValue(next, caret))
+      setBody(v)
+      const caret = meta?.caret ?? v.length
+      queueMicrotask(() => syncMentionFromValue(v, caret))
     },
     [syncMentionFromValue],
   )
@@ -440,7 +433,7 @@ export function FeedComposeSheet({
                 const el = bodyRef.current
                 if (el == null) return
                 syncMentionFromValue(
-                  el.value.slice(0, FEED_POST_BODY_MAX),
+                  el.value,
                   el.selectionStart ?? el.value.length,
                 )
               }}
@@ -448,7 +441,7 @@ export function FeedComposeSheet({
                 const el = bodyRef.current
                 if (el == null) return
                 syncMentionFromValue(
-                  el.value.slice(0, FEED_POST_BODY_MAX),
+                  el.value,
                   el.selectionStart ?? el.value.length,
                 )
               }}
@@ -456,7 +449,6 @@ export function FeedComposeSheet({
               placeholder="Мысль, ссылка, упоминание…"
               ariaLabel="Текст поста"
               disabled={submitBusy || uploadBusy}
-              maxLength={FEED_POST_BODY_MAX}
               rows={3}
               mirrorPlaceholderClassName="text-(--tgui--hint_color)"
               mirrorOverlayTextClassName="text-(--tgui--text_color)"
@@ -532,23 +524,19 @@ export function FeedComposeSheet({
               : null}
           </div>
 
-          <div className="flex items-center justify-between gap-2 text-[12px] text-(--tgui--hint_color)">
-            <span className="tabular-nums font-medium text-(--tgui--secondary_hint_color)">{charsLeft}</span>
+          <div className="flex items-center justify-end gap-2 text-[12px] text-(--tgui--hint_color)">
             <div className="flex shrink-0 items-center gap-1">
               <CommentReactionTokenPicker
                 onPickReactionTypeId={insertReactionToken}
                 disabled={submitBusy || uploadBusy}
-                allowInsert={body.length < FEED_POST_BODY_MAX}
               />
               <CommentSpoilerToggleButton
                 onToggleSpoiler={toggleSpoilerInBody}
                 disabled={submitBusy || uploadBusy}
-                allowInsert={body.length < FEED_POST_BODY_MAX}
               />
               <MovieCardInlinePickerButton
                 onPick={insertMovieCardInline}
                 disabled={submitBusy || uploadBusy}
-                allowInsert={body.length < FEED_POST_BODY_MAX}
               />
               <IconButton
                 mode="gray"

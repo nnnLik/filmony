@@ -4,10 +4,12 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 
 import App from './App'
+import { applyEarlyStartParamPathReplace } from './lib/miniAppCardDeepLink'
 import './index.css'
 
 if (isTMA()) {
   init()
+  applyEarlyStartParamPathReplace()
 }
 
 if (import.meta.env.DEV) {

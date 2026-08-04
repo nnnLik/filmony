@@ -20,7 +20,8 @@ from services.text.spoiler_tokens import (
     validate_spoiler_tokens,
 )
 
-FEED_POST_BODY_MAX_LEN = 2000
+# High safety cap for DoS protection; no product-facing character limit.
+FEED_POST_BODY_MAX_LEN = 100_000
 _REACTION_TOKEN_RE = re.compile(r'⟦r(\d+)⟧')
 
 

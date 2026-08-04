@@ -907,3 +907,68 @@ async def test_feed_post_comment_update_validation_error(async_client: AsyncClie
         json={'text': '⟦@missing_slug⟧'},
     )
     assert bad.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_feed_post_create_long_body(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8901)
+    long_body = 'x' * 2500
+    r = await async_client.post('/api/feed-posts', json={'body': long_body})
+    assert r.status_code == 200
+    assert r.json()['body'] == long_body
+
+
+@pytest.mark.asyncio
+async def test_feed_post_update_success(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8902)
+    create = await async_client.post('/api/feed-posts', json={'body': 'before edit'})
+    assert create.status_code == 200
+    pid = int(create.json()['id'])
+
+    updated = await async_client.patch(
+        f'/api/feed-posts/{pid}',
+        json={'body': '  after edit  '},
+    )
+    assert updated.status_code == 200
+    data = updated.json()
+    assert data['body'] == 'after edit'
+    assert data['kind'] == 'feed_post'
+
+    fetched = await async_client.get(f'/api/feed-posts/{pid}')
+    assert fetched.status_code == 200
+    assert fetched.json()['body'] == 'after edit'
+
+
+@pytest.mark.asyncio
+async def test_feed_post_update_forbidden_non_owner(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8903)
+    create = await async_client.post('/api/feed-posts', json={'body': 'mine'})
+    pid = int(create.json()['id'])
+
+    await _login(async_client, telegram_user_id=8904)
+    forbidden = await async_client.patch(
+        f'/api/feed-posts/{pid}',
+        json={'body': 'stolen'},
+    )
+    assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_feed_post_update_validation_empty_without_image(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8905)
+    create = await async_client.post('/api/feed-posts', json={'body': 'text only'})
+    pid = int(create.json()['id'])
+
+    bad = await async_client.patch(f'/api/feed-posts/{pid}', json={'body': '   '})
+    assert bad.status_code == 400
+    assert 'empty' in bad.json()['detail'].lower()
+
+
+@pytest.mark.asyncio
+async def test_feed_post_update_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8906)
+    missing = await async_client.patch(
+        '/api/feed-posts/999999',
+        json={'body': 'ghost'},
+    )
+    assert missing.status_code == 404

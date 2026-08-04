@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T030800Z-frontend-perf-pass-code.md`
+- `2026-08-04T150000Z-feed-post-edit-unlimited-code.md`
 - `2026-08-04T120000Z-social-catalog-slices-abc-code.md`
 - `2026-08-04T030000Z-social-catalog-slices-d-e-code.md`
 - `2026-08-04T024100Z-director-catalog-pages-code.md`

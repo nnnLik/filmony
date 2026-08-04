@@ -1,0 +1,22 @@
+# Action log entry
+
+- **Timestamp:** 2026-08-04T150000Z
+- **Feature slug:** feed-post-edit-unlimited
+- **Action type:** code
+- **Summary:** Removed 2000-char feed post body limit (DB Text, 100k safety cap); added author PATCH + frontend edit UI.
+- **Files:**
+  - `backend/src/migrations/versions/l7m8n9o0p123_feed_post_body_text.py`
+  - `backend/src/models/feed_post.py`
+  - `backend/src/services/feed_posts/validate_feed_post_body.py`
+  - `backend/src/services/feed_posts/update_feed_post.py`
+  - `backend/src/api/feed_posts/routes.py`
+  - `backend/src/api/feed_posts/schemas.py`
+  - `backend/src/tests/api/test_feed_posts_routes.py`
+  - `frontend/src/components/feed/FeedComposeSheet.tsx`
+  - `frontend/src/components/feed/FeedPostCard.tsx`
+  - `frontend/src/pages/FeedPostDetailPage.tsx`
+  - `frontend/src/api/feedPostApi.ts`
+  - `frontend/src/lib/feedMentionCompose.ts`
+  - `docs/features/feed-post-edit-unlimited.md`
+  - `docs/features/feed-posts.md`
+- **Verification:** `make backend-test-one` (5 new tests passed); eslint on touched frontend files clean.

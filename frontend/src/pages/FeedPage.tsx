@@ -38,6 +38,7 @@ import {
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
+import { FeedAuthorBadgesProvider } from '../context/FeedAuthorBadgesProvider'
 import { FeedCardGlobalAudioProvider } from '../context/FeedCardGlobalAudioProvider'
 import { consumeGlobalFeedHeadSse } from '../lib/globalFeedSse'
 import {
@@ -531,7 +532,7 @@ export function FeedPage() {
           ) : null}
 
           {items.length > 0 && (
-            <>
+            <FeedAuthorBadgesProvider items={items} viewerUserId={viewerUserIdString}>
               {items.map((entry) => {
                 if (entry.kind === 'feed_post') {
                   const dim = isGlobalFeedPostDetailOpened(entry.id)
@@ -571,7 +572,7 @@ export function FeedPage() {
                   ) : null}
                 </>
               ) : null}
-            </>
+            </FeedAuthorBadgesProvider>
           )}
         </div>
       </main>

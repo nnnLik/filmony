@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Uuid
+from sqlalchemy import ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -17,7 +17,7 @@ class FeedPost(Base):
         nullable=False,
         index=True,
     )
-    body: Mapped[str] = mapped_column(String(2000), nullable=False)
+    body: Mapped[str] = mapped_column(Text(), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     referenced_card_id: Mapped[int | None] = mapped_column(
         Integer,

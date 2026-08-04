@@ -12,6 +12,8 @@ import { ratingStreaksOfUsersQueryKey } from '../lib/streaksQueryKeys'
 
 export type UseRatingStreaksOfUsersOptions = {
   enabled?: boolean
+  staleTime?: number
+  gcTime?: number
 }
 
 function normalizeUserIds(userIds: readonly string[]): string[] {
@@ -37,6 +39,8 @@ export function useRatingStreaksOfUsers(
     queryKey: ratingStreaksOfUsersQueryKey(sortedIds),
     queryFn: () => batchRatingStreaks(sortedIds),
     enabled,
+    ...(options?.staleTime != null ? { staleTime: options.staleTime } : {}),
+    ...(options?.gcTime != null ? { gcTime: options.gcTime } : {}),
   })
 
   const streakByUserId: Record<string, StreakBatchItem> = query.data?.items ?? {}

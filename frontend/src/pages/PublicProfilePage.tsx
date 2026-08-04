@@ -1,375 +1,227 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { lazy, Suspense, useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import {
-  getMyProfile,
   getPublicProfileById,
-  getUserCards,
-  getUserFeedPosts,
   getUserSubscriptions,
-  getUserWatchlist,
   subscribeToUser,
   unsubscribeFromUser,
 } from '../api/profileApi'
-import type { MovieCard, MovieCardPage, PublicProfile, WatchlistFilmPage } from '../api/profileTypes'
-import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
+import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
-  ratedCardsToListParams,
 } from '../lib/ratedCardsListQuery'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
+import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
+import { useUserCardsInfiniteQuery } from '../hooks/useUserCardsInfiniteQuery'
+import { useUserWatchlistInfiniteQuery } from '../hooks/useUserWatchlistInfiniteQuery'
+import { useUserFeedPostsInfiniteQuery } from '../hooks/useUserFeedPostsInfiniteQuery'
+import { useUserFavoritesStripQuery } from '../hooks/useUserFavoritesStripQuery'
 import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
 import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
 import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
-import { ProfileStatsPanel } from '../components/profile/ProfileStatsPanel'
 import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { PlayfulHint } from '../components/ui/PlayfulHint'
+import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import {
+  userCardsQueryKey,
+  userFollowingStatusQueryKey,
+  userPublicProfileQueryKey,
+} from '../lib/profileQueryKeys'
 
-const loadMyProfile: () => Promise<{ id: string }> = getMyProfile
-const loadPublicProfileById: (userId: string) => Promise<PublicProfile> = getPublicProfileById
-const loadUserCards = getUserCards
-const loadUserWatchlist: (
-  userId: string,
-  params: { cursor?: string | null; limit?: number },
-) => Promise<WatchlistFilmPage> = getUserWatchlist
-const loadUserSubscriptions: (
-  userId: string,
-  type: 'followers' | 'following' | 'both',
-) => Promise<{ items: Array<{ id: string }> }> = getUserSubscriptions
-const followUser: (userId: string) => Promise<void> = subscribeToUser
-const unfollowUser: (userId: string) => Promise<void> = unsubscribeFromUser
+const ProfileStatsPanel = lazy(() =>
+  import('../components/profile/ProfileStatsPanel').then((m) => ({ default: m.ProfileStatsPanel })),
+)
 
 export function PublicProfilePage() {
   const { userId } = useParams<{ userId?: string }>()
   const resolvedUserId = useMemo(() => decodeURIComponent(userId ?? ''), [userId])
   const auth = useAuthStatus()
   const navigate = useNavigate()
-  const [profile, setProfile] = useState<PublicProfile | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [cards, setCards] = useState<MovieCardPage | null>(null)
-  const [watchlist, setWatchlist] = useState<WatchlistFilmPage | null>(null)
-  const [cardsError, setCardsError] = useState<string | null>(null)
-  const [watchlistError, setWatchlistError] = useState<string | null>(null)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [loadingMoreWatchlist, setLoadingMoreWatchlist] = useState(false)
-  const [myUserId, setMyUserId] = useState<string | null>(null)
-  const [isFollowing, setIsFollowing] = useState<boolean>(false)
-  const [followBusy, setFollowBusy] = useState(false)
-  const [feedPosts, setFeedPosts] = useState<UserFeedPostsPage | null>(null)
-  const [postsLoading, setPostsLoading] = useState(false)
-  const [postsErr, setPostsErr] = useState<string | null>(null)
-  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
+  const queryClient = useQueryClient()
+
   const [mainTab, setMainTab] = useState<'movies' | 'posts' | 'stats'>('movies')
   const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>('rated')
-  const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
-  const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
+  const [followBusy, setFollowBusy] = useState(false)
+  const [followError, setFollowError] = useState<string | null>(null)
   const [ratedQuery, setRatedQuery] = useRatedCardsQueryFromUrl()
-  const [ratedCardsLoading, setRatedCardsLoading] = useState(false)
   const deferredRatedQuery = useDeferredValue(ratedQuery)
   const ratedQueryKey = useMemo(
     () => ratedCardsQueryKey(deferredRatedQuery),
     [deferredRatedQuery],
   )
-  const favoriteStripItems = useMemo(() => {
-    if (profile == null) return []
-    const n = profile.favorites_count ?? 0
-    if (n <= 0) return []
-    if (favoriteStripForUserId !== profile.id) return []
-    return favoriteStripFetched
-  }, [profile, favoriteStripFetched, favoriteStripForUserId])
-  const prevRouteId = useRef<string | null>(null)
 
-  useEffect(() => {
-    if (auth.kind !== 'ready' || resolvedUserId === '') {
-      return
+  const myProfileQuery = useMyProfileQuery()
+  const myUserId = myProfileQuery.data?.id ?? null
+
+  const profileQuery = useQuery<PublicProfile, Error>({
+    queryKey: userPublicProfileQueryKey(resolvedUserId),
+    queryFn: () => getPublicProfileById(resolvedUserId),
+    enabled: auth.kind === 'ready' && resolvedUserId !== '',
+    staleTime: 2 * 60_000,
+  })
+
+  const profile = profileQuery.data ?? null
+
+  const followingQuery = useQuery<boolean, Error>({
+    queryKey: userFollowingStatusQueryKey(myUserId ?? '', profile?.id ?? ''),
+    queryFn: async () => {
+      if (myUserId == null || profile == null) {
+        return false
+      }
+      const following = await getUserSubscriptions(myUserId, 'following')
+      return following.items.some((item) => item.id === profile.id)
+    },
+    enabled:
+      auth.kind === 'ready' &&
+      myUserId != null &&
+      profile != null &&
+      profile.id !== myUserId,
+    staleTime: 60_000,
+  })
+
+  const isFollowing = followingQuery.data ?? false
+
+  const error =
+    profileQuery.error instanceof ApiError
+      ? formatApiDetail(profileQuery.error.detail)
+      : profileQuery.error != null
+        ? profileQuery.error.message
+        : null
+
+  const cardsQuery = useUserCardsInfiniteQuery(profile?.id ?? '', ratedQuery, {
+    enabled:
+      auth.kind === 'ready' &&
+      profile != null &&
+      mainTab === 'movies' &&
+      moviesSegment === 'rated',
+  })
+
+  const cards = useMemo(() => {
+    const pages = cardsQuery.data?.pages
+    if (pages == null || pages.length === 0) {
+      return null
     }
-    if (prevRouteId.current != null && prevRouteId.current !== resolvedUserId) {
-      setProfile(null)
-      setCards(null)
-      setWatchlist(null)
+    return {
+      items: pages.flatMap((p) => p.items),
+      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
     }
-    prevRouteId.current = resolvedUserId
-    let alive = true
-    void (async () => {
-      await Promise.resolve()
-      if (!alive) {
+  }, [cardsQuery.data])
+
+  // Product: watchlist loads eagerly on profile open (not tab-gated) so «Позже» is instant.
+  const watchlistQuery = useUserWatchlistInfiniteQuery(profile?.id ?? '', {
+    enabled: auth.kind === 'ready' && profile != null,
+  })
+
+  const watchlist = useMemo(() => {
+    const pages = watchlistQuery.data?.pages
+    if (pages == null || pages.length === 0) {
+      return null
+    }
+    return {
+      items: pages.flatMap((p) => p.items),
+      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
+    }
+  }, [watchlistQuery.data])
+
+  const watchlistError =
+    watchlistQuery.error instanceof ApiError
+      ? formatApiDetail(watchlistQuery.error.detail)
+      : watchlistQuery.error != null
+        ? 'Не удалось загрузить список «Позже»'
+        : null
+
+  const postsQuery = useUserFeedPostsInfiniteQuery(profile?.id ?? '', {
+    enabled: auth.kind === 'ready' && profile != null && mainTab === 'posts',
+  })
+
+  const feedPosts = useMemo(() => {
+    const pages = postsQuery.data?.pages
+    if (pages == null || pages.length === 0) {
+      return null
+    }
+    return {
+      items: pages.flatMap((p) => p.items),
+      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
+    }
+  }, [postsQuery.data])
+
+  const favoritesStripQuery = useUserFavoritesStripQuery(profile?.id ?? '', {
+    enabled:
+      profile != null &&
+      (profile.favorites_count ?? 0) > 0 &&
+      mainTab === 'movies' &&
+      moviesSegment === 'rated',
+  })
+
+  const favoriteStripItems = favoritesStripQuery.data ?? []
+
+  const cardsError =
+    cardsQuery.error instanceof ApiError
+      ? formatApiDetail(cardsQuery.error.detail)
+      : cardsQuery.error != null
+        ? cardsQuery.error.message
+        : null
+
+  const ratedCardsLoading = cardsQuery.isFetching && !cardsQuery.isFetchingNextPage
+
+  const postsErr =
+    postsQuery.error instanceof ApiError
+      ? formatApiDetail(postsQuery.error.detail)
+      : postsQuery.error != null
+        ? 'Не удалось загрузить посты'
+        : null
+
+  const postsLoading = postsQuery.isPending && postsQuery.fetchStatus === 'fetching'
+
+  const handleFavoriteToggled = useCallback(
+    (cardId: number, nextFavorite: boolean) => {
+      if (profile == null) {
         return
       }
-      setError(null)
-      setCards(null)
-      setWatchlist(null)
-      setFeedPosts(null)
-      setCardsError(null)
-      setWatchlistError(null)
-      try {
-        const me = await loadMyProfile()
-        if (!alive) {
-          return
-        }
-        setMyUserId(me.id)
-
-        const p = await loadPublicProfileById(resolvedUserId)
-        if (!alive) {
-          return
-        }
-        setProfile(p)
-        if (p.id === me.id) {
-          setIsFollowing(false)
-        } else {
-          const following = await loadUserSubscriptions(me.id, 'following')
-          if (!alive) {
-            return
+      queryClient.setQueryData<InfiniteData<MovieCardPage, string | null>>(
+        userCardsQueryKey(profile.id, ratedQueryKey),
+        (prev) => {
+          if (prev == null) {
+            return prev
           }
-          setIsFollowing(following.items.some((item) => item.id === p.id))
-        }
-
-        try {
-          const wl = await loadUserWatchlist(p.id, { limit: 20 })
-          if (!alive) {
-            return
+          return {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              items: page.items.map((c) =>
+                c.id === cardId ? { ...c, is_favorite: nextFavorite } : c,
+              ),
+            })),
           }
-          setWatchlist(wl)
-        } catch {
-          if (!alive) {
-            return
+        },
+      )
+      queryClient.setQueryData<PublicProfile>(
+        userPublicProfileQueryKey(resolvedUserId),
+        (prev) => {
+          if (prev == null) {
+            return prev
           }
-          setWatchlist(null)
-          setWatchlistError('Не удалось загрузить список «Позже»')
-        }
-      } catch (e) {
-        if (!alive) {
-          return
-        }
-        if (e instanceof ApiError) {
-          setError(formatApiDetail(e.detail))
-        } else {
-          setError(e instanceof Error ? e.message : 'Ошибка загрузки')
-        }
-        setProfile(null)
-        setCards(null)
-        setWatchlist(null)
-        setFeedPosts(null)
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [auth.kind, resolvedUserId])
-
-  useEffect(() => {
-    if (auth.kind !== 'ready' || profile == null || mainTab !== 'movies' || moviesSegment !== 'rated') {
-      return
-    }
-    let alive = true
-    void (async () => {
-      await Promise.resolve()
-      if (!alive) {
-        return
-      }
-      setRatedCardsLoading(true)
-      setCardsError(null)
-      try {
-        const page = await loadUserCards(profile.id, {
-          limit: 20,
-          ...ratedCardsToListParams(deferredRatedQuery),
-        })
-        if (!alive) {
-          return
-        }
-        setCards(page)
-      } catch (e) {
-        if (!alive) {
-          return
-        }
-        if (e instanceof ApiError) {
-          setCardsError(formatApiDetail(e.detail))
-        } else {
-          setCardsError(e instanceof Error ? e.message : 'Ошибка списка')
-        }
-        setCards(null)
-      } finally {
-        if (alive) {
-          setRatedCardsLoading(false)
-        }
-      }
-    })()
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- profile.id, ratedQuery via key
-  }, [auth.kind, profile?.id, mainTab, moviesSegment, ratedQueryKey])
-
-  useEffect(() => {
-    if (auth.kind !== 'ready' || profile == null || mainTab !== 'posts') {
-      return
-    }
-    let alive = true
-    void (async () => {
-      setPostsLoading(true)
-      setPostsErr(null)
-      try {
-        const page = await getUserFeedPosts(profile.id, { limit: 20 })
-        if (!alive) return
-        setFeedPosts(page)
-      } catch (e) {
-        if (!alive) return
-        setPostsErr(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось загрузить посты')
-        setFeedPosts(null)
-      } finally {
-        if (alive) setPostsLoading(false)
-      }
-    })()
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- profile.id достаточно
-  }, [auth.kind, profile?.id, mainTab])
-
-  useEffect(() => {
-    if (profile == null) {
-      return
-    }
-    const n = profile.favorites_count ?? 0
-    if (n <= 0) {
-      return
-    }
-    let alive = true
-    void (async () => {
-      try {
-        const page = await loadUserCards(profile.id, { favoritesOnly: true, limit: 30 })
-        if (!alive) {
-          return
-        }
-        setFavoriteStripFetched(page.items)
-        setFavoriteStripForUserId(profile.id)
-      } catch {
-        if (alive) {
-          setFavoriteStripFetched([])
-          setFavoriteStripForUserId(profile.id)
-        }
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [profile])
-
-  const loadMoreCards = useCallback(async () => {
-    if (profile == null || cards?.next_cursor == null || cards.next_cursor === '') {
-      return
-    }
-    setLoadingMore(true)
-    setCardsError(null)
-    try {
-      const page = await loadUserCards(profile.id, {
-        cursor: cards.next_cursor,
-        limit: 20,
-        ...ratedCardsToListParams(deferredRatedQuery),
-      })
-      setCards((prev) => {
-        if (prev == null) {
-          return page
-        }
-        return {
-          items: [...prev.items, ...page.items],
-          next_cursor: page.next_cursor,
-        }
-      })
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setCardsError(formatApiDetail(e.detail))
-      } else {
-        setCardsError(e instanceof Error ? e.message : 'Ошибка списка')
-      }
-    } finally {
-      setLoadingMore(false)
-    }
-  }, [profile, cards, deferredRatedQuery])
-
-  const loadMoreWatchlist = useCallback(async () => {
-    if (profile == null || watchlist?.next_cursor == null || watchlist.next_cursor === '') {
-      return
-    }
-    setLoadingMoreWatchlist(true)
-    setWatchlistError(null)
-    try {
-      const page = await loadUserWatchlist(profile.id, { cursor: watchlist.next_cursor, limit: 20 })
-      setWatchlist((prev) => {
-        if (prev == null) {
-          return page
-        }
-        return {
-          items: [...prev.items, ...page.items],
-          next_cursor: page.next_cursor,
-        }
-      })
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setWatchlistError(formatApiDetail(e.detail))
-      } else {
-        setWatchlistError(e instanceof Error ? e.message : 'Ошибка списка')
-      }
-    } finally {
-      setLoadingMoreWatchlist(false)
-    }
-  }, [profile, watchlist])
-
-  const loadMorePosts = useCallback(async () => {
-    if (profile == null || feedPosts?.next_cursor == null || feedPosts.next_cursor === '') {
-      return
-    }
-    setPostsLoadingMore(true)
-    setPostsErr(null)
-    try {
-      const page = await getUserFeedPosts(profile.id, { cursor: feedPosts.next_cursor, limit: 20 })
-      setFeedPosts((prev) => {
-        if (prev == null) return page
-        return {
-          items: [...prev.items, ...page.items],
-          next_cursor: page.next_cursor,
-        }
-      })
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setPostsErr(formatApiDetail(e.detail))
-      } else {
-        setPostsErr(e instanceof Error ? e.message : 'Ошибка загрузки')
-      }
-    } finally {
-      setPostsLoadingMore(false)
-    }
-  }, [profile, feedPosts])
-
-  const handleFavoriteToggled = useCallback((cardId: number, nextFavorite: boolean) => {
-    setCards((prev) => {
-      if (prev == null) {
-        return prev
-      }
-      return {
-        ...prev,
-        items: prev.items.map((c) => (c.id === cardId ? { ...c, is_favorite: nextFavorite } : c)),
-      }
-    })
-    setProfile((p) => {
-      if (p == null) {
-        return p
-      }
-      return {
-        ...p,
-        favorites_count: Math.max(0, p.favorites_count + (nextFavorite ? 1 : -1)),
-      }
-    })
-  }, [])
+          return {
+            ...prev,
+            favorites_count: Math.max(0, prev.favorites_count + (nextFavorite ? 1 : -1)),
+          }
+        },
+      )
+    },
+    [profile, queryClient, ratedQueryKey, resolvedUserId],
+  )
 
   const drillToRatedCards = useCallback(() => {
     setMainTab('movies')
@@ -398,8 +250,8 @@ export function PublicProfilePage() {
       moviesSegment === 'rated' &&
       Boolean(cards?.next_cursor) &&
       (cards?.items.length ?? 0) > 0,
-    isBusy: loadingMore,
-    onLoadMore: () => void loadMoreCards(),
+    isBusy: cardsQuery.isFetchingNextPage,
+    onLoadMore: () => void cardsQuery.fetchNextPage(),
   })
 
   const watchlistLoadMoreRef = useInfiniteScrollLoadMore({
@@ -409,8 +261,8 @@ export function PublicProfilePage() {
       moviesSegment === 'watchlist' &&
       Boolean(watchlist?.next_cursor) &&
       (watchlist?.items.length ?? 0) > 0,
-    isBusy: loadingMoreWatchlist,
-    onLoadMore: () => void loadMoreWatchlist(),
+    isBusy: watchlistQuery.isFetchingNextPage,
+    onLoadMore: () => void watchlistQuery.fetchNextPage(),
   })
 
   const postsLoadMoreRef = useInfiniteScrollLoadMore({
@@ -419,8 +271,8 @@ export function PublicProfilePage() {
       mainTab === 'posts' &&
       Boolean(feedPosts?.next_cursor) &&
       (feedPosts?.items.length ?? 0) > 0,
-    isBusy: postsLoadingMore,
-    onLoadMore: () => void loadMorePosts(),
+    isBusy: postsQuery.isFetchingNextPage,
+    onLoadMore: () => void postsQuery.fetchNextPage(),
   })
 
   const canLoadMore = Boolean(cards?.next_cursor)
@@ -431,30 +283,34 @@ export function PublicProfilePage() {
       return
     }
     setFollowBusy(true)
+    setFollowError(null)
     try {
       if (isFollowing) {
-        await unfollowUser(profile.id)
+        await unsubscribeFromUser(profile.id)
       } else {
-        await followUser(profile.id)
+        await subscribeToUser(profile.id)
       }
-      setIsFollowing((prev) => !prev)
-      setProfile((prev) => {
-        if (prev == null) {
-          return prev
-        }
-        if (typeof prev.followers_count !== 'number') {
-          return prev
-        }
-        return {
-          ...prev,
-          followers_count: Math.max(0, prev.followers_count + (isFollowing ? -1 : 1)),
-        }
-      })
+      queryClient.setQueryData<boolean>(
+        userFollowingStatusQueryKey(myUserId, profile.id),
+        !isFollowing,
+      )
+      queryClient.setQueryData<PublicProfile>(
+        userPublicProfileQueryKey(resolvedUserId),
+        (prev) => {
+          if (prev == null || typeof prev.followers_count !== 'number') {
+            return prev
+          }
+          return {
+            ...prev,
+            followers_count: Math.max(0, prev.followers_count + (isFollowing ? -1 : 1)),
+          }
+        },
+      )
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(formatApiDetail(e.detail))
+        setFollowError(formatApiDetail(e.detail))
       } else {
-        setError(e instanceof Error ? e.message : 'Не удалось обновить подписку')
+        setFollowError(e instanceof Error ? e.message : 'Не удалось обновить подписку')
       }
     } finally {
       setFollowBusy(false)
@@ -579,6 +435,11 @@ export function PublicProfilePage() {
 
         {myUserId != null && profile.id !== myUserId ? (
           <div className="mb-4 flex flex-col items-center gap-2">
+            {followError != null ? (
+              <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">
+                {followError}
+              </p>
+            ) : null}
             <Button mode={isFollowing ? 'gray' : 'filled'} disabled={followBusy} onClick={() => void toggleFollowing()}>
               {followBusy ? '...' : isFollowing ? 'Отписаться' : 'Подписаться'}
             </Button>
@@ -683,7 +544,7 @@ export function PublicProfilePage() {
                     {cardsError}
                   </p>
                 ) : null}
-                {cards != null && cards.items.length === 0 && !loadingMore && !ratedCardsLoading ? (
+                {cards != null && cards.items.length === 0 && !ratedCardsLoading ? (
                   isDefaultRatedCardsQuery(ratedQuery) ? (
                     <PlayfulHint
                       poolKey="profile_cards_empty"
@@ -709,7 +570,7 @@ export function PublicProfilePage() {
                 {canLoadMore ? (
                   <div className="px-3 pb-3 pt-1">
                     <div ref={ratedCardsLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
-                    {loadingMore ? (
+                    {cardsQuery.isFetchingNextPage ? (
                       <p className="pt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем карточки…</p>
                     ) : null}
                   </div>
@@ -735,7 +596,7 @@ export function PublicProfilePage() {
                 {canLoadMoreWatchlist ? (
                   <div className="px-3 pb-3 pt-1">
                     <div ref={watchlistLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
-                    {loadingMoreWatchlist ? (
+                    {watchlistQuery.isFetchingNextPage ? (
                       <p className="pt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем список…</p>
                     ) : null}
                   </div>
@@ -769,7 +630,7 @@ export function PublicProfilePage() {
                   {feedPosts.next_cursor != null && feedPosts.next_cursor !== '' ? (
                     <>
                       <div ref={postsLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
-                      {postsLoadingMore ? (
+                      {postsQuery.isFetchingNextPage ? (
                         <p className="text-center text-xs text-(--tgui--hint_color)">Подгружаем посты…</p>
                       ) : null}
                     </>
@@ -780,14 +641,16 @@ export function PublicProfilePage() {
           </Section>
         ) : (
           <div className="space-y-4">
-            <ProfileStatsPanel
-              userId={profile.id}
-              cardsQuery={ratedQuery}
-              onCardsQueryChange={setRatedQuery}
-              enableCategoryFilter
-              showPassportCollection
-              onDrillToRatedCards={drillToRatedCards}
-            />
+            <Suspense fallback={<InlineLoadingState message="Загрузка статистики…" />}>
+              <ProfileStatsPanel
+                userId={profile.id}
+                cardsQuery={ratedQuery}
+                onCardsQueryChange={setRatedQuery}
+                enableCategoryFilter
+                showPassportCollection
+                onDrillToRatedCards={drillToRatedCards}
+              />
+            </Suspense>
           </div>
         )}
       </div>

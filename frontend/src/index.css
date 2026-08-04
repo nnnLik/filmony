@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+@source '../src/**/*.{tsx,ts}';
+@source not '../src/**/*.test.{tsx,ts}';
+
 /* Filmony: forced dark, «midnight bioluminescence» — mint cyan on ink blue, warm amber accents */
 .filmony-theme {
   color-scheme: dark;
@@ -79,28 +82,6 @@ body {
   background: radial-gradient(120% 80% at 50% -10%, #152a35 0%, transparent 55%), var(--filmony-ink, #06090d);
 }
 
-@keyframes filmony-detail-enter-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes filmony-detail-poster-in {
-  from {
-    opacity: 0;
-    transform: scale(1.06);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes filmony-detail-fade-in {
   from {
     opacity: 0;
@@ -110,62 +91,6 @@ body {
   }
 }
 
-.filmony-card-detail-panel-enter {
-  animation: filmony-detail-enter-up 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.filmony-card-detail-panel-enter--delay-1 {
-  animation-delay: 0.08s;
-}
-
-.filmony-card-detail-panel-enter--delay-2 {
-  animation-delay: 0.15s;
-}
-
-.filmony-card-detail-panel-enter--delay-3 {
-  animation-delay: 0.22s;
-}
-
-.filmony-detail-poster-img {
-  animation: filmony-detail-poster-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 .filmony-detail-menu-pop {
   animation: filmony-detail-fade-in 0.18s ease-out both;
-}
-
-/**
- * Compact audio controls on movie card detail poster: dark frosted pill
- * so play / Telegram actions stay legible on arbitrary poster imagery.
- */
-.filmony-detail-poster-audio-pill {
-  isolation: isolate;
-  max-width: min(100%, 12.75rem);
-  border-radius: 9999px;
-  padding: 0.5rem 0.95rem;
-  background: color-mix(in srgb, var(--filmony-void, #0a1018) 82%, transparent);
-  border: 1px solid color-mix(in srgb, #fff 26%, transparent);
-  box-shadow:
-    0 10px 32px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 color-mix(in srgb, #fff 14%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--filmony-mint, #5eead4) 16%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
-  backdrop-filter: blur(18px) saturate(1.35);
-}
-
-@media (min-width: 640px) {
-  .filmony-detail-poster-audio-pill {
-    padding: 0.55rem 1.05rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .filmony-card-detail-panel-enter,
-  .filmony-card-detail-panel-enter--delay-1,
-  .filmony-card-detail-panel-enter--delay-2,
-  .filmony-card-detail-panel-enter--delay-3,
-  .filmony-detail-poster-img,
-  .filmony-detail-menu-pop {
-    animation: none !important;
-  }
 }

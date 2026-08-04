@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../../api/client'
-import { getUserCards, getUserMovieCardStats, getUserPublicCardCategories } from '../../api/profileApi'
+import { getUserCards, getUserPublicCardCategories } from '../../api/profileApi'
 import type {
   CardCompany,
   CardMoodAfter,
@@ -50,6 +50,9 @@ import { TasteQuizKnowledgeList } from '../tasteQuiz/TasteQuizKnowledgeList'
 import { listTasteQuizKnowledge } from '../../api/tasteQuizApi'
 import type { TasteQuizKnowledgeItem } from '../../api/tasteQuizTypes'
 import type { MarathonAchievement } from '../../api/gamificationTypes'
+import { publicProfileCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
+import { profileStatsFilteredRankingsQueryKey } from '../../lib/profileQueryKeys'
+import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQuery'
 import { ProfilePassportPanel } from './gamification/ProfilePassportPanel'
 
 type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'collection'
@@ -256,26 +259,40 @@ export function ProfileStatsPanel({
   onMarathonDrill,
 }: ProfileStatsPanelProps) {
   const [statsSubTab, setStatsSubTab] = useState<StatsSubTab>('overview')
-  const [stats, setStats] = useState<UserMovieCardStats | null>(null)
   const [activityShelfId, setActivityShelfId] = useState('')
-  const [activityLoading, setActivityLoading] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [tasteQuizTeaserItems, setTasteQuizTeaserItems] = useState<TasteQuizKnowledgeItem[]>([])
   const [tasteQuizTeaserLoading, setTasteQuizTeaserLoading] = useState(false)
-  const statsLoadedRef = useRef(false)
+
+  const activityCategoryId = useMemo(() => {
+    if (activityShelfId === '') {
+      return null
+    }
+    const shelfNum = Number(activityShelfId)
+    return Number.isInteger(shelfNum) && shelfNum >= 1 ? shelfNum : null
+  }, [activityShelfId])
+
+  const statsQuery = useUserMovieCardStatsQuery(userId, activityCategoryId, {
+    enabled: userId !== '',
+  })
+  const stats = statsQuery.data ?? null
+  const loading = statsQuery.isPending && stats == null
+  const activityLoading = statsQuery.isFetching && stats != null
+  const error =
+    statsQuery.error instanceof ApiError
+      ? formatApiDetail(statsQuery.error.detail)
+      : statsQuery.error != null
+        ? 'Не удалось загрузить статистику'
+        : null
 
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
-    queryKey: ['profile-stats-card-categories', userId],
+    queryKey: publicProfileCardCategoriesQueryKey(userId),
     queryFn: async (): Promise<MyUserCardCategoryListResponse> => getUserPublicCardCategories(userId),
     enabled: userId !== '',
     staleTime: 15 * 60_000,
   })
 
   useEffect(() => {
-    statsLoadedRef.current = false
     queueMicrotask(() => {
-      setStats(null)
       setActivityShelfId('')
     })
   }, [userId])
@@ -309,70 +326,20 @@ export function ProfileStatsPanel({
     }
   }, [showTasteQuizTeaser, statsSubTab])
 
-  useEffect(() => {
-    if (userId === '') return
-    let alive = true
-    const shelfNum = activityShelfId === '' ? null : Number(activityShelfId)
-    const activityCategoryId =
-      shelfNum != null && Number.isInteger(shelfNum) && shelfNum >= 1 ? shelfNum : null
-    const isInitialLoad = !statsLoadedRef.current
-
-    void (async () => {
-      if (isInitialLoad) {
-        setLoading(true)
-      } else {
-        setActivityLoading(true)
-      }
-      setError(null)
-      try {
-        const data = await getUserMovieCardStats(userId, { activityCategoryId })
-        if (!alive) return
-        setStats((prev) =>
-          prev == null
-            ? data
-            : {
-                ...prev,
-                activity_distribution: data.activity_distribution,
-                activity_start: data.activity_start,
-                activity_end: data.activity_end,
-              },
-        )
-        statsLoadedRef.current = true
-      } catch (e) {
-        if (!alive) return
-        if (isInitialLoad) {
-          if (e instanceof ApiError) {
-            setError(formatApiDetail(e.detail))
-          } else {
-            setError('Не удалось загрузить статистику')
-          }
-        }
-      } finally {
-        if (alive) {
-          setLoading(false)
-          setActivityLoading(false)
-        }
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [userId, activityShelfId])
-
   const needsFilteredRankings = !isDefaultRatedCardsQuery(cardsQuery)
   const rankingsKey = ratedCardsQueryKey(cardsQuery)
 
   const rankingsQuery = useQuery({
-    queryKey: ['profile-stats-filtered-top', userId, rankingsKey],
+    queryKey: profileStatsFilteredRankingsQueryKey(userId, rankingsKey),
     queryFn: async (): Promise<{ top: ProfileStatsMovieItem[]; worst: ProfileStatsMovieItem[] }> => {
       const base = ratedCardsToListParams(cardsQuery)
       const [bestPage, worstPage] = await Promise.all([
-        getUserCards(userId, { ...base, limit: 50, sort: 'rating_desc' }),
-        getUserCards(userId, { ...base, limit: 50, sort: 'rating_asc' }),
+        getUserCards(userId, { ...base, limit: 5, sort: 'rating_desc' }),
+        getUserCards(userId, { ...base, limit: 5, sort: 'rating_asc' }),
       ])
       return {
-        top: bestPage.items.slice(0, 5).map(movieCardToProfileStatsMovieItem),
-        worst: worstPage.items.slice(0, 5).map(movieCardToProfileStatsMovieItem),
+        top: bestPage.items.map(movieCardToProfileStatsMovieItem),
+        worst: worstPage.items.map(movieCardToProfileStatsMovieItem),
       }
     },
     enabled: Boolean(userId) && needsFilteredRankings,

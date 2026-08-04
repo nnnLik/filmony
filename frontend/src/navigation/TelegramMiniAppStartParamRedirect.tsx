@@ -4,19 +4,11 @@ import { useNavigate } from 'react-router'
 
 import { useAuthStatus } from '../auth/useAuthStatus'
 import {
-  parseMiniAppFilmStartParam,
-  parseMiniAppRecapStartParam,
-  parseMiniAppTasteQuizStartParam,
-  parseMiniAppWatchlistStartParam,
+  markStartParamHandled,
+  readTelegramStartParamSync,
+  resolveStartParamToPath,
+  startParamHandledKey,
 } from '../lib/miniAppCardDeepLink'
-
-function readTelegramStartParam(): string | undefined {
-  const fromUnsafe = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim()
-  if (fromUnsafe) {
-    return fromUnsafe
-  }
-  return new URLSearchParams(window.location.search).get('tgWebAppStartParam')?.trim() || undefined
-}
 
 export function TelegramMiniAppStartParamRedirect() {
   const navigate = useNavigate()
@@ -27,102 +19,28 @@ export function TelegramMiniAppStartParamRedirect() {
     if (!isTMA() || ran.current || auth.kind !== 'ready') {
       return
     }
-    const sp = readTelegramStartParam()
-    if (sp == null || sp === '') {
+
+    const startParam = readTelegramStartParamSync()
+    if (startParam == null || startParam === '') {
       return
     }
 
-    const watchlistCardId = parseMiniAppWatchlistStartParam(sp)
-    if (watchlistCardId != null) {
-      const key = `filmony.handled_start_param.${sp}`
-      if (sessionStorage.getItem(key) === '1') {
-        return
-      }
-      ran.current = true
-      sessionStorage.setItem(key, '1')
-      void navigate('/profile?movies=watchlist', {
-        replace: true,
-        state: {
-          watchlistInviteCardId: watchlistCardId,
-        },
-      })
+    const resolved = resolveStartParamToPath(startParam)
+    if (resolved == null) {
       return
     }
 
-    const recapTarget = parseMiniAppRecapStartParam(sp)
-    if (recapTarget != null) {
-      const key = `filmony.handled_start_param.${sp}`
-      if (sessionStorage.getItem(key) === '1') {
-        return
-      }
-      ran.current = true
-      sessionStorage.setItem(key, '1')
-      void navigate(`/me/recap/${recapTarget.year}/${recapTarget.month}`, { replace: true })
+    const key = startParamHandledKey(startParam)
+    if (sessionStorage.getItem(key) === '1') {
       return
     }
 
-    const tasteQuizToken = parseMiniAppTasteQuizStartParam(sp)
-    if (tasteQuizToken != null) {
-      const key = `filmony.handled_start_param.${sp}`
-      if (sessionStorage.getItem(key) === '1') {
-        return
-      }
-      ran.current = true
-      sessionStorage.setItem(key, '1')
-      void navigate(`/taste-quiz/invite/${encodeURIComponent(tasteQuizToken)}`, {
-        replace: true,
-      })
-      return
-    }
-
-    const filmId = parseMiniAppFilmStartParam(sp)
-    if (filmId != null) {
-      const key = `filmony.handled_start_param.${sp}`
-      if (sessionStorage.getItem(key) === '1') {
-        return
-      }
-      ran.current = true
-      sessionStorage.setItem(key, '1')
-      void navigate(`/films/${filmId}`, { replace: true })
-      return
-    }
-
-    const cardMatch = /^c(\d+)$/i.exec(sp)
-    if (cardMatch != null) {
-      const cardId = Number(cardMatch[1])
-      if (!Number.isInteger(cardId) || cardId < 1) {
-        return
-      }
-      const key = `filmony.handled_start_param.${sp}`
-      if (sessionStorage.getItem(key) === '1') {
-        return
-      }
-      ran.current = true
-      sessionStorage.setItem(key, '1')
-      void navigate(`/cards/${cardId}`, {
-        replace: true,
-        state: { cardEntry: 'telegram_start_param' as const },
-      })
-      return
-    }
-
-    const postMatch = /^p(\d+)$/i.exec(sp)
-    if (postMatch != null) {
-      const postId = Number(postMatch[1])
-      if (!Number.isInteger(postId) || postId < 1) {
-        return
-      }
-      const key = `filmony.handled_start_param.${sp}`
-      if (sessionStorage.getItem(key) === '1') {
-        return
-      }
-      ran.current = true
-      sessionStorage.setItem(key, '1')
-      void navigate(`/feed-posts/${postId}`, {
-        replace: true,
-        state: { fromFeed: true },
-      })
-    }
+    ran.current = true
+    markStartParamHandled(startParam)
+    void navigate(resolved.path, {
+      replace: true,
+      state: resolved.state,
+    })
   }, [navigate, auth.kind])
 
   return null
