@@ -35,6 +35,10 @@ jobs:
     env:
       ENV: test
       DATABASE_URL: postgresql://filmony:filmony@127.0.0.1:5432/filmony_test
+      TG_APP_TOKEN: ci-placeholder-token
+      KINOPOISK_API_KEY: ci-placeholder-key
+      KINOPOISK_API_BASE_URL: https://kinopoiskapiunofficial.tech/api
+      RAWG_API_KEY: test
     steps:
       - uses: actions/checkout@v6
 
