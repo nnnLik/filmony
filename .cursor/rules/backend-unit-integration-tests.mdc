@@ -1,0 +1,52 @@
+---
+description: Backend unit vs integration pytest placement, fixtures, and make/CI targets
+alwaysApply: true
+---
+
+# Backend Unit vs Integration Tests
+
+**Directories are the source of truth** — not pytest markers. Place tests under `backend/src/tests/unit/**` or `backend/src/tests/integration/**` and mirror domain folders (`api/`, `services/`, `providers/`, …). Shared helpers live in `backend/src/tests/support/` (sibling to both trees, never under `unit/` or `integration/`).
+
+## Unit (`tests/unit/**`)
+
+- No Postgres, no `prepare_db`, no `async_client`, no ASGI/httpx against the app
+- Pure logic (parsers, slug helpers, scoring) or services with mocked/fake DAOs only
+- May import shared fakes from `tests/support/`
+
+## Integration (`tests/integration/**`)
+
+- Uses **any** of: `prepare_db`, `async_client`, real DB/DAO/session, HTTP route tests
+- **Ambiguous → integration** (safe default)
+- All former `api/` tests; `migrations/`, DB-heavy `scripts/`, `tasks/`, `models/`
+
+## Forbidden
+
+- `prepare_db` or `async_client` under `unit/` — collection guard fails fast
+- `@pytest.mark.integration` as primary classifier — directories decide type
+
+## Run (Docker-first — see `.cursor/tech.md`)
+
+| Target | Scope |
+|--------|--------|
+| `make backend-test-unit` | `src/tests/unit` — Postgres **not** required |
+| `make backend-test-integration` | `src/tests/integration` — Postgres required |
+| `make backend-test` | Both sequentially (full suite) |
+| `make backend-test-one target=…` | Path must include `unit/` or `integration/` prefix |
+
+Until split targets land in the Makefile, use `make backend-test`; table above is the approved contract.
+
+## Path examples
+
+❌ **BAD:** `backend/src/tests/services/test_scoring.py` (legacy flat layout)  
+✅ **GOOD:** `backend/src/tests/unit/services/taste_quiz/test_scoring.py`
+
+❌ **BAD:** `backend/src/tests/unit/api/test_public_routes.py` (API = integration)  
+✅ **GOOD:** `backend/src/tests/integration/api/test_public_routes.py`
+
+❌ **BAD:** unit test requesting `prepare_db`  
+✅ **GOOD:** mock DAO in unit; move to `integration/services/` if real DB needed
+
+## References
+
+- Skill: `.cursor/skills/backend-unit-integration-tests/SKILL.md`
+- Design: `docs/superpowers/specs/2026-08-04-backend-unit-integration-test-split-design.md`

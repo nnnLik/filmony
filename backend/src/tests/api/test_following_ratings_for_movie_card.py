@@ -426,3 +426,126 @@ async def test_following_ratings_viewer_row_null_when_viewing_own_card(
     body = res.json()
     assert body.get('viewer_rating') is None
     assert body['items'] == []
+
+
+async def _catalog_item_id_for_film_id(film_id: int) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        existing = (
+            await session.execute(select(CatalogItem.id).where(CatalogItem.film_id == film_id))
+        ).scalar_one_or_none()
+        if existing is not None:
+            return int(existing)
+        film = (await session.execute(select(Film).where(Film.id == film_id))).scalar_one()
+        ci = CatalogItem(
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
+            film_id=film.id,
+        )
+        session.add(ci)
+        await session.commit()
+        await session.refresh(ci)
+        return int(ci.id)
+
+
+async def _seed_movie_card_same_film_with_catalog_item_id(
+    *,
+    user_id: UUID,
+    film_id: int,
+    catalog_item_id: int,
+    rating: float,
+) -> int:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = (await session.execute(select(Film).where(Film.id == film_id))).scalar_one()
+        cat_id = await ensure_default_category(session, user_id)
+        card = UserCard(
+            user_id=user_id,
+            film_id=film_id,
+            catalog_item_id=catalog_item_id,
+            category_id=cat_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
+            rating=rating,
+            company='alone',
+            mood_before='relax',
+            mood_after='enjoyed',
+        )
+        session.add(card)
+        await session.flush()
+        cid = card.id
+        await session.commit()
+        return cid
+
+
+@pytest.mark.asyncio
+async def test_following_ratings_anchor_with_both_film_and_catalog_ids(
+    async_client: AsyncClient,
+) -> None:
+    """Regression: catalog-backed Kinopoisk cards store both ids; must not return empty."""
+    alice = await _login(async_client, telegram_user_id=93801)
+    dave = await _login(async_client, telegram_user_id=93802)
+    eve = await _login(async_client, telegram_user_id=93803)
+
+    await _login(async_client, telegram_user_id=93804)
+    await async_client.post(f'/api/users/{dave["id"]}/subscriptions')
+    await async_client.post(f'/api/users/{eve["id"]}/subscriptions')
+
+    await _login(async_client, telegram_user_id=93801)
+    alice_card_id = await _seed_movie_card(
+        user_id=UUID(str(alice['id'])),
+        kinopoisk_id=938010,
+        title='Dual Id Film',
+        year=2024,
+        rating=6.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=['t'],
+    )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        row = (
+            await session.execute(select(UserCard).where(UserCard.id == alice_card_id))
+        ).scalar_one()
+        film_id = row.film_id
+        assert film_id is not None
+
+    catalog_item_id = await _catalog_item_id_for_film_id(film_id)
+    async with session_factory() as session:
+        row = (
+            await session.execute(select(UserCard).where(UserCard.id == alice_card_id))
+        ).scalar_one()
+        row.catalog_item_id = catalog_item_id
+        await session.commit()
+
+    await _login(async_client, telegram_user_id=93802)
+    dave_card_id = await _seed_movie_card_same_film_with_catalog_item_id(
+        user_id=UUID(str(dave['id'])),
+        film_id=film_id,
+        catalog_item_id=catalog_item_id,
+        rating=9.0,
+    )
+
+    await _login(async_client, telegram_user_id=93803)
+    eve_card_id = await _seed_movie_card_same_film_with_catalog_item_id(
+        user_id=UUID(str(eve['id'])),
+        film_id=film_id,
+        catalog_item_id=catalog_item_id,
+        rating=10.0,
+    )
+
+    await _login(async_client, telegram_user_id=93804)
+
+    res = await async_client.get(f'/api/cards/{alice_card_id}/following-ratings')
+    assert res.status_code == 200
+    body = res.json()
+    assert body.get('viewer_rating') is None
+    items = body['items']
+    assert len(items) == 2
+    assert items[0]['rating'] == 10.0
+    assert items[0]['user_id'] == eve['id']
+    assert items[0]['movie_card_id'] == eve_card_id
+    assert items[1]['rating'] == 9.0
+    assert items[1]['user_id'] == dave['id']
+    assert items[1]['movie_card_id'] == dave_card_id

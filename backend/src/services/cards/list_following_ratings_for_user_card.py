@@ -51,6 +51,11 @@ class ListFollowingRatingsForUserCardService:
         if film_id is None and catalog_id is None:
             return ListFollowingRatingsResult(viewer_row=None, items=[])
 
+        # Title service requires exactly one anchor key. Kinopoisk-backed cards often
+        # store both film_id and catalog_item_id; prefer film_id for friend matching.
+        if film_id is not None:
+            catalog_id = None
+
         try:
             result = await self._title_service.execute(
                 viewer_user_id,
