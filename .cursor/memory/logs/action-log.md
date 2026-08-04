@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T111000Z-backend-test-unit-integration-split-closeout.md`
 - `2026-08-04T123000Z-frontend-refactor-ux-polish-closeout.md`
 - `2026-08-04T170000Z-feed-post-delete-menu-closeout.md`
 - `2026-08-04T160000Z-tmdb-film-integration-closeout.md`
@@ -43,4 +44,3 @@
 - `2026-07-27T150200Z-comment-header-actions-overflow-docs.md`
 - `2026-07-27T142500Z-profile-taste-match-docs.md`
 - `2026-07-27T140000Z-backlog-cleanup-decision.md`
-- `2026-07-23T180900Z-taste-quiz-guess-rating-docs.md`
