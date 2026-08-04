@@ -85,6 +85,15 @@ class AuthJwtSettings(BaseSettings):
 class KinopoiskSettings(BaseSettings):
     api_key: str = Field(..., alias='KINOPOISK_API_KEY')
     base_url: str = Field(..., alias='KINOPOISK_API_BASE_URL')
+    enrich_director_id: bool = Field(False, alias='ENRICH_KP_DIRECTOR_ID')
+
+
+class TmdbSettings(BaseSettings):
+    api_key: str = Field('development-placeholder', alias='TMDB_API_KEY')
+    read_access_token: str | None = Field(None, alias='TMDB_API_READ_ACCESS_TOKEN')
+    base_url: str = Field('https://api.themoviedb.org/3', alias='TMDB_API_BASE_URL')
+    image_base_url: str = Field('https://image.tmdb.org/t/p/w500', alias='TMDB_IMAGE_BASE_URL')
+    language: str = Field('ru-RU', alias='TMDB_LANGUAGE')
 
 
 class RawgSettings(BaseSettings):
@@ -120,6 +129,7 @@ class Settings:
     telegram: TelegramAuthSettings
     auth_jwt: AuthJwtSettings
     kinopoisk: KinopoiskSettings
+    tmdb: TmdbSettings
     rawg: RawgSettings
     reaction_media: ReactionMediaSettings
     celery: CelerySettings
@@ -133,6 +143,7 @@ class Settings:
             telegram=TelegramAuthSettings(),
             auth_jwt=AuthJwtSettings(),
             kinopoisk=KinopoiskSettings(),
+            tmdb=TmdbSettings(),
             rawg=RawgSettings(),
             reaction_media=ReactionMediaSettings(),
             celery=CelerySettings(),

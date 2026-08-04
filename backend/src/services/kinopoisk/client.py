@@ -23,6 +23,7 @@ class KinopoiskFilmPayload:
     countries: list[str]
     short_description: str | None
     description: str | None
+    imdb_id: str | None
 
 
 def _optional_text_field(payload: dict[str, object], key: str) -> str | None:
@@ -116,6 +117,8 @@ class KinopoiskClient:
         )
         short_description = _optional_text_field(payload, 'shortDescription')
         description = _optional_text_field(payload, 'description')
+        imdb_raw = payload.get('imdbId')
+        imdb_id = imdb_raw.strip() if isinstance(imdb_raw, str) and imdb_raw.strip() else None
         return KinopoiskFilmPayload(
             kinopoisk_id=kinopoisk_id,
             title=title.strip(),
@@ -125,4 +128,5 @@ class KinopoiskClient:
             countries=countries,
             short_description=short_description,
             description=description,
+            imdb_id=imdb_id,
         )

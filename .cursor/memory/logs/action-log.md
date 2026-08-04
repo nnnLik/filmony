@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T160000Z-tmdb-film-integration-closeout.md`
 - `2026-08-04T153000Z-profile-stats-director-franchise-closeout.md`
 - `2026-08-04T120000Z-cursor-memory-hot-archive-closeout.md`
 - `2026-08-04T150000Z-feed-post-edit-unlimited-code.md`

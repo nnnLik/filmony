@@ -41,7 +41,8 @@ def test_recap_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
     assert (
-        telegram_mini_app_recap_url(year=2026, month=8) == 'https://t.me/mybot/app?startapp=r20268'
+        telegram_mini_app_recap_url(year=2026, month=8)
+        == 'https://t.me/mybot/app?startapp=mr2026-8'
     )
 
 

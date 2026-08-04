@@ -9,7 +9,7 @@ RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
 RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
 RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata diagnose-film-tmdb-metadata
 
 start: build up
 
@@ -90,3 +90,17 @@ backfill-film-gamification-metadata:
 	SLE=$${SLEEP:+--sleep $$SLEEP}; \
 	$(AEXEC_NO_TTY) $(APP) python src/manage_backfill_film_gamification_metadata.py \
 	  $$DRY $$FRC $$LIM $$SKP_STAFF $$SKP_SEQ $$SLE $(ARGS)
+
+backfill-film-tmdb-metadata:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	FRC=$${FORCE:+--force}; \
+	FOG=$${FORCE_OVERWRITE:+--force-overwrite-gamification}; \
+	LIM=$${LIMIT:+--limit $$LIMIT}; \
+	RATED=$${RATED_ONLY:+$$([ "$$RATED_ONLY" = "0" ] && echo --no-rated-only)}; \
+	KP_IMDB=$${ALLOW_KP_IMDB_LOOKUP:+--allow-kp-imdb-lookup}; \
+	SLE=$${SLEEP:+--sleep $$SLEEP}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_backfill_film_tmdb_metadata.py \
+	  $$DRY $$FRC $$FOG $$LIM $$RATED $$KP_IMDB $$SLE $(ARGS)
+
+diagnose-film-tmdb-metadata:
+	$(AEXEC_NO_TTY) $(APP) python src/manage_diagnose_film_tmdb_metadata.py $(ARGS)

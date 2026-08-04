@@ -4,6 +4,7 @@ import os
 
 os.environ['ENV'] = 'test'
 os.environ.setdefault('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/15')
+os.environ.setdefault('TMDB_API_KEY', 'ci-placeholder-key')
 
 from tests.support.xdist_bootstrap import apply_worker_schema_env
 

@@ -49,16 +49,17 @@ async def test_catalog_resolve_kinopoisk_creates_catalog_item(
             countries=['Россия'],
             short_description='Кратко.',
             description='Полное описание.',
+            imdb_id=None,
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
 
-    async def fake_enrich_execute(self, session, film, **kwargs):
+    async def fake_tmdb_sync_execute(self, session, film, **kwargs):
         _ = (self, session, film, kwargs)
 
     monkeypatch.setattr(
-        'services.gamification.enrich_film_gamification_metadata.EnrichFilmGamificationMetadataService.execute',
-        fake_enrich_execute,
+        'services.tmdb.sync_film_from_tmdb.SyncFilmFromTmdbService.execute',
+        fake_tmdb_sync_execute,
     )
 
     r = await async_client.post(
@@ -131,16 +132,17 @@ async def test_catalog_resolve_by_url_kinopoisk_happy_path(
             countries=[],
             short_description='Краткое.',
             description='Полное.',
+            imdb_id=None,
         )
 
     monkeypatch.setattr('services.kinopoisk.client.KinopoiskClient.get_film', fake_get_film)
 
-    async def fake_enrich_execute(self, session, film, **kwargs):
+    async def fake_tmdb_sync_execute(self, session, film, **kwargs):
         _ = (self, session, film, kwargs)
 
     monkeypatch.setattr(
-        'services.gamification.enrich_film_gamification_metadata.EnrichFilmGamificationMetadataService.execute',
-        fake_enrich_execute,
+        'services.tmdb.sync_film_from_tmdb.SyncFilmFromTmdbService.execute',
+        fake_tmdb_sync_execute,
     )
 
     r = await async_client.post(
