@@ -21,7 +21,7 @@ Design spec: [`docs/superpowers/specs/2026-08-04-backend-unit-integration-test-s
 - Running fast local loops vs full DB/HTTP coverage
 - Reviewing test placement during or after the unit/integration migration
 
-**Note:** Layout may be mid-migration (legacy flat folders still present). Always classify by the rules below and place under `unit/` or `integration/` paths from the design — not legacy top-level folders.
+**Note:** Place new tests under `unit/` or `integration/` only — legacy flat folders at `tests/` root are removed.
 
 ## Workflow checklist
 
@@ -79,7 +79,7 @@ Unit collection guard rejects `prepare_db` / `async_client` under `unit/`. Marke
 
 ## How to run
 
-Run pytest **inside** the `backend` container (see `.cursor/tech.md`). Make targets below are the approved contract; until they exist in the Makefile, use `make backend-test` or `make backend-test-one target=src/tests/unit/…` (or `integration/…`).
+Run pytest **inside** the `backend` container (see `.cursor/tech.md`).
 
 | Command | Postgres | Coverage |
 |---------|----------|----------|

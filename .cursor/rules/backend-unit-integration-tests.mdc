@@ -33,8 +33,6 @@ alwaysApply: true
 | `make backend-test` | Both sequentially (full suite) |
 | `make backend-test-one target=…` | Path must include `unit/` or `integration/` prefix |
 
-Until split targets land in the Makefile, use `make backend-test`; table above is the approved contract.
-
 ## Path examples
 
 ❌ **BAD:** `backend/src/tests/services/test_scoring.py` (legacy flat layout)  

@@ -52,9 +52,11 @@ make start
 ```bash
 make backend-lint
 make backend-format
-make backend-test
-make backend-test-one target=src/tests/api/test_public_routes.py
-make backend-test-one target=src/tests/api/test_public_routes.py::test_root
+make backend-test              # unit then integration (full suite)
+make backend-test-unit         # src/tests/unit — Postgres not required
+make backend-test-integration  # src/tests/integration — Postgres required
+make backend-test-one target=src/tests/integration/api/test_public_routes.py
+make backend-test-one target=src/tests/integration/api/test_public_routes.py::test_root
 ```
 
 **Pre-commit (Ruff, только `backend/src/`):** если `pre-commit` не в PATH — `uv tool install pre-commit` (или разово `uvx pre-commit …`); один раз `pre-commit install`; перед коммитом хуки запускаются сами, вручную — `pre-commit run --all-files`. Конфиг: `.pre-commit-config.yaml`, правила Ruff — `backend/pyproject.toml`. Хуки **не** передают `--config`: Ruff сам находит `backend/pyproject.toml` от корня репозитория (как и `make backend-fix` в Docker с cwd `/opt/app/src`).
@@ -63,7 +65,9 @@ make backend-test-one target=src/tests/api/test_public_routes.py::test_root
 
 ```bash
 docker compose -f docker-compose.yml exec -w /opt/app backend pytest
-docker compose -f docker-compose.yml exec -w /opt/app backend pytest src/tests/api/test_public_routes.py::test_root
+docker compose -f docker-compose.yml exec -w /opt/app backend pytest src/tests/unit --no-cov
+docker compose -f docker-compose.yml exec -w /opt/app backend pytest src/tests/integration
+docker compose -f docker-compose.yml exec -w /opt/app backend pytest src/tests/integration/api/test_public_routes.py::test_root
 ```
 
 ## 4. Стек

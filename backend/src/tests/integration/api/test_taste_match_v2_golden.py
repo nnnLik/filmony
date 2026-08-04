@@ -6,16 +6,16 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
-
-from core.database import get_session_factory
-from models.card_tag import CardTag
-from models.catalog_item import CatalogProvider
-from models.user_card import UserCard
 from tests.api.test_profile_routes import (
     _create_shared_film,
     _login,
     _seed_movie_card_for_film,
 )
+
+from core.database import get_session_factory
+from models.card_tag import CardTag
+from models.catalog_item import CatalogProvider
+from models.user_card import UserCard
 from tests.support.user_card_category import ensure_default_category
 
 

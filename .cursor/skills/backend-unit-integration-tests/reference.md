@@ -46,8 +46,6 @@ Skill: [`SKILL.md`](SKILL.md)
 
 ## Makefile targets
 
-Targets below are the approved contract; until the split PR lands, use `make backend-test` / `make backend-test-one`.
-
 | Target | Command (inside `filmony-backend` container) | Postgres | Coverage |
 |--------|-----------------------------------------------|----------|----------|
 | `backend-test-unit` | `uv run pytest src/tests/unit --no-cov -n auto --dist=loadscope` | not required | off |

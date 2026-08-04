@@ -9,7 +9,7 @@ RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
 RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
 RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata diagnose-film-tmdb-metadata
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata diagnose-film-tmdb-metadata
 
 start: build up
 
@@ -41,11 +41,16 @@ backend-lint:
 backend-fix:
 	$(DEXEC) $(APP) $(RUFF_FIX)
 
-backend-test:
-	$(AEXEC_NO_TTY) $(APP) uv run pytest
+backend-test-unit:
+	$(AEXEC_NO_TTY) $(APP) uv run pytest src/tests/unit --no-cov -n auto --dist=loadscope
+
+backend-test-integration:
+	$(AEXEC_NO_TTY) $(APP) uv run pytest src/tests/integration
+
+backend-test: backend-test-unit backend-test-integration
 
 backend-test-one:
-	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/<dir>/test_<name>::<test_name>' >&2; exit 1)
+	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/unit|integration/<dir>/test_<name>::<test_name>' >&2; exit 1)
 	$(AEXEC_NO_TTY) $(APP) uv run pytest -n0 --no-cov $(target)
 
 logs:

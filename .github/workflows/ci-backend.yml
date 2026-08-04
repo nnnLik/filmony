@@ -27,7 +27,24 @@ jobs:
 
       - run: uv run ruff format --config pyproject.toml --check src/
 
-  backend-test:
+  backend-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      ENV: test
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv sync --frozen --group dev
+
+      - name: Run backend unit tests
+        run: uv run pytest src/tests/unit --no-cov -n auto --dist=loadscope
+
+  backend-integration:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -62,8 +79,8 @@ jobs:
 
       - run: uv sync --frozen --group dev --group prod
 
-      - name: Run backend tests
-        run: uv run pytest
+      - name: Run backend integration tests
+        run: uv run pytest src/tests/integration
 
       - name: Upload coverage artifacts
         if: always()

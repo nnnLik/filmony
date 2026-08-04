@@ -35,7 +35,7 @@ prod = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["src/tests"]
+testpaths = ["src/tests/unit", "src/tests/integration"]
 pythonpath = ["src/"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

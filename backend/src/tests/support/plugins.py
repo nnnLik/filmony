@@ -16,8 +16,28 @@ from tests.support import db_setup
 from utils.app_utils import get_app, setup_app
 
 
+def _collection_needs_db(config: pytest.Config) -> bool:
+    """True when the invocation may collect integration tests (Postgres required).
+
+    Unit-only runs (e.g. ``pytest src/tests/unit``) skip schema bootstrap so no DB
+    connection is opened. Default collection uses testpaths; if any includes
+    ``integration``, bootstrap runs (including under xdist workers).
+    """
+    cli_roots = [
+        str(arg).replace('\\', '/') for arg in config.args if arg and not str(arg).startswith('-')
+    ]
+    if cli_roots:
+        if any('integration' in root for root in cli_roots):
+            return True
+        return not all('unit' in root for root in cli_roots)
+
+    testpaths = [str(p).replace('\\', '/') for p in (config.getini('testpaths') or [])]
+    return any('integration' in path for path in testpaths)
+
+
 def pytest_sessionstart(session: pytest.Session) -> None:
-    del session
+    if not _collection_needs_db(session.config):
+        return
 
     async def _bootstrap_worker_schema() -> None:
         await db_setup.ensure_schema_exists()
