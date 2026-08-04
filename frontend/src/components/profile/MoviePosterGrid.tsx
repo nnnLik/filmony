@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
 
 import type { MovieCard } from '../../api/profileTypes'
 import { movieCardPrimaryPoster, movieCardPrimaryTitle } from '../../lib/movieCardDisplay'
@@ -7,6 +6,8 @@ import { FilmGenreChips } from '../films/FilmGenreChips'
 import { FeedRatingRing } from '../feed/FeedRatingRing'
 import { FavoriteCardHeartButton } from '../cards/FavoriteCardHeartButton'
 import { ContrarianBadge } from '../gamification/ContrarianBadge'
+import { PosterGrid } from '../cards/PosterGrid'
+import { PosterTile } from '../cards/PosterTile'
 
 type MoviePosterGridProps = {
   items: MovieCard[]
@@ -24,7 +25,7 @@ export function MoviePosterGrid({
   onFavoriteToggled,
 }: MoviePosterGridProps) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <PosterGrid>
       {items.map((card) => (
         <PosterCell
           key={card.id}
@@ -34,7 +35,7 @@ export function MoviePosterGrid({
           onFavoriteToggled={onFavoriteToggled}
         />
       ))}
-    </div>
+    </PosterGrid>
   )
 }
 
@@ -63,58 +64,53 @@ function PosterCell({
   }
 
   return (
-    <Link
-      to={`/cards/${card.id}`}
-      className="relative block overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) no-underline"
-      aria-label={`Открыть карточку «${primaryTitle}»`}
-    >
-      <div className="relative aspect-2/3 w-full">
-        {primaryPoster ? (
-          <img src={primaryPoster} alt={primaryTitle} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-[11px] text-(--tgui--hint_color)">
-            Нет постера
-          </div>
-        )}
-        {showContrarianBadge ? (
-          <div className="absolute left-1 top-1 z-[3]">
-            <ContrarianBadge
-              rating={card.rating}
-              communityAvgRating={card.community_avg_rating}
-              isContrarian={card.is_contrarian}
-            />
-          </div>
-        ) : null}
-        <FeedRatingRing
-          rating={card.rating}
-          positionClassName={
-            showFavoriteToggle
-              ? 'absolute right-1 bottom-1 z-[2] sm:right-1.5 sm:bottom-1.5'
-              : 'absolute right-1 top-1 z-[2] sm:right-1.5 sm:top-1.5'
-          }
-        />
-        {showFavoriteToggle ? (
-          <div
-            className="absolute right-1 top-1 z-[1]"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
-          >
-            <FavoriteCardHeartButton
-              cardId={card.id}
-              isFavorite={fav}
-              onFavoriteChange={(next) => {
-                setFav(next)
-                onFavoriteToggled?.(card.id, next)
+    <PosterTile
+      posterUrl={primaryPoster}
+      title={primaryTitle}
+      href={`/cards/${card.id}`}
+      ariaLabel={`Открыть карточку «${primaryTitle}»`}
+      footer={<FilmGenreChips genres={card.film_genres} maxVisible={2} className="px-1 py-1" />}
+      overlay={
+        <>
+          {showContrarianBadge ? (
+            <div className="absolute left-1 top-1 z-[3]">
+              <ContrarianBadge
+                rating={card.rating}
+                communityAvgRating={card.community_avg_rating}
+                isContrarian={card.is_contrarian}
+              />
+            </div>
+          ) : null}
+          <FeedRatingRing
+            rating={card.rating}
+            positionClassName={
+              showFavoriteToggle
+                ? 'absolute right-1 bottom-1 z-[2] sm:right-1.5 sm:bottom-1.5'
+                : 'absolute right-1 top-1 z-[2] sm:right-1.5 sm:top-1.5'
+            }
+          />
+          {showFavoriteToggle ? (
+            <div
+              className="absolute right-1 top-1 z-[1]"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
               }}
-            />
-          </div>
-        ) : null}
-      </div>
-      <FilmGenreChips genres={card.film_genres} maxVisible={2} className="px-1 py-1" />
-    </Link>
+              onKeyDown={(e) => e.stopPropagation()}
+              role="presentation"
+            >
+              <FavoriteCardHeartButton
+                cardId={card.id}
+                isFavorite={fav}
+                onFavoriteChange={(next) => {
+                  setFav(next)
+                  onFavoriteToggled?.(card.id, next)
+                }}
+              />
+            </div>
+          ) : null}
+        </>
+      }
+    />
   )
 }

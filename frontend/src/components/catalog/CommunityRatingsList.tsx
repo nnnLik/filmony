@@ -1,4 +1,5 @@
 import { Avatar, Button } from '@telegram-apps/telegram-ui'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
 import type { FilmCommunityCardItem } from '../../api/profileTypes'
@@ -39,6 +40,7 @@ type CommunityRatingsListProps = {
   viewerId: string | null
   tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId: Record<string, StreakBatchItem>
+  followingUserIds?: ReadonlySet<string>
   onLoadMore: () => void
 }
 
@@ -51,10 +53,49 @@ export function CommunityRatingsList({
   viewerId,
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
+  followingUserIds,
   onLoadMore,
 }: CommunityRatingsListProps) {
+  const [friendsFirst, setFriendsFirst] = useState(false)
+
+  const displayItems = useMemo(() => {
+    if (!friendsFirst || followingUserIds == null || followingUserIds.size === 0) {
+      return items
+    }
+    const friends: FilmCommunityCardItem[] = []
+    const others: FilmCommunityCardItem[] = []
+    for (const row of items) {
+      if (followingUserIds.has(row.author.id)) {
+        friends.push(row)
+      } else {
+        others.push(row)
+      }
+    }
+    return [...friends, ...others]
+  }, [items, friendsFirst, followingUserIds])
+
+  const canSortFriends =
+    followingUserIds != null && followingUserIds.size > 0 && !loading && error == null && items.length > 0
+
   return (
     <div className="px-3 py-3">
+      {canSortFriends ? (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={friendsFirst}
+            className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              friendsFirst
+                ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,transparent)] text-(--tgui--text_color)'
+                : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--hint_color)'
+            }`}
+            onClick={() => setFriendsFirst((prev) => !prev)}
+          >
+            Сначала друзья
+          </button>
+        </div>
+      ) : null}
       {loading ? (
         <p className="text-center text-sm text-(--tgui--hint_color)">Загружаем оценки…</p>
       ) : null}
@@ -66,12 +107,13 @@ export function CommunityRatingsList({
           Пока никто не оценил эту тему в Filmony — станьте первым.
         </p>
       ) : null}
-      {!loading && error == null && items.length > 0 ? (
+      {!loading && error == null && displayItems.length > 0 ? (
         <ul className="flex flex-col gap-3">
-          {items.map((row) => {
+          {displayItems.map((row) => {
             const name = displayNameFromAuthorFields(row.author)
             const photo = row.author.photo_url != null ? resolveApiMediaUrl(row.author.photo_url) : null
             const meta = `${formatRating(row.rating)} · ${companyLabel(row.company)} · ${moodBeforeLabel(row.mood_before)} → ${moodAfterLabel(row.mood_after)}`
+            const isFriend = followingUserIds?.has(row.author.id) === true
             return (
               <li
                 key={row.id}
@@ -97,6 +139,11 @@ export function CommunityRatingsList({
                       >
                         {name}
                       </Link>
+                      {isFriend ? (
+                        <span className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_38%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold text-(--tgui--text_color)">
+                          Подписка
+                        </span>
+                      ) : null}
                       <TasteQuizCommentAuthorBadge
                         knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
                         authorId={row.author.id}

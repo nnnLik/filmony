@@ -290,8 +290,8 @@ export type MyUserCardCategoryListResponse = {
 /** Query-параметр `mode` для GET /api/cards/feed (legacy) */
 export type FeedListMode = 'default' | 'subscriptions_only' | 'subscribers_only'
 
-/** Вкладка GET /api/feed/global */
-export type GlobalFeedKind = 'all' | 'posts' | 'cards'
+/** Вкладка ленты: глобальные kind + персональная «Для вас» (GET /api/cards/feed). */
+export type GlobalFeedKind = 'all' | 'posts' | 'cards' | 'for_you'
 
 /** Источник элемента в ленте (legacy + глобальная лента) */
 export type FeedCardSource =

@@ -6,9 +6,8 @@ import {
   searchCatalogCandidates,
   type CatalogCandidatesResponse,
 } from '../api/catalogApi'
+import { CATALOG_SEARCH_DEBOUNCE_MS } from '../lib/catalogSearchTiming'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
-
-const CATALOG_CANDIDATES_DEBOUNCE_MS = 300
 
 export type UseCatalogCandidatesOptions = {
   enabled?: boolean
@@ -30,7 +29,7 @@ export function useCatalogCandidates(q: string, options?: UseCatalogCandidatesOp
     }
     const timer = window.setTimeout(
       () => setDebouncedQ(normalized),
-      CATALOG_CANDIDATES_DEBOUNCE_MS,
+      CATALOG_SEARCH_DEBOUNCE_MS,
     )
     return () => window.clearTimeout(timer)
   }, [normalized, searchEligible])

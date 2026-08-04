@@ -19,6 +19,24 @@ function ratingPalette(value: number): { text: string } {
   return { text: 'var(--tgui--destructive_text_color, #ef7d9b)' }
 }
 
+function FollowingRatingsSkeleton() {
+  return (
+    <ul className="mt-3 list-none space-y-1.5 p-0">
+      {[0, 1, 2].map((i) => (
+        <li
+          key={i}
+          className="flex animate-pulse items-center gap-3 rounded-xl px-1 py-1.5"
+          aria-hidden
+        >
+          <div className="size-10 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)]" />
+          <div className="h-4 min-w-0 flex-1 rounded bg-[color-mix(in_srgb,var(--tgui--hint_color)_12%,transparent)]" />
+          <div className="h-5 w-8 shrink-0 rounded bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)]" />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export type FollowingRatingsPanelProps = {
   rows: FollowingRatingRow[] | null
   /** Optional link to full community ratings (e.g. catalog detail). */
@@ -48,9 +66,16 @@ export function FollowingRatingsPanel({ rows, communityLink = null, className = 
         ) : null}
       </div>
       {rows == null ? (
-        <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
+        <FollowingRatingsSkeleton />
       ) : rows.length === 0 ? (
-        <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока некого показать.</p>
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-(--tgui--hint_color)">
+            Пока никто из подписок не оценил эту тему.
+          </p>
+          <Link to="/subscriptions" className="text-sm font-semibold text-(--tgui--link_color) no-underline">
+            Найти друзей в подписках →
+          </Link>
+        </div>
       ) : (
         <ul className="mt-3 list-none space-y-1.5 p-0">
           {rows.map((row) => {

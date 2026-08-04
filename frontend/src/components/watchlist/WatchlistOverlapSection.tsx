@@ -146,8 +146,17 @@ export function WatchlistOverlapSection({ enabled = true }: WatchlistOverlapSect
   })
 
   const items = overlapsQuery.data?.items ?? []
-  if (!enabled || overlapsQuery.isLoading || items.length === 0) {
+  if (!enabled || overlapsQuery.isLoading) {
     return null
+  }
+
+  if (items.length === 0) {
+    return (
+      <p className="mb-4 px-1 text-[11px] leading-snug text-(--tgui--hint_color)">
+        Пересечений с друзьями пока нет — добавьте фильмы в «Позже» и подпишитесь на друзей, чтобы
+        приглашать смотреть вместе.
+      </p>
+    )
   }
 
   return (

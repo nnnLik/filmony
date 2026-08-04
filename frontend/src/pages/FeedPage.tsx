@@ -1,19 +1,15 @@
 import { Button, IconButton } from '@telegram-apps/telegram-ui'
 import { UserRoundX } from 'lucide-react'
-import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 
-import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useLocation, type Location } from 'react-router'
 
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 
-import { getGlobalFeedPage } from '../api/cardApi'
-import { ApiError, formatApiDetail } from '../api/client'
 import { getMyMovieCardTagStats } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
-import type { FeedMovieCardPage } from '../api/feedListPageTypes'
-import type { FeedPostComment, GlobalFeedKind, MovieCardComment } from '../api/profileTypes'
+import type { GlobalFeedKind } from '../api/profileTypes'
 import { FeedCard } from '../components/feed/FeedCard'
 import { FeedPostCard } from '../components/feed/FeedPostCard'
 import { FeedCardSkeleton } from '../components/feed/FeedCardSkeleton'
@@ -29,25 +25,20 @@ import {
   MY_PROFILE_BUNDLE_CHANGED_EVENT,
   readMyProfileBundleCache,
 } from '../lib/myProfileBundleCache'
-import { globalFeedQueryKey, myMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
-import { formatOfflineCacheTimestamp } from '../lib/formatOfflineCacheTimestamp'
-import {
-  readCachedGlobalFeedPage,
-  writeCachedGlobalFeedPage,
-} from '../lib/globalFeedCacheStorage'
+import { myMovieCardTagStatsQueryKey } from '../feed/feedQueryKeys'
+import { OfflineFeedBanner } from '../components/feed/OfflineFeedBanner'
 import { writeCachedMyMovieCardTagStats } from '../lib/movieCardTagStatsStorage'
 import { greetingFirstName } from '../lib/profileDisplay'
 import { readRecentCardViews } from '../lib/recentCardViews'
 import { FeedAuthorBadgesProvider } from '../context/FeedAuthorBadgesProvider'
 import { FeedCardGlobalAudioProvider } from '../context/FeedCardGlobalAudioProvider'
-import { consumeGlobalFeedHeadSse } from '../lib/globalFeedSse'
 import {
   isGlobalFeedCardDetailOpened,
   isGlobalFeedPostDetailOpened,
 } from '../lib/globalFeedViewedIds'
-import { readGlobalFeedHideMine, writeGlobalFeedHideMine } from '../lib/globalFeedHideMine'
 import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
 import { useFeedScrollDepthSecret } from '../hooks/useFeedScrollDepthSecret'
+import { useGlobalFeed } from '../hooks/useGlobalFeed'
 import { buildRouteKey, registerScrollContainer } from '../features/scrollRestore'
 
 import './FeedPage.css'
@@ -83,6 +74,7 @@ const readViewerUserIdFromCache = () => {
 }
 
 const FEED_KIND_TABS: Array<{ value: GlobalFeedKind; segmentLabel: string }> = [
+  { value: 'for_you', segmentLabel: 'Для вас' },
   { value: 'all', segmentLabel: 'Всё' },
   { value: 'posts', segmentLabel: 'Посты' },
   { value: 'cards', segmentLabel: 'Карточки' },
@@ -99,7 +91,6 @@ export function FeedPage() {
   const scrollContainerRef = useRef<HTMLElement | null>(null)
 
   const [createSheetOpen, setCreateSheetOpen] = useState(false)
-  const [feedKind, setFeedKind] = useState<GlobalFeedKind>('all')
   const [myProfileBundle, setMyProfileBundle] = useState<unknown>(() => {
     const bundle: unknown = readMyProfileBundleCache()
     return bundle
@@ -107,11 +98,6 @@ export function FeedPage() {
   const profile = useMemo(() => getProfileFromBundle(myProfileBundle), [myProfileBundle])
   const viewerUserId = hasGreetingProfileId(profile) ? profile.id : null
   const viewerUserIdString = viewerUserId != null ? String(viewerUserId) : null
-  const [hideMine, setHideMine] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const uid = readViewerUserIdFromCache()
-    return readGlobalFeedHideMine(uid != null ? String(uid) : null)
-  })
   const emptyFeedGreeting = greetingFirstName(profile ?? undefined)
 
   const [recentStrip, setRecentStrip] = useState<RecentCardsStripItems>(() => {
@@ -119,20 +105,33 @@ export function FeedPage() {
     return uid != null ? readRecentCardViews(String(uid)) : getEmptyRecentStrip()
   })
 
-  const [liveHeadVersion, setLiveHeadVersion] = useState(0)
-  const [ackHeadVersion, setAckHeadVersion] = useState(0)
-  const [offlineCacheStoredAt, setOfflineCacheStoredAt] = useState<number | null>(null)
   const routeKey = useMemo(() => buildRouteKeySafe(location, ['q', 'filter']), [location])
+
+  const {
+    feedKind,
+    setFeedKind,
+    hideMine,
+    onToggleHideMine,
+    isPersonalFeed,
+    items,
+    feedQuery,
+    hasNextPage,
+    showSkeleton,
+    errorMessage,
+    feedLoadMoreSentinelRef,
+    liveHeadVersion,
+    ackHeadVersion,
+    offlineCacheStoredAt,
+    showOfflineStaleBanner,
+    onCommentsState,
+    onFeedPostCommentsState,
+    onFeedPostDeleted,
+    onRefetchFeed,
+  } = useGlobalFeed({ auth, viewerUserIdString })
 
   useEffect(() => {
     scheduleDeferredPepeDancingPrewarm()
   }, [])
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setHideMine(readGlobalFeedHideMine(viewerUserIdString))
-    })
-  }, [viewerUserIdString])
 
   const refreshRecentStrip = useCallback(() => {
     const uid = readViewerUserIdFromCache()
@@ -142,102 +141,6 @@ export function FeedPage() {
   const refreshProfileBundle = useCallback(() => {
     setMyProfileBundle(readMyProfileBundleCache())
   }, [])
-
-  const excludeOwn = auth.kind === 'ready' && hideMine
-
-  useEffect(() => {
-    if (viewerUserIdString == null) {
-      queueMicrotask(() => {
-        setOfflineCacheStoredAt(null)
-      })
-      return
-    }
-    let cancelled = false
-    void readCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn).then((blob) => {
-      if (cancelled || blob == null) {
-        return
-      }
-      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(
-        globalFeedQueryKey(feedKind, excludeOwn),
-        blob.payload,
-      )
-      queueMicrotask(() => {
-        setOfflineCacheStoredAt(blob.storedAt)
-      })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [viewerUserIdString, feedKind, excludeOwn, queryClient])
-
-  const feedQuery = useInfiniteQuery<
-    FeedMovieCardPage,
-    Error,
-    InfiniteData<FeedMovieCardPage, string | null>,
-    ReturnType<typeof globalFeedQueryKey>,
-    string | null
-  >({
-    queryKey: globalFeedQueryKey(feedKind, excludeOwn),
-    initialPageParam: null,
-    queryFn: async ({ pageParam }) => {
-      const response = await getGlobalFeedPage({
-        limit: 20,
-        kind: feedKind,
-        excludeOwn,
-        ...(pageParam != null && pageParam !== '' ? { cursor: pageParam } : {}),
-      })
-      return response
-    },
-    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
-    enabled: auth.kind === 'ready',
-    staleTime: 2 * 60_000,
-    gcTime: 60 * 60_000,
-  })
-
-  useEffect(() => {
-    if (
-      viewerUserIdString == null ||
-      !feedQuery.isSuccess ||
-      feedQuery.data?.pages[0] == null
-    ) {
-      return
-    }
-    queueMicrotask(() => {
-      setOfflineCacheStoredAt(null)
-    })
-    void writeCachedGlobalFeedPage(
-      viewerUserIdString,
-      feedKind,
-      excludeOwn,
-      feedQuery.data,
-    )
-  }, [
-    viewerUserIdString,
-    feedKind,
-    excludeOwn,
-    feedQuery.isSuccess,
-    feedQuery.data,
-    feedQuery.dataUpdatedAt,
-  ])
-
-  useEffect(() => {
-    const p0 = feedQuery.data?.pages[0]
-    if (p0 == null) return
-    const v = typeof p0.feed_head_version === 'number' ? p0.feed_head_version : 0
-    queueMicrotask(() => {
-      setAckHeadVersion((prev) => Math.max(prev, v))
-      setLiveHeadVersion((prev) => Math.max(prev, v))
-    })
-  }, [feedQuery.data?.pages, feedQuery.dataUpdatedAt])
-
-  useEffect(() => {
-    if (auth.kind !== 'ready') return
-    const ac = new AbortController()
-    void consumeGlobalFeedHeadSse(ac.signal, (v) => {
-      setLiveHeadVersion((prev) => Math.max(prev, v))
-    }).catch(() => {})
-    return () => ac.abort()
-  }, [auth.kind])
 
   useEffect(() => {
     const container = scrollContainerRef.current
@@ -259,33 +162,6 @@ export function FeedPage() {
       staleTime: 2 * 60_000,
     })
   }, [auth.kind, queryClient])
-
-  const items = useMemo<FeedMovieCardPage['items']>(
-    () => feedQuery.data?.pages.flatMap((p) => p.items) ?? [],
-    [feedQuery.data],
-  )
-
-  const hasNextPage = Boolean(feedQuery.hasNextPage)
-  const showSkeleton =
-    auth.kind === 'loading' || (feedQuery.isPending && feedQuery.fetchStatus === 'fetching')
-
-  const errorMessage =
-    feedQuery.isError && feedQuery.error instanceof ApiError
-      ? formatApiDetail(feedQuery.error.detail)
-      : feedQuery.isError
-        ? feedQuery.error instanceof Error
-          ? feedQuery.error.message
-          : 'Не удалось загрузить ленту'
-        : null
-
-  const feedLoadMoreSentinelRef = useInfiniteScrollLoadMore({
-    enabled:
-      auth.kind === 'ready' && hasNextPage && items.length > 0 && errorMessage == null,
-    isBusy: feedQuery.isFetchingNextPage,
-    onLoadMore: () => {
-      void feedQuery.fetchNextPage()
-    },
-  })
 
   const { toastMessage, dismissToast } = useFeedScrollDepthSecret({
     containerRef: scrollContainerRef,
@@ -319,99 +195,6 @@ export function FeedPage() {
     }
   }, [refreshRecentStrip, refreshProfileBundle])
 
-  const showOfflineStaleBanner =
-    offlineCacheStoredAt != null &&
-    items.length > 0 &&
-    (feedQuery.isError || (feedQuery.isFetching && !feedQuery.isFetchedAfterMount))
-
-  const onCommentsState = useCallback(
-    (cardId: number, nextState: { comments_count: number; comments_preview: MovieCardComment[] }) => {
-      const key = globalFeedQueryKey(feedKind, excludeOwn)
-      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
-        if (old == null) return old
-        const updated: InfiniteData<FeedMovieCardPage, string | null> = {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.map((entry) => {
-              if (entry.kind === 'feed_post') {
-                return entry
-              }
-              if (entry.id !== cardId) {
-                return entry
-              }
-              return { ...entry, ...nextState }
-            }),
-          })),
-        }
-        if (viewerUserIdString != null) {
-          void writeCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn, updated)
-        }
-        return updated
-      })
-    },
-    [queryClient, feedKind, excludeOwn, viewerUserIdString],
-  )
-
-  const onFeedPostCommentsState = useCallback(
-    (postId: number, nextState: { comments_count: number; comments_preview: FeedPostComment[] }) => {
-      const key = globalFeedQueryKey(feedKind, excludeOwn)
-      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
-        if (old == null) return old
-        const next = {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.map((entry) => {
-              if (entry.kind !== 'feed_post' || entry.id !== postId) {
-                return entry
-              }
-              return { ...entry, ...nextState }
-            }),
-          })),
-        }
-        if (viewerUserIdString != null) {
-          void writeCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn, next)
-        }
-        return next
-      })
-    },
-    [queryClient, feedKind, excludeOwn, viewerUserIdString],
-  )
-
-  const onFeedPostDeleted = useCallback(
-    (postId: number) => {
-      const key = globalFeedQueryKey(feedKind, excludeOwn)
-      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
-        if (old == null) return old
-        const next = {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.filter((entry) => entry.kind !== 'feed_post' || entry.id !== postId),
-          })),
-        }
-        if (viewerUserIdString != null) {
-          void writeCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn, next)
-        }
-        return next
-      })
-    },
-    [queryClient, feedKind, excludeOwn, viewerUserIdString],
-  )
-
-  const onToggleHideMine = useCallback(() => {
-    setHideMine((prev) => {
-      const next = !prev
-      writeGlobalFeedHideMine(viewerUserIdString, next)
-      return next
-    })
-  }, [viewerUserIdString])
-
-  const onRefetchFeed = useCallback(async () => {
-    await feedQuery.refetch()
-  }, [feedQuery])
-
   if (auth.kind === 'error') {
     return (
       <div className="min-h-full px-4 py-12">
@@ -441,7 +224,7 @@ export function FeedPage() {
         pepeClassName="feed-page__title-pepe"
         actions={
           <>
-            {auth.kind === 'ready' ? (
+            {auth.kind === 'ready' && !isPersonalFeed ? (
               <IconButton
                 type="button"
                 mode={hideMine ? 'bezeled' : 'gray'}
@@ -482,7 +265,9 @@ export function FeedPage() {
         }
         subtitle={
           <p className="mt-2 text-[12px] leading-snug text-(--tgui--hint_color)">
-            Публичная лента приложения по времени публикации.
+            {isPersonalFeed
+              ? 'Персональная лента: подписки, похожие теги и рекомендации.'
+              : 'Публичная лента приложения по времени публикации.'}
           </p>
         }
       />
@@ -532,24 +317,14 @@ export function FeedPage() {
             />
           )}
 
-          {showOfflineStaleBanner ? (
-            <div className="rounded-xl border border-(--tgui--separator_color) bg-(--tgui--secondary_bg_color) px-3 py-2 text-[12px] leading-snug text-(--tgui--hint_color)">
-              Данные от {formatOfflineCacheTimestamp(offlineCacheStoredAt)}.
-              {feedQuery.isError ? (
-                <>
-                  {' '}
-                  <button
-                    type="button"
-                    className="text-(--tgui--link_color) underline-offset-2 hover:underline"
-                    onClick={() => {
-                      void feedQuery.refetch()
-                    }}
-                  >
-                    Обновить
-                  </button>
-                </>
-              ) : null}
-            </div>
+          {showOfflineStaleBanner && offlineCacheStoredAt != null ? (
+            <OfflineFeedBanner
+              storedAt={offlineCacheStoredAt}
+              showRefresh={feedQuery.isError}
+              onRefresh={() => {
+                void feedQuery.refetch()
+              }}
+            />
           ) : null}
 
           {items.length > 0 && (

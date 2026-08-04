@@ -1,6 +1,6 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
-import { lazy, Suspense, useCallback, useDeferredValue, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -13,7 +13,6 @@ import {
 import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import {
-  isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
 } from '../lib/ratedCardsListQuery'
 import { useAuthStatus } from '../auth/useAuthStatus'
@@ -22,29 +21,25 @@ import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
-import { useUserCardsInfiniteQuery } from '../hooks/useUserCardsInfiniteQuery'
-import { useUserWatchlistInfiniteQuery } from '../hooks/useUserWatchlistInfiniteQuery'
 import { useUserFeedPostsInfiniteQuery } from '../hooks/useUserFeedPostsInfiniteQuery'
-import { useUserFavoritesStripQuery } from '../hooks/useUserFavoritesStripQuery'
-import { FavoriteMoviesStrip } from '../components/profile/FavoriteMoviesStrip'
-import { MoviePosterGrid } from '../components/profile/MoviePosterGrid'
+import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
-import { ProfileRatedCardsFilters } from '../components/profile/ProfileRatedCardsFilters'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
-import { WatchlistPosterGrid } from '../components/profile/WatchlistPosterGrid'
-import { FeedPostCard } from '../components/feed/FeedPostCard'
-import { PlayfulHint } from '../components/ui/PlayfulHint'
-import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
+import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
+import { ProfilePostsPanel } from '../components/profile/ProfilePostsPanel'
+import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
+import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
+import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
+import type { ProfileMoviesSegment } from '../lib/profileMoviesSegment'
 import {
   userCardsQueryKey,
   userFeedPostsQueryKey,
   userFollowingStatusQueryKey,
   userPublicProfileQueryKey,
 } from '../lib/profileQueryKeys'
-
-const ProfileStatsPanel = lazy(() =>
-  import('../components/profile/ProfileStatsPanel').then((m) => ({ default: m.ProfileStatsPanel })),
-)
 
 export function PublicProfilePage() {
   const { userId } = useParams<{ userId?: string }>()
@@ -53,8 +48,8 @@ export function PublicProfilePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const [mainTab, setMainTab] = useState<'movies' | 'posts' | 'stats'>('movies')
-  const [moviesSegment, setMoviesSegment] = useState<'rated' | 'watchlist'>('rated')
+  const [mainTab, setMainTab] = useState<ProfileMainTab>('movies')
+  const [moviesSegment, setMoviesSegment] = useState<ProfileMoviesSegment>('rated')
   const [followBusy, setFollowBusy] = useState(false)
   const [followError, setFollowError] = useState<string | null>(null)
   const [ratedQuery, setRatedQuery] = useRatedCardsQueryFromUrl()
@@ -102,50 +97,33 @@ export function PublicProfilePage() {
         ? profileQuery.error.message
         : null
 
-  const cardsQuery = useUserCardsInfiniteQuery(profile?.id ?? '', ratedQuery, {
-    enabled:
-      auth.kind === 'ready' &&
-      profile != null &&
-      mainTab === 'movies' &&
-      moviesSegment === 'rated',
+  const authReady = auth.kind === 'ready'
+
+  const {
+    cardsQuery,
+    watchlistQuery,
+    cards,
+    watchlist,
+    favoriteStripItems,
+    cardsError,
+    ratedCardsLoading,
+    watchlistError,
+    canLoadMoreCards,
+    canLoadMoreWatchlist,
+    ratedCardsLoadMoreRef,
+    watchlistLoadMoreRef,
+  } = useProfileMoviesContent({
+    profileUserId: profile?.id ?? '',
+    authReady,
+    mainTab,
+    moviesSegment,
+    ratedQuery,
+    favoritesCount: profile?.favorites_count ?? 0,
+    eagerWatchlist: true,
   })
-
-  const cards = useMemo(() => {
-    const pages = cardsQuery.data?.pages
-    if (pages == null || pages.length === 0) {
-      return null
-    }
-    return {
-      items: pages.flatMap((p) => p.items),
-      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
-    }
-  }, [cardsQuery.data])
-
-  // Product: watchlist loads eagerly on profile open (not tab-gated) so «Позже» is instant.
-  const watchlistQuery = useUserWatchlistInfiniteQuery(profile?.id ?? '', {
-    enabled: auth.kind === 'ready' && profile != null,
-  })
-
-  const watchlist = useMemo(() => {
-    const pages = watchlistQuery.data?.pages
-    if (pages == null || pages.length === 0) {
-      return null
-    }
-    return {
-      items: pages.flatMap((p) => p.items),
-      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
-    }
-  }, [watchlistQuery.data])
-
-  const watchlistError =
-    watchlistQuery.error instanceof ApiError
-      ? formatApiDetail(watchlistQuery.error.detail)
-      : watchlistQuery.error != null
-        ? 'Не удалось загрузить список «Позже»'
-        : null
 
   const postsQuery = useUserFeedPostsInfiniteQuery(profile?.id ?? '', {
-    enabled: auth.kind === 'ready' && profile != null && mainTab === 'posts',
+    enabled: authReady && profile != null && mainTab === 'posts',
   })
 
   const feedPosts = useMemo(() => {
@@ -158,25 +136,6 @@ export function PublicProfilePage() {
       next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
     }
   }, [postsQuery.data])
-
-  const favoritesStripQuery = useUserFavoritesStripQuery(profile?.id ?? '', {
-    enabled:
-      profile != null &&
-      (profile.favorites_count ?? 0) > 0 &&
-      mainTab === 'movies' &&
-      moviesSegment === 'rated',
-  })
-
-  const favoriteStripItems = favoritesStripQuery.data ?? []
-
-  const cardsError =
-    cardsQuery.error instanceof ApiError
-      ? formatApiDetail(cardsQuery.error.detail)
-      : cardsQuery.error != null
-        ? cardsQuery.error.message
-        : null
-
-  const ratedCardsLoading = cardsQuery.isFetching && !cardsQuery.isFetchingNextPage
 
   const postsErr =
     postsQuery.error instanceof ApiError
@@ -245,31 +204,9 @@ export function PublicProfilePage() {
     setMoviesSegment('rated')
   }, [])
 
-  const ratedCardsLoadMoreRef = useInfiniteScrollLoadMore({
-    enabled:
-      auth.kind === 'ready' &&
-      mainTab === 'movies' &&
-      moviesSegment === 'rated' &&
-      Boolean(cards?.next_cursor) &&
-      (cards?.items.length ?? 0) > 0,
-    isBusy: cardsQuery.isFetchingNextPage,
-    onLoadMore: () => void cardsQuery.fetchNextPage(),
-  })
-
-  const watchlistLoadMoreRef = useInfiniteScrollLoadMore({
-    enabled:
-      auth.kind === 'ready' &&
-      mainTab === 'movies' &&
-      moviesSegment === 'watchlist' &&
-      Boolean(watchlist?.next_cursor) &&
-      (watchlist?.items.length ?? 0) > 0,
-    isBusy: watchlistQuery.isFetchingNextPage,
-    onLoadMore: () => void watchlistQuery.fetchNextPage(),
-  })
-
   const postsLoadMoreRef = useInfiniteScrollLoadMore({
     enabled:
-      auth.kind === 'ready' &&
+      authReady &&
       mainTab === 'posts' &&
       Boolean(feedPosts?.next_cursor) &&
       (feedPosts?.items.length ?? 0) > 0,
@@ -296,9 +233,6 @@ export function PublicProfilePage() {
     },
     [profile, queryClient],
   )
-
-  const canLoadMore = Boolean(cards?.next_cursor)
-  const canLoadMoreWatchlist = Boolean(watchlist?.next_cursor)
 
   async function toggleFollowing() {
     if (profile == null || myUserId == null || profile.id === myUserId) {
@@ -355,62 +289,33 @@ export function PublicProfilePage() {
   })
 
   if (auth.kind === 'loading') {
-    return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Вход…</p>
-      </div>
-    )
+    return <PageLoadingState authPending />
   }
 
   if (auth.kind === 'error') {
-    return (
-      <div className="mx-auto max-w-md px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
-    )
+    return <PageErrorState message={auth.message} backLabel="На главную" backHref="/" />
   }
 
   if (auth.kind === 'skipped') {
     return (
-      <div className="mx-auto max-w-md px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
-          Войдите через Telegram Mini App, чтобы открыть профиль.
-        </p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState
+        message="Войдите через Telegram Mini App, чтобы открыть профиль."
+        backLabel="На главную"
+        backHref="/"
+      />
     )
   }
 
   if (resolvedUserId === '') {
-    return (
-      <div className="px-4 py-10">
-        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">Не указан пользователь.</p>
-      </div>
-    )
+    return <PageErrorState message="Не указан пользователь." backLabel="К профилю" backHref="/profile" />
   }
 
   if (error != null) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{error}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/profile">
-          К профилю
-        </Link>
-      </div>
-    )
+    return <PageErrorState message={error} backLabel="К профилю" backHref="/profile" />
   }
 
   if (profile == null) {
-    return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
-    )
+    return <PageLoadingState />
   }
 
   const isOwnPublicProfile = myUserId != null && myUserId === profile.id
@@ -480,205 +385,81 @@ export function PublicProfilePage() {
           <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
         ) : null}
 
-        <div className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
-          <button
-            type="button"
-            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
-              mainTab === 'movies'
-                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                : 'text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setMainTab('movies')}
-          >
-            Карточки
-          </button>
-          <button
-            type="button"
-            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
-              mainTab === 'posts'
-                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                : 'text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setMainTab('posts')}
-          >
-            Посты
-          </button>
-          <button
-            type="button"
-            className={`flex items-center justify-center rounded-full py-2.5 text-xs font-medium transition-all sm:text-sm ${
-              mainTab === 'stats'
-                ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                : 'text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setMainTab('stats')}
-          >
-            Статистика
-          </button>
-        </div>
+        <ProfileMainTabs value={mainTab} onChange={setMainTab} className="mb-4" />
 
         {mainTab === 'movies' ? (
           <div id="profile-rated-cards-panel">
             <Section header="Карточки">
-            <div className="mx-4 mb-3 flex gap-1 rounded-full bg-(--tgui--secondary_bg_color) p-1">
-              <button
-                type="button"
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
-                  moviesSegment === 'rated'
-                    ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                    : 'text-(--tgui--hint_color)'
-                }`}
-                onClick={() => setMoviesSegment('rated')}
-              >
-                Оценённые
-              </button>
-              <button
-                type="button"
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all ${
-                  moviesSegment === 'watchlist'
-                    ? 'bg-(--tgui--bg_color) text-(--tgui--text_color) shadow-sm'
-                    : 'text-(--tgui--hint_color)'
-                }`}
-                onClick={() => setMoviesSegment('watchlist')}
-              >
-                Позже
-              </button>
-            </div>
+              <ProfileMoviesSegmentToggle
+                value={moviesSegment}
+                onChange={setMoviesSegment}
+                className="mx-4 mb-3"
+              />
 
-            {moviesSegment === 'rated' ? (
-              <>
-                <FavoriteMoviesStrip items={favoriteStripItems} />
-                <div className="mx-4">
-                  <ProfileRatedCardsFilters
-                    profileUserId={profile.id}
-                    viewerUserId={myUserId}
-                    cardsQuery={ratedQuery}
-                    onChange={setRatedQuery}
-                    enableCategoryFilter
-                  />
-                </div>
-                {ratedCardsLoading ? (
-                  <p className="filmony-text-panel mx-4 my-2 text-center text-xs text-(--tgui--hint_color)">
-                    Обновляем список…
-                  </p>
-                ) : null}
-                {cardsError != null ? (
-                  <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">
-                    {cardsError}
-                  </p>
-                ) : null}
-                {cards != null && cards.items.length === 0 && !ratedCardsLoading ? (
-                  isDefaultRatedCardsQuery(ratedQuery) ? (
-                    <PlayfulHint
-                      poolKey="profile_cards_empty"
-                      fallback="Пока нет карточек."
-                      userId={myUserId}
-                      className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)"
-                    />
-                  ) : (
-                    <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                      Нет карточек с такими фильтрами.
-                    </p>
-                  )
-                ) : null}
-                {cards != null && cards.items.length > 0 ? (
-                  <div className="px-3 pb-3">
-                    <MoviePosterGrid
-                      items={cards.items}
-                      showFavoriteToggle={isOwnPublicProfile}
-                      onFavoriteToggled={isOwnPublicProfile ? handleFavoriteToggled : undefined}
-                    />
-                  </div>
-                ) : null}
-                {canLoadMore ? (
-                  <div className="px-3 pb-3 pt-1">
-                    <div ref={ratedCardsLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
-                    {cardsQuery.isFetchingNextPage ? (
-                      <p className="pt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем карточки…</p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <>
-                {watchlistError != null ? (
-                  <p className="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)">
-                    {watchlistError}
-                  </p>
-                ) : null}
-                {watchlist != null && watchlist.items.length === 0 ? (
-                  <p className="filmony-text-panel mx-4 my-4 text-center text-sm text-(--tgui--hint_color)">
-                    В списке «Позже» пока пусто.
-                  </p>
-                ) : null}
-                {watchlist != null && watchlist.items.length > 0 ? (
-                  <div className="px-3 pb-3">
-                    <WatchlistPosterGrid items={watchlist.items} />
-                  </div>
-                ) : null}
-                {canLoadMoreWatchlist ? (
-                  <div className="px-3 pb-3 pt-1">
-                    <div ref={watchlistLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
-                    {watchlistQuery.isFetchingNextPage ? (
-                      <p className="pt-2 text-center text-xs text-(--tgui--hint_color)">Подгружаем список…</p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </>
-            )}
-          </Section>
+              {moviesSegment === 'rated' ? (
+                <ProfileRatedPanel
+                  profileUserId={profile.id}
+                  viewerUserId={myUserId}
+                  ratedQuery={ratedQuery}
+                  onRatedQueryChange={setRatedQuery}
+                  enableCategoryFilter
+                  favoriteStripItems={favoriteStripItems}
+                  cards={cards}
+                  loading={ratedCardsLoading}
+                  error={cardsError}
+                  canLoadMore={canLoadMoreCards}
+                  isFetchingNextPage={cardsQuery.isFetchingNextPage}
+                  loadMoreRef={ratedCardsLoadMoreRef}
+                  emptyUserId={myUserId}
+                  emptyFallback="Пока нет карточек."
+                  filteredEmptyFallback="Нет карточек с такими фильтрами."
+                  showFavoriteToggle={isOwnPublicProfile}
+                  onFavoriteToggled={isOwnPublicProfile ? handleFavoriteToggled : undefined}
+                  filtersClassName="mx-4"
+                  gridClassName="px-3 pb-3"
+                  errorClassName="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)"
+                  refreshingClassName="filmony-text-panel mx-4 my-2 text-center text-xs text-(--tgui--hint_color)"
+                  emptyClassName="mx-4 my-4"
+                  loadMoreClassName="px-3 pb-3 pt-1"
+                />
+              ) : (
+                <ProfileWatchlistPanel
+                  watchlist={watchlist}
+                  error={watchlistError}
+                  canLoadMore={canLoadMoreWatchlist}
+                  isFetchingNextPage={watchlistQuery.isFetchingNextPage}
+                  loadMoreRef={watchlistLoadMoreRef}
+                  errorClassName="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)"
+                  gridClassName="px-3 pb-3"
+                  loadMoreClassName="px-3 pb-3 pt-1"
+                />
+              )}
+            </Section>
           </div>
         ) : mainTab === 'posts' ? (
           <Section header="Посты">
-            <div className="mx-4 mt-2 space-y-3 pb-3">
-              {postsErr != null ? (
-                <p className="text-center text-sm text-(--tgui--destructive_text_color)">{postsErr}</p>
-              ) : null}
-              {postsLoading ? (
-                <p className="py-8 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
-              ) : null}
-              {!postsLoading && feedPosts != null && feedPosts.items.length === 0 ? (
-                <PlayfulHint
-                  poolKey="profile_posts_empty"
-                  fallback="Пока нет постов в ленте"
-                  userId={myUserId}
-                  className="py-8 text-center text-sm text-(--tgui--hint_color)"
-                />
-              ) : null}
-              {!postsLoading && feedPosts != null && feedPosts.items.length > 0 ? (
-                <>
-                  {feedPosts.items.map((post) => (
-                    <FeedPostCard
-                      key={`public-profile-post-${post.id}`}
-                      post={post}
-                      viewerUserId={myUserId}
-                      onPostDeleted={onPublicProfilePostDeleted}
-                    />
-                  ))}
-                  {feedPosts.next_cursor != null && feedPosts.next_cursor !== '' ? (
-                    <>
-                      <div ref={postsLoadMoreRef} className="h-1 w-full shrink-0" aria-hidden />
-                      {postsQuery.isFetchingNextPage ? (
-                        <p className="text-center text-xs text-(--tgui--hint_color)">Подгружаем посты…</p>
-                      ) : null}
-                    </>
-                  ) : null}
-                </>
-              ) : null}
-            </div>
+            <ProfilePostsPanel
+              posts={feedPosts}
+              error={postsErr}
+              loading={postsLoading}
+              isFetchingNextPage={postsQuery.isFetchingNextPage}
+              loadMoreRef={postsLoadMoreRef}
+              viewerUserId={myUserId}
+              onPostDeleted={onPublicProfilePostDeleted}
+              emptyUserId={myUserId}
+              listClassName="mx-4 mt-2 space-y-3 pb-3"
+              postKeyPrefix="public-profile-post"
+            />
           </Section>
         ) : (
-          <div className="space-y-4">
-            <Suspense fallback={<InlineLoadingState message="Загрузка статистики…" />}>
-              <ProfileStatsPanel
-                userId={profile.id}
-                cardsQuery={ratedQuery}
-                onCardsQueryChange={setRatedQuery}
-                enableCategoryFilter
-                showPassportCollection
-                onDrillToRatedCards={drillToRatedCards}
-              />
-            </Suspense>
-          </div>
+          <ProfileStatsTab
+            userId={profile.id}
+            cardsQuery={ratedQuery}
+            onCardsQueryChange={setRatedQuery}
+            enableCategoryFilter
+            showPassportCollection
+            onDrillToRatedCards={drillToRatedCards}
+          />
         )}
       </div>
     </div>

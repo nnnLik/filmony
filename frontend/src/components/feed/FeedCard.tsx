@@ -1,9 +1,7 @@
-import { Avatar, Button, Title } from '@telegram-apps/telegram-ui'
+import { Avatar, Title } from '@telegram-apps/telegram-ui'
 import { Music } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler } from 'react'
+import { useCallback, useMemo, useRef, useState, type MouseEventHandler } from 'react'
 import { Link, useNavigate } from 'react-router'
-
-import { PlayfulHint } from '../ui/PlayfulHint'
 
 import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
 import { ApiError, formatApiDetail } from '../../api/client'
@@ -16,11 +14,7 @@ import {
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
-import { CommentDraftSingleLineInput } from '../comments/CommentDraftMirrorField'
-import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
-import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
-import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
-import { inlineMovieCardRefMapFromSnippets } from '../../lib/inlineMovieCardRefMap'
+import { EngagementCommentsRow } from './EngagementCommentsRow'
 import {
   COMMENT_BODY_MAX_LEN,
   insertSnippetAtCaret,
@@ -28,10 +22,11 @@ import {
   reactionTokenFromId,
 } from '../../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
-import { movieCardCommentImageSrc } from '../../lib/movieCardCommentMedia'
 import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 import { useFeedCardAuthorBadges } from '../../hooks/useFeedCardAuthorBadges'
+import { useFeedInlineCommentsPanel } from '../../hooks/useFeedInlineCommentsPanel'
+import { useCommentScrollHighlight } from '../../hooks/useCommentScrollHighlight'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
@@ -39,26 +34,20 @@ import { DirectorChip } from '../films/DirectorChip'
 import { FranchiseChip } from '../films/FranchiseChip'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
-import { ReactionStrip } from '../reactions/ReactionStrip'
 import { ContrarianBadge } from '../gamification/ContrarianBadge'
-import { IconChevronDown, IconSend } from './FeedCardIcons'
 import { FeedRatingRing } from './FeedRatingRing'
 import {
   authorLabel,
-  commentAuthorDisplay,
   COMPANY_SHORT,
-  feedCardSourceBadge,
-  formatCommentTime,
   MOOD_AFTER_SHORT,
   MOOD_BEFORE_SHORT,
   ratingPalette,
-  snippetPreview,
 } from './feedCardUtils'
+import { FeedExplainabilityChip } from './FeedExplainabilityChip'
 import { MovieCardAudioPlayer } from '../cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVisualizer'
 import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
 import { useFullscreenImageActivator } from '../../hooks/useFullscreenImageActivator'
-import { FeedOpenableContainedImageThumbnail } from './FeedOpenableContainedImage'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -95,13 +84,39 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     comments_preview: card.comments_preview,
   }))
   const [previewReactions, setPreviewReactions] = useState<Record<number, ReactionSummary>>({})
-  const [panelComments, setPanelComments] = useState<MovieCardComment[]>([])
-  const [panelLoading, setPanelLoading] = useState(false)
-  const [panelError, setPanelError] = useState<string | null>(null)
   if (card.id !== previewSync.cardId || card.comments_preview !== previewSync.comments_preview) {
     setPreviewSync({ cardId: card.id, comments_preview: card.comments_preview })
     setPreviewReactions({})
   }
+
+  const listAllComments = useCallback(
+    (cardId: number) => listAllMovieCardComments(cardId),
+    [],
+  )
+  const {
+    panelComments,
+    panelLoading,
+    panelError,
+    previewCommentsById,
+  } = useFeedInlineCommentsPanel<MovieCardComment>({
+    postId: card.id,
+    commentsCount: card.comments_count,
+    open: commentsPreviewOpen,
+    listAllComments,
+  })
+
+  const { highlightCommentId, setCommentRef, scrollToComment } = useCommentScrollHighlight()
+
+  const handleJumpToParent = useCallback(
+    (parentCommentId: number) => {
+      scrollToComment(parentCommentId)
+    },
+    [scrollToComment],
+  )
+
+  const handleInlineReply = useCallback(() => {
+    draftInputRef.current?.focus()
+  }, [])
 
   const isOwnCard =
     viewerUserId != null && viewerUserId !== '' && card.user_id === viewerUserId
@@ -114,10 +129,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const ratingRingPalette = useMemo(() => ratingPalette(card.rating), [card.rating])
   const isThisCardActive = feedAudio.playingCardId === card.id
   const playerPaused = !isThisCardActive || feedAudio.paused
-  const sourceBadgeText = useMemo(
-    () => feedCardSourceBadge(card, viewerUserId ?? null),
-    [card, viewerUserId],
-  )
   const profileHref = `/u/${encodeURIComponent(card.user_id)}`
   const cardHref = `/cards/${card.id}`
   const name = authorLabel(card)
@@ -133,55 +144,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     imageAlt: primaryTitle ? `Постер: ${primaryTitle}` : 'Постер карточки',
     onSingleNavigate: navigateToCard,
   })
-  useEffect(() => {
-    let cancelled = false
-    if (!commentsPreviewOpen || card.comments_count === 0) {
-      void Promise.resolve().then(() => {
-        if (cancelled) return
-        setPanelComments([])
-        setPanelLoading(false)
-        setPanelError(null)
-      })
-      return () => {
-        cancelled = true
-      }
-    }
-
-    void Promise.resolve().then(() => {
-      if (!cancelled) {
-        setPanelLoading(true)
-        setPanelError(null)
-      }
-    })
-
-    void listAllMovieCardComments(card.id).then(
-      (items) => {
-        if (!cancelled) {
-          setPanelComments(items)
-          setPanelLoading(false)
-        }
-      },
-      (e) => {
-        if (!cancelled) {
-          setPanelComments([])
-          setPanelError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось загрузить комментарии')
-          setPanelLoading(false)
-        }
-      },
-    )
-
-    return () => {
-      cancelled = true
-    }
-  }, [commentsPreviewOpen, card.id, card.comments_count])
-
-  const previewCommentsById = useMemo(() => {
-    const map = new Map<number, MovieCardComment>()
-    panelComments.forEach((c) => {
-      map.set(c.id, c)
-    })
-    return map
-  }, [panelComments])
 
   const panelCommentAuthorIds = useMemo(
     () => panelComments.map((comment) => comment.author.id),
@@ -318,28 +280,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       }`}
     >
       <div className="mb-0.5 flex flex-wrap items-center gap-2 px-0.5">
-        <span
-          className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_38%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-(--tgui--text_color)"
-          title={
-            isOwnCard
-              ? 'Твоя карточка'
-              : card.feed_source === 'subscriptions'
-                ? 'Из подписок'
-                : card.feed_source === 'subscribers'
-                  ? 'Из подписчиков'
-                  : card.feed_source === 'personal_affinity'
-                    ? 'Похоже на ваши теги'
-                    : card.feed_source === 'discovery'
-                      ? 'Рекомендации'
-                      : card.feed_source === 'own_cards'
-                        ? 'Твоя карточка в ленте'
-                        : card.feed_source === 'global'
-                          ? 'Публичная лента'
-                          : 'Источник в ленте'
-          }
-        >
-          {sourceBadgeText}
-        </span>
+        <FeedExplainabilityChip variant="card" card={card} viewerUserId={viewerUserId} />
         {authorFavoriteRibbon ? (
           <span
             className="shrink-0 rounded-md border border-[color-mix(in_srgb,#ec4899_48%,transparent)] bg-[color-mix(in_srgb,#ec4899_16%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-pink-600 dark:text-pink-300"
@@ -532,235 +473,53 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           </div>
         )}
 
-        {/* Один ряд: реакции слева, комментарии справа */}
-        <div className="relative z-10 flex min-w-0 flex-col gap-1.5">
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="min-w-0 flex-1 overflow-hidden py-px" onMouseDown={stopCardNav}>
-              <ReactionStrip
-                targetKind="movie_card"
-                targetId={card.id}
-                summary={cardReaction}
-                onSummaryChange={setCardReaction}
-                compact
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-1 border-l border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] pl-2">
-                <span
-                  title="Комментарии"
-                  className="max-w-22 truncate text-[11px] font-medium leading-none text-(--tgui--hint_color) sm:max-w-none"
-                >
-                Комментарии
-              </span>
-              <span
-                className="text-xs font-semibold tabular-nums leading-none text-(--tgui--text_color)"
-                title="Всего комментариев к карточке"
-              >
-                {card.comments_count}
-              </span>
-              <button
-                type="button"
-                onMouseDown={stopCardNav}
-                onClick={() => setCommentsPreviewOpen((open) => !open)}
-                aria-expanded={commentsPreviewOpen}
-                aria-label={
-                  commentsPreviewOpen
-                    ? 'Скрыть список комментариев и поле ввода'
-                    : 'Показать все комментарии и написать ответ'
-                }
-                className="flex size-7 shrink-0 items-center justify-center rounded-md text-(--tgui--hint_color) transition-[background-color,color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] hover:text-(--tgui--text_color) active:scale-95"
-              >
-                <IconChevronDown
-                  className={`size-4 transition-transform duration-200 ${commentsPreviewOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-            </div>
-          </div>
-
-          {commentsPreviewOpen ? (
-            <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--tgui--divider_color)_55%,transparent)] pt-2">
-              {card.comments_count > 0 ? (
-                <div
-                  className="max-h-[min(42vh,15rem)] min-h-30 overflow-y-auto overscroll-y-contain touch-pan-y space-y-1.5 pr-0.5 [-webkit-overflow-scrolling:touch]"
-                  role="region"
-                  aria-label="Комментарии к карточке"
-                >
-                  {panelLoading ? (
-                    <p className="py-6 text-center text-xs text-(--tgui--hint_color)">Загрузка…</p>
-                  ) : panelError != null ? (
-                    <p className="text-xs text-(--tgui--destructive_text_color,#ef4444)">
-                      {panelError}{' '}
-                      <Link to={cardHref} state={{ fromFeed: true }} className="text-(--tgui--link_color) no-underline active:opacity-90">
-                        Открыть карточку
-                      </Link>
-                    </p>
-                  ) : panelComments.length === 0 ? (
-                    <p className="text-xs text-(--tgui--hint_color)">
-                      <Link to={cardHref} state={{ fromFeed: true }} className="text-(--tgui--link_color) no-underline active:opacity-90">
-                        Открыть карточку
-                      </Link>
-                      , чтобы прочитать комментарии.
-                    </p>
-                  ) : (
-                    panelComments.map((comment) => {
-                      const parentCommentId = comment.parent_comment_id
-                      const parent =
-                        parentCommentId != null ? previewCommentsById.get(parentCommentId) ?? null : null
-
-                      const authorHref = `/u/${encodeURIComponent(comment.author.id)}`
-
-                      return (
-                        <div
-                          key={comment.id}
-                          className="rounded-lg border border-(--tgui--divider_color) bg-(--tgui--bg_color) p-2.5"
-                        >
-                          <div className="flex items-start gap-2">
-                            <Link to={authorHref} className="shrink-0 no-underline" aria-label={`Профиль: ${commentAuthorDisplay(comment)}`}>
-                              <Avatar
-                                src={comment.author.photo_url ?? undefined}
-                                acronym={commentAuthorDisplay(comment).slice(0, 2).toUpperCase()}
-                                size={24}
-                              />
-                            </Link>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex min-w-0 items-center justify-between gap-2">
-                                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <span className="text-sm font-medium text-(--tgui--text_color)">{commentAuthorDisplay(comment)}</span>
-                                  <TasteQuizCommentAuthorBadge
-                                    knowledgeByAuthor={knowledgeByOwnerId}
-                                    authorId={comment.author.id}
-                                    viewerId={viewerUserId}
-                                  />
-                                  <RatingStreakAuthorBadge
-                                    streakByUserId={streakByUserId}
-                                    authorId={comment.author.id}
-                                  />
-                                  <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(comment.created_at)}</span>
-                                </div>
-                                <Link
-                                  to={cardHref}
-                                  state={{ fromFeed: true }}
-                                  className="shrink-0 py-0 text-xs leading-none text-(--tgui--link_color) no-underline active:opacity-90"
-                                  onMouseDown={stopCardNav}
-                                >
-                                  Ответить
-                                </Link>
-                              </div>
-
-                              {parentCommentId != null ? (
-                                <Link
-                                  to={cardHref}
-                                  state={{ fromFeed: true }}
-                                  className="mt-2 block w-full rounded-lg border-l-2 border-(--tgui--link_color) bg-(--tgui--secondary_bg_color) px-2 py-1 text-left no-underline active:opacity-90"
-                                >
-                                  <p className="truncate text-xs font-medium text-(--tgui--link_color)">
-                                    {parent ? commentAuthorDisplay(parent) : 'Родительский комментарий'}
-                                  </p>
-                                  <p className="truncate text-xs text-(--tgui--hint_color)">
-                                    {parent ? snippetPreview(parent.text) : 'Откройте карточку, чтобы перейти к обсуждению'}
-                                  </p>
-                                </Link>
-                              ) : null}
-
-                              {comment.image_url != null && comment.image_url.trim() !== '' ? (
-                                <FeedOpenableContainedImageThumbnail
-                                  src={movieCardCommentImageSrc(comment.image_url)}
-                                  wrapperClassName="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)"
-                                  imgClassName="max-h-[min(55vw,12rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
-                                />
-                              ) : null}
-
-                              {comment.text.trim() !== '' ? (
-                                <p className="mt-1 text-[13px] leading-snug text-(--tgui--text_color)">
-                                  <CommentBodyWithReactionTokens
-                                    text={comment.text}
-                                    className="whitespace-pre-wrap"
-                                    inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(comment.referenced_movie_cards)}
-                                    referencedMentions={comment.referenced_mentions}
-                                  />
-                                </p>
-                              ) : null}
-                              <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden" onMouseDown={stopCardNav}>
-                                <ReactionStrip
-                                  compact
-                                  targetKind="movie_card_comment"
-                                  targetId={comment.id}
-                                  summary={previewReactions[comment.id] ?? comment.reactions}
-                                  onSummaryChange={(next) =>
-                                    setPreviewReactions((prev) => ({ ...prev, [comment.id]: next }))
-                                  }
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              ) : (
-                <PlayfulHint
-                  poolKey="comments_empty"
-                  fallback="Пока нет комментариев. Будьте первым."
-                  userId={viewerUserId}
-                  className="text-xs text-(--tgui--hint_color)"
-                />
-              )}
-
-              <div className="flex min-w-0 flex-col gap-1">
-                <div className="relative z-10 flex min-w-0 items-stretch gap-1.5" onMouseDown={stopCardNavKeepFocus}>
-                  <CommentDraftSingleLineInput
-                    ref={draftInputRef}
-                    value={draft}
-                    onChange={setDraft}
-                    disabled={submitBusy}
-                    maxLength={COMMENT_BODY_MAX_LEN}
-                    placeholder="Комментарий…"
-                    ariaLabel="Текст комментария"
-                    inlineMovieCardRefs={draftInlineCardRefs}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        void send()
-                      }
-                    }}
-                  />
-                  <CommentReactionTokenPicker
-                    onPickReactionTypeId={insertReactionToken}
-                    disabled={submitBusy}
-                    allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
-                  />
-                  <CommentSpoilerToggleButton
-                    onToggleSpoiler={toggleSpoilerInDraft}
-                    disabled={submitBusy}
-                    allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
-                  />
-                  <MovieCardInlinePickerButton
-                    onPick={insertMovieCardInline}
-                    disabled={submitBusy}
-                    allowInsert={draft.length < COMMENT_BODY_MAX_LEN}
-                  />
-                  <Button
-                    mode="filled"
-                    size="s"
-                    disabled={submitBusy || draft.trim().length === 0}
-                    type="button"
-                    className="min-h-8! min-w-8! shrink-0 px-0!"
-                    onClick={() => void send()}
-                    aria-label="Отправить комментарий"
-                  >
-                    {submitBusy ? '…' : <IconSend className="mx-auto size-4" />}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between gap-2 text-[10px] text-(--tgui--hint_color)">
-                  <span className="tabular-nums">{charsLeft}</span>
-                  {submitError != null ? (
-                    <span className="text-right text-(--tgui--destructive_text_color,#ef4444)">{submitError}</span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
+        <EngagementCommentsRow
+          commentsCount={card.comments_count}
+          commentsPreviewOpen={commentsPreviewOpen}
+          onTogglePreview={() => setCommentsPreviewOpen((open) => !open)}
+          reactionTargetKind="movie_card"
+          reactionTargetId={card.id}
+          reactionSummary={cardReaction}
+          onReactionChange={setCardReaction}
+          panelComments={panelComments}
+          previewCommentsById={previewCommentsById}
+          panelLoading={panelLoading}
+          panelError={panelError}
+          detailHref={cardHref}
+          detailLinkState={{ fromFeed: true }}
+          viewerUserId={viewerUserId}
+          knowledgeByAuthor={knowledgeByOwnerId}
+          streakByUserId={streakByUserId}
+          previewReactions={previewReactions}
+          onPreviewReactionChange={(commentId, next) =>
+            setPreviewReactions((prev) => ({ ...prev, [commentId]: next }))
+          }
+          commentReactionTargetKind="movie_card_comment"
+          setCommentRef={setCommentRef}
+          highlightCommentId={highlightCommentId}
+          onJumpToParent={handleJumpToParent}
+          onReply={handleInlineReply}
+          draft={draft}
+          onDraftChange={setDraft}
+          draftInputRef={draftInputRef}
+          draftInlineCardRefs={draftInlineCardRefs}
+          onDraftKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              void send()
+            }
+          }}
+          onInsertReaction={insertReactionToken}
+          onToggleSpoiler={toggleSpoilerInDraft}
+          onInsertMovieCard={insertMovieCardInline}
+          onSubmit={() => void send()}
+          submitBusy={submitBusy}
+          submitError={submitError}
+          charsLeft={charsLeft}
+          stopNav={stopCardNav}
+          stopNavKeepFocus={stopCardNavKeepFocus}
+          detailFallbackLabel="Открыть карточку"
+        />
       </div>
     </article>
     </MentionProfileLookupProvider>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useMatch, useNavigate, useSearchParams } from 'react-router'
+import { useMatch, useNavigate, useSearchParams } from 'react-router'
 
 import { getMovieCardById } from '../api/cardApi'
 import { ApiError, formatApiDetail } from '../api/client'
@@ -9,6 +9,9 @@ import {
   WatchlistForm,
   type WatchlistFormEditMode,
 } from '../components/create/WatchlistForm'
+import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import type { CardCompany } from '../api/profileTypes'
 import {
   watchlistBindingFromCardId,
@@ -50,18 +53,10 @@ function CreateWatchlistShell({
       </header>
 
       <main className="space-y-4 px-4 py-6">
-        {error != null ? (
-          <div className="rounded-2xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_10%,transparent)] px-3 py-2">
-            <p className="text-sm text-(--tgui--destructive_text_color)">{error}</p>
-          </div>
+        {error != null && !loading ? (
+          <PageErrorState message={error} backLabel="Назад" backHref="/profile" />
         ) : null}
-        {loading ? (
-          <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
-            Загружаем…
-          </p>
-        ) : (
-          children
-        )}
+        {loading ? <InlineLoadingState message="Загружаем…" /> : children}
       </main>
     </div>
   )
@@ -238,21 +233,12 @@ function WatchlistEntryPageContent() {
   }
 
   if (auth.kind === 'loading' || auth.kind === 'skipped') {
-    return (
-      <div className="min-h-dvh bg-(--tgui--bg_color) px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Вход…</p>
-      </div>
-    )
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
   }
 
   if (auth.kind === 'error') {
     return (
-      <div className="min-h-dvh bg-(--tgui--bg_color) px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState message={auth.message} backLabel="На главную" backHref="/" className="bg-(--tgui--bg_color)" />
     )
   }
 

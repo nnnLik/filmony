@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { CopyPlus, Link2, Paperclip, Share2, X } from 'lucide-react'
+import { CopyPlus, Link2, Share2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
@@ -9,13 +9,10 @@ import {
   useState,
   type ChangeEvent,
   type Dispatch,
-  type KeyboardEventHandler,
-  type MutableRefObject,
   type RefObject,
   type SetStateAction,
 } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { createPortal } from 'react-dom'
 
 import './movieCardDetailAnimations.css'
 
@@ -43,10 +40,9 @@ import type {
   ReactionSummary,
 } from '../api/profileTypes'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
-import { hasMeaningfulCardRating } from '../lib/ratingDisplay'
+import { formatRating, hasMeaningfulCardRating, ratingPalette } from '../lib/ratingDisplay'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
-import { PlayfulHint } from '../components/ui/PlayfulHint'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
@@ -54,23 +50,14 @@ import type { StreakBatchItem } from '../api/streaksTypes'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
-import { COMMENT_BODY_MAX_LEN, insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../lib/commentReactionTokens'
-import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
-import { inlineMovieCardRefMapFromSnippets } from '../lib/inlineMovieCardRefMap'
+import { COMMENT_BODY_MAX_LEN } from '../lib/commentReactionTokens'
 import {
   authorLikeToMentionRow,
   mentionProfileKeyFromSlug,
   type MentionProfileRowInput,
 } from '../lib/mentionProfileLookupUtils'
 import { subscriptionToMentionRow } from '../lib/subscriptionToMentionRow'
-import {
-  applyMentionPick,
-  mentionReplacementFromSlug,
-  parseActiveMentionQuery,
-  type ActiveMentionQuery,
-} from '../lib/feedMentionCompose'
-import { filterFollowingForMentionQuery } from '../lib/mentionFollowingFilter'
-import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
+import type { ActiveMentionQuery } from '../lib/feedMentionCompose'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import {
   movieCardHasKinopoiskLink,
@@ -84,11 +71,7 @@ import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { watchlistOverlapAnchorFromMovieCard } from '../lib/watchlistOverlapUtils'
 import { CommentBodyWithReactionTokens } from '../components/comments/CommentBodyWithReactionTokens'
-import { CommentDraftMultiline } from '../components/comments/CommentDraftMirrorField'
-import { CommentHeaderActions } from '../components/comments/CommentHeaderActions'
-import { MovieCardInlinePickerButton } from '../components/comments/MovieCardInlinePickerButton'
-import { CommentReactionTokenPicker } from '../components/comments/CommentReactionTokenPicker'
-import { CommentSpoilerToggleButton } from '../components/comments/CommentSpoilerToggleButton'
+import { CommentThreadSection } from '../components/comments/CommentThreadSection'
 import { ReactionStrip } from '../components/reactions/ReactionStrip'
 import { FavoriteCardHeartButton } from '../components/cards/FavoriteCardHeartButton'
 import { PlannedCardBadge } from '../components/cards/PlannedCardBadge'
@@ -108,12 +91,15 @@ import {
 } from '../lib/followingRatingsDisplay'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
+import { usePaginatedComments } from '../hooks/usePaginatedComments'
+import { useCommentScrollHighlight } from '../hooks/useCommentScrollHighlight'
+import { useCommentJumpToParent } from '../hooks/useCommentJumpToParent'
+import { useCommentDraftEditor } from '../hooks/useCommentDraftEditor'
+import { commentAuthorLabel } from '../lib/commentDisplay'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
-import { movieCardCommentImageSrc } from '../lib/movieCardCommentMedia'
 import { movieCardCommentDerivedFields } from '../lib/movieCardCommentDerivedFields'
 import type { OpenComposeFeedPostPayload } from '../compose/feedComposeTypes'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
-import { FeedOpenableContainedImageThumbnail } from '../components/feed/FeedOpenableContainedImage'
 import { useFullscreenImageActivator } from '../hooks/useFullscreenImageActivator'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
@@ -138,49 +124,8 @@ const MOOD_AFTER_LABELS: Record<CardMoodAfter, string> = {
   wasted_time: 'Зря потратил время',
 }
 
-function ratingPalette(value: number): { ring: string; glow: string; text: string } {
-  if (value <= 3) return { ring: '#ef4444', glow: 'rgba(239,68,68,0.35)', text: '#fca5a5' }
-  if (value <= 5) return { ring: '#f59e0b', glow: 'rgba(245,158,11,0.35)', text: '#fcd34d' }
-  if (value <= 7) return { ring: '#84cc16', glow: 'rgba(132,204,22,0.35)', text: '#bef264' }
-  return { ring: '#22c55e', glow: 'rgba(34,197,94,0.35)', text: '#86efac' }
-}
-
-function formatRating(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
-
 function plannedCardRateHref(card: MovieCard): string {
   return `/cards/new?fromCard=${encodeURIComponent(String(card.id))}&intent=rate`
-}
-
-function formatCommentTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function authorName(comment: MovieCardComment): string {
-  if (comment.author.display_name && comment.author.display_name.trim() !== '') {
-    return comment.author.display_name
-  }
-  if (comment.author.username && comment.author.username.trim() !== '') {
-    return `@${comment.author.username}`
-  }
-  const full = [comment.author.first_name, comment.author.last_name].filter(Boolean).join(' ').trim()
-  return full === '' ? 'Пользователь' : full
-}
-
-function snippet(text: string): string {
-  const compact = text.replace(/\s+/g, ' ').trim()
-  if (compact.length <= 72) return compact
-  return `${compact.slice(0, 69)}...`
 }
 
 function movieCardAuthorOrNull(value: MovieCard): MovieCardCommentAuthor | null {
@@ -215,16 +160,8 @@ export function MovieCardDetailPage() {
   const { cardId } = useParams<{ cardId?: string }>()
   const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
   const [card, setCard] = useState<MovieCard | null>(null)
-  const [comments, setComments] = useState<MovieCardComment[]>([])
-  const [commentsNextCursor, setCommentsNextCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [commentsLoading, setCommentsLoading] = useState(false)
-  const [commentsError, setCommentsError] = useState<string | null>(null)
-  const [commentText, setCommentText] = useState('')
-  const [commentDraftInlineCardRefs, setCommentDraftInlineCardRefs] = useState(
-    () => new Map<number, { film_title: string; film_year: number | null }>(),
-  )
   const [commentImageUrl, setCommentImageUrl] = useState<string | null>(null)
   const [commentImageUploadBusy, setCommentImageUploadBusy] = useState(false)
   const [replyTo, setReplyTo] = useState<{ id: number; label: string } | null>(null)
@@ -233,15 +170,9 @@ export function MovieCardDetailPage() {
   const [editText, setEditText] = useState('')
   const [editBusy, setEditBusy] = useState(false)
   const [deleteCommentBusyId, setDeleteCommentBusyId] = useState<number | null>(null)
-  const [jumpBusy, setJumpBusy] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [actionMenuOpen, setActionMenuOpen] = useState(false)
-  const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null)
   const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
-  const [commentMentionPicker, setCommentMentionPicker] = useState<ActiveMentionQuery | null>(null)
-  const [commentMentionHighlightIdx, setCommentMentionHighlightIdx] = useState(0)
-  const commentRefs = useRef<Record<number, HTMLDivElement | null>>({})
-  const commentTextAreaRef = useRef<HTMLTextAreaElement>(null)
   const commentImageFileInputRef = useRef<HTMLInputElement>(null)
 
   const parsedCardId = useMemo(() => {
@@ -250,13 +181,87 @@ export function MovieCardDetailPage() {
     return Number.isInteger(value) && value > 0 ? value : null
   }, [cardId])
 
-  const commentsById = useMemo(() => {
-    const map = new Map<number, MovieCardComment>()
-    comments.forEach((comment) => {
-      map.set(comment.id, comment)
-    })
-    return map
-  }, [comments])
+  const commentsEnabled = parsedCardId != null && error == null
+
+  const {
+    comments,
+    setComments,
+    commentsNextCursor,
+    setCommentsNextCursor,
+    commentsById,
+    commentsLoading,
+    commentsError,
+    setCommentsError,
+    loadComments,
+  } = usePaginatedComments<MovieCardComment>({
+    enabled: commentsEnabled,
+    mode: 'page',
+    fetchPage: useCallback(
+      ({ cursor, limit }) => {
+        if (parsedCardId == null) {
+          return Promise.reject(new Error('missing card id'))
+        }
+        return getMovieCardComments(parsedCardId, { cursor, limit })
+      },
+      [parsedCardId],
+    ),
+  })
+
+  const { highlightCommentId, setCommentRef, scrollToComment } = useCommentScrollHighlight()
+
+  const { jumpBusy, handleJumpToParent } = useCommentJumpToParent({
+    comments,
+    commentsById,
+    commentsNextCursor,
+    setComments,
+    setCommentsNextCursor,
+    setCommentsError,
+    fetchPage: useCallback(
+      ({ cursor, limit }) => {
+        if (parsedCardId == null) {
+          return Promise.reject(new Error('missing card id'))
+        }
+        return getMovieCardComments(parsedCardId, { cursor, limit })
+      },
+      [parsedCardId],
+    ),
+    scrollToComment,
+  })
+
+  const followingForMentionsQuery = useQuery({
+    queryKey: ['userSubscriptions', viewerId, 'following'],
+    queryFn: () => getUserSubscriptions(viewerId as string, 'following'),
+    enabled: viewerId != null,
+    staleTime: 60_000,
+  })
+  const followingMentionItems = useMemo(
+    () => followingForMentionsQuery.data?.items ?? [],
+    [followingForMentionsQuery.data],
+  )
+
+  const {
+    commentText,
+    commentDraftInlineCardRefs,
+    commentTextAreaRef,
+    commentMentionAnchorRef,
+    commentMentionPicker,
+    commentMentionHighlightIdx,
+    commentMentionFiltered,
+    commentMentionPopoverLayout,
+    charsLeft,
+    handleCommentTextChange,
+    handleCommentDraftKeyDown,
+    syncCommentMentionFromValue,
+    pickCommentMention,
+    dismissCommentMention,
+    insertReactionIntoComment,
+    insertMovieCardIntoComment,
+    toggleSpoilerInComment,
+    resetDraft,
+  } = useCommentDraftEditor({
+    followingMentionItems,
+    disabled: submitBusy || commentImageUploadBusy,
+  })
 
   const tasteQuizOwnerIds = useMemo(() => {
     const ids = new Set<string>()
@@ -292,19 +297,7 @@ export function MovieCardDetailPage() {
     () => (card != null ? buildMiniAppCardDeepLink(card.id) : null),
     [card],
   )
-  const charsLeft = COMMENT_BODY_MAX_LEN - commentText.length
   const invalidCardId = parsedCardId == null
-
-  const followingForMentionsQuery = useQuery({
-    queryKey: ['userSubscriptions', viewerId, 'following'],
-    queryFn: () => getUserSubscriptions(viewerId as string, 'following'),
-    enabled: viewerId != null,
-    staleTime: 60_000,
-  })
-  const followingMentionItems = useMemo(
-    () => followingForMentionsQuery.data?.items ?? [],
-    [followingForMentionsQuery.data],
-  )
 
   const mentionRowsForCardDetail = useMemo((): MentionProfileRowInput[] => {
     const seen = new Set<string>()
@@ -324,160 +317,6 @@ export function MovieCardDetailPage() {
     return out
   }, [card, comments, followingMentionItems])
 
-  const commentMentionFiltered = useMemo(
-    () =>
-      commentMentionPicker != null
-        ? filterFollowingForMentionQuery(followingMentionItems, commentMentionPicker.query)
-        : [],
-    [commentMentionPicker, followingMentionItems],
-  )
-
-  const commentMentionHighlightSafe = useMemo(() => {
-    if (commentMentionFiltered.length === 0) return 0
-    return Math.min(commentMentionHighlightIdx, commentMentionFiltered.length - 1)
-  }, [commentMentionFiltered.length, commentMentionHighlightIdx])
-
-  const syncCommentMentionFromValue = useCallback((value: string, caretOverride?: number | null) => {
-    const el = commentTextAreaRef.current
-    const caret =
-      caretOverride != null
-        ? Math.min(Math.max(0, caretOverride), value.length)
-        : Math.min(el?.selectionStart ?? value.length, value.length)
-    const active = parseActiveMentionQuery(value, caret)
-    if (active == null) {
-      setCommentMentionPicker(null)
-      setCommentMentionHighlightIdx(0)
-      return
-    }
-    setCommentMentionPicker(active)
-    setCommentMentionHighlightIdx(0)
-  }, [])
-
-  const handleCommentTextChange = useCallback(
-    (v: string, meta?: { caret: number }) => {
-      const next = v.slice(0, COMMENT_BODY_MAX_LEN)
-      setCommentText(next)
-      const caret = meta?.caret ?? next.length
-      queueMicrotask(() => syncCommentMentionFromValue(next, caret))
-    },
-    [syncCommentMentionFromValue],
-  )
-
-  const pickCommentMention = useCallback(
-    (slug: string) => {
-      const el = commentTextAreaRef.current
-      if (commentMentionPicker == null || el == null) return
-      const endCaret = commentMentionPicker.atIndex + 1 + commentMentionPicker.query.length
-      const caret = Math.min(endCaret, commentText.length)
-      const token = mentionReplacementFromSlug(slug)
-      const res = applyMentionPick(commentText, caret, commentMentionPicker.atIndex, token, COMMENT_BODY_MAX_LEN)
-      if (res == null) return
-      setCommentText(res.nextValue)
-      setCommentMentionPicker(null)
-      setCommentMentionHighlightIdx(0)
-      queueMicrotask(() => {
-        el.focus()
-        el.setSelectionRange(res.caret, res.caret)
-      })
-    },
-    [commentMentionPicker, commentText],
-  )
-
-  const handleCommentDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
-    (e) => {
-      if (commentMentionPicker == null) return
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setCommentMentionHighlightIdx((i) => {
-          const max = Math.max(0, commentMentionFiltered.length - 1)
-          return Math.min(max, i + 1)
-        })
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setCommentMentionHighlightIdx((i) => Math.max(0, i - 1))
-      } else if (e.key === 'Enter' && commentMentionFiltered.length > 0) {
-        e.preventDefault()
-        const row = commentMentionFiltered[commentMentionHighlightSafe] ?? commentMentionFiltered[0]
-        if (row != null) {
-          pickCommentMention(row.profile_slug)
-        }
-      }
-    },
-    [commentMentionFiltered, commentMentionHighlightSafe, commentMentionPicker, pickCommentMention],
-  )
-
-  const insertReactionIntoComment = useCallback(
-    (reactionTypeId: number) => {
-      setCommentMentionPicker(null)
-      setCommentMentionHighlightIdx(0)
-      const token = reactionTokenFromId(reactionTypeId)
-      const el = commentTextAreaRef.current
-      const inserted = insertSnippetAtCaret(
-        commentText,
-        el?.selectionStart ?? null,
-        el?.selectionEnd ?? null,
-        token,
-        COMMENT_BODY_MAX_LEN,
-      )
-      if (inserted == null) return
-      setCommentText(inserted.nextValue)
-      const caret = inserted.caret
-      queueMicrotask(() => {
-        el?.focus()
-        el?.setSelectionRange(caret, caret)
-      })
-    },
-    [commentText],
-  )
-
-  const insertMovieCardIntoComment = useCallback(
-    (row: WatchedInlinePickerItem) => {
-      setCommentMentionPicker(null)
-      setCommentMentionHighlightIdx(0)
-      const token = movieCardRefTokenFromId(row.movie_card_id)
-      const el = commentTextAreaRef.current
-      const inserted = insertSnippetAtCaret(
-        commentText,
-        el?.selectionStart ?? null,
-        el?.selectionEnd ?? null,
-        token,
-        COMMENT_BODY_MAX_LEN,
-      )
-      if (inserted == null) return
-      setCommentText(inserted.nextValue)
-      setCommentDraftInlineCardRefs((prev) => {
-        const next = new Map(prev)
-        next.set(row.movie_card_id, { film_title: row.film_title, film_year: row.film_year })
-        return next
-      })
-      const caret = inserted.caret
-      queueMicrotask(() => {
-        el?.focus()
-        el?.setSelectionRange(caret, caret)
-      })
-    },
-    [commentText],
-  )
-
-  const toggleSpoilerInComment = useCallback(() => {
-    setCommentMentionPicker(null)
-    setCommentMentionHighlightIdx(0)
-    const el = commentTextAreaRef.current
-    const toggled = toggleSpoilerAtSelection(
-      commentText,
-      el?.selectionStart ?? null,
-      el?.selectionEnd ?? null,
-      COMMENT_BODY_MAX_LEN,
-    )
-    if (toggled == null) return
-    setCommentText(toggled.nextValue)
-    const caret = toggled.caret
-    queueMicrotask(() => {
-      el?.focus()
-      el?.setSelectionRange(caret, caret)
-    })
-  }, [commentText])
-
   useEffect(() => {
     if (viewerId != null) return
     let alive = true
@@ -494,17 +333,6 @@ export function MovieCardDetailPage() {
       alive = false
     }
   }, [viewerId])
-
-  const scrollToComment = useCallback((commentId: number): boolean => {
-    const target = commentRefs.current[commentId]
-    if (target == null) return false
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    setHighlightCommentId(commentId)
-    window.setTimeout(() => {
-      setHighlightCommentId((prev) => (prev === commentId ? null : prev))
-    }, 1700)
-    return true
-  }, [])
 
   useEffect(() => {
     if (parsedCardId == null) return
@@ -571,45 +399,6 @@ export function MovieCardDetailPage() {
     markGlobalFeedCardDetailOpened(card.id)
   }, [card, viewerId])
 
-  const loadComments = useCallback(
-    async (append: boolean) => {
-      if (parsedCardId == null) return
-      const cursor = append ? commentsNextCursor : null
-      if (append && cursor == null) return
-
-      setCommentsLoading(true)
-      if (!append) {
-        setCommentsError(null)
-      }
-      try {
-        const page = await getMovieCardComments(parsedCardId, { cursor, limit: 20 })
-        setComments((prev) => (append ? [...prev, ...page.items] : page.items))
-        setCommentsNextCursor(page.next_cursor ?? null)
-      } catch (e) {
-        if (e instanceof ApiError) {
-          setCommentsError(formatApiDetail(e.detail))
-        } else {
-          setCommentsError('Не удалось загрузить комментарии')
-        }
-      } finally {
-        setCommentsLoading(false)
-      }
-    },
-    [commentsNextCursor, parsedCardId]
-  )
-
-  useEffect(() => {
-    if (parsedCardId == null || error != null) return
-    let alive = true
-    void (async () => {
-      if (!alive) return
-      await loadComments(false)
-    })()
-    return () => {
-      alive = false
-    }
-  }, [parsedCardId, error, loadComments])
-
   async function handleCreateComment() {
     if (parsedCardId == null || submitBusy) return
     const text = commentText.trim()
@@ -624,11 +413,8 @@ export function MovieCardDetailPage() {
         image_url: img === '' ? null : img,
       })
       await loadComments(false)
-      setCommentText('')
-      setCommentDraftInlineCardRefs(new Map())
+      resetDraft()
       setCommentImageUrl(null)
-      setCommentMentionPicker(null)
-      setCommentMentionHighlightIdx(0)
       setReplyTo(null)
       safeHapticSuccess()
     } catch (e) {
@@ -717,47 +503,7 @@ export function MovieCardDetailPage() {
     } finally {
       setCommentImageUploadBusy(false)
     }
-  }, [])
-
-  async function handleJumpToParent(parentCommentId: number) {
-    if (parsedCardId == null || jumpBusy) return
-    setCommentsError(null)
-
-    if (commentsById.has(parentCommentId)) {
-      scrollToComment(parentCommentId)
-      return
-    }
-
-    setJumpBusy(true)
-    try {
-      let cursor = commentsNextCursor
-      let accumulated = comments
-      while (cursor != null && !accumulated.some((item) => item.id === parentCommentId)) {
-        const page = await getMovieCardComments(parsedCardId, { cursor, limit: 20 })
-        accumulated = [...accumulated, ...page.items]
-        cursor = page.next_cursor ?? null
-      }
-      setComments(accumulated)
-      setCommentsNextCursor(cursor)
-
-      const found = accumulated.some((item) => item.id === parentCommentId)
-      if (!found) {
-        setCommentsError('Родительский комментарий не найден')
-        return
-      }
-      window.requestAnimationFrame(() => {
-        scrollToComment(parentCommentId)
-      })
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setCommentsError(formatApiDetail(e.detail))
-      } else {
-        setCommentsError('Не удалось загрузить родительский комментарий')
-      }
-    } finally {
-      setJumpBusy(false)
-    }
-  }
+  }, [setCommentsError])
 
   async function handleDeleteCard() {
     if (parsedCardId == null || deleteBusy) return
@@ -889,8 +635,10 @@ export function MovieCardDetailPage() {
             jumpBusy={jumpBusy}
             charsLeft={charsLeft}
             highlightCommentId={highlightCommentId}
-            commentRefs={commentRefs}
+            setCommentRef={setCommentRef}
             commentTextAreaRef={commentTextAreaRef}
+            commentMentionAnchorRef={commentMentionAnchorRef}
+            commentMentionPopoverLayout={commentMentionPopoverLayout}
             insertReactionIntoComment={insertReactionIntoComment}
             toggleSpoilerInComment={toggleSpoilerInComment}
             insertMovieCardIntoComment={insertMovieCardIntoComment}
@@ -917,16 +665,13 @@ export function MovieCardDetailPage() {
               )
             }}
             commentMentionPicker={commentMentionPicker}
-            commentMentionHighlightIdx={commentMentionHighlightSafe}
+            commentMentionHighlightIdx={commentMentionHighlightIdx}
             commentMentionFiltered={commentMentionFiltered}
             followingMentionItems={followingMentionItems}
             followingMentionQueryPending={followingForMentionsQuery.isPending}
             followingMentionQueryError={followingForMentionsQuery.isError}
             onPickCommentMention={pickCommentMention}
-            onDismissCommentMention={() => {
-              setCommentMentionPicker(null)
-              setCommentMentionHighlightIdx(0)
-            }}
+            onDismissCommentMention={dismissCommentMention}
             setReplyTo={setReplyTo}
             setCard={setCard}
             setComments={setComments}
@@ -981,8 +726,10 @@ type MovieCardDetailLoadedBodyProps = {
   jumpBusy: boolean
   charsLeft: number
   highlightCommentId: number | null
-  commentRefs: MutableRefObject<Record<number, HTMLDivElement | null>>
+  setCommentRef: (commentId: number, element: HTMLDivElement | null) => void
   commentTextAreaRef: RefObject<HTMLTextAreaElement | null>
+  commentMentionAnchorRef: RefObject<HTMLDivElement | null>
+  commentMentionPopoverLayout: { top: number; left: number; width: number; maxHeight: number } | null
   insertReactionIntoComment: (reactionTypeId: number) => void
   toggleSpoilerInComment: () => void
   insertMovieCardIntoComment: (row: WatchedInlinePickerItem) => void
@@ -991,7 +738,7 @@ type MovieCardDetailLoadedBodyProps = {
   handleCreateComment: () => Promise<void>
   handleJumpToParent: (parentCommentId: number) => Promise<void>
   onCommentTextChange: (v: string) => void
-  onCommentKeyDown: KeyboardEventHandler<HTMLTextAreaElement>
+  onCommentKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement>
   onCommentKeyUp: () => void
   onCommentSelect: () => void
   commentMentionPicker: ActiveMentionQuery | null
@@ -1042,8 +789,10 @@ function MovieCardDetailLoadedBody({
   jumpBusy,
   charsLeft,
   highlightCommentId,
-  commentRefs,
+  setCommentRef,
   commentTextAreaRef,
+  commentMentionAnchorRef,
+  commentMentionPopoverLayout,
   insertReactionIntoComment,
   toggleSpoilerInComment,
   insertMovieCardIntoComment,
@@ -1084,8 +833,6 @@ function MovieCardDetailLoadedBody({
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
 }: MovieCardDetailLoadedBodyProps) {
-  const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
-  const commentMentionPopoverLayout = useMentionPopoverLayout(commentMentionPicker != null, commentMentionAnchorRef)
   const [cardAttachedAudio, setCardAttachedAudio] = useState<HTMLAudioElement | null>(null)
   const onCardAttachedAudio = useCallback((el: HTMLAudioElement | null) => {
     setCardAttachedAudio(el)
@@ -1442,370 +1189,76 @@ function MovieCardDetailLoadedBody({
             />
             ) : null}
 
-            <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-3 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Комментарии</p>
-
-              {replyTo != null ? (
-                <div className="mt-2 flex items-center justify-between rounded-xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_18%,var(--tgui--divider_color))] bg-(--tgui--bg_color) px-3 py-2 text-xs motion-safe:animate-[filmony-detail-fade-in_0.25s_ease-out_both]">
-                  <span className="text-(--tgui--hint_color)">Ответ для: {replyTo.label}</span>
-                  <button type="button" onClick={() => setReplyTo(null)} className="text-(--tgui--link_color)">
-                    отменить
-                  </button>
-                </div>
-              ) : null}
-
-              <div className="mt-3">
-                <div className="flex gap-2">
-                  <div ref={commentMentionAnchorRef} className="relative min-w-0 flex-1">
-                    <CommentDraftMultiline
-                      ref={commentTextAreaRef}
-                      value={commentText}
-                      onChange={onCommentTextChange}
-                      onKeyDown={onCommentKeyDown}
-                      onKeyUp={onCommentKeyUp}
-                      onSelect={onCommentSelect}
-                      disabled={submitBusy || commentImageUploadBusy}
-                      rows={4}
-                      maxLength={COMMENT_BODY_MAX_LEN}
-                      placeholder="Напишите комментарий..."
-                      inlineMovieCardRefs={commentDraftInlineCardRefs}
-                    />
-                    {commentMentionPicker != null && commentMentionPopoverLayout != null
-                      ? createPortal(
-                          <>
-                            <button
-                              type="button"
-                              tabIndex={-1}
-                              aria-hidden
-                              className="fixed inset-0 z-200 cursor-default bg-black/0"
-                              onClick={onDismissCommentMention}
-                            />
-                            <div
-                              className="filmony-theme fixed z-201 overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) py-1 shadow-lg"
-                              style={{
-                                top: commentMentionPopoverLayout.top,
-                                left: commentMentionPopoverLayout.left,
-                                width: commentMentionPopoverLayout.width,
-                                maxHeight: commentMentionPopoverLayout.maxHeight,
-                              }}
-                              role="listbox"
-                              aria-label="Упомянуть подписку"
-                            >
-                              {followingMentionQueryPending ? (
-                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">Загрузка…</p>
-                              ) : followingMentionQueryError ? (
-                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">
-                                  Не удалось загрузить подписки
-                                </p>
-                              ) : followingMentionItems.length === 0 ? (
-                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">
-                                  Подпишитесь на пользователей — здесь появятся упоминания.
-                                </p>
-                              ) : commentMentionFiltered.length === 0 ? (
-                                <p className="px-3 py-2 text-[12px] text-(--tgui--hint_color)">Нет совпадений</p>
-                              ) : (
-                                commentMentionFiltered.map((it, idx) => {
-                                  const label = displayNameFromProfile(it)
-                                  const selected = idx === commentMentionHighlightIdx
-                                  return (
-                                    <button
-                                      key={it.id}
-                                      type="button"
-                                      role="option"
-                                      aria-selected={selected}
-                                      className={`flex w-full flex-col gap-0.5 px-3 py-2 text-left transition active:opacity-90 ${
-                                        selected
-                                          ? 'bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,var(--tgui--secondary_bg_color))]'
-                                          : 'hover:bg-(--tgui--secondary_bg_color)'
-                                      }`}
-                                      onMouseDown={(ev) => {
-                                        ev.preventDefault()
-                                        onPickCommentMention(it.profile_slug)
-                                      }}
-                                    >
-                                      <span className="text-[13px] font-medium text-(--tgui--text_color)">{label}</span>
-                                      <span className="font-mono text-[11px] text-(--tgui--hint_color)">
-                                        @{it.profile_slug}
-                                      </span>
-                                    </button>
-                                  )
-                                })
-                              )}
-                            </div>
-                          </>,
-                          document.body,
-                        )
-                      : null}
-                  </div>
-                  <div className="flex shrink-0 flex-col items-center justify-start gap-1 pt-1">
-                    <CommentReactionTokenPicker
-                      onPickReactionTypeId={insertReactionIntoComment}
-                      disabled={submitBusy || commentImageUploadBusy}
-                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
-                    />
-                    <CommentSpoilerToggleButton
-                      onToggleSpoiler={toggleSpoilerInComment}
-                      disabled={submitBusy || commentImageUploadBusy}
-                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
-                    />
-                    <MovieCardInlinePickerButton
-                      onPick={insertMovieCardIntoComment}
-                      disabled={submitBusy || commentImageUploadBusy}
-                      allowInsert={commentText.length < COMMENT_BODY_MAX_LEN}
-                    />
-                    <IconButton
-                      mode="gray"
-                      size="s"
-                      disabled={submitBusy || commentImageUploadBusy}
-                      onClick={handlePickCommentImage}
-                      aria-label="Добавить картинку"
-                      title="Добавить картинку"
-                    >
-                      <Paperclip className="block size-[18px]" strokeWidth={2} />
-                    </IconButton>
-                    <input
-                      ref={commentImageFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => void handleCommentImageFileChange(e)}
-                    />
-                  </div>
-                </div>
-                {commentImageUrl != null && commentImageUrl.trim() !== '' ? (
-                  <div className="relative mt-2 overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--card_bg_color)">
-                    <FeedOpenableContainedImageThumbnail
-                      src={movieCardCommentImageSrc(commentImageUrl)}
-                      wrapperClassName="relative block"
-                      imgClassName="max-h-[min(50vw,14rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
-                    />
-                    <IconButton
-                      mode="gray"
-                      size="s"
-                      className="absolute! right-1 top-1"
-                      onClick={() => setCommentImageUrl(null)}
-                      disabled={submitBusy || commentImageUploadBusy}
-                      aria-label="Убрать картинку"
-                    >
-                      <X className="block size-4" strokeWidth={2} />
-                    </IconButton>
-                  </div>
-                ) : null}
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className={`text-xs ${charsLeft < 20 ? 'text-(--tgui--destructive_text_color)' : 'text-(--tgui--hint_color)'}`}>
-                    Осталось: {charsLeft}
-                  </span>
-                  <Button
-                    size="s"
-                    disabled={submitBusy || commentImageUploadBusy || (commentText.trim() === '' && (commentImageUrl ?? '').trim() === '')}
-                    onClick={() => void handleCreateComment()}
-                    className="motion-safe:transition motion-safe:duration-200 motion-safe:active:scale-[0.97]"
-                  >
-                    {submitBusy ? 'Отправка...' : 'Отправить'}
-                  </Button>
-                </div>
-              </div>
-
-              {commentsError != null ? (
-                <p className="mt-2 text-sm text-(--tgui--destructive_text_color)">{commentsError}</p>
-              ) : null}
-
-              {commentsLoading ? (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка комментариев…</p>
-              ) : null}
-
-              {!commentsLoading && comments.length === 0 ? (
-                <PlayfulHint
-                  poolKey="comments_empty"
-                  fallback="Пока нет комментариев. Будьте первым."
-                  userId={viewerId}
-                  className="mt-3 text-sm text-(--tgui--hint_color)"
-                />
-              ) : null}
-
-              {comments.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  {comments.map((cardComment: MovieCardComment) => {
-                    const parent =
-                      cardComment.parent_comment_id != null
-                        ? commentsById.get(cardComment.parent_comment_id) ?? null
-                        : null
-                    const parentCommentId = cardComment.parent_comment_id
-                    const d = movieCardCommentDerivedFields(cardComment)
-                    return (
-                      <div
-                        key={cardComment.id}
-                        ref={(element) => {
-                          commentRefs.current[cardComment.id] = element
-                        }}
-                        className={`rounded-xl border bg-(--tgui--bg_color) p-3 motion-safe:transition-[border-color,box-shadow,transform] motion-safe:duration-300 ${
-                          highlightCommentId === cardComment.id
-                            ? 'border-(--tgui--link_color) shadow-[0_0_0_2px_color-mix(in_srgb,var(--tgui--link_color)_35%,transparent)] motion-safe:scale-[1.01]'
-                            : 'border-(--tgui--divider_color) motion-safe:hover:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_22%,var(--tgui--divider_color))]'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <Link to={`/u/${encodeURIComponent(cardComment.author.id)}`} className="no-underline">
-                            <Avatar
-                              src={cardComment.author.photo_url ?? undefined}
-                              acronym={authorName(cardComment).slice(0, 2).toUpperCase()}
-                              size={28}
-                            />
-                          </Link>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                <Link
-                                  to={`/u/${encodeURIComponent(cardComment.author.id)}`}
-                                  className="text-sm font-medium text-(--tgui--link_color) no-underline"
-                                >
-                                  {authorName(cardComment)}
-                                </Link>
-                                <TasteQuizCommentAuthorBadge
-                                  knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
-                                  authorId={cardComment.author.id}
-                                  viewerId={viewerId}
-                                />
-                                <RatingStreakAuthorBadge
-                                  streakByUserId={streakByUserId}
-                                  authorId={cardComment.author.id}
-                                />
-                                <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(cardComment.created_at)}</span>
-                              </div>
-                              <CommentHeaderActions
-                                onReply={() => setReplyTo({ id: cardComment.id, label: authorName(cardComment) })}
-                                canManage={viewerId != null && cardComment.author.id === viewerId}
-                                onEdit={
-                                  viewerId != null && cardComment.author.id === viewerId
-                                    ? () => onStartEditComment(cardComment)
-                                    : undefined
-                                }
-                                onDelete={
-                                  viewerId != null && cardComment.author.id === viewerId
-                                    ? () => onDeleteComment(cardComment.id)
-                                    : undefined
-                                }
-                                onPublishToFeed={
-                                  viewerId != null && cardComment.author.id === viewerId
-                                    ? () => {
-                                        const payload: OpenComposeFeedPostPayload = {
-                                          sourceCommentId: d.id,
-                                          referencedMovieCardId: card.id,
-                                          sourceCommentImageUrl: d.sourceCommentImageUrl,
-                                          sourceCommentPreviewAuthorLabel: authorName(cardComment),
-                                          sourceCommentPreviewText: d.text,
-                                          sourceCommentReferencedMovieCards: d.referenced_movie_cards ?? null,
-                                          sourceCommentReferencedMentions: d.referenced_mentions ?? null,
-                                        }
-                                        openCompose(payload)
-                                      }
-                                    : undefined
-                                }
-                                deleteBusy={deleteCommentBusyId === cardComment.id}
-                                disabled={editBusy && editingCommentId === cardComment.id}
-                              />
-                            </div>
-
-                            {parentCommentId != null ? (
-                              <button
-                                type="button"
-                                onClick={() => void handleJumpToParent(parentCommentId)}
-                                className="mt-2 block w-full rounded-lg border-l-2 border-(--tgui--link_color) bg-(--tgui--secondary_bg_color) px-2 py-1 text-left"
-                                disabled={jumpBusy}
-                              >
-                                <p className="truncate text-xs font-medium text-(--tgui--link_color)">
-                                  {parent ? authorName(parent) : 'Родительский комментарий'}
-                                </p>
-                                <p className="truncate text-xs text-(--tgui--hint_color)">
-                                  {parent ? snippet(parent.text) : 'Нажмите, чтобы подгрузить и перейти'}
-                                </p>
-                              </button>
-                            ) : null}
-
-                            {editingCommentId === cardComment.id ? (
-                              <div className="mt-1 space-y-2">
-                                <CommentDraftMultiline
-                                  value={editText}
-                                  onChange={(v) => setEditText(v.slice(0, COMMENT_BODY_MAX_LEN))}
-                                  placeholder="Редактировать комментарий"
-                                  disabled={editBusy}
-                                  rows={3}
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="s"
-                                    disabled={
-                                      editBusy ||
-                                      (editText.trim() === '' &&
-                                        (cardComment.image_url == null || cardComment.image_url.trim() === ''))
-                                    }
-                                    onClick={() =>
-                                      void onSaveEditComment(cardComment.id, cardComment.image_url ?? null)
-                                    }
-                                  >
-                                    {editBusy ? 'Сохранение…' : 'Сохранить'}
-                                  </Button>
-                                  <Button size="s" mode="gray" disabled={editBusy} onClick={onCancelEditComment}>
-                                    Отмена
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                {d.imageSrc != null ? (
-                                  <FeedOpenableContainedImageThumbnail
-                                    src={movieCardCommentImageSrc(d.imageSrc)}
-                                    wrapperClassName="mt-2 overflow-hidden rounded-lg border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)"
-                                    imgClassName="max-h-[min(60vw,16rem)] w-full object-contain object-center bg-(--tgui--divider_color)"
-                                  />
-                                ) : null}
-
-                                {d.textTrimmed !== '' ? (
-                                  <p className="mt-1 text-sm leading-relaxed">
-                                    <CommentBodyWithReactionTokens
-                                      text={d.text}
-                                      className="whitespace-pre-wrap"
-                                      inlineMovieCardRefs={inlineMovieCardRefMapFromSnippets(d.referenced_movie_cards)}
-                                      referencedMentions={d.referenced_mentions}
-                                    />
-                                  </p>
-                                ) : null}
-                              </>
-                            )}
-                            <div className="mt-1.5 flex min-w-0 flex-nowrap items-center gap-x-1 overflow-hidden">
-                              <ReactionStrip
-                                compact
-                                targetKind="movie_card_comment"
-                                targetId={cardComment.id}
-                                summary={cardComment.reactions}
-                                onSummaryChange={(next: ReactionSummary) =>
-                                  setComments((prev) =>
-                                    prev.map((c) => (c.id === cardComment.id ? { ...c, reactions: next } : c))
-                                  )
-                                }
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null}
-
-              {commentsNextCursor ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void loadComments(true)
-                  }}
-                  className="mt-3 text-xs text-(--tgui--link_color)"
-                  disabled={commentsLoading}
-                >
-                  Показать еще комментарии
-                </button>
-              ) : null}
-            </section>
+            <CommentThreadSection
+              comments={comments}
+              commentsById={commentsById}
+              commentsLoading={commentsLoading}
+              commentsError={commentsError}
+              commentsNextCursor={commentsNextCursor}
+              loadComments={loadComments}
+              replyTo={replyTo}
+              setReplyTo={setReplyTo}
+              viewerId={viewerId}
+              submitBusy={submitBusy}
+              jumpBusy={jumpBusy}
+              highlightCommentId={highlightCommentId}
+              setCommentRef={setCommentRef}
+              handleJumpToParent={handleJumpToParent}
+              handleCreateComment={handleCreateComment}
+              commentText={commentText}
+              onCommentTextChange={onCommentTextChange}
+              onCommentKeyDown={onCommentKeyDown}
+              onCommentKeyUp={onCommentKeyUp}
+              onCommentSelect={onCommentSelect}
+              commentTextAreaRef={commentTextAreaRef}
+              commentDraftInlineCardRefs={commentDraftInlineCardRefs}
+              insertReactionIntoComment={insertReactionIntoComment}
+              toggleSpoilerInComment={toggleSpoilerInComment}
+              insertMovieCardIntoComment={insertMovieCardIntoComment}
+              charsLeft={charsLeft}
+              commentMentionAnchorRef={commentMentionAnchorRef}
+              commentMentionPicker={commentMentionPicker}
+              commentMentionHighlightIdx={commentMentionHighlightIdx}
+              commentMentionFiltered={commentMentionFiltered}
+              commentMentionPopoverLayout={commentMentionPopoverLayout}
+              followingMentionItems={followingMentionItems}
+              followingMentionQueryPending={followingMentionQueryPending}
+              followingMentionQueryError={followingMentionQueryError}
+              onPickCommentMention={onPickCommentMention}
+              onDismissCommentMention={onDismissCommentMention}
+              tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+              streakByUserId={streakByUserId}
+              editingCommentId={editingCommentId}
+              editText={editText}
+              setEditText={setEditText}
+              editBusy={editBusy}
+              deleteCommentBusyId={deleteCommentBusyId}
+              onStartEditComment={onStartEditComment}
+              onCancelEditComment={onCancelEditComment}
+              onSaveEditComment={(comment) => void onSaveEditComment(comment.id, comment.image_url ?? null)}
+              onDeleteComment={onDeleteComment}
+              setComments={setComments}
+              reactionTargetKind="movie_card_comment"
+              commentImageUrl={commentImageUrl}
+              setCommentImageUrl={setCommentImageUrl}
+              commentImageUploadBusy={commentImageUploadBusy}
+              commentImageFileInputRef={commentImageFileInputRef}
+              handlePickCommentImage={handlePickCommentImage}
+              handleCommentImageFileChange={handleCommentImageFileChange}
+              onPublishToFeed={(comment) => {
+                const d = movieCardCommentDerivedFields(comment)
+                const payload: OpenComposeFeedPostPayload = {
+                  sourceCommentId: d.id,
+                  referencedMovieCardId: card.id,
+                  sourceCommentImageUrl: d.sourceCommentImageUrl,
+                  sourceCommentPreviewAuthorLabel: commentAuthorLabel(comment.author),
+                  sourceCommentPreviewText: d.text,
+                  sourceCommentReferencedMovieCards: d.referenced_movie_cards ?? null,
+                  sourceCommentReferencedMentions: d.referenced_mentions ?? null,
+                }
+                openCompose(payload)
+              }}
+            />
           </div>
     </>
   )

@@ -49,6 +49,7 @@ import {
 } from './ProfileStatsCharts'
 import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCard } from './ProfileStatsSummaryCard'
 import { TasteQuizKnowledgeList } from '../tasteQuiz/TasteQuizKnowledgeList'
+import { TabEmptyState } from '../ui/TabEmptyState'
 import { listTasteQuizKnowledge } from '../../api/tasteQuizApi'
 import type { TasteQuizKnowledgeItem } from '../../api/tasteQuizTypes'
 import type { MarathonAchievement } from '../../api/gamificationTypes'
@@ -797,7 +798,17 @@ export function ProfileStatsPanel({
                 </Link>
               </div>
             ) : (
-              <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+              <div className="space-y-3">
+                <p className="text-sm text-(--tgui--hint_color)">
+                  Режиссёры появятся, когда в карточках будут фильмы с метаданными Кинопоиска.
+                </p>
+                <TabEmptyState
+                  fallback="Оцените фильм с режиссёром — мы построим распределение автоматически."
+                  userId={userId}
+                  action={{ label: 'Добавить карточку', href: '/cards/new' }}
+                  className="py-4"
+                />
+              </div>
             )}
           </ProfileStatsSectionCard>
 
@@ -809,7 +820,17 @@ export function ProfileStatsPanel({
                 activeValue={cardsQuery.franchiseKey === '' ? undefined : cardsQuery.franchiseKey}
               />
             ) : (
-              <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+              <div className="space-y-3">
+                <p className="text-sm text-(--tgui--hint_color)">
+                  Серии и франшизы подтягиваются из метаданных фильмов в ваших карточках.
+                </p>
+                <TabEmptyState
+                  fallback="Оцените фильм из серии — здесь появится распределение по франшизам."
+                  userId={userId}
+                  action={{ label: 'Добавить карточку', href: '/cards/new' }}
+                  className="py-4"
+                />
+              </div>
             )}
           </ProfileStatsSectionCard>
 

@@ -6,6 +6,8 @@ import { listTasteQuizKnowledge } from '../api/tasteQuizApi'
 import type { TasteQuizKnowledgeDirection, TasteQuizKnowledgeItem } from '../api/tasteQuizTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { TasteQuizKnowledgeList } from '../components/tasteQuiz/TasteQuizKnowledgeList'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { tasteQuizKnowledgeListQueryKey } from '../lib/tasteQuizQueryKeys'
 
 const TABS: { id: TasteQuizKnowledgeDirection; label: string; empty: string }[] = [
@@ -63,11 +65,13 @@ export function TasteQuizStatsPage() {
     }
   }
 
-  if (auth.kind === 'loading' || auth.kind === 'error' || auth.kind === 'skipped') {
+  if (auth.kind === 'loading' || auth.kind === 'skipped') {
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
+  }
+
+  if (auth.kind === 'error') {
     return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
+      <PageErrorState message={auth.message} backLabel="На главную" backHref="/" className="bg-(--tgui--bg_color)" />
     )
   }
 
@@ -103,16 +107,23 @@ export function TasteQuizStatsPage() {
           ))}
         </div>
 
-        <TasteQuizKnowledgeList
-          items={displayItems}
-          emptyCopy={activeTab.empty}
-          loading={listQuery.isLoading}
-          loadingMore={loadingMore}
-          hasMore={hasMore}
-          onLoadMore={() => void loadMore()}
-        />
+        {listQuery.isError ? (
+          <PageErrorState
+            message="Не удалось загрузить статистику"
+            onRetry={() => void listQuery.refetch()}
+          />
+        ) : (
+          <TasteQuizKnowledgeList
+            items={displayItems}
+            emptyCopy={activeTab.empty}
+            loading={listQuery.isLoading}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            onLoadMore={() => void loadMore()}
+          />
+        )}
 
-        {tab === 'to_me' ? (
+        {tab === 'to_me' && !listQuery.isLoading && displayItems.length > 0 ? (
           <Link
             to="/taste-quiz/invite"
             className="mt-6 block text-center text-sm text-(--tgui--link_color) no-underline"

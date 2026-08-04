@@ -1,11 +1,21 @@
-import { Button, Section, Title } from '@telegram-apps/telegram-ui'
+import { Button } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { getCatalogCommunityCardsPage, getCatalogItemById, getFollowingRatingsForCatalogItem } from '../api/cardApi'
 import type { CatalogItemDetail, CommunityCardItem } from '../api/catalogTypes'
 import { ApiError, formatApiDetail } from '../api/client'
+import {
+  deleteMyWatchlistEntry,
+  deleteMyWatchlistFilm,
+  getMyPlannedCard,
+  getMyWatchlistPresence,
+  getUserWatchlist,
+} from '../api/profileApi'
 import { CommunityRatingsList } from '../components/catalog/CommunityRatingsList'
+import { TitleCommunityDetailLayout } from '../components/catalog/TitleCommunityDetailLayout'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import {
   buildFollowingRatingDisplayRows,
@@ -15,8 +25,13 @@ import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistO
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
-import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
-import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
+import { readMyProfileBundleCache, clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
+
+function catalogWatchlistCardId(item: CatalogItemDetail): string {
+  return item.provider === 'kinopoisk'
+    ? `kp:${item.external_id}`
+    : `${item.provider}:${item.external_id}`
+}
 
 export function CatalogDetailPage() {
   const auth = useAuthStatus()
@@ -36,9 +51,11 @@ export function CatalogDetailPage() {
   const [communityErr, setCommunityErr] = useState<string | null>(null)
   const [communityMoreBusy, setCommunityMoreBusy] = useState(false)
   const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
-  const [viewerId] = useState<string | null>(
-    () => readMyProfileBundleCache()?.profile.id ?? null,
-  )
+  const [inWatchlist, setInWatchlist] = useState<boolean | null>(null)
+  const [plannedUserCardId, setPlannedUserCardId] = useState<number | null>(null)
+  const [removeBusy, setRemoveBusy] = useState(false)
+  const [watchlistActionErr, setWatchlistActionErr] = useState<string | null>(null)
+  const [viewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
 
   const communityAuthorIds = useMemo(
     () => community.map((row) => row.author.id),
@@ -51,6 +68,16 @@ export function CatalogDetailPage() {
   const { streakByUserId } = useRatingStreaksOfUsers(communityAuthorIds, {
     enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
   })
+  const followingUserIds = useMemo(() => {
+    if (followingRatings == null) return undefined
+    const ids = new Set<string>()
+    for (const row of followingRatings) {
+      if (row.is_viewer !== true) {
+        ids.add(row.user_id)
+      }
+    }
+    return ids
+  }, [followingRatings])
 
   useEffect(() => {
     let alive = true
@@ -149,6 +176,82 @@ export function CatalogDetailPage() {
     }
   }, [auth.kind, catalogItemId])
 
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      if (auth.kind !== 'ready' || item == null) {
+        queueMicrotask(() => {
+          if (auth.kind !== 'ready') setInWatchlist(null)
+        })
+        return
+      }
+      try {
+        const cardId = catalogWatchlistCardId(item)
+        const m = await getMyWatchlistPresence(cardId)
+        if (!alive) return
+        setInWatchlist(m.in_watchlist)
+        if (m.in_watchlist) {
+          try {
+            const planned = await getMyPlannedCard(
+              item.film_id != null && item.film_id > 0
+                ? { film_id: item.film_id }
+                : { catalog_item_id: item.catalog_item_id },
+            )
+            if (!alive) return
+            setPlannedUserCardId(planned.user_card_id)
+          } catch {
+            if (!alive) return
+            setPlannedUserCardId(null)
+          }
+        } else {
+          setPlannedUserCardId(null)
+        }
+      } catch {
+        if (!alive) return
+        setInWatchlist(false)
+        setPlannedUserCardId(null)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [auth.kind, item])
+
+  const onAddToWatchlist = useCallback(() => {
+    if (item == null) return
+    void navigate(`/watchlist/new?catalogItemId=${encodeURIComponent(String(item.catalog_item_id))}`)
+  }, [item, navigate])
+
+  const onRemoveFromWatchlist = useCallback(async () => {
+    if (item == null) return
+    setRemoveBusy(true)
+    setWatchlistActionErr(null)
+    try {
+      if (item.film_id != null && item.film_id > 0) {
+        await deleteMyWatchlistFilm(item.film_id)
+      } else if (viewerId != null) {
+        const page = await getUserWatchlist(viewerId, { limit: 50 })
+        const cardId = catalogWatchlistCardId(item)
+        const entry = page.items.find((row) => row.card_id === cardId)
+        if (entry == null) {
+          throw new Error('watchlist entry not found')
+        }
+        await deleteMyWatchlistEntry(entry.entry_id)
+      }
+      setInWatchlist(false)
+      setPlannedUserCardId(null)
+      clearMyProfileBundleCache()
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setWatchlistActionErr(formatApiDetail(e.detail))
+      } else {
+        setWatchlistActionErr('Не удалось убрать из списка')
+      }
+    } finally {
+      setRemoveBusy(false)
+    }
+  }, [item, viewerId])
+
   const loadMoreCommunity = useCallback(async () => {
     if (catalogItemId < 1 || communityNext == null) return
     setCommunityMoreBusy(true)
@@ -181,165 +284,107 @@ export function CatalogDetailPage() {
   )
 
   const hasMyRatedCard = item != null && item.my_card_id != null && item.my_card_id > 0
-  const longDescription = item?.description?.trim() ?? ''
   const headerLabel = item?.kind === 'game' ? 'Игра в каталоге' : 'Тема в каталоге'
+  const displayTitle =
+    item != null ? `${item.title}${item.year != null ? ` (${item.year})` : ''}` : ''
 
   if (auth.kind === 'loading' || auth.kind === 'skipped') {
-    return (
-      <div className="min-h-dvh bg-(--tgui--bg_color) px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Вход…</p>
-      </div>
-    )
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
   }
 
   if (auth.kind === 'error') {
     return (
-      <div className="min-h-dvh bg-(--tgui--bg_color) px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState
+        message={auth.message}
+        backHref="/"
+        backLabel="На главную"
+        className="bg-(--tgui--bg_color)"
+      />
     )
   }
 
-  return (
-    <div className="min-h-dvh bg-(--tgui--bg_color) pb-8 text-(--tgui--text_color)">
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] px-2 py-2 backdrop-blur-md">
-        <button
-          type="button"
-          className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color)"
-          aria-label="Назад"
-          onClick={() => {
-            void navigate(-1)
-          }}
-        >
-          ←
-        </button>
-        <span className="truncate text-sm font-medium text-(--tgui--hint_color)">{headerLabel}</span>
-      </header>
-
-      <main className="mx-auto max-w-md space-y-4 px-4 pt-4">
-        {loading ? (
-          <p className="filmony-text-panel py-12 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
-        ) : null}
-        {!loading && error != null ? (
-          <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-4 py-4">
-            <p className="text-sm text-(--tgui--hint_color)">{error}</p>
-            <Button className="mt-4" stretched onClick={() => void navigate('/')}>
-              На главную
-            </Button>
-          </div>
-        ) : null}
-        {!loading && error == null && item != null ? (
+  const watchlistActions =
+    auth.kind === 'ready' && item != null ? (
+      <>
+        {hasMyRatedCard ? (
           <>
-            <WatchlistOverlapAnchorBanner anchor={catalogOverlapAnchor} />
-
-            <Section>
-              <div className="flex flex-col gap-4 px-3 py-3">
-                {item.poster_url != null ? (
-                  <img
-                    src={resolveApiMediaUrl(item.poster_url) ?? item.poster_url}
-                    alt=""
-                    className="mx-auto max-h-72 w-auto max-w-full rounded-xl object-cover"
-                  />
-                ) : null}
-                <div>
-                  <Title level="2" weight="2">
-                    {item.title}
-                    {item.year != null ? ` (${item.year})` : ''}
-                  </Title>
-                  {item.short_description?.trim() ? (
-                    <p className="mt-2 text-[14px] leading-relaxed text-(--tgui--hint_color)">
-                      {item.short_description}
-                    </p>
-                  ) : null}
-                  {longDescription !== '' ? (
-                    <div className="mt-2">
-                      <p
-                        className={
-                          descExpanded
-                            ? 'text-[14px] leading-relaxed text-(--tgui--text_color)'
-                            : 'line-clamp-4 text-[14px] leading-relaxed text-(--tgui--text_color)'
-                        }
-                      >
-                        {longDescription}
-                      </p>
-                      {longDescription.length > 200 ? (
-                        <button
-                          type="button"
-                          className="mt-1 text-xs font-medium text-(--tgui--link_color)"
-                          onClick={() => setDescExpanded((v) => !v)}
-                        >
-                          {descExpanded ? 'Свернуть' : 'Показать полностью'}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-
-                {auth.kind === 'ready' ? (
-                  <div className="flex flex-col gap-2">
-                    {hasMyRatedCard ? (
-                      <>
-                        <Link
-                          to={`/cards/${encodeURIComponent(String(item.my_card_id))}`}
-                          className="no-underline"
-                        >
-                          <Button stretched>Открыть мою карточку</Button>
-                        </Link>
-                        <Link
-                          to={`/cards/${encodeURIComponent(String(item.my_card_id))}/edit`}
-                          className="no-underline"
-                        >
-                          <Button mode="gray" stretched>
-                            Редактировать оценку
-                          </Button>
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          to={`/cards/new?catalogItemId=${encodeURIComponent(String(item.catalog_item_id))}`}
-                          className="no-underline"
-                        >
-                          <Button stretched>Добавить карточку с оценкой</Button>
-                        </Link>
-                        <Link
-                          to={`/watchlist/new?catalogItemId=${encodeURIComponent(String(item.catalog_item_id))}`}
-                          className="no-underline"
-                        >
-                          <Button mode="gray" stretched>
-                            В список «Позже»
-                          </Button>
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </Section>
-
-            {auth.kind === 'ready' ? (
-              <FollowingRatingsPanel rows={followingRatings} />
-            ) : null}
-
-            <Section header="Оценки в Filmony">
-              <CommunityRatingsList
-                items={community}
-                loading={communityLoading}
-                error={communityErr}
-                nextCursor={communityNext}
-                moreBusy={communityMoreBusy}
-                viewerId={viewerId}
-                tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
-                streakByUserId={streakByUserId}
-                onLoadMore={() => void loadMoreCommunity()}
-              />
-            </Section>
+            <Link to={`/cards/${encodeURIComponent(String(item.my_card_id))}`} className="no-underline">
+              <Button stretched>Открыть мою карточку</Button>
+            </Link>
+            <Link to={`/cards/${encodeURIComponent(String(item.my_card_id))}/edit`} className="no-underline">
+              <Button mode="gray" stretched>
+                Редактировать оценку
+              </Button>
+            </Link>
           </>
+        ) : (
+          <>
+            <Link
+              to={`/cards/new?catalogItemId=${encodeURIComponent(String(item.catalog_item_id))}`}
+              className="no-underline"
+            >
+              <Button stretched>Добавить карточку с оценкой</Button>
+            </Link>
+            {inWatchlist === false ? (
+              <Button mode="gray" stretched onClick={onAddToWatchlist}>
+                В список «Позже»
+              </Button>
+            ) : null}
+            {inWatchlist === true ? (
+              <>
+                {plannedUserCardId != null && plannedUserCardId > 0 ? (
+                  <Link to={`/cards/${encodeURIComponent(String(plannedUserCardId))}`} className="no-underline">
+                    <Button stretched>Открыть запланированную карточку</Button>
+                  </Link>
+                ) : null}
+                <Button mode="gray" stretched disabled={removeBusy} onClick={() => void onRemoveFromWatchlist()}>
+                  {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
+                </Button>
+              </>
+            ) : null}
+          </>
+        )}
+        {watchlistActionErr != null ? (
+          <p className="text-sm text-(--tgui--destructive_text_color)">{watchlistActionErr}</p>
         ) : null}
-      </main>
-    </div>
+      </>
+    ) : null
+
+  return (
+    <TitleCommunityDetailLayout
+      headerLabel={headerLabel}
+      loading={loading}
+      error={error}
+      heroVariant="catalog"
+      title={displayTitle}
+      posterUrl={item?.poster_url}
+      shortDescription={item?.short_description}
+      longDescription={item?.description}
+      descExpanded={descExpanded}
+      onToggleDescription={() => setDescExpanded((v) => !v)}
+      overlapPlacement="above-section"
+      overlapBanner={
+        item != null ? (
+          <WatchlistOverlapAnchorBanner anchor={catalogOverlapAnchor} inViewerWatchlist={inWatchlist} />
+        ) : null
+      }
+      watchlistActions={watchlistActions}
+      followingRatings={auth.kind === 'ready' ? <FollowingRatingsPanel rows={followingRatings} /> : null}
+      communityRatings={
+        <CommunityRatingsList
+          items={community}
+          loading={communityLoading}
+          error={communityErr}
+          nextCursor={communityNext}
+          moreBusy={communityMoreBusy}
+          viewerId={viewerId}
+          tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+          streakByUserId={streakByUserId}
+          followingUserIds={followingUserIds}
+          onLoadMore={() => void loadMoreCommunity()}
+        />
+      }
+      ready={item != null}
+    />
   )
 }

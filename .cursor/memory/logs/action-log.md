@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T123000Z-frontend-refactor-ux-polish-closeout.md`
 - `2026-08-04T170000Z-feed-post-delete-menu-closeout.md`
 - `2026-08-04T160000Z-tmdb-film-integration-closeout.md`
 - `2026-08-04T153000Z-profile-stats-director-franchise-closeout.md`

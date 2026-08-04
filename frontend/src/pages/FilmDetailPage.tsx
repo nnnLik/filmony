@@ -1,4 +1,4 @@
-import { Button, Section, Title } from '@telegram-apps/telegram-ui'
+import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -15,6 +15,9 @@ import {
 import type { Film, FilmCommunityCardItem } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { CommunityRatingsList } from '../components/catalog/CommunityRatingsList'
+import { TitleCommunityDetailLayout } from '../components/catalog/TitleCommunityDetailLayout'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { DirectorChip } from '../components/films/DirectorChip'
@@ -63,6 +66,16 @@ export function FilmDetailPage() {
   const { streakByUserId } = useRatingStreaksOfUsers(communityAuthorIds, {
     enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
   })
+  const followingUserIds = useMemo(() => {
+    if (followingRatings == null) return undefined
+    const ids = new Set<string>()
+    for (const row of followingRatings) {
+      if (row.is_viewer !== true) {
+        ids.add(row.user_id)
+      }
+    }
+    return ids
+  }, [followingRatings])
   const [descExpanded, setDescExpanded] = useState(false)
 
   const controversyQuery = useQuery({
@@ -284,219 +297,134 @@ export function FilmDetailPage() {
   }, [filmId, communityNext])
 
   if (auth.kind === 'loading' || auth.kind === 'skipped') {
-    return (
-      <div className="min-h-dvh bg-(--tgui--bg_color) px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Вход…</p>
-      </div>
-    )
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
   }
 
   if (auth.kind === 'error') {
     return (
-      <div className="min-h-dvh bg-(--tgui--bg_color) px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState
+        message={auth.message}
+        backHref="/"
+        backLabel="На главную"
+        className="bg-(--tgui--bg_color)"
+      />
     )
   }
 
-  const longDescription = film?.description?.trim() ?? ''
+  const titleMeta = film != null ? (
+    <>
+      <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
+      {film.primary_director_kinopoisk_id != null &&
+      film.primary_director_name != null &&
+      film.primary_director_name.trim() !== '' ? (
+        <DirectorChip
+          kinopoiskId={film.primary_director_kinopoisk_id}
+          name={film.primary_director_name}
+          size="md"
+          className="mt-2"
+        />
+      ) : null}
+      {film.franchise_key != null && film.franchise_label != null && film.franchise_label.trim() !== '' ? (
+        <FranchiseChip franchiseKey={film.franchise_key} label={film.franchise_label} size="md" className="mt-2" />
+      ) : null}
+      <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
+      {weeklyControversyForFilm != null ? (
+        <span
+          className="mt-2 inline-flex max-w-full items-center rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_42%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,transparent)] px-2 py-1 text-[11px] font-semibold text-(--tgui--text_color)"
+          title={`Недельный спор: ${weeklyControversyForFilm.title}`}
+        >
+          Разброс {formatRating(weeklyControversyForFilm.spread)} · {weeklyControversyForFilm.rater_count} друзей
+        </span>
+      ) : null}
+    </>
+  ) : null
+
+  const watchlistActions =
+    auth.kind === 'ready' && film != null ? (
+      <>
+        {hasMyRatedCard ? (
+          <>
+            <p className="text-sm text-(--tgui--hint_color)">Эта тема уже в ваших оценённых карточках.</p>
+            <Link to={`/cards/${encodeURIComponent(String(film.my_card_id))}`} className="no-underline">
+              <Button stretched>Открыть мою карточку</Button>
+            </Link>
+            <Link to={`/cards/${encodeURIComponent(String(film.my_card_id))}/edit`} className="no-underline">
+              <Button mode="gray" stretched>
+                Редактировать оценку
+              </Button>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link to={`/cards/new?filmId=${encodeURIComponent(String(film.id))}`} className="no-underline">
+              <Button stretched>Добавить карточку с оценкой</Button>
+            </Link>
+            {inWatchlist === false ? (
+              <Button mode="gray" stretched onClick={onAddToWatchlist}>
+                В список «Позже»
+              </Button>
+            ) : null}
+            {inWatchlist === true ? (
+              <>
+                {plannedUserCardId != null && plannedUserCardId > 0 ? (
+                  <Link to={`/cards/${encodeURIComponent(String(plannedUserCardId))}`} className="no-underline">
+                    <Button stretched>Открыть запланированную карточку</Button>
+                  </Link>
+                ) : null}
+                <Button mode="gray" stretched disabled={removeBusy} onClick={() => void onRemoveFromWatchlist()}>
+                  {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
+                </Button>
+              </>
+            ) : null}
+          </>
+        )}
+        {watchlistActionErr != null ? (
+          <p className="text-sm text-(--tgui--destructive_text_color)">{watchlistActionErr}</p>
+        ) : null}
+      </>
+    ) : null
 
   return (
-    <div className="min-h-dvh bg-(--tgui--bg_color) pb-8 text-(--tgui--text_color)">
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] px-2 py-2 backdrop-blur-md">
-        <button
-          type="button"
-          className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color)"
-          aria-label="Назад"
-          onClick={() => {
-            void navigate(-1)
-          }}
-        >
-          ←
-        </button>
-        <span className="truncate text-sm font-medium text-(--tgui--hint_color)">Тема в каталоге</span>
-      </header>
-
-      <main className="mx-auto max-w-md space-y-4 px-4 pt-4">
-        {loading ? (
-          <p className="filmony-text-panel py-12 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
-        ) : null}
-        {!loading && error != null ? (
-          <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-4 py-4">
-            <p className="text-sm text-(--tgui--hint_color)">{error}</p>
-            <Button className="mt-4" stretched onClick={() => void navigate('/')}>
-              На главную
-            </Button>
-          </div>
-        ) : null}
-        {!loading && error == null && film != null ? (
-          <>
-            <Section header={film.title}>
-              <div className="px-3 py-3">
-                <div className="filmony-text-panel flex gap-3">
-                  <div className="h-40 w-28 shrink-0 overflow-hidden rounded-xl bg-(--tgui--secondary_bg_color)">
-                    {film.poster_url ? (
-                      <img src={film.poster_url} alt={film.title} className="h-full w-full object-cover" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0">
-                    <Title level="3" weight="2">
-                      {film.title}
-                    </Title>
-                    <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
-                    {film.primary_director_kinopoisk_id != null &&
-                    film.primary_director_name != null &&
-                    film.primary_director_name.trim() !== '' ? (
-                      <DirectorChip
-                        kinopoiskId={film.primary_director_kinopoisk_id}
-                        name={film.primary_director_name}
-                        size="md"
-                        className="mt-2"
-                      />
-                    ) : null}
-                    {film.franchise_key != null &&
-                    film.franchise_label != null &&
-                    film.franchise_label.trim() !== '' ? (
-                      <FranchiseChip
-                        franchiseKey={film.franchise_key}
-                        label={film.franchise_label}
-                        size="md"
-                        className="mt-2"
-                      />
-                    ) : null}
-                    <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
-                    {weeklyControversyForFilm != null ? (
-                      <span
-                        className="mt-2 inline-flex max-w-full items-center rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_42%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,transparent)] px-2 py-1 text-[11px] font-semibold text-(--tgui--text_color)"
-                        title={`Недельный спор: ${weeklyControversyForFilm.title}`}
-                      >
-                        Разброс {formatRating(weeklyControversyForFilm.spread)} · {weeklyControversyForFilm.rater_count}{' '}
-                        друзей
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-
-                {(film.short_description?.trim() || longDescription) ? (
-                  <div className="mt-4 border-t border-(--tgui--divider_color) pt-4">
-                    {film.short_description?.trim() ? (
-                      <p className="text-[14px] leading-relaxed text-(--tgui--text_color)">
-                        {film.short_description.trim()}
-                      </p>
-                    ) : null}
-                    {longDescription ? (
-                      <div className={film.short_description?.trim() ? 'mt-3' : ''}>
-                        <p
-                          className={`text-[14px] leading-relaxed text-(--tgui--text_color) ${
-                            !descExpanded ? 'line-clamp-6' : ''
-                          }`}
-                        >
-                          {longDescription}
-                        </p>
-                        {longDescription.length > 320 ? (
-                          <button
-                            type="button"
-                            className="mt-2 text-sm font-medium text-(--tgui--link_color)"
-                            onClick={() => setDescExpanded((v) => !v)}
-                          >
-                            {descExpanded ? 'Свернуть описание' : 'Полное описание'}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {auth.kind === 'ready' ? (
-                  <div className="mt-6 flex flex-col gap-2">
-                    <WatchlistOverlapAnchorBanner
-                      anchor={filmOverlapAnchor}
-                      enabled={!hasMyRatedCard}
-                      inViewerWatchlist={inWatchlist}
-                    />
-                    {hasMyRatedCard ? (
-                      <>
-                        <p className="text-sm text-(--tgui--hint_color)">
-                          Эта тема уже в ваших оценённых карточках.
-                        </p>
-                        <Link
-                          to={`/cards/${encodeURIComponent(String(film.my_card_id))}`}
-                          className="no-underline"
-                        >
-                          <Button stretched>Открыть мою карточку</Button>
-                        </Link>
-                        <Link
-                          to={`/cards/${encodeURIComponent(String(film.my_card_id))}/edit`}
-                          className="no-underline"
-                        >
-                          <Button mode="gray" stretched>
-                            Редактировать оценку
-                          </Button>
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link to={`/cards/new?filmId=${encodeURIComponent(String(film.id))}`} className="no-underline">
-                          <Button stretched>Добавить карточку с оценкой</Button>
-                        </Link>
-                        {inWatchlist === false ? (
-                          <Button mode="gray" stretched onClick={onAddToWatchlist}>
-                            В список «Позже»
-                          </Button>
-                        ) : null}
-                        {inWatchlist === true ? (
-                          <>
-                            {plannedUserCardId != null && plannedUserCardId > 0 ? (
-                              <Link
-                                to={`/cards/${encodeURIComponent(String(plannedUserCardId))}`}
-                                className="no-underline"
-                              >
-                                <Button stretched>Открыть запланированную карточку</Button>
-                              </Link>
-                            ) : null}
-                            <Button
-                              mode="gray"
-                              stretched
-                              disabled={removeBusy}
-                              onClick={() => void onRemoveFromWatchlist()}
-                            >
-                              {removeBusy ? 'Убираем…' : 'Убрать из списка «Позже»'}
-                            </Button>
-                          </>
-                        ) : null}
-                      </>
-                    )}
-                    {watchlistActionErr != null ? (
-                      <p className="text-sm text-(--tgui--destructive_text_color)">{watchlistActionErr}</p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            </Section>
-
-            {auth.kind === 'ready' ? (
-              <FollowingRatingsPanel rows={followingRatings} />
-            ) : null}
-
-            <Section header="Оценки в Filmony">
-              <CommunityRatingsList
-                items={community}
-                loading={communityLoading}
-                error={communityErr}
-                nextCursor={communityNext}
-                moreBusy={communityMoreBusy}
-                viewerId={viewerId}
-                tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
-                streakByUserId={streakByUserId}
-                onLoadMore={() => void loadMoreCommunity()}
-              />
-            </Section>
-          </>
-        ) : null}
-      </main>
-    </div>
+    <TitleCommunityDetailLayout
+      headerLabel="Тема в каталоге"
+      loading={loading}
+      error={error}
+      sectionHeader={film?.title}
+      heroVariant="film"
+      title={film?.title ?? ''}
+      posterUrl={film?.poster_url}
+      posterAlt={film?.title}
+      titleMeta={titleMeta}
+      shortDescription={film?.short_description}
+      longDescription={film?.description}
+      descExpanded={descExpanded}
+      onToggleDescription={() => setDescExpanded((v) => !v)}
+      overlapBanner={
+        auth.kind === 'ready' && film != null ? (
+          <WatchlistOverlapAnchorBanner
+            anchor={filmOverlapAnchor}
+            enabled={!hasMyRatedCard}
+            inViewerWatchlist={inWatchlist}
+          />
+        ) : null
+      }
+      watchlistActions={watchlistActions}
+      followingRatings={auth.kind === 'ready' ? <FollowingRatingsPanel rows={followingRatings} /> : null}
+      communityRatings={
+        <CommunityRatingsList
+          items={community}
+          loading={communityLoading}
+          error={communityErr}
+          nextCursor={communityNext}
+          moreBusy={communityMoreBusy}
+          viewerId={viewerId}
+          tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
+          streakByUserId={streakByUserId}
+          followingUserIds={followingUserIds}
+          onLoadMore={() => void loadMoreCommunity()}
+        />
+      }
+      ready={film != null}
+    />
   )
 }

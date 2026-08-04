@@ -2,7 +2,7 @@
 
 ## Summary
 
-**Shipped:** Search-first, **local-first** catalog for **films (Kinopoisk)** and **games (RAWG)**. Users query by title (minimum length enforced client- and server-side, **provider-specific**) before creating a user card. Matching prefers rows already persisted as `Film` / `Game`; gaps are filled via provider list APIs with controlled outbound traffic (**~800 ms** debounced UI, **`AbortSignal`** cancellation for superseded queries, server-side **in-process TTL coalescing** for list queries ~45s per key).
+**Shipped:** Search-first, **local-first** catalog for **films (Kinopoisk)** and **games (RAWG)**. Users query by title (minimum length enforced client- and server-side, **provider-specific**) before creating a user card. Matching prefers rows already persisted as `Film` / `Game`; gaps are filled via provider list APIs with controlled outbound traffic (**400 ms** debounced UI via `lib/catalogSearchTiming.ts`, **`AbortSignal`** cancellation for superseded queries, server-side **in-process TTL coalescing** for list queries ~45s per key).
 
 ## Status
 
@@ -38,7 +38,7 @@ GET /api/catalog/search?provider=rawg&q=<query>&page=<n>&limit=<m>
 
 ### Frontend
 
-- **`CreateCardPage`:** Choose **film / game / manual** → film and game paths call **`GET /api/catalog/search`** via `catalogApi` with **~800 ms** debounce, **per-provider** minimum length before issuing a request (**≥ 3** film, **≥ 4** game), and **`AbortSignal`** support so in-flight requests are cancelled when the query changes. Infinite scroll / “load more” where implemented. Optional **Kinopoisk URL** block for film mode. Manual path keeps `no_provider` authoring.
+- **`CreateCardPage`:** Choose **film / game / manual** → film and game paths call **`GET /api/catalog/search`** via `catalogApi` with **400 ms** debounce (`CATALOG_SEARCH_DEBOUNCE_MS`), **per-provider** minimum length before issuing a request (**≥ 3** film, **≥ 4** game), and **`AbortSignal`** support so in-flight requests are cancelled when the query changes. Infinite scroll / “load more” where implemented. Optional **Kinopoisk URL** block for film mode. Manual path keeps `no_provider` authoring.
 
 ## Tests
 

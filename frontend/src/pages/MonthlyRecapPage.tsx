@@ -5,7 +5,8 @@ import { getMyLatestMonthlyRecap, getMyMonthlyRecap } from '../api/profileApi'
 import type { MonthlyRecap } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { StatsDonutChart } from '../components/profile/ProfileStatsCharts'
-import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import {
   DECADE_DONUT_COLORS,
   GENRE_DONUT_COLORS,
@@ -134,12 +135,18 @@ export function MonthlyRecapPage() {
       }))
   }, [recap?.decade_breakdown])
 
-  if (auth.kind === 'loading' || auth.kind === 'error' || auth.kind === 'skipped') {
+  if (auth.kind === 'loading' || auth.kind === 'skipped') {
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
+  }
+
+  if (auth.kind === 'error') {
     return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <InlineLoadingState message="Загрузка…" />
-      </div>
+      <PageErrorState message={auth.message} backLabel="На главную" backHref="/" className="bg-(--tgui--bg_color)" />
     )
+  }
+
+  if (loading) {
+    return <PageLoadingState message="Собираем итоги…" className="bg-(--tgui--bg_color)" />
   }
 
   return (
@@ -157,9 +164,10 @@ export function MonthlyRecapPage() {
       </header>
 
       <main className="space-y-4 px-4 py-4">
-        {loading ? <InlineLoadingState message="Собираем итоги…" /> : null}
-        {error != null ? <p className="text-sm text-red-500">{error}</p> : null}
-        {recap != null && !loading ? (
+        {error != null ? (
+          <PageErrorState message={error} backLabel="Назад" backHref="/profile" />
+        ) : null}
+        {recap != null ? (
           <>
             <section className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-3">

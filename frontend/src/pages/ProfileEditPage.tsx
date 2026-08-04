@@ -7,6 +7,8 @@ import { postNotificationPing } from '../api/notificationApi'
 import { getMyProfile, patchMyProfile } from '../api/profileApi'
 import type { MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import {
   isTelegramChatUnavailableDetail,
@@ -145,54 +147,29 @@ export function ProfileEditPage() {
   }
 
   if (auth.kind === 'loading') {
-    return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Вход…</p>
-      </div>
-    )
+    return <PageLoadingState authPending />
   }
 
   if (auth.kind === 'error') {
-    return (
-      <div className="mx-auto max-w-md px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{auth.message}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
-    )
+    return <PageErrorState message={auth.message} backLabel="На главную" backHref="/" />
   }
 
   if (auth.kind === 'skipped') {
     return (
-      <div className="mx-auto max-w-md px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
-          Откройте приложение в Telegram, чтобы редактировать профиль.
-        </p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState
+        message="Откройте приложение в Telegram, чтобы редактировать профиль."
+        backLabel="На главную"
+        backHref="/"
+      />
     )
   }
 
   if (loadError != null) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{loadError}</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/profile">
-          К профилю
-        </Link>
-      </div>
-    )
+    return <PageErrorState message={loadError} backLabel="К профилю" backHref="/profile" />
   }
 
   if (profile == null) {
-    return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
-    )
+    return <PageLoadingState />
   }
 
   const pub = toPublicShape(profile)

@@ -1,7 +1,7 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -10,6 +10,9 @@ import { subscribeToUser } from '../api/profileApi'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { TasteQuizGateScreen } from '../components/tasteQuiz/TasteQuizGateScreen'
 import { TasteQuizFollowSoftBanner } from '../components/tasteQuiz/TasteQuizFollowSoftBanner'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
+import { TabEmptyState } from '../components/ui/TabEmptyState'
 import { displayNameFromProfile } from '../lib/profileDisplay'
 import { tasteQuizResolveInviteQueryKey } from '../lib/tasteQuizQueryKeys'
 
@@ -60,22 +63,43 @@ export function TasteQuizInviteLandingPage() {
     }
   }
 
-  if (auth.kind === 'loading' || auth.kind === 'error' || auth.kind === 'skipped') {
+  if (auth.kind === 'loading' || auth.kind === 'skipped') {
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
+  }
+
+  if (auth.kind === 'error') {
     return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
+      <PageErrorState message={auth.message} backLabel="На главную" backHref="/" className="bg-(--tgui--bg_color)" />
     )
   }
 
   if (token === '') {
     return (
-      <div className="mx-auto max-w-md px-4 py-12 text-center">
-        <p className="text-sm text-(--tgui--destructive_text_color)">Некорректная ссылка</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState
+        message="Некорректная ссылка"
+        backLabel="На главную"
+        backHref="/"
+        className="bg-(--tgui--bg_color)"
+      />
+    )
+  }
+
+  if (inviteQuery.isLoading) {
+    return <PageLoadingState message="Загрузка…" className="bg-(--tgui--bg_color)" />
+  }
+
+  if (inviteQuery.isError) {
+    return (
+      <PageErrorState
+        message={
+          inviteQuery.error instanceof ApiError
+            ? formatApiDetail(inviteQuery.error.detail)
+            : 'Приглашение не найдено'
+        }
+        backLabel="На главную"
+        backHref="/"
+        className="bg-(--tgui--bg_color)"
+      />
     )
   }
 
@@ -99,18 +123,6 @@ export function TasteQuizInviteLandingPage() {
       </header>
 
       <main className="mx-auto max-w-md px-4 py-6">
-        {inviteQuery.isLoading ? (
-          <p className="filmony-text-panel py-10 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
-        ) : null}
-
-        {inviteQuery.isError ? (
-          <p className="filmony-text-panel py-8 text-center text-sm text-(--tgui--destructive_text_color)">
-            {inviteQuery.error instanceof ApiError
-              ? formatApiDetail(inviteQuery.error.detail)
-              : 'Приглашение не найдено'}
-          </p>
-        ) : null}
-
         {data != null && data.reason === 'owner_insufficient_cards' ? (
           <TasteQuizGateScreen
             ownerName={ownerName}
@@ -152,9 +164,7 @@ export function TasteQuizInviteLandingPage() {
         ) : null}
 
         {data?.expired === true ? (
-          <p className="filmony-text-panel py-8 text-center text-sm text-(--tgui--hint_color)">
-            Приглашение больше не действует.
-          </p>
+          <TabEmptyState fallback="Приглашение больше не действует." className="py-8" />
         ) : null}
       </main>
     </div>

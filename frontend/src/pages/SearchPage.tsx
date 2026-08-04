@@ -1,4 +1,4 @@
-import { Avatar, Button } from '@telegram-apps/telegram-ui'
+import { Avatar } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -8,6 +8,8 @@ import {
   searchCatalog,
   searchSuggestions,
   type SearchCardItem,
+  type SearchCatalogItemHit,
+  type SearchFilmHit,
   type SearchSuggestionsResponse,
   type SearchUserItem,
 } from '../api/searchApi'
@@ -16,13 +18,18 @@ import type { StreakBatchItem } from '../api/streaksTypes'
 import { ApiError, formatApiDetail } from '../api/client'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
+import { SearchResultsSkeleton } from '../components/search/SearchResultsSkeleton'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
-import { PlayfulHint } from '../components/ui/PlayfulHint'
+import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
+import { TabEmptyState } from '../components/ui/TabEmptyState'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { CATALOG_SEARCH_DEBOUNCE_MS } from '../lib/catalogSearchTiming'
+import { catalogCommunityPath, filmCommunityPath } from '../lib/catalogCommunityPath'
 import { getMyProfile } from '../api/profileApi'
 import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 import { profileInitials } from '../lib/profileDisplay'
@@ -163,6 +170,65 @@ function CardCatalogSearchResultRow({ row }: { row: SearchCardItem }) {
   )
 }
 
+function themeHitFilmId(hit: SearchCatalogItemHit | SearchFilmHit): number | null {
+  if (!('film_id' in hit)) return null
+  const filmId = hit.film_id
+  return filmId != null && filmId > 0 ? filmId : null
+}
+
+function catalogHitHref(hit: SearchCatalogItemHit | SearchFilmHit): string | null {
+  const catalogItemId = hit.catalog_item_id
+  if (catalogItemId != null && catalogItemId > 0) {
+    return catalogCommunityPath(catalogItemId, hit.kind)
+  }
+  if ('film_id' in hit) {
+    const filmId = hit.film_id
+    if (filmId != null && filmId > 0) {
+      return filmCommunityPath(filmId)
+    }
+  }
+  return null
+}
+
+function CatalogThemeSearchResultRow({ row }: { row: SearchCatalogItemHit | SearchFilmHit }) {
+  const href = catalogHitHref(row)
+  if (href == null) return null
+
+  const src = posterSrc(row.poster_url)
+  const title = row.title.trim() === '' ? 'Без названия' : row.title.trim()
+  const summary = row.summary?.trim() ?? ''
+  const metaParts: string[] = []
+  if (row.kind === 'game') {
+    metaParts.push('Игра')
+  } else if (row.kind === 'film') {
+    metaParts.push('Фильм')
+  }
+  if (row.year != null) {
+    metaParts.push(String(row.year))
+  }
+  const meta = metaParts.length > 0 ? metaParts.join(' · ') : 'Тема в каталоге'
+
+  return (
+    <Link
+      to={href}
+      className="flex min-h-[56px] items-center gap-3 rounded-xl px-2.5 py-2 no-underline text-(--tgui--text_color) transition-colors hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] active:bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)]"
+    >
+      <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)] ring-1 ring-(--tgui--divider_color)">
+        {src ? (
+          <img src={src} alt="" className="size-full object-cover" loading="lazy" />
+        ) : null}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-medium">{title}</div>
+        <div className="truncate text-sm text-(--tgui--hint_color)">{meta}</div>
+        {summary ? (
+          <div className="line-clamp-2 text-[13px] leading-snug text-(--tgui--hint_color)">{summary}</div>
+        ) : null}
+      </div>
+    </Link>
+  )
+}
+
 function SearchTitleRow() {
   const headerPepeSrc = useHeaderPepeGifSrc()
   return (
@@ -231,7 +297,7 @@ export function SearchPage() {
   }, [])
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 320)
+    const id = window.setTimeout(() => setDebouncedQuery(query.trim()), CATALOG_SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(id)
   }, [query])
 
@@ -251,6 +317,11 @@ export function SearchPage() {
     staleTime: 30_000,
   })
 
+  const isSearchDebouncing = query.trim().length >= 2 && query.trim() !== debouncedQuery
+  const showSearchSkeleton =
+    canSearch &&
+    (isSearchDebouncing || searchQuery.isPending || (searchQuery.isFetching && !searchQuery.isSuccess))
+
   const suggestionsError =
     suggestionsQuery.isError && suggestionsQuery.error instanceof ApiError
       ? formatApiDetail(suggestionsQuery.error.detail)
@@ -265,7 +336,27 @@ export function SearchPage() {
         ? 'Ошибка поиска'
         : null
 
-  const cardRows = searchQuery.data?.cards ?? searchQuery.data?.films ?? []
+  const cardRows = useMemo(() => searchQuery.data?.cards ?? [], [searchQuery.data?.cards])
+  const catalogItemRows = useMemo(() => {
+    const explicit = searchQuery.data?.catalog_items ?? []
+    const legacyFilms = searchQuery.data?.films ?? []
+    const cardIds = new Set(cardRows.map((row) => row.card_id))
+    const fromLegacy = legacyFilms.filter((row) => {
+      const legacyCardId = row.card_id
+      return legacyCardId == null || !cardIds.has(legacyCardId)
+    })
+    const seen = new Set<number>()
+    const merged: Array<SearchCatalogItemHit | SearchFilmHit> = []
+    for (const row of [...explicit, ...fromLegacy]) {
+      const catalogKey = row.catalog_item_id != null && row.catalog_item_id > 0 ? row.catalog_item_id : null
+      const filmKey = themeHitFilmId(row)
+      const key = catalogKey ?? (filmKey != null ? -filmKey : null)
+      if (key == null || seen.has(key)) continue
+      seen.add(key)
+      merged.push(row)
+    }
+    return merged
+  }, [cardRows, searchQuery.data?.catalog_items, searchQuery.data?.films])
   const users = searchQuery.data?.users ?? []
 
   const tasteQuizOwnerIds = useMemo(() => {
@@ -292,21 +383,11 @@ export function SearchPage() {
   })
 
   const showCatalogEmpty = canSearch && searchQuery.isSuccess && cardRows.length === 0
+  const showCatalogThemesEmpty = canSearch && searchQuery.isSuccess && catalogItemRows.length === 0
   const showUserEmpty = canSearch && searchQuery.isSuccess && users.length === 0
 
   if (auth.kind === 'loading') {
-    return (
-      <div className="min-h-full">
-        <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
-          <div className="px-4 py-3">
-            <SearchTitleRow />
-          </div>
-        </header>
-        <main className="px-4 pt-4">
-          <p className="text-sm text-(--tgui--hint_color)">Вход…</p>
-        </main>
-      </div>
-    )
+    return <PageLoadingState authPending className="min-h-full bg-(--tgui--bg_color)" />
   }
 
   if (auth.kind !== 'ready') {
@@ -339,7 +420,7 @@ export function SearchPage() {
         <div className="flex flex-col gap-5">
           {/* Подсказки сверху — как в продуктовой спецификации */}
           {suggestionsQuery.isPending ? (
-            <p className="text-center text-sm text-(--tgui--hint_color)">Загружаем идеи для вас…</p>
+            <InlineLoadingState message="Загружаем идеи для вас…" />
           ) : null}
           {suggestionsError ? (
             <div className="rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-4">
@@ -378,8 +459,10 @@ export function SearchPage() {
             {!canSearch && query.trim().length > 0 ? (
               <p className="mt-2 px-0.5 text-[12px] text-(--tgui--hint_color)">Ещё один символ — и покажем результаты.</p>
             ) : null}
-            {searchQuery.isFetching && canSearch ? (
-              <p className="mt-2 px-0.5 text-[12px] text-(--tgui--hint_color)">Ищем в каталоге…</p>
+            {showSearchSkeleton ? (
+              <div className="mt-4">
+                <SearchResultsSkeleton />
+              </div>
             ) : null}
             {searchError ? (
               <p className="mt-2 px-0.5 text-[13px] text-(--tgui--destructive_text_color)">{searchError}</p>
@@ -390,19 +473,13 @@ export function SearchPage() {
             <div className="flex flex-col gap-4">
               <ResultsSection title="Карточки" subtitle="Оценки и заметки участников">
                 {showCatalogEmpty ? (
-                  <div className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4">
-                    <PlayfulHint
-                      poolKey="search_cards_empty"
-                      fallback="Пока нет карточек по этому запросу. Можете добавить первой — например по ссылке из внешнего каталога."
-                      userId={viewerId}
-                      className="mb-3 text-[14px] leading-relaxed text-(--tgui--text_color)"
-                    />
-                    <Link to="/cards/new" className="block w-full no-underline">
-                      <Button mode="filled" stretched>
-                        Добавить карточку
-                      </Button>
-                    </Link>
-                  </div>
+                  <TabEmptyState
+                    poolKey="search_cards_empty"
+                    fallback="Пока нет карточек по этому запросу. Можете добавить первой — например по ссылке из внешнего каталога."
+                    userId={viewerId}
+                    action={{ label: 'Добавить карточку', href: '/cards/new' }}
+                    className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
+                  />
                 ) : (
                   <div className="flex flex-col gap-0.5">
                     {cardRows.map((row) => (
@@ -412,11 +489,34 @@ export function SearchPage() {
                 )}
               </ResultsSection>
 
+              <ResultsSection title="Темы в каталоге" subtitle="Фильмы и игры без вашей карточки">
+                {showCatalogThemesEmpty ? (
+                  <TabEmptyState
+                    fallback="Пока нет тем в каталоге по этому запросу."
+                    userId={viewerId}
+                    className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
+                  />
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {catalogItemRows.map((row) => {
+                      const catalogKey =
+                        row.catalog_item_id != null && row.catalog_item_id > 0 ? row.catalog_item_id : null
+                      const filmKey = themeHitFilmId(row)
+                      const key =
+                        catalogKey != null ? `catalog-${catalogKey}` : filmKey != null ? `film-${filmKey}` : row.title
+                      return <CatalogThemeSearchResultRow key={key} row={row} />
+                    })}
+                  </div>
+                )}
+              </ResultsSection>
+
               <ResultsSection title="Люди" subtitle="По имени, нику или адресу профиля">
                 {showUserEmpty ? (
-                  <p className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4 text-[14px] leading-relaxed text-(--tgui--text_color)">
-                    Пользователей с таким именем не нашли.
-                  </p>
+                  <TabEmptyState
+                    fallback="Пользователей с таким именем не нашли."
+                    userId={viewerId}
+                    className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
+                  />
                 ) : (
                   <div className="flex flex-col gap-0.5">
                     {users.map((u) => (

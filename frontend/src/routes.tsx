@@ -127,6 +127,7 @@ export function AppRoutes() {
         <Route path="/genres" element={<GenresIndexPage />} />
         <Route path="/genres/:slug" element={<GenreDetailPage />} />
         <Route path="/catalog/:catalogItemId" element={<CatalogDetailPage />} />
+        <Route path="/games/:catalogItemId" element={<CatalogDetailPage />} />
         <Route path="/feed-posts/:postId" element={<FeedPostDetailPage />} />
         <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
         <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />

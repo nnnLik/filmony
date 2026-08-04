@@ -1,7 +1,8 @@
 import { Users } from 'lucide-react'
-import { Link } from 'react-router'
 
 import type { WatchlistEntryItem } from '../../api/profileTypes'
+import { PosterGrid } from '../cards/PosterGrid'
+import { PosterTile } from '../cards/PosterTile'
 
 type WatchlistPosterGridProps = {
   items: WatchlistEntryItem[]
@@ -66,43 +67,23 @@ function WatchlistPosterCell({ item }: { item: WatchlistEntryItem }) {
     </span>
   ) : null
 
-  const inner = (
-    <div className="relative aspect-2/3 w-full">
-      {poster ? (
-        <img src={poster} alt={title} className="h-full w-full object-cover" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-[11px] text-(--tgui--hint_color)">
-          Нет постера
-        </div>
-      )}
-      {badge}
-    </div>
-  )
-
-  const shellClass =
-    'relative block overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)'
-
-  if (href == null) {
-    return (
-      <div className={shellClass} aria-label={`«${title}» в списке «Позже»`}>
-        {inner}
-      </div>
-    )
-  }
-
   return (
-    <Link to={href} className={`${shellClass} no-underline`} aria-label={`Открыть «${title}»`}>
-      {inner}
-    </Link>
+    <PosterTile
+      posterUrl={poster}
+      title={title}
+      href={href}
+      ariaLabel={href == null ? `«${title}» в списке «Позже»` : `Открыть «${title}»`}
+      overlay={badge}
+    />
   )
 }
 
 export function WatchlistPosterGrid({ items }: WatchlistPosterGridProps) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <PosterGrid>
       {items.map((item) => (
         <WatchlistPosterCell key={item.entry_id} item={item} />
       ))}
-    </div>
+    </PosterGrid>
   )
 }

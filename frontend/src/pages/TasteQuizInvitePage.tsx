@@ -1,13 +1,15 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { createTasteQuizInvite } from '../api/tasteQuizApi'
 import { getMyProfile, getUserSubscriptions } from '../api/profileApi'
 import type { SubscriptionListItem } from '../api/profileTypes'
 import { ShareFollowersPicker } from '../components/share/ShareFollowersPicker'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { buildMiniAppTasteQuizDeepLink } from '../lib/miniAppCardDeepLink'
 import { copyTextToClipboard } from '../lib/copyTextToClipboard'
@@ -79,15 +81,32 @@ export function TasteQuizInvitePage() {
     openTelegramShareUrl(link, text)
   }
 
-  if (auth.kind === 'loading' || auth.kind === 'error' || auth.kind === 'skipped') {
+  if (auth.kind === 'loading' || auth.kind === 'skipped') {
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
+  }
+
+  if (auth.kind === 'error') {
     return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
+      <PageErrorState message={auth.message} backLabel="На главную" backHref="/" className="bg-(--tgui--bg_color)" />
     )
   }
 
   const deepLink = inviteToken != null ? buildMiniAppTasteQuizDeepLink(inviteToken) : null
+
+  if (loading) {
+    return <PageLoadingState message="Загрузка…" className="bg-(--tgui--bg_color)" />
+  }
+
+  if (!loading && error != null) {
+    return (
+      <PageErrorState
+        message={error}
+        backLabel="В профиль"
+        backHref="/profile"
+        className="bg-(--tgui--bg_color)"
+      />
+    )
+  }
 
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) text-(--tgui--text_color)">
@@ -107,19 +126,6 @@ export function TasteQuizInvitePage() {
       </header>
 
       <main className="mx-auto max-w-md px-4 py-4">
-        {loading ? (
-          <p className="filmony-text-panel py-10 text-center text-sm text-(--tgui--hint_color)">Загрузка…</p>
-        ) : null}
-
-        {!loading && error != null ? (
-          <div className="py-8 text-center">
-            <p className="filmony-text-panel text-sm text-(--tgui--destructive_text_color)">{error}</p>
-            <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/profile">
-              В профиль
-            </Link>
-          </div>
-        ) : null}
-
         {!loading && error == null ? (
           <div className="space-y-4">
             <ShareFollowersPicker

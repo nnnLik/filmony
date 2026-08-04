@@ -14,6 +14,29 @@ export type SearchCardItem = {
 
 export type SearchFilmItem = SearchCardItem
 
+/** Catalog title in search without an existing user card (legacy `films` array). */
+export type SearchFilmHit = {
+  film_id?: number | null
+  catalog_item_id?: number | null
+  kind?: 'film' | 'game' | null
+  /** Present when legacy API duplicates `cards` into `films`. */
+  card_id?: number
+  title: string
+  year: number | null
+  poster_url: string | null
+  summary: string | null
+}
+
+/** Catalog item (film or game) without a user card in search results. */
+export type SearchCatalogItemHit = {
+  catalog_item_id: number
+  kind: 'film' | 'game'
+  title: string
+  year: number | null
+  poster_url: string | null
+  summary: string | null
+}
+
 export type SearchUserItem = {
   id: string
   profile_slug: string
@@ -26,7 +49,8 @@ export type SearchUserItem = {
 
 export type SearchCatalogResponse = {
   cards?: SearchCardItem[]
-  films?: SearchFilmItem[]
+  films?: SearchFilmHit[]
+  catalog_items?: SearchCatalogItemHit[]
   users: SearchUserItem[]
 }
 

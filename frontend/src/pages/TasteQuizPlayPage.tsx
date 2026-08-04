@@ -1,6 +1,6 @@
 import { Button } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { ApiError, formatApiDetail } from '../api/client'
@@ -18,6 +18,9 @@ import { TasteQuizGateScreen } from '../components/tasteQuiz/TasteQuizGateScreen
 import { TasteQuizGuessScreen } from '../components/tasteQuiz/TasteQuizGuessScreen'
 import { TasteQuizRevealScreen } from '../components/tasteQuiz/TasteQuizRevealScreen'
 import { TasteQuizSummaryScreen } from '../components/tasteQuiz/TasteQuizSummaryScreen'
+import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { PageErrorState } from '../components/ui/PageErrorState'
+import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { displayNameFromProfile } from '../lib/profileDisplay'
 import { normalizeRating } from '../lib/createCardBinding'
 import { safeHapticSuccess } from '../lib/safeHaptic'
@@ -258,22 +261,24 @@ export function TasteQuizPlayPage() {
     }
   }
 
-  if (auth.kind === 'loading' || auth.kind === 'error' || auth.kind === 'skipped') {
+  if (auth.kind === 'loading' || auth.kind === 'skipped') {
+    return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
+  }
+
+  if (auth.kind === 'error') {
     return (
-      <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
-        <p className="filmony-text-panel inline-block">Загрузка…</p>
-      </div>
+      <PageErrorState message={auth.message} backLabel="На главную" backHref="/" className="bg-(--tgui--bg_color)" />
     )
   }
 
   if (ownerId === '') {
     return (
-      <div className="mx-auto max-w-md px-4 py-12 text-center">
-        <p className="text-sm text-(--tgui--destructive_text_color)">Некорректный профиль</p>
-        <Link className="mt-4 inline-block text-sm text-(--tgui--link_color)" to="/">
-          На главную
-        </Link>
-      </div>
+      <PageErrorState
+        message="Некорректный профиль"
+        backLabel="На главную"
+        backHref="/"
+        className="bg-(--tgui--bg_color)"
+      />
     )
   }
 
@@ -352,9 +357,7 @@ export function TasteQuizPlayPage() {
       ) : null}
 
       {(phase === 'loading' || (phase === 'guess' && activeCard == null && session == null)) ? (
-        <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
-          {busy ? 'Запуск…' : 'Загрузка…'}
-        </p>
+        <InlineLoadingState message={busy ? 'Запуск…' : 'Загрузка…'} />
       ) : null}
 
       {phase === 'guess' && activeCard != null && session != null ? (

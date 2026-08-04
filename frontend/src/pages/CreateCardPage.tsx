@@ -23,6 +23,8 @@ import type {
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { CatalogCandidatesList } from '../components/create/CatalogCandidatesList'
 import { RatedCardScrollForm } from '../components/create/RatedCardScrollForm'
+import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { PageErrorState } from '../components/ui/PageErrorState'
 import {
   globalFeedQueryRootKey,
   myCardCategoriesQueryKey,
@@ -59,9 +61,23 @@ import {
   movieCardPrimaryTitle,
   movieCardReleaseCompactSuffix,
 } from '../lib/movieCardDisplay'
+import { catalogCommunityPath, filmCommunityPath } from '../lib/catalogCommunityPath'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 
 type CreateScreen = 'search' | 'form'
+
+function creationBindingCommunityHref(binding: CreationBinding): string | null {
+  if (binding.kind === 'catalog_game') {
+    return catalogCommunityPath(binding.catalogItemId, 'game')
+  }
+  if (binding.kind === 'catalog_film') {
+    return catalogCommunityPath(binding.catalogItemId, 'film')
+  }
+  if (binding.kind === 'film') {
+    return filmCommunityPath(binding.film.id)
+  }
+  return null
+}
 
 function applyBindingFields(binding: CreationBinding): {
   title: string
@@ -597,6 +613,42 @@ export function CreateCardPage() {
       : null
 
   const searchBusy = bootstrapBusy || pickBusy || (urlLike && resolveQuery.isFetching)
+  const showFullPageError = pageError != null && creationBinding == null && !bootstrapBusy && fromCardPrefillDone
+
+  if (!fromCardPrefillDone || bootstrapBusy) {
+    return (
+      <div className="min-h-full">
+        <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
+          <div className="flex items-center justify-between px-4 pb-3 pt-3">
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-lg text-(--tgui--link_color) active:opacity-70"
+              aria-label="Назад"
+            >
+              ←
+            </button>
+            <div className="text-center">
+              <h1 className="text-base font-semibold tracking-tight text-(--tgui--text_color)">Новая карточка</h1>
+            </div>
+            <span className="w-10" />
+          </div>
+        </header>
+        <InlineLoadingState message="Загружаем данные…" />
+      </div>
+    )
+  }
+
+  if (showFullPageError) {
+    return (
+      <PageErrorState
+        message={pageError}
+        backLabel="Назад"
+        backHref="/"
+        className="bg-(--tgui--bg_color)"
+      />
+    )
+  }
 
   return (
     <div className="min-h-full">
@@ -623,18 +675,6 @@ export function CreateCardPage() {
       </header>
 
       <main className="space-y-4 px-4 py-6">
-        {pageError != null ? (
-          <div className="rounded-2xl border border-(--tgui--destructive_text_color) bg-[color-mix(in_srgb,var(--tgui--destructive_text_color)_10%,transparent)] px-3 py-2">
-            <p className="text-sm text-(--tgui--destructive_text_color)">{pageError}</p>
-          </div>
-        ) : null}
-
-        {!fromCardPrefillDone || bootstrapBusy ? (
-          <p className="filmony-text-panel py-16 text-center text-sm text-(--tgui--hint_color)">
-            Загружаем данные…
-          </p>
-        ) : null}
-
         {fromCardPrefillDone && !bootstrapBusy && screen === 'search' ? (
           <section className="overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="border-b border-(--tgui--divider_color) px-4 py-3">
@@ -721,14 +761,14 @@ export function CreateCardPage() {
                 <h2 className="text-[15px] font-semibold tracking-tight text-(--tgui--text_color)">
                   Карточка
                 </h2>
-                {creationBinding.kind === 'catalog_game' ? (
-                  <Link
-                    to={`/catalog/${encodeURIComponent(String(creationBinding.catalogItemId))}`}
-                    className="text-xs font-semibold text-(--tgui--link_color) no-underline"
-                  >
-                    Все оценки →
-                  </Link>
-                ) : null}
+                {(() => {
+                  const communityHref = creationBindingCommunityHref(creationBinding)
+                  return communityHref != null ? (
+                    <Link to={communityHref} className="text-xs font-semibold text-(--tgui--link_color) no-underline">
+                      Все оценки →
+                    </Link>
+                  ) : null
+                })()}
               </div>
             </div>
             <div className="p-4">
