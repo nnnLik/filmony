@@ -72,7 +72,7 @@ export function FollowingRatingsPanel({ rows, communityLink = null, className = 
           <p className="text-sm text-(--tgui--hint_color)">
             Пока никто из подписок не оценил эту тему.
           </p>
-          <Link to="/subscriptions" className="text-sm font-semibold text-(--tgui--link_color) no-underline">
+          <Link to="/profile/subscriptions" className="text-sm font-semibold text-(--tgui--link_color) no-underline">
             Найти друзей в подписках →
           </Link>
         </div>

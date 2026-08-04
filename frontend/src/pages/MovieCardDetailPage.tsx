@@ -29,6 +29,7 @@ import type { WatchedInlinePickerItem } from '../api/watchedInlinePickerTypes'
 import { getUserSubscriptions } from '../api/profileApi'
 import type { SubscriptionListItem } from '../api/profileTypes'
 import { ApiError, formatApiDetail } from '../api/client'
+import { useAuthStatus } from '../auth/useAuthStatus'
 import { getMyProfile } from '../api/profileApi'
 import type {
   CardCompany,
@@ -154,6 +155,7 @@ function CardAuthorAvatarLink({ author }: { author: MovieCardCommentAuthor }) {
 type MovieCardLocationState = { cardEntry?: string; fromFeed?: boolean } | null | undefined
 
 export function MovieCardDetailPage() {
+  const auth = useAuthStatus()
   const navigate = useNavigate()
   const location = useLocation()
   const removeMovieCardRequest = useRemoveMovieCard()
@@ -362,6 +364,10 @@ export function MovieCardDetailPage() {
   }, [parsedCardId])
 
   useEffect(() => {
+    if (auth.kind !== 'ready') {
+      queueMicrotask(() => setFollowingRatings(null))
+      return
+    }
     if (parsedCardId == null || card?.is_planned === true) {
       queueMicrotask(() => {
         setFollowingRatings(card?.is_planned === true ? [] : null)
@@ -387,7 +393,7 @@ export function MovieCardDetailPage() {
     return () => {
       alive = false
     }
-  }, [parsedCardId, card?.is_planned])
+  }, [auth.kind, parsedCardId, card?.is_planned])
 
   useEffect(() => {
     if (card == null || viewerId == null) return
