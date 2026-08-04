@@ -39,7 +39,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - run: uv sync --frozen --group dev
+      - run: uv sync --frozen --group dev --group prod
 
       - name: Run backend unit tests
         run: uv run pytest src/tests/unit --no-cov -n auto --dist=loadscope
