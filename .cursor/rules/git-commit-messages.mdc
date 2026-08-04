@@ -1,0 +1,39 @@
+---
+description: Conventional commit message format for this repo
+alwaysApply: true
+---
+
+# Git Commit Messages
+
+Use **Conventional Commits** when writing commit messages. Prefer **English** imperative subjects (repo default); Russian is OK if the user asks.
+
+## Format
+
+- `type: summary` or `type(scope): summary`
+- **Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`
+- **Scope (optional):** area touched, e.g. `feat(frontend):`, `fix(backend):`
+
+## Subject
+
+- Imperative mood, concise, no trailing period
+- Target ~72 characters; one logical change per subject when possible
+
+## Multiple changes
+
+- Put details in the **body** as `-` bullets (one short line each)
+- Subject stays one short line; enumerate in body, not a long subject
+- Subject may use ` - ` only if everything still fits one short line
+
+## Examples
+
+❌ `Fixed stuff` · `feat: add login.` · `update api and ui and tests`
+
+✅ `fix(backend): reject invalid film rating payload`
+
+✅ `feat(frontend): add director rated-films tab` with body:
+```
+- list endpoint wiring
+- empty and error states
+```
+
+For commit workflow (inspect diff, HEREDOC, staging), see `.cursor/skills/git-commit-messages/SKILL.md`.

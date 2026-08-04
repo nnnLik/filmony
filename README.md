@@ -2,7 +2,9 @@
 
 **Telegram Mini App** для тех, кто не может просто «посмотрел и забыл». Оценивай фильмы, делись впечатлениями с друзьями и собирай свою кино-историю — прямо в Telegram.
 
-![Лента подписок — оценки друзей, посты и карточки фильмов](docs/assets/screenshots/01-feed.png)
+<p align="center">
+  <img src="docs/assets/screenshots/01-feed.png" alt="Лента подписок — оценки друзей, посты и карточки фильмов" width="240" />
+</p>
 
 ## Что это
 
@@ -14,23 +16,31 @@ Filmony — личный кино-дневник в формате мини-пр
 
 Не просто «7 из 10», а контекст: с кем смотрел, какое было настроение до и после, свои теги и полка в коллекции. Карточка живёт дольше, чем одна строчка в заметках.
 
-![Создание карточки — оценка, контекст просмотра и теги](docs/assets/screenshots/02-create-card.png)
+<p align="center">
+  <img src="docs/assets/screenshots/02-create-card.png" alt="Создание карточки — оценка, контекст просмотра и теги" width="240" />
+</p>
 
 На деталке — теги, оценки друзей, реакции и комментарии. Место для hot take, когда лента уже пролистана.
 
-![Деталка карточки — теги, оценки друзей и комментарии](docs/assets/screenshots/08-card-detail.png)
+<p align="center">
+  <img src="docs/assets/screenshots/08-card-detail.png" alt="Деталка карточки — теги, оценки друзей и комментарии" width="240" />
+</p>
 
 ### Мем-реакции
 
 Не лайки, а настроение: Pepe, котики, кастомные стикеры и прочий хаос. Реагируй так, как фильм того заслужил.
 
-![Мем-реакции на карточке](docs/assets/screenshots/03-reactions.png)
+<p align="center">
+  <img src="docs/assets/screenshots/03-reactions.png" alt="Мем-реакции на карточке" width="240" />
+</p>
 
 ### Угадай вкус
 
 Taste Quiz — угадай, как друг оценил фильм. Попал — получи Knowledge badge. Промахнулся — ну, бывает, пересмотришь.
 
-![Итоги раунда «Угадать вкус»](docs/assets/screenshots/04-taste-quiz.png)
+<p align="center">
+  <img src="docs/assets/screenshots/04-taste-quiz.png" alt="Итоги раунда «Угадать вкус»" width="240" />
+</p>
 
 ### Taste Match
 
@@ -40,11 +50,15 @@ Taste Quiz — угадай, как друг оценил фильм. Попал
 
 Публичный профиль: подписчики, био, любимые фильмы и все карточки на одном экране. Хвастаться можно и цифрами, и полкой.
 
-![Профиль — статистика, био и коллекция «Любимое»](docs/assets/screenshots/06-passport.png)
+<p align="center">
+  <img src="docs/assets/screenshots/06-passport.png" alt="Профиль — статистика, био и коллекция «Любимое»" width="240" />
+</p>
 
 Heatmap просмотров, средний балл, полярность оценок — смотри, как менялся твой вкус и чей ещё рядом.
 
-![Статистика профиля — heatmap и инсайты](docs/assets/screenshots/05-profile-stats.png)
+<p align="center">
+  <img src="docs/assets/screenshots/05-profile-stats.png" alt="Статистика профиля — heatmap и инсайты" width="240" />
+</p>
 
 ### Геймификация
 
@@ -54,7 +68,9 @@ Heatmap просмотров, средний балл, полярность оц
 
 Watchlist «Позже» — фильмы в закладки, пока не созреешь. Видно, кто из друзей тоже отложил — можно пригласить на совместный просмотр.
 
-![Watchlist «Позже» — свои отложенные и фильмы друзей](docs/assets/screenshots/07-watchlist.png)
+<p align="center">
+  <img src="docs/assets/screenshots/07-watchlist.png" alt="Watchlist «Позже» — свои отложенные и фильмы друзей" width="240" />
+</p>
 
 ### Audio vibe
 
