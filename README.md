@@ -1,19 +1,30 @@
 # Filmony
 
 <p align="center">
+  <a href="https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml?query=branch%3Amaster"><img src="https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml/badge.svg?branch=master" alt="CI Backend"></a>
+  <a href="https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml?query=branch%3Amaster"><img src="https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml/badge.svg?branch=master" alt="CI Frontend"></a>
+  <a href="https://codecov.io/gh/nnnLik/Filmony"><img src="https://codecov.io/gh/nnnLik/Filmony/branch/master/graph/badge.svg" alt="Codecov"></a>
+  <a href="https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml"><img src="https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a>
+  <img src="https://img.shields.io/github/last-commit/nnnLik/Filmony?logo=git&logoColor=white" alt="Last commit">
+</p>
 
-[![CI Backend](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml?query=branch%3Amaster)
-[![Codecov](https://codecov.io/gh/nnnLik/Filmony/branch/master/graph/badge.svg)](https://codecov.io/gh/nnnLik/Filmony)
-[![CI Frontend](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml?query=branch%3Amaster)
-[![Deploy](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml/badge.svg)](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml)
+<p align="center">
+  <img src="https://img.shields.io/badge/Telegram-Mini_App-26A5E4?logo=telegram&logoColor=white" alt="Telegram Mini App">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Tailwind-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/TanStack_Query-FF4154?logo=reactquery&logoColor=white" alt="TanStack Query">
+</p>
 
-![Python](https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![Postgres](https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white)
-![Telegram](https://img.shields.io/badge/Telegram-Mini_App-26A5E4?logo=telegram&logoColor=white)
-
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white" alt="Python 3.13+">
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white" alt="Redis">
+  <img src="https://img.shields.io/badge/Celery-37814A?logo=celery&logoColor=white" alt="Celery">
+  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflareworkers&logoColor=white" alt="Cloudflare Workers">
 </p>
 
 **Telegram Mini App** для тех, кто не может просто «посмотрел и забыл». Оценивай фильмы, делись впечатлениями с друзьями и собирай свою кино-историю — прямо в Telegram.
