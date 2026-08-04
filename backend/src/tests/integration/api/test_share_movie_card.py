@@ -7,9 +7,9 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
-from tests.api.test_profile_routes import _login, _seed_movie_card
 
 from celery_app import app as celery_app_instance
+from tests.integration.api.test_profile_routes import _login, _seed_movie_card
 
 
 @pytest.mark.asyncio

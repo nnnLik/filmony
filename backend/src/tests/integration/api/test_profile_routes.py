@@ -1267,7 +1267,7 @@ async def test_list_user_cards_rating_pagination_cursor(async_client: AsyncClien
 
 @pytest.mark.asyncio
 async def test_list_user_cards_filter_by_category_id(async_client: AsyncClient) -> None:
-    from tests.api.test_cards_routes import _create_film as create_film
+    from tests.integration.api.test_cards_routes import _create_film as create_film
 
     me = await _login(async_client, telegram_user_id=5209)
     new_cat = await async_client.post('/api/me/card-categories', json={'name': 'ShelfAnime'})

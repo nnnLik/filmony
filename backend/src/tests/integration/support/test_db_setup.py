@@ -9,9 +9,13 @@ from tests.support import db_setup
 class _DummyConnection:
     def __init__(self) -> None:
         self.run_sync_called = False
+        self.statements: list[str] = []
 
     async def run_sync(self, _: object) -> None:
         self.run_sync_called = True
+
+    async def execute(self, statement: object) -> None:
+        self.statements.append(str(statement))
 
 
 class _DummyBeginContext:
@@ -60,3 +64,20 @@ async def test_drop_all_tables_runs_metadata_drop_all(monkeypatch: pytest.Monkey
     await db_setup.drop_all_tables()
 
     assert conn.run_sync_called
+
+
+@pytest.mark.asyncio
+async def test_reset_worker_schema_recreates_schema(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings.app, 'ENV', AppEnv.TEST)
+    monkeypatch.setenv('PYTEST_DB_SCHEMA', 'pytest_gw2')
+
+    conn = _DummyConnection()
+    engine = _DummyEngine(conn)
+    monkeypatch.setattr(db_setup, 'get_engine', lambda: engine)
+
+    await db_setup.reset_worker_schema()
+
+    assert conn.statements == [
+        'DROP SCHEMA IF EXISTS "pytest_gw2" CASCADE',
+        'CREATE SCHEMA "pytest_gw2"',
+    ]

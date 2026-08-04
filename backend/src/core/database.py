@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from conf import settings
 
@@ -60,6 +61,8 @@ def get_engine() -> AsyncEngine:
         ca = _connect_args()
         if ca is not None:
             kwargs['connect_args'] = ca
+        if settings.app.is_test:
+            kwargs['poolclass'] = NullPool
         _engine = create_async_engine(
             async_engine_connect_url(),
             **kwargs,

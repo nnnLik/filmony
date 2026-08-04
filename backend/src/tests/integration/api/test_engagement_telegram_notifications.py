@@ -8,14 +8,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from tests.api.test_feed_posts_routes import _login as _login_feed
-from tests.api.test_reactions_routes import (
+
+import celery_app
+from tests.integration.api.test_feed_posts_routes import _login as _login_feed
+from tests.integration.api.test_reactions_routes import (
     _create_card_any,
     _login,
     _seed_reaction_catalog,
 )
-
-import celery_app
 
 _DELIVER_ENGAGEMENT_PATCHES = (
     'services.telegram.notify_comment_reply.deliver_engagement_html_message',

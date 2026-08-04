@@ -60,11 +60,14 @@ def _noop_film_metadata_sync_on_card_create() -> None:
 @pytest_asyncio.fixture
 async def prepare_db() -> None:
     reset_global_feed_head_broker_for_tests()
-    await db_setup.drop_all_tables()
-    await db_setup.create_all_tables()
-    yield
-    await db_setup.drop_all_tables()
-    await dispose_engine()
+    try:
+        await db_setup.reset_worker_schema()
+        await db_setup.create_all_tables()
+        yield
+    finally:
+        await dispose_engine()
+        await db_setup.reset_worker_schema()
+        await dispose_engine()
 
 
 @pytest_asyncio.fixture

@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from tests.api.test_cards_routes import _create_film as _film_cards
-from tests.api.test_cards_routes import _login as _login_cards
-from tests.api.test_feed_posts_routes import _login as _login_feed
 
 import celery_app
 from conf import settings
+from tests.integration.api.test_cards_routes import _create_film as _film_cards
+from tests.integration.api.test_cards_routes import _login as _login_cards
+from tests.integration.api.test_feed_posts_routes import _login as _login_feed
 
 
 @pytest.fixture(autouse=True)

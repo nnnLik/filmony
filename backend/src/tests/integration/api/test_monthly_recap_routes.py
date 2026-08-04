@@ -7,9 +7,9 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
-from tests.api.test_profile_routes import _login, _seed_movie_card
 
 from services.profile.build_monthly_recap import previous_complete_month
+from tests.integration.api.test_profile_routes import _login, _seed_movie_card
 
 
 @pytest.mark.asyncio
