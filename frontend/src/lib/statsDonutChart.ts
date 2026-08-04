@@ -129,6 +129,32 @@ export const GENRE_DONUT_COLORS: readonly string[] = [
   '#38bdf8',
 ]
 
+export const DIRECTOR_DONUT_COLORS: readonly string[] = [
+  '#f59e0b',
+  '#ef7d9b',
+  '#6366f1',
+  '#e8b86d',
+  '#fb7185',
+  '#a78bfa',
+  '#f97316',
+  '#ec4899',
+  '#818cf8',
+  '#fbbf24',
+]
+
+export const FRANCHISE_DONUT_COLORS: readonly string[] = [
+  '#38bdf8',
+  '#5de1d4',
+  '#4f87ff',
+  '#34d399',
+  '#e8b86d',
+  '#64748b',
+  '#94a3b8',
+  '#a78bfa',
+  '#2dd4bf',
+  '#60a5fa',
+]
+
 export const DECADE_DONUT_COLORS: readonly string[] = [
   '#64748b',
   '#94a3b8',

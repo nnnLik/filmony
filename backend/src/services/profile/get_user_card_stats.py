@@ -13,6 +13,7 @@ from models.card_tag import CardTag
 from models.film import Film
 from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
+from services.franchises.franchise_label import resolve_franchise_label
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
 ACTIVITY_WINDOW_DAYS = 180
@@ -55,6 +56,13 @@ class ProfileInsights:
     dominant_company: str | None
     dominant_mood_after: str | None
     top_tag: str | None
+    top_director_kinopoisk_id: int | None
+    top_director_name: str | None
+    top_director_count: int
+    top_franchise_key: str | None
+    top_franchise_label: str | None
+    top_franchise_count: int
+    unique_directors_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +95,20 @@ class GenreDistributionItem:
 
 
 @dataclass(frozen=True, slots=True)
+class DirectorDistributionItem:
+    kinopoisk_id: int
+    name: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class FranchiseDistributionItem:
+    franchise_key: str
+    label: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class UserCardStats:
     total_movies: int
     average_rating: float
@@ -94,6 +116,8 @@ class UserCardStats:
     year_distribution: list[YearDistributionItem]
     rated_year_distribution: list[YearDistributionItem]
     genre_distribution: list[GenreDistributionItem]
+    director_distribution: list[DirectorDistributionItem]
+    franchise_distribution: list[FranchiseDistributionItem]
     popular_tags: list[TagDistributionItem]
     tag_taste: list[TagTasteItem]
     insights: ProfileInsights
@@ -159,6 +183,9 @@ class GetUserCardStatsService:
                     Film.year,
                     Film.poster_url,
                     Film.genres,
+                    Film.primary_director_kinopoisk_id,
+                    Film.primary_director_name,
+                    Film.franchise_key,
                     UserCardCategory.id.label('shelf_category_id'),
                     UserCardCategory.name.label('shelf_category_name'),
                 )
@@ -182,6 +209,8 @@ class GetUserCardStatsService:
         category_counts: dict[int | None, int] = {}
         category_names: dict[int, str] = {}
         genre_counts: dict[str, int] = {}
+        director_counts: dict[int, tuple[str, int]] = {}
+        franchise_counts: dict[str, int] = {}
         movies: list[ProfileMovieStatsItem] = []
 
         for row in card_rows:
@@ -195,6 +224,16 @@ class GetUserCardStatsService:
                 label = str(genre_name).strip()
                 if label:
                     genre_counts[label] = genre_counts.get(label, 0) + 1
+            if row.primary_director_kinopoisk_id is not None:
+                director_id = int(row.primary_director_kinopoisk_id)
+                director_name = (
+                    str(row.primary_director_name or '').strip() or f'Режиссёр #{director_id}'
+                )
+                existing_name, existing_count = director_counts.get(director_id, (director_name, 0))
+                director_counts[director_id] = (existing_name or director_name, existing_count + 1)
+            franchise_key = str(row.franchise_key or '').strip()
+            if franchise_key != '':
+                franchise_counts[franchise_key] = franchise_counts.get(franchise_key, 0) + 1
             rated_at = row.completed_at or row.created_at
             rated_year = rated_at.year
             rated_year_counts[rated_year] = rated_year_counts.get(rated_year, 0) + 1
@@ -236,6 +275,24 @@ class GetUserCardStatsService:
         genre_distribution = [
             GenreDistributionItem(genre=genre, count=count)
             for genre, count in sorted(genre_counts.items(), key=lambda item: (-item[1], item[0]))
+        ]
+        director_distribution = [
+            DirectorDistributionItem(kinopoisk_id=kinopoisk_id, name=name, count=count)
+            for kinopoisk_id, (name, count) in sorted(
+                director_counts.items(),
+                key=lambda item: (-item[1][1], item[1][0]),
+            )
+        ]
+        franchise_distribution = [
+            FranchiseDistributionItem(
+                franchise_key=franchise_key,
+                label=await resolve_franchise_label(self._session, franchise_key),
+                count=count,
+            )
+            for franchise_key, count in sorted(
+                franchise_counts.items(),
+                key=lambda item: (-item[1], item[0]),
+            )
         ]
         watch_with_distribution = [
             ValueDistributionItem(value=value, count=count)
@@ -314,11 +371,20 @@ class GetUserCardStatsService:
         dominant_company = watch_with_distribution[0].value if watch_with_distribution else None
         dominant_mood_after = mood_after_distribution[0].value if mood_after_distribution else None
         top_tag = tag_taste[0].tag if tag_taste else None
+        top_director = director_distribution[0] if director_distribution else None
+        top_franchise = franchise_distribution[0] if franchise_distribution else None
         insights = ProfileInsights(
             activity_total_180d=activity_total_180d,
             dominant_company=dominant_company,
             dominant_mood_after=dominant_mood_after,
             top_tag=top_tag,
+            top_director_kinopoisk_id=top_director.kinopoisk_id if top_director else None,
+            top_director_name=top_director.name if top_director else None,
+            top_director_count=top_director.count if top_director else 0,
+            top_franchise_key=top_franchise.franchise_key if top_franchise else None,
+            top_franchise_label=top_franchise.label if top_franchise else None,
+            top_franchise_count=top_franchise.count if top_franchise else 0,
+            unique_directors_count=len(director_distribution),
         )
 
         return UserCardStats(
@@ -328,6 +394,8 @@ class GetUserCardStatsService:
             year_distribution=year_distribution,
             rated_year_distribution=rated_year_distribution,
             genre_distribution=genre_distribution,
+            director_distribution=director_distribution,
+            franchise_distribution=franchise_distribution,
             popular_tags=popular_tags,
             tag_taste=tag_taste,
             insights=insights,

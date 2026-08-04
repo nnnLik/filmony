@@ -22,6 +22,8 @@ import {
   aggregateYearDistributionToDecades,
   COMPANY_DONUT_COLORS,
   DECADE_DONUT_COLORS,
+  DIRECTOR_DONUT_COLORS,
+  FRANCHISE_DONUT_COLORS,
   GENRE_DONUT_COLORS,
   findPeakRatedYear,
   MOOD_AFTER_DONUT_COLORS,
@@ -163,10 +165,7 @@ function deriveInsights(
   sentiment: { highPct: number; total: number },
 ): ProfileInsightItem[] {
   const snap = stats.insights
-  const items: ProfileInsightItem[] = [
-    { key: 'total', label: 'Карточек', value: String(stats.total_movies) },
-    { key: 'avg', label: 'Средний балл', value: formatRating(stats.average_rating) },
-  ]
+  const items: ProfileInsightItem[] = []
   if (snap != null) {
     if (snap.activity_total_180d > 0) {
       items.push({
@@ -174,6 +173,28 @@ function deriveInsights(
         label: 'За 6 месяцев',
         value: String(snap.activity_total_180d),
         hint: 'завершённых просмотров',
+      })
+    }
+    if (snap.top_director_name != null && snap.top_director_name !== '') {
+      items.push({
+        key: 'top_director',
+        label: 'Любимый режиссёр',
+        value: snap.top_director_name,
+        hint:
+          snap.top_director_count != null && snap.top_director_count > 0
+            ? `${snap.top_director_count} ${snap.top_director_count === 1 ? 'фильм' : snap.top_director_count < 5 ? 'фильма' : 'фильмов'}`
+            : undefined,
+      })
+    }
+    if (snap.top_franchise_label != null && snap.top_franchise_label !== '') {
+      items.push({
+        key: 'top_franchise',
+        label: 'Любимая серия',
+        value: snap.top_franchise_label,
+        hint:
+          snap.top_franchise_count != null && snap.top_franchise_count > 0
+            ? `${snap.top_franchise_count} ${snap.top_franchise_count === 1 ? 'фильм' : snap.top_franchise_count < 5 ? 'фильма' : 'фильмов'}`
+            : undefined,
       })
     }
     if (snap.top_tag != null && snap.top_tag !== '') {
@@ -388,6 +409,30 @@ export function ProfileStatsPanel({
       }))
   }, [stats?.genre_distribution])
 
+  const directorDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const rows = stats?.director_distribution ?? []
+    return rows
+      .filter((item) => item.count > 0)
+      .map((item, idx) => ({
+        label: item.name,
+        count: item.count,
+        value: String(item.kinopoisk_id),
+        color: DIRECTOR_DONUT_COLORS[idx % DIRECTOR_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [stats?.director_distribution])
+
+  const franchiseDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const rows = stats?.franchise_distribution ?? []
+    return rows
+      .filter((item) => item.count > 0)
+      .map((item, idx) => ({
+        label: item.label,
+        count: item.count,
+        value: item.franchise_key,
+        color: FRANCHISE_DONUT_COLORS[idx % FRANCHISE_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [stats?.franchise_distribution])
+
   const peakRatedYear = useMemo(
     () => findPeakRatedYear(stats?.rated_year_distribution),
     [stats?.rated_year_distribution],
@@ -436,10 +481,15 @@ export function ProfileStatsPanel({
   const metricStripItems = useMemo(() => {
     const total = stats != null ? String(stats.total_movies) : '0'
     const avg = stats != null ? formatRating(stats.average_rating) : '0'
-    return [
+    const uniqueDirectors = stats?.insights?.unique_directors_count ?? 0
+    const items = [
       { label: 'Карточек', value: total },
       { label: 'Средний балл', value: avg },
-    ] as const
+    ]
+    if (uniqueDirectors > 0) {
+      items.push({ label: 'Режиссёров', value: String(uniqueDirectors) })
+    }
+    return items
   }, [stats])
 
   const watchSummaryRows = useMemo(() => {
@@ -498,6 +548,30 @@ export function ProfileStatsPanel({
       genre: trimmed,
       directorKinopoiskId: '',
       franchiseKey: '',
+    })
+    onDrillToRatedCards?.()
+  }
+
+  const handleDirectorDistributionDrill = (kinopoiskIdValue: string) => {
+    const id = Number(kinopoiskIdValue)
+    if (!Number.isInteger(id) || id < 1) return
+    onCardsQueryChange({
+      ...cardsQuery,
+      directorKinopoiskId: String(id),
+      genre: '',
+      franchiseKey: '',
+    })
+    onDrillToRatedCards?.()
+  }
+
+  const handleFranchiseDistributionDrill = (franchiseKey: string) => {
+    const trimmed = franchiseKey.trim()
+    if (trimmed === '') return
+    onCardsQueryChange({
+      ...cardsQuery,
+      franchiseKey: trimmed,
+      genre: '',
+      directorKinopoiskId: '',
     })
     onDrillToRatedCards?.()
   }
@@ -698,6 +772,42 @@ export function ProfileStatsPanel({
                   Все жанры →
                 </Link>
               </div>
+            ) : (
+              <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+            )}
+          </ProfileStatsSectionCard>
+
+          <ProfileStatsSectionCard title="По режиссёрам">
+            {directorDonutSegments.length > 0 ? (
+              <div className="space-y-3">
+                <StatsDonutChart
+                  segments={directorDonutSegments}
+                  onSegmentClick={handleDirectorDistributionDrill}
+                  activeValue={
+                    cardsQuery.directorKinopoiskId === ''
+                      ? undefined
+                      : cardsQuery.directorKinopoiskId
+                  }
+                />
+                <Link
+                  to="/directors"
+                  className="block text-center text-sm text-(--tgui--link_color) no-underline"
+                >
+                  Все режиссёры →
+                </Link>
+              </div>
+            ) : (
+              <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+            )}
+          </ProfileStatsSectionCard>
+
+          <ProfileStatsSectionCard title="По сериям">
+            {franchiseDonutSegments.length > 0 ? (
+              <StatsDonutChart
+                segments={franchiseDonutSegments}
+                onSegmentClick={handleFranchiseDistributionDrill}
+                activeValue={cardsQuery.franchiseKey === '' ? undefined : cardsQuery.franchiseKey}
+              />
             ) : (
               <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
             )}

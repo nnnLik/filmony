@@ -37,6 +37,9 @@ async def _seed_movie_card(
     category_id: int | None = None,
     is_planned: bool = False,
     completed_at: datetime | None = None,
+    primary_director_kinopoisk_id: int | None = None,
+    primary_director_name: str | None = None,
+    franchise_key: str | None = None,
 ) -> int:
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -46,6 +49,9 @@ async def _seed_movie_card(
             year=year,
             poster_url='https://example.com/poster.jpg',
             genres=[],
+            primary_director_kinopoisk_id=primary_director_kinopoisk_id,
+            primary_director_name=primary_director_name,
+            franchise_key=franchise_key,
         )
         session.add(film)
         await session.flush()
@@ -559,6 +565,87 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     social = body['social']
     assert social['mutual_subscriptions_count'] == 0
     assert social['taste_peers'] == []
+
+
+@pytest.mark.asyncio
+async def test_user_stats_director_and_franchise_distribution(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=5290)
+    user_id = UUID(str(me['id']))
+    franchise_key = 'kp_franchise:301'
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=301,
+        title='Matrix',
+        year=1999,
+        rating=9.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        primary_director_kinopoisk_id=525,
+        primary_director_name='Кристофер Нолан',
+        franchise_key=franchise_key,
+    )
+    for idx in range(2):
+        await _seed_movie_card(
+            user_id=user_id,
+            kinopoisk_id=5290002 + idx,
+            title=f'Nolan film {idx + 2}',
+            year=2020 + idx,
+            rating=8.0,
+            company='alone',
+            mood_after='enjoyed',
+            tags=[],
+            primary_director_kinopoisk_id=525,
+            primary_director_name='Кристофер Нолан',
+            franchise_key=franchise_key if idx == 0 else None,
+        )
+    for idx in range(2):
+        await _seed_movie_card(
+            user_id=user_id,
+            kinopoisk_id=5290101 + idx,
+            title=f'Anderson film {idx + 1}',
+            year=2015 + idx,
+            rating=7.0,
+            company='alone',
+            mood_after='enjoyed',
+            tags=[],
+            primary_director_kinopoisk_id=594,
+            primary_director_name='Wes Anderson',
+        )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5290201,
+        title='No metadata',
+        year=2010,
+        rating=6.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+    )
+
+    r = await async_client.get(f'/api/users/{user_id}/stats')
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body['director_distribution'] == [
+        {'kinopoisk_id': 525, 'name': 'Кристофер Нолан', 'count': 3},
+        {'kinopoisk_id': 594, 'name': 'Wes Anderson', 'count': 2},
+    ]
+    assert body['franchise_distribution'] == [
+        {'franchise_key': franchise_key, 'label': 'Matrix', 'count': 2},
+    ]
+
+    insights = body['insights']
+    assert insights['top_director_kinopoisk_id'] == 525
+    assert insights['top_director_name'] == 'Кристофер Нолан'
+    assert insights['top_director_count'] == 3
+    assert insights['top_franchise_key'] == franchise_key
+    assert insights['top_franchise_label'] == 'Matrix'
+    assert insights['top_franchise_count'] == 2
+    assert insights['unique_directors_count'] == 2
 
 
 @pytest.mark.asyncio

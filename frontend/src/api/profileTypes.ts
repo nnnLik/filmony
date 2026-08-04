@@ -453,6 +453,18 @@ export type GenreDistributionItem = {
   count: number
 }
 
+export type DirectorDistributionItem = {
+  kinopoisk_id: number
+  name: string
+  count: number
+}
+
+export type FranchiseDistributionItem = {
+  franchise_key: string
+  label: string
+  count: number
+}
+
 /** Срез оценённых карточек по пользовательской полке (GET /stats). */
 export type CategoryDistributionItem = {
   category_id: number | null
@@ -500,6 +512,13 @@ export type ProfileInsightsSnapshot = {
   dominant_company: string | null
   dominant_mood_after: string | null
   top_tag: string | null
+  top_director_kinopoisk_id?: number | null
+  top_director_name?: string | null
+  top_director_count?: number
+  top_franchise_key?: string | null
+  top_franchise_label?: string | null
+  top_franchise_count?: number
+  unique_directors_count?: number
 }
 
 /** Breakdown of weighted taste match signals (v2). */
@@ -537,6 +556,8 @@ export type UserMovieCardStats = {
   rated_year_distribution?: YearDistributionItem[]
   category_distribution: CategoryDistributionItem[]
   genre_distribution?: GenreDistributionItem[]
+  director_distribution?: DirectorDistributionItem[]
+  franchise_distribution?: FranchiseDistributionItem[]
   popular_tags: TagDistributionItem[]
   watch_with_distribution: ValueDistributionItem[]
   mood_after_distribution: ValueDistributionItem[]

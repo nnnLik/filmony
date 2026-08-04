@@ -330,6 +330,13 @@ class ProfileInsightsResponse(BaseModel):
     dominant_company: str | None
     dominant_mood_after: str | None
     top_tag: str | None
+    top_director_kinopoisk_id: int | None = None
+    top_director_name: str | None = None
+    top_director_count: int = 0
+    top_franchise_key: str | None = None
+    top_franchise_label: str | None = None
+    top_franchise_count: int = 0
+    unique_directors_count: int = 0
 
     model_config = ConfigDict(extra='forbid')
 
@@ -378,6 +385,22 @@ class GenreDistributionItemResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class DirectorDistributionItemResponse(BaseModel):
+    kinopoisk_id: int
+    name: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class FranchiseDistributionItemResponse(BaseModel):
+    franchise_key: str
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class ActivityDistributionItemResponse(BaseModel):
     date: date
     count: int
@@ -407,6 +430,8 @@ class UserCardStatsApiResponse(BaseModel):
     mood_after_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
     genre_distribution: list[GenreDistributionItemResponse] = Field(default_factory=list)
+    director_distribution: list[DirectorDistributionItemResponse] = Field(default_factory=list)
+    franchise_distribution: list[FranchiseDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     activity_distribution: list[ActivityDistributionItemResponse] = Field(default_factory=list)
@@ -620,6 +645,13 @@ def build_user_card_stats_response(
             dominant_company=stats.insights.dominant_company,
             dominant_mood_after=stats.insights.dominant_mood_after,
             top_tag=stats.insights.top_tag,
+            top_director_kinopoisk_id=stats.insights.top_director_kinopoisk_id,
+            top_director_name=stats.insights.top_director_name,
+            top_director_count=stats.insights.top_director_count,
+            top_franchise_key=stats.insights.top_franchise_key,
+            top_franchise_label=stats.insights.top_franchise_label,
+            top_franchise_count=stats.insights.top_franchise_count,
+            unique_directors_count=stats.insights.unique_directors_count,
         ),
         watch_with_distribution=[
             ValueDistributionItemResponse(value=item.value, count=item.count)
@@ -640,6 +672,22 @@ def build_user_card_stats_response(
         genre_distribution=[
             GenreDistributionItemResponse(genre=item.genre, count=item.count)
             for item in stats.genre_distribution
+        ],
+        director_distribution=[
+            DirectorDistributionItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                name=item.name,
+                count=item.count,
+            )
+            for item in stats.director_distribution
+        ],
+        franchise_distribution=[
+            FranchiseDistributionItemResponse(
+                franchise_key=item.franchise_key,
+                label=item.label,
+                count=item.count,
+            )
+            for item in stats.franchise_distribution
         ],
         top_movies=[
             ProfileStatsMovieItemResponse(
