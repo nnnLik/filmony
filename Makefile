@@ -96,11 +96,10 @@ backfill-film-tmdb-metadata:
 	FRC=$${FORCE:+--force}; \
 	FOG=$${FORCE_OVERWRITE:+--force-overwrite-gamification}; \
 	LIM=$${LIMIT:+--limit $$LIMIT}; \
-	RATED=$${RATED_ONLY:+$$([ "$$RATED_ONLY" = "0" ] && echo --no-rated-only)}; \
 	KP_IMDB=$${ALLOW_KP_IMDB_LOOKUP:+--allow-kp-imdb-lookup}; \
 	SLE=$${SLEEP:+--sleep $$SLEEP}; \
 	$(AEXEC_NO_TTY) $(APP) python src/manage_backfill_film_tmdb_metadata.py \
-	  $$DRY $$FRC $$FOG $$LIM $$RATED $$KP_IMDB $$SLE $(ARGS)
+	  $$DRY $$FRC $$FOG $$LIM $$KP_IMDB $$SLE $(ARGS)
 
 diagnose-film-tmdb-metadata:
 	$(AEXEC_NO_TTY) $(APP) python src/manage_diagnose_film_tmdb_metadata.py $(ARGS)

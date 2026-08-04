@@ -33,11 +33,11 @@ Kinopoisk remains catalog identity (`kinopoisk_id`).
 # Compare KP-enriched films vs TMDB (before mass backfill)
 python src/manage_compare_kp_tmdb_metadata.py --limit 50 --allow-kp-imdb-lookup
 
-# Backfill rated films first (default)
-ALLOW_KP_IMDB_LOOKUP=1 make backfill-film-tmdb-metadata
+# Backfill rated films only (~741 on prod; ignores KP search cache orphans)
+docker exec -w /opt/app filmony-backend python src/manage_backfill_film_tmdb_metadata.py
 
-# Full catalog
-RATED_ONLY=0 make backfill-film-tmdb-metadata
+# Verify rated-film coverage
+docker exec -w /opt/app filmony-backend python src/manage_diagnose_film_tmdb_metadata.py
 ```
 
 ## Env

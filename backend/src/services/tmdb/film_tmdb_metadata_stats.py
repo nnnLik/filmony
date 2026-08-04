@@ -30,7 +30,17 @@ def _rated_film_exists_expr() -> object:
 
 @dataclass(frozen=True, slots=True)
 class FilmTmdbMetadataStats:
-    total_films: int
+    total_films_in_db: int
+    total_rated_films: int
+    orphan_search_cache_films: int
+    rated_without_director_name: int
+    rated_without_franchise_key: int
+    rated_without_countries: int
+    rated_needs_enrichment: int
+    rated_without_tmdb_sync: int
+    rated_with_tmdb_id: int
+    rated_without_director_kinopoisk_id: int
+    # Legacy / all-film counters kept for tests and compare tooling
     without_director_kinopoisk_id: int
     without_director_name: int
     without_franchise_key: int
@@ -39,19 +49,141 @@ class FilmTmdbMetadataStats:
     without_both_director_and_franchise: int
     only_director_missing: int
     only_franchise_missing: int
-    rated_without_director_name: int
-    rated_without_franchise_key: int
     without_tmdb_sync: int
     with_tmdb_id: int
 
-    def pct(self, part: int) -> float:
-        if self.total_films == 0:
+    def pct_of_rated(self, part: int) -> float:
+        if self.total_rated_films == 0:
             return 0.0
-        return round(100.0 * part / self.total_films, 1)
+        return round(100.0 * part / self.total_rated_films, 1)
+
+    def pct(self, part: int) -> float:
+        if self.total_films_in_db == 0:
+            return 0.0
+        return round(100.0 * part / self.total_films_in_db, 1)
+
+
+def _film_on_rated_card_expr() -> object:
+    return _rated_film_exists_expr()
+
+
+def _orphan_film_expr() -> object:
+    return ~exists(
+        select(UserCard.id).where(
+            UserCard.film_id == Film.id,
+        ),
+    )
 
 
 async def compute_film_tmdb_metadata_stats(session: AsyncSession) -> FilmTmdbMetadataStats:
     total = int((await session.execute(select(func.count()).select_from(Film))).scalar_one())
+
+    total_rated = int(
+        (
+            await session.execute(
+                select(func.count(func.distinct(Film.id)))
+                .select_from(Film)
+                .where(_film_on_rated_card_expr()),
+            )
+        ).scalar_one(),
+    )
+    orphan_search_cache = int(
+        (
+            await session.execute(
+                select(func.count()).select_from(Film).where(_orphan_film_expr()),
+            )
+        ).scalar_one(),
+    )
+
+    rated_without_director = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    Film.primary_director_name.is_(None),
+                ),
+            )
+        ).scalar_one(),
+    )
+    rated_without_franchise = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    Film.franchise_key.is_(None),
+                ),
+            )
+        ).scalar_one(),
+    )
+    rated_without_countries = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    _countries_missing_expr(),
+                ),
+            )
+        ).scalar_one(),
+    )
+    rated_needs_enrichment = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    or_(
+                        _countries_missing_expr(),
+                        Film.primary_director_name.is_(None),
+                        Film.franchise_key.is_(None),
+                        Film.tmdb_synced_at.is_(None),
+                    ),
+                ),
+            )
+        ).scalar_one(),
+    )
+    rated_without_tmdb_sync = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    Film.tmdb_synced_at.is_(None),
+                ),
+            )
+        ).scalar_one(),
+    )
+    rated_with_tmdb_id = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    Film.tmdb_id.is_not(None),
+                ),
+            )
+        ).scalar_one(),
+    )
+    rated_without_director_kp = int(
+        (
+            await session.execute(
+                select(func.count())
+                .select_from(Film)
+                .where(
+                    _rated_film_exists_expr(),
+                    Film.primary_director_kinopoisk_id.is_(None),
+                ),
+            )
+        ).scalar_one(),
+    )
 
     without_director_kp = int(
         (
@@ -135,30 +267,6 @@ async def compute_film_tmdb_metadata_stats(session: AsyncSession) -> FilmTmdbMet
             )
         ).scalar_one(),
     )
-    rated_without_director = int(
-        (
-            await session.execute(
-                select(func.count())
-                .select_from(Film)
-                .where(
-                    _rated_film_exists_expr(),
-                    Film.primary_director_name.is_(None),
-                ),
-            )
-        ).scalar_one(),
-    )
-    rated_without_franchise = int(
-        (
-            await session.execute(
-                select(func.count())
-                .select_from(Film)
-                .where(
-                    _rated_film_exists_expr(),
-                    Film.franchise_key.is_(None),
-                ),
-            )
-        ).scalar_one(),
-    )
     without_tmdb_sync = int(
         (
             await session.execute(
@@ -175,7 +283,16 @@ async def compute_film_tmdb_metadata_stats(session: AsyncSession) -> FilmTmdbMet
     )
 
     return FilmTmdbMetadataStats(
-        total_films=total,
+        total_films_in_db=total,
+        total_rated_films=total_rated,
+        orphan_search_cache_films=orphan_search_cache,
+        rated_without_director_name=rated_without_director,
+        rated_without_franchise_key=rated_without_franchise,
+        rated_without_countries=rated_without_countries,
+        rated_needs_enrichment=rated_needs_enrichment,
+        rated_without_tmdb_sync=rated_without_tmdb_sync,
+        rated_with_tmdb_id=rated_with_tmdb_id,
+        rated_without_director_kinopoisk_id=rated_without_director_kp,
         without_director_kinopoisk_id=without_director_kp,
         without_director_name=without_director_name,
         without_franchise_key=without_franchise,
@@ -184,42 +301,35 @@ async def compute_film_tmdb_metadata_stats(session: AsyncSession) -> FilmTmdbMet
         without_both_director_and_franchise=without_both,
         only_director_missing=only_director,
         only_franchise_missing=only_franchise,
-        rated_without_director_name=rated_without_director,
-        rated_without_franchise_key=rated_without_franchise,
         without_tmdb_sync=without_tmdb_sync,
         with_tmdb_id=with_tmdb_id,
     )
 
 
 def format_film_tmdb_metadata_stats(stats: FilmTmdbMetadataStats) -> str:
-    p = stats.pct
+    rp = stats.pct_of_rated
     lines = [
         '=== Film TMDB / gamification metadata (diagnostic) ===',
-        f'Всего фильмов в БД:              {stats.total_films}',
         '',
-        '--- Режиссёр ---',
-        f'Без director_kinopoisk_id:         {stats.without_director_kinopoisk_id} ({p(stats.without_director_kinopoisk_id)}%)',
-        f'Без director_name:               {stats.without_director_name} ({p(stats.without_director_name)}%)',
+        '--- Scope (важно) ---',
+        f'Оценённых фильмов (backfill scope): {stats.total_rated_films}',
+        f'Всего строк film в БД:              {stats.total_films_in_db}',
+        f'Кэш KP-поиска без карточек:         {stats.orphan_search_cache_films}',
         '',
-        '--- Франшиза / серия ---',
-        f'Без franchise_key:               {stats.without_franchise_key} ({p(stats.without_franchise_key)}%)',
+        '--- Оценённые фильмы (prod metrics) ---',
+        f'Нуждаются в enrichment:            {stats.rated_needs_enrichment} ({rp(stats.rated_needs_enrichment)}%)',
+        f'Без director_name:                 {stats.rated_without_director_name} ({rp(stats.rated_without_director_name)}%)',
+        f'Без franchise_key:                 {stats.rated_without_franchise_key} ({rp(stats.rated_without_franchise_key)}%)',
+        f'Без countries:                     {stats.rated_without_countries} ({rp(stats.rated_without_countries)}%)',
+        f'Без tmdb_synced_at:                {stats.rated_without_tmdb_sync} ({rp(stats.rated_without_tmdb_sync)}%)',
+        f'С tmdb_id:                         {stats.rated_with_tmdb_id} ({rp(stats.rated_with_tmdb_id)}%)',
+        f'Без director_kinopoisk_id:         {stats.rated_without_director_kinopoisk_id} ({rp(stats.rated_without_director_kinopoisk_id)}%)',
         '',
-        '--- TMDB sync ---',
-        f'Без tmdb_synced_at:              {stats.without_tmdb_sync} ({p(stats.without_tmdb_sync)}%)',
-        f'С tmdb_id:                       {stats.with_tmdb_id} ({p(stats.with_tmdb_id)}%)',
-        '',
-        '--- Прочее gamification metadata ---',
-        f'Без countries:                   {stats.without_countries} ({p(stats.without_countries)}%)',
-        f'Нуждаются в enrichment (любое):  {stats.needs_enrichment} ({p(stats.needs_enrichment)}%)',
-        '',
-        '--- Пересечения ---',
-        f'Нет и режиссёра, и franchise:    {stats.without_both_director_and_franchise}',
-        f'Только режиссёр отсутствует:     {stats.only_director_missing}',
-        f'Только franchise отсутствует:    {stats.only_franchise_missing}',
-        '',
-        '--- Влияние на оценённые карточки ---',
-        f'Оценённых фильмов без режиссёра: {stats.rated_without_director_name}',
-        f'Оценённых фильмов без franchise: {stats.rated_without_franchise_key}',
+        '--- Вся таблица film (справочно, incl. search cache) ---',
+        f'Нуждаются в enrichment:            {stats.needs_enrichment} ({stats.pct(stats.needs_enrichment)}%)',
+        f'Без director_name:                 {stats.without_director_name} ({stats.pct(stats.without_director_name)}%)',
+        f'Без franchise_key:                 {stats.without_franchise_key} ({stats.pct(stats.without_franchise_key)}%)',
+        f'С tmdb_id:                         {stats.with_tmdb_id} ({stats.pct(stats.with_tmdb_id)}%)',
     ]
     return '\n'.join(lines)
 

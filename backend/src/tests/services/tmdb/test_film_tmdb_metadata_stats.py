@@ -75,10 +75,12 @@ async def test_compute_stats_counts_missing_and_rated(prepare_db: None) -> None:
 
         stats = await compute_film_tmdb_metadata_stats(session)
 
-    assert stats.total_films == 2
+    assert stats.total_films_in_db == 2
+    assert stats.total_rated_films == 1
     assert stats.without_director_name == 1
     assert stats.rated_without_director_name == 1
     assert stats.with_tmdb_id == 1
     text = format_film_tmdb_metadata_stats(stats)
     assert 'Film TMDB / gamification metadata' in text
-    assert 'Оценённых фильмов без режиссёра: 1' in text
+    assert 'Оценённых фильмов (backfill scope): 1' in text
+    assert 'Кэш KP-поиска без карточек:         1' in text

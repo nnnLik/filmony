@@ -125,7 +125,6 @@ async def test_backfill_updates_rated_film_with_fake_transport(prepare_db: None)
             force_gamification=False,
             sleep_s=0,
             limit=10,
-            rated_only=True,
             allow_kp_imdb_lookup=False,
         )
 
@@ -134,3 +133,32 @@ async def test_backfill_updates_rated_film_with_fake_transport(prepare_db: None)
         assert row is not None
         assert row.tmdb_id == 550
         assert row.primary_director_name == 'David Fincher'
+
+
+@pytest.mark.asyncio
+async def test_backfill_skips_unrated_search_cache_film(prepare_db: None) -> None:
+    fake = FakeTmdbTransport(
+        find_by_imdb={'tt0137523': 550},
+        movies_by_id={550: fight_club_movie_detail()},
+    )
+    orphan = await _insert_film(
+        kinopoisk_id=700_030,
+        title='Search cache orphan',
+        imdb_id='tt0137523',
+    )
+    with _backfill_with_fake_transport(fake):
+        await _run(
+            dry_run=False,
+            force=False,
+            force_gamification=False,
+            sleep_s=0,
+            limit=10,
+            allow_kp_imdb_lookup=False,
+        )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        row = await session.get(Film, orphan.id)
+        assert row is not None
+        assert row.tmdb_id is None
+        assert row.primary_director_name is None

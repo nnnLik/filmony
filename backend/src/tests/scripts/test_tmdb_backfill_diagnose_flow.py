@@ -109,7 +109,6 @@ async def test_backfill_then_diagnose_shows_filled_metadata(prepare_db: None) ->
             force_gamification=False,
             sleep_s=0,
             limit=10,
-            rated_only=True,
             allow_kp_imdb_lookup=False,
         )
 
