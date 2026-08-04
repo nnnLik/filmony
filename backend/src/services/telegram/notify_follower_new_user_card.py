@@ -13,6 +13,7 @@ from models.film import Film
 from models.user import User
 from models.user_card import UserCard
 from services.telegram.engagement_delivery import deliver_engagement_html_message
+from services.telegram.film_metadata_hint import format_film_meta_html_line
 from services.telegram.mini_app_link import html_card_deep_link_block
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,15 @@ def _card_title_line_html(*, film: Film | None, card: UserCard) -> str:
         return f'🎬 «{title}»'
     manual = (card.display_title or '').strip() or 'Карточка'
     return f'🎬 «{html.escape(manual)}»'
+
+
+def _film_meta_line_html(film: Film | None) -> str | None:
+    if film is None:
+        return None
+    return format_film_meta_html_line(
+        director_name=film.primary_director_name,
+        countries=film.countries,
+    )
 
 
 @dataclass
@@ -72,17 +82,18 @@ class NotifyTelegramFollowerNewUserCardService:
             film = await session.get(Film, card.film_id) if card.film_id is not None else None
             actor_safe = html.escape(_format_actor_display(actor))
             title_line = _card_title_line_html(film=film, card=card)
+            meta_line = _film_meta_line_html(film)
             deep = html_card_deep_link_block(card_id)
 
-            body = '\n'.join(
-                [
-                    f'📽 <b>{actor_safe}</b> опубликовал(а) новую карточку',
-                    '',
-                    title_line,
-                    '',
-                    deep,
-                ]
-            )
+            body_lines = [
+                f'📽 <b>{actor_safe}</b> опубликовал(а) новую карточку',
+                '',
+                title_line,
+            ]
+            if meta_line is not None:
+                body_lines.append(meta_line)
+            body_lines.extend(['', deep])
+            body = '\n'.join(body_lines)
             await deliver_engagement_html_message(int(recipient.telegram_user_id), body)
 
     @classmethod

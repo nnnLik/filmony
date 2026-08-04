@@ -15,6 +15,7 @@ from models.film import Film
 from models.user import User
 from models.user_card import UserCard
 from services.telegram.engagement_delivery import deliver_engagement_html_message
+from services.telegram.film_metadata_hint import format_film_meta_html_line
 from services.telegram.mini_app_link import html_card_deep_link_block
 
 logger = logging.getLogger(__name__)
@@ -66,18 +67,28 @@ class NotifyTelegramUserCardRootCommentService:
             snippet = html.escape(comment_text.strip()[:160])
             title_safe = html.escape((film.title or '').strip() or 'Фильм')
             year_part = f' ({film.year})' if film.year is not None else ''
+            meta_line = format_film_meta_html_line(
+                director_name=film.primary_director_name,
+                countries=film.countries,
+            )
             deep_link = html_card_deep_link_block(card.id)
 
             body_lines = [
                 '💬 Новый комментарий к вашей карточке',
                 '',
                 f'🎬 <b>{title_safe}</b>{html.escape(year_part)}',
-                '',
-                f'👤 <b>{actor_safe}</b>',
-                f'📝 <i>«{snippet}»</i>',
-                '',
-                deep_link,
             ]
+            if meta_line is not None:
+                body_lines.append(meta_line)
+            body_lines.extend(
+                [
+                    '',
+                    f'👤 <b>{actor_safe}</b>',
+                    f'📝 <i>«{snippet}»</i>',
+                    '',
+                    deep_link,
+                ]
+            )
             body = '\n'.join(body_lines)
 
             await deliver_engagement_html_message(recipient.telegram_user_id, body)

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
 from models.user_card import UserCard
+from services.franchises.franchise_label import resolve_franchise_label
 from services.gamification.compute_marathon_achievements import ComputeMarathonAchievementsService
 from services.gamification.compute_passport_stamps import ComputePassportStampsService
 
@@ -82,6 +83,33 @@ class MonthlyRecapMarathonItem:
 
 
 @dataclass(frozen=True, slots=True)
+class MonthlyRecapDistributionItem:
+    label: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class MonthlyRecapDecadeItem:
+    decade_start: int
+    label: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class MonthlyRecapDirectorItem:
+    kinopoisk_id: int
+    label: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class MonthlyRecapFranchiseItem:
+    franchise_key: str
+    label: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class MonthlyRecap:
     user_id: UUID
     year: int
@@ -96,6 +124,16 @@ class MonthlyRecap:
     peak_activity_count: int
     genre_of_month: str | None
     genre_of_month_count: int
+    top_director_name: str | None
+    top_director_count: int
+    top_director_kinopoisk_id: int | None
+    top_country: str | None
+    top_country_count: int
+    new_countries_count: int
+    genre_breakdown: list[MonthlyRecapDistributionItem]
+    decade_breakdown: list[MonthlyRecapDecadeItem]
+    director_breakdown: list[MonthlyRecapDirectorItem]
+    franchise_breakdown: list[MonthlyRecapFranchiseItem]
 
 
 @dataclass
@@ -134,6 +172,11 @@ class BuildMonthlyRecapService:
                     Film.title,
                     Film.poster_url,
                     Film.genres,
+                    Film.countries,
+                    Film.year,
+                    Film.primary_director_kinopoisk_id,
+                    Film.primary_director_name,
+                    Film.franchise_key,
                 )
                 .outerjoin(Film, Film.id == UserCard.film_id)
                 .where(
@@ -152,6 +195,11 @@ class BuildMonthlyRecapService:
         rating_sum = 0.0
         activity_by_day: Counter[dt.date] = Counter()
         genre_counter: Counter[str] = Counter()
+        director_counter: dict[int, tuple[str, int]] = {}
+        franchise_counter: Counter[str] = Counter()
+        country_counter: Counter[str] = Counter()
+        decade_counter: Counter[int] = Counter()
+        month_countries: set[str] = set()
 
         for row in rows:
             rating_value = float(row.rating)
@@ -181,6 +229,35 @@ class BuildMonthlyRecapService:
                     if isinstance(genre, str) and genre.strip():
                         genre_counter[genre.strip()] += 1
 
+            if row.primary_director_kinopoisk_id is not None:
+                director_id = int(row.primary_director_kinopoisk_id)
+                director_name = (
+                    str(row.primary_director_name or '').strip() or f'Режиссёр #{director_id}'
+                )
+                existing_name, existing_count = director_counter.get(
+                    director_id, (director_name, 0)
+                )
+                director_counter[director_id] = (
+                    existing_name or director_name,
+                    existing_count + 1,
+                )
+
+            if row.franchise_key:
+                franchise_key = str(row.franchise_key).strip()
+                if franchise_key:
+                    franchise_counter[franchise_key] += 1
+
+            if row.countries:
+                for country in row.countries:
+                    if isinstance(country, str) and country.strip():
+                        label = country.strip()
+                        country_counter[label] += 1
+                        month_countries.add(label)
+
+            if row.year is not None:
+                decade_start = (int(row.year) // 10) * 10
+                decade_counter[decade_start] += 1
+
         total_rated = len(films)
         average_rating = round(rating_sum / total_rated, 1) if total_rated else 0.0
         top_films = sorted(films, key=lambda item: (-item.rating, -item.card_id))[:3]
@@ -194,6 +271,62 @@ class BuildMonthlyRecapService:
         genre_of_month_count = 0
         if genre_counter:
             genre_of_month, genre_of_month_count = genre_counter.most_common(1)[0]
+
+        top_director_name: str | None = None
+        top_director_count = 0
+        top_director_kinopoisk_id: int | None = None
+        if director_counter:
+            top_director_kinopoisk_id, (top_director_name, top_director_count) = max(
+                director_counter.items(),
+                key=lambda item: (item[1][1], item[1][0]),
+            )
+
+        top_country: str | None = None
+        top_country_count = 0
+        if country_counter:
+            top_country, top_country_count = country_counter.most_common(1)[0]
+
+        new_countries_count = await self._count_new_countries_in_month(
+            user_id=user_id,
+            month_start=month_start,
+            month_countries=month_countries,
+        )
+
+        genre_breakdown = [
+            MonthlyRecapDistributionItem(label=genre, count=count)
+            for genre, count in genre_counter.most_common(5)
+        ]
+        decade_breakdown = [
+            MonthlyRecapDecadeItem(
+                decade_start=decade_start,
+                label=f'{decade_start}-е',
+                count=count,
+            )
+            for decade_start, count in sorted(
+                decade_counter.items(),
+                key=lambda item: item[0],
+            )
+        ]
+        director_breakdown = [
+            MonthlyRecapDirectorItem(
+                kinopoisk_id=kinopoisk_id,
+                label=name,
+                count=count,
+            )
+            for kinopoisk_id, (name, count) in sorted(
+                director_counter.items(),
+                key=lambda item: (-item[1][1], item[1][0]),
+            )[:5]
+        ]
+        franchise_breakdown: list[MonthlyRecapFranchiseItem] = []
+        for franchise_key, count in franchise_counter.most_common(5):
+            franchise_breakdown.append(
+                MonthlyRecapFranchiseItem(
+                    franchise_key=franchise_key,
+                    label=await resolve_franchise_label(self._session, franchise_key),
+                    count=count,
+                )
+            )
 
         new_stamps = await self._stamps_unlocked_in_window(
             user_id=user_id,
@@ -222,7 +355,49 @@ class BuildMonthlyRecapService:
             peak_activity_count=peak_activity_count,
             genre_of_month=genre_of_month,
             genre_of_month_count=genre_of_month_count,
+            top_director_name=top_director_name,
+            top_director_count=top_director_count,
+            top_director_kinopoisk_id=top_director_kinopoisk_id,
+            top_country=top_country,
+            top_country_count=top_country_count,
+            new_countries_count=new_countries_count,
+            genre_breakdown=genre_breakdown,
+            decade_breakdown=decade_breakdown,
+            director_breakdown=director_breakdown,
+            franchise_breakdown=franchise_breakdown,
         )
+
+    async def _count_new_countries_in_month(
+        self,
+        *,
+        user_id: UUID,
+        month_start: dt.datetime,
+        month_countries: set[str],
+    ) -> int:
+        if not month_countries:
+            return 0
+
+        prior_rows = (
+            await self._session.execute(
+                select(Film.countries)
+                .join(UserCard, UserCard.film_id == Film.id)
+                .where(
+                    UserCard.user_id == user_id,
+                    UserCard.is_planned.is_(False),
+                    _completion_timestamp() < month_start,
+                )
+            )
+        ).all()
+
+        prior_countries: set[str] = set()
+        for (countries,) in prior_rows:
+            if not countries:
+                continue
+            for country in countries:
+                if isinstance(country, str) and country.strip():
+                    prior_countries.add(country.strip())
+
+        return len(month_countries - prior_countries)
 
     async def find_latest_recap_month(self, user_id: UUID) -> tuple[int, int] | None:
         row = (

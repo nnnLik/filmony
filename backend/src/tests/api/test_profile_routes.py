@@ -40,6 +40,8 @@ async def _seed_movie_card(
     primary_director_kinopoisk_id: int | None = None,
     primary_director_name: str | None = None,
     franchise_key: str | None = None,
+    genres: list[str] | None = None,
+    countries: list[str] | None = None,
 ) -> int:
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -48,7 +50,8 @@ async def _seed_movie_card(
             title=title,
             year=year,
             poster_url='https://example.com/poster.jpg',
-            genres=[],
+            genres=genres or [],
+            countries=countries or [],
             primary_director_kinopoisk_id=primary_director_kinopoisk_id,
             primary_director_name=primary_director_name,
             franchise_key=franchise_key,

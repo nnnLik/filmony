@@ -12,8 +12,11 @@ from sqlalchemy import select
 
 from core.database import disposable_async_session
 from models.card_comment import CardComment
+from models.film import Film
 from models.user import User
+from models.user_card import UserCard
 from services.telegram.engagement_delivery import deliver_engagement_html_message
+from services.telegram.film_metadata_hint import format_film_meta_html_line
 from services.telegram.mini_app_link import html_card_deep_link_block
 
 logger = logging.getLogger(__name__)
@@ -55,17 +58,37 @@ class NotifyTelegramCommentReplyService:
             if actor is None or recipient is None or recipient.telegram_user_id is None:
                 return
 
+            film_meta_line: str | None = None
+            card_film_row = (
+                await session.execute(
+                    select(Film)
+                    .join(UserCard, UserCard.film_id == Film.id)
+                    .where(UserCard.id == card_id)
+                )
+            ).scalar_one_or_none()
+            if card_film_row is not None:
+                film_meta_line = format_film_meta_html_line(
+                    director_name=card_film_row.primary_director_name,
+                    countries=card_film_row.countries,
+                )
+
             actor_safe = html.escape(_format_actor_display(actor))
             snippet = html.escape(reply_text.strip()[:160])
             deep_link = html_card_deep_link_block(card_id)
             body_lines = [
                 '💬 Новый ответ',
-                '',
-                f'👤 <b>{actor_safe}</b>',
-                f'📝 <i>«{snippet}»</i>',
-                '',
-                deep_link,
             ]
+            if film_meta_line is not None:
+                body_lines.extend(['', film_meta_line])
+            body_lines.extend(
+                [
+                    '',
+                    f'👤 <b>{actor_safe}</b>',
+                    f'📝 <i>«{snippet}»</i>',
+                    '',
+                    deep_link,
+                ]
+            )
             body = '\n'.join(body_lines)
 
             await deliver_engagement_html_message(int(recipient.telegram_user_id), body)

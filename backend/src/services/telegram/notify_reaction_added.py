@@ -19,6 +19,7 @@ from models.reaction_target_kind import ReactionTargetKind
 from models.user import User
 from models.user_card import UserCard
 from services.telegram.engagement_delivery import deliver_engagement_html_message
+from services.telegram.film_metadata_hint import format_film_meta_html_line
 from services.telegram.mini_app_link import (
     html_card_deep_link_block,
     html_feed_post_deep_link_block,
@@ -155,9 +156,15 @@ class NotifyTelegramReactionAddedService:
                 )
                 body_lines = [
                     f'⭐ <b>{actor_safe}</b> отреагировал на вашу карточку фильма {film_hint}',
-                    '',
-                    deep_link_card,
                 ]
+                if ctx.film_for_dm is not None:
+                    meta_line = format_film_meta_html_line(
+                        director_name=ctx.film_for_dm.primary_director_name,
+                        countries=ctx.film_for_dm.countries,
+                    )
+                    if meta_line is not None:
+                        body_lines.append(meta_line)
+                body_lines.extend(['', deep_link_card])
             elif target_kind == ReactionTargetKind.CARD_COMMENT:
                 raw_snippet = (ctx.comment_text_for_dm or '').strip()
                 snippet = html.escape(raw_snippet[:100] if raw_snippet else '…')

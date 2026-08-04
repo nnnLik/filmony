@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import html
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
@@ -14,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.monthly_recap_nudge_state import MonthlyRecapNudgeState
 from models.user import User
+from services.profile.build_monthly_recap import BuildMonthlyRecapService
 from services.telegram.mini_app_link import html_recap_deep_link_block
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 
@@ -50,13 +52,41 @@ class RecapNudgeResult:
     recipient_user_id: UUID
 
 
-def _render_recap_nudge_html(*, year: int, month: int) -> str:
+@dataclass(frozen=True, slots=True)
+class RecapNudgePreview:
+    total_rated: int
+    top_director_name: str | None
+    top_country: str | None
+
+
+def _films_word(count: int) -> str:
+    if count % 10 == 1 and count % 100 != 11:
+        return 'фильм'
+    if 2 <= count % 10 <= 4 and not (12 <= count % 100 <= 14):
+        return 'фильма'
+    return 'фильмов'
+
+
+def _render_recap_nudge_html(
+    *,
+    year: int,
+    month: int,
+    preview: RecapNudgePreview | None = None,
+) -> str:
     month_label = _MONTH_NAMES_RU[month] if 1 <= month <= 12 else str(month)
-    return (
-        f'📊 <b>Твои итоги за {month_label} {year}</b>\n'
-        f'Зайди в Filmony и посмотри сводку месяца.\n\n'
-        f'{html_recap_deep_link_block(year=year, month=month)}'
-    )
+    lines = [
+        f'📊 <b>Твои итоги за {month_label} {year}</b>',
+    ]
+    if preview is not None and preview.total_rated > 0:
+        lines.append(f'📽 {preview.total_rated} {_films_word(preview.total_rated)} за месяц')
+        if preview.top_director_name:
+            lines.append(f'🎬 {html.escape(preview.top_director_name)}')
+        elif preview.top_country:
+            lines.append(f'🌍 {html.escape(preview.top_country)}')
+    lines.append('Зайди в Filmony и посмотри сводку месяца.')
+    lines.append('')
+    lines.append(html_recap_deep_link_block(year=year, month=month))
+    return '\n'.join(lines)
 
 
 @dataclass
@@ -103,7 +133,22 @@ class SendMonthlyRecapTelegramNudgeService:
                 recipient_user_id=recipient_user_id,
             )
 
-        body = _render_recap_nudge_html(year=year, month=month)
+        preview: RecapNudgePreview | None = None
+        try:
+            recap = await BuildMonthlyRecapService.build(self._session).execute(
+                recipient_user_id,
+                year=year,
+                month=month,
+            )
+            preview = RecapNudgePreview(
+                total_rated=recap.total_rated,
+                top_director_name=recap.top_director_name,
+                top_country=recap.top_country,
+            )
+        except BuildMonthlyRecapService.RecapNotFound:
+            preview = None
+
+        body = _render_recap_nudge_html(year=year, month=month, preview=preview)
         try:
             await self._send_svc.execute(
                 int(recipient.telegram_user_id),

@@ -91,6 +91,29 @@ def test_render_new_user_card_includes_genres_rating_and_mood() -> None:
     assert 'кайф' in html
 
 
+def test_render_new_user_card_includes_director() -> None:
+    html = render_digest_item_html(_card_candidate(primary_director_name='Дени Вильнёв'))
+    assert 'Дени Вильнёв' in html
+    assert '🎬' in html
+
+
+def test_render_new_user_card_includes_country() -> None:
+    html = render_digest_item_html(_card_candidate(film_countries=('США',)))
+    assert 'США' in html
+    assert '🌍' in html
+
+
+def test_render_high_rating_card_includes_director() -> None:
+    html = render_digest_item_html(
+        _card_candidate(
+            kind=DigestCandidateKind.high_rating_card,
+            entity_key='high:1',
+            primary_director_name='Кристофер Нолан',
+        )
+    )
+    assert 'Кристофер Нолан' in html
+
+
 def test_render_high_rating_card() -> None:
     html = render_digest_item_html(
         _card_candidate(kind=DigestCandidateKind.high_rating_card, entity_key='high:1')

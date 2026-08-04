@@ -545,11 +545,18 @@ export function FeedPostDetailPage() {
   const invalidPostId = parsedPostId == null
   const showLoading = !invalidPostId && loading
 
-  const handlePostDeleted = useCallback(() => {
+  const handleNavigateBack = useCallback(() => {
     const st = location.state as { fromFeed?: boolean } | undefined
-    if (st?.fromFeed) void navigate('/')
-    else void navigate(-1)
-  }, [location.state, navigate])
+    if (st?.fromFeed || location.key === 'default') {
+      void navigate('/')
+      return
+    }
+    void navigate(-1)
+  }, [location.key, location.state, navigate])
+
+  const handlePostDeleted = useCallback(() => {
+    handleNavigateBack()
+  }, [handleNavigateBack])
 
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) text-(--tgui--text_color)">
@@ -558,11 +565,7 @@ export function FeedPostDetailPage() {
           size="s"
           mode="gray"
           aria-label="Назад"
-          onClick={() => {
-            const st = location.state as { fromFeed?: boolean } | undefined
-            if (st?.fromFeed) void navigate('/')
-            else void navigate(-1)
-          }}
+          onClick={handleNavigateBack}
         >
           <ArrowLeft className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
         </IconButton>

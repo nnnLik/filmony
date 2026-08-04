@@ -15,6 +15,7 @@ from services.controversy.compute_weekly_controversy import (
     WeeklyControversyBundle,
     WeeklyControversyResult,
 )
+from services.telegram.film_metadata_hint import format_film_meta_html_line
 from services.telegram.mini_app_link import (
     controversy_deeplink_html_block,
     resolve_controversy_deeplink_url,
@@ -41,6 +42,13 @@ def _format_title_line(controversy: WeeklyControversyResult) -> str:
     title = html.escape(controversy.title)
     year = f' ({controversy.film_year})' if controversy.film_year is not None else ''
     return f'🎬 «{title}»{year}'
+
+
+def _format_metadata_line(controversy: WeeklyControversyResult) -> str | None:
+    return format_film_meta_html_line(
+        director_name=controversy.primary_director_name,
+        countries=(controversy.primary_country,) if controversy.primary_country else None,
+    )
 
 
 def _format_stats_line(controversy: WeeklyControversyResult) -> str:
@@ -147,7 +155,11 @@ class BuildWeeklyControversyMessageService:
             week_start=week_start,
         )
 
-        lines = [intro, '', _format_title_line(primary), '', _format_stats_line(primary)]
+        lines = [intro, '', _format_title_line(primary)]
+        metadata_line = _format_metadata_line(primary)
+        if metadata_line is not None:
+            lines.append(metadata_line)
+        lines.extend(['', _format_stats_line(primary)])
 
         if primary.polar_low is not None:
             lines.append('')

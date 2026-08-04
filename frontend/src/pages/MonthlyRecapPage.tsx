@@ -4,7 +4,13 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { getMyLatestMonthlyRecap, getMyMonthlyRecap } from '../api/profileApi'
 import type { MonthlyRecap } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { StatsDonutChart } from '../components/profile/ProfileStatsCharts'
 import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import {
+  DECADE_DONUT_COLORS,
+  GENRE_DONUT_COLORS,
+  type DonutSegmentInput,
+} from '../lib/statsDonutChart'
 
 const MONTH_NAMES = [
   '',
@@ -41,6 +47,27 @@ function formatPeakDate(iso: string | null): string | null {
   const date = new Date(`${iso}T12:00:00`)
   if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+}
+
+function marathonKindLabel(kind: string): string {
+  return kind === 'director' ? 'Режиссёр' : 'Франшиза'
+}
+
+function marathonLinkTo(marathon: { kind: string; key: string }): string | null {
+  if (marathon.kind === 'director') {
+    const parsed = Number.parseInt(marathon.key, 10)
+    if (Number.isInteger(parsed) && parsed >= 1) {
+      return `/directors/${parsed}`
+    }
+    return null
+  }
+  if (marathon.kind === 'franchise') {
+    const key = marathon.key.trim()
+    if (key !== '') {
+      return `/franchises/${encodeURIComponent(key)}`
+    }
+  }
+  return null
 }
 
 export function MonthlyRecapPage() {
@@ -85,6 +112,28 @@ export function MonthlyRecapPage() {
     return `${label} ${recap.year}`
   }, [recap])
 
+  const genreDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const rows = recap?.genre_breakdown ?? []
+    return rows
+      .filter((item) => item.count > 0)
+      .map((item, idx) => ({
+        label: item.label,
+        count: item.count,
+        color: GENRE_DONUT_COLORS[idx % GENRE_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [recap?.genre_breakdown])
+
+  const decadeDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const rows = recap?.decade_breakdown ?? []
+    return rows
+      .filter((item) => item.count > 0)
+      .map((item, idx) => ({
+        label: item.label,
+        count: item.count,
+        color: DECADE_DONUT_COLORS[idx % DECADE_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [recap?.decade_breakdown])
+
   if (auth.kind === 'loading' || auth.kind === 'error' || auth.kind === 'skipped') {
     return (
       <div className="px-4 py-16 text-center text-sm text-(--tgui--hint_color)">
@@ -126,7 +175,62 @@ export function MonthlyRecapPage() {
             {recap.genre_of_month != null ? (
               <section className="rounded-xl border border-(--tgui--divider_color) p-3">
                 <p className="text-[11px] text-(--tgui--hint_color)">Жанр месяца</p>
-                <p className="text-sm font-medium">{recap.genre_of_month}</p>
+                <p className="text-sm font-medium">
+                  {recap.genre_of_month}
+                  {(recap.genre_of_month_count ?? 0) > 0
+                    ? ` · ${recap.genre_of_month_count ?? 0} ${(recap.genre_of_month_count ?? 0) === 1 ? 'фильм' : (recap.genre_of_month_count ?? 0) < 5 ? 'фильма' : 'фильмов'}`
+                    : ''}
+                </p>
+              </section>
+            ) : null}
+
+            {recap.top_director_name != null && (recap.top_director_count ?? 0) > 0 ? (
+              <section className="rounded-xl border border-(--tgui--divider_color) p-3">
+                <p className="text-[11px] text-(--tgui--hint_color)">Режиссёр месяца</p>
+                <p className="text-sm font-medium">
+                  {recap.top_director_kinopoisk_id != null ? (
+                    <Link
+                      to={`/directors/${recap.top_director_kinopoisk_id}`}
+                      className="text-(--tgui--link_color) no-underline"
+                    >
+                      {recap.top_director_name}
+                    </Link>
+                  ) : (
+                    recap.top_director_name
+                  )}
+                  {' · '}
+                  {recap.top_director_count ?? 0}{' '}
+                  {(recap.top_director_count ?? 0) === 1 ? 'фильм' : (recap.top_director_count ?? 0) < 5 ? 'фильма' : 'фильмов'}
+                </p>
+              </section>
+            ) : null}
+
+            {recap.top_country != null && (recap.top_country_count ?? 0) > 0 ? (
+              <section className="rounded-xl border border-(--tgui--divider_color) p-3">
+                <p className="text-[11px] text-(--tgui--hint_color)">Страна месяца</p>
+                <p className="text-sm font-medium">
+                  {recap.top_country} · {recap.top_country_count ?? 0}{' '}
+                  {(recap.top_country_count ?? 0) === 1 ? 'фильм' : (recap.top_country_count ?? 0) < 5 ? 'фильма' : 'фильмов'}
+                </p>
+                {(recap.new_countries_count ?? 0) > 0 ? (
+                  <p className="mt-1 text-[11px] text-(--tgui--hint_color)">
+                    🌍 Новых стран: {recap.new_countries_count}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+
+            {genreDonutSegments.length > 0 ? (
+              <section className="space-y-2 rounded-xl border border-(--tgui--divider_color) p-3">
+                <h2 className="text-sm font-semibold">Жанры</h2>
+                <StatsDonutChart segments={genreDonutSegments} centerTitle="оценок" />
+              </section>
+            ) : null}
+
+            {decadeDonutSegments.length > 0 ? (
+              <section className="space-y-2 rounded-xl border border-(--tgui--divider_color) p-3">
+                <h2 className="text-sm font-semibold">Десятилетия</h2>
+                <StatsDonutChart segments={decadeDonutSegments} centerTitle="оценок" />
               </section>
             ) : null}
 
@@ -200,11 +304,23 @@ export function MonthlyRecapPage() {
               <section className="space-y-2">
                 <h2 className="text-sm font-semibold">Марафоны</h2>
                 <ul className="divide-y divide-(--tgui--divider_color) overflow-hidden rounded-xl border border-(--tgui--divider_color)">
-                  {recap.marathons_unlocked.map((marathon) => (
-                    <li key={`${marathon.kind}:${marathon.key}`} className="px-3 py-2 text-sm">
-                      {marathon.label}
-                    </li>
-                  ))}
+                  {recap.marathons_unlocked.map((marathon) => {
+                    const to = marathonLinkTo(marathon)
+                    return (
+                      <li key={`${marathon.kind}:${marathon.key}`} className="px-3 py-2.5">
+                        <p className="text-[11px] text-(--tgui--hint_color)">{marathonKindLabel(marathon.kind)}</p>
+                        <p className="text-sm font-medium">
+                          {to != null ? (
+                            <Link to={to} className="text-(--tgui--link_color) no-underline">
+                              {marathon.label}
+                            </Link>
+                          ) : (
+                            marathon.label
+                          )}
+                        </p>
+                      </li>
+                    )
+                  })}
                 </ul>
               </section>
             ) : null}

@@ -768,6 +768,37 @@ class MonthlyRecapMarathonResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class MonthlyRecapDistributionItemResponse(BaseModel):
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapDecadeItemResponse(BaseModel):
+    decade_start: int
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapDirectorItemResponse(BaseModel):
+    kinopoisk_id: int
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapFranchiseItemResponse(BaseModel):
+    franchise_key: str
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class MonthlyRecapResponse(BaseModel):
     year: int
     month: int
@@ -781,6 +812,16 @@ class MonthlyRecapResponse(BaseModel):
     peak_activity_count: int
     genre_of_month: str | None
     genre_of_month_count: int = 0
+    top_director_name: str | None = None
+    top_director_count: int = 0
+    top_director_kinopoisk_id: int | None = None
+    top_country: str | None = None
+    top_country_count: int = 0
+    new_countries_count: int = 0
+    genre_breakdown: list[MonthlyRecapDistributionItemResponse] = Field(default_factory=list)
+    decade_breakdown: list[MonthlyRecapDecadeItemResponse] = Field(default_factory=list)
+    director_breakdown: list[MonthlyRecapDirectorItemResponse] = Field(default_factory=list)
+    franchise_breakdown: list[MonthlyRecapFranchiseItemResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -826,4 +867,38 @@ def build_monthly_recap_response(recap) -> MonthlyRecapResponse:
         peak_activity_count=recap.peak_activity_count,
         genre_of_month=recap.genre_of_month,
         genre_of_month_count=recap.genre_of_month_count,
+        top_director_name=recap.top_director_name,
+        top_director_count=recap.top_director_count,
+        top_director_kinopoisk_id=recap.top_director_kinopoisk_id,
+        top_country=recap.top_country,
+        top_country_count=recap.top_country_count,
+        new_countries_count=recap.new_countries_count,
+        genre_breakdown=[
+            MonthlyRecapDistributionItemResponse(label=item.label, count=item.count)
+            for item in recap.genre_breakdown
+        ],
+        decade_breakdown=[
+            MonthlyRecapDecadeItemResponse(
+                decade_start=item.decade_start,
+                label=item.label,
+                count=item.count,
+            )
+            for item in recap.decade_breakdown
+        ],
+        director_breakdown=[
+            MonthlyRecapDirectorItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                label=item.label,
+                count=item.count,
+            )
+            for item in recap.director_breakdown
+        ],
+        franchise_breakdown=[
+            MonthlyRecapFranchiseItemResponse(
+                franchise_key=item.franchise_key,
+                label=item.label,
+                count=item.count,
+            )
+            for item in recap.franchise_breakdown
+        ],
     )

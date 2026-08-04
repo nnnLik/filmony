@@ -41,6 +41,8 @@ class ComputeMarathonAchievementsService:
         return cls(_session=session)
 
     async def execute(self, user_id: UUID) -> list[MarathonAchievementDTO]:
+        from services.franchises.franchise_label import resolve_franchise_label
+
         rows = (
             await self._session.execute(
                 select(
@@ -109,12 +111,12 @@ class ComputeMarathonAchievementsService:
                 continue
             unlocked_at = entries[MARATHON_UNLOCK_COUNT - 1][0]
             posters = [poster for _, poster in entries if poster][:3]
-            label = franchise_key.removeprefix('kp_franchise:')
+            label = await resolve_franchise_label(self._session, franchise_key)
             achievements.append(
                 MarathonAchievementDTO(
                     kind='franchise',
                     key=franchise_key,
-                    label=f'Франшиза {label}',
+                    label=label,
                     count=len(entries),
                     unlocked_at=unlocked_at,
                     sample_poster_urls=posters,

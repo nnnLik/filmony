@@ -595,6 +595,29 @@ export type MonthlyRecapMarathon = {
   unlocked_at: string
 }
 
+export type MonthlyRecapDistributionItem = {
+  label: string
+  count: number
+}
+
+export type MonthlyRecapDecadeItem = {
+  decade_start: number
+  label: string
+  count: number
+}
+
+export type MonthlyRecapDirectorItem = {
+  kinopoisk_id: number
+  label: string
+  count: number
+}
+
+export type MonthlyRecapFranchiseItem = {
+  franchise_key: string
+  label: string
+  count: number
+}
+
 export type MonthlyRecap = {
   year: number
   month: number
@@ -608,4 +631,14 @@ export type MonthlyRecap = {
   peak_activity_count: number
   genre_of_month: string | null
   genre_of_month_count?: number
+  top_director_name?: string | null
+  top_director_count?: number
+  top_director_kinopoisk_id?: number | null
+  top_country?: string | null
+  top_country_count?: number
+  new_countries_count?: number
+  genre_breakdown?: MonthlyRecapDistributionItem[]
+  decade_breakdown?: MonthlyRecapDecadeItem[]
+  director_breakdown?: MonthlyRecapDirectorItem[]
+  franchise_breakdown?: MonthlyRecapFranchiseItem[]
 }

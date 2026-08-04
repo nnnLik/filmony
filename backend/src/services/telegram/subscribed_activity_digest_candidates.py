@@ -59,6 +59,8 @@ class DigestCandidate:
     film_title: str | None = None
     film_year: int | None = None
     film_genres: tuple[str, ...] = ()
+    film_countries: tuple[str, ...] = ()
+    primary_director_name: str | None = None
     tags: tuple[str, ...] = ()
     rating: float | None = None
     is_favorite: bool = False
@@ -228,6 +230,16 @@ class CollectSubscribedActivityDigestCandidatesService:
                 base_score += 10.0
 
             genres = tuple(g for g in (film.genres if film is not None else []) if g)
+            countries = tuple(
+                c.strip()
+                for c in (film.countries if film is not None else [])
+                if isinstance(c, str) and c.strip()
+            )
+            director_name = (
+                (film.primary_director_name or '').strip()
+                if film is not None and (film.primary_director_name or '').strip()
+                else None
+            )
             tags = tags_by_card.get(int(card.id), ())
             film_year = int(film.year) if film is not None and film.year is not None else None
             mood_after = card.mood_after if card.mood_after else None
@@ -250,6 +262,8 @@ class CollectSubscribedActivityDigestCandidatesService:
                     film_title=title_raw,
                     film_year=film_year,
                     film_genres=genres,
+                    film_countries=countries,
+                    primary_director_name=director_name,
                     tags=tags,
                     rating=rating,
                     is_favorite=bool(card.is_favorite),
@@ -274,6 +288,8 @@ class CollectSubscribedActivityDigestCandidatesService:
                         film_title=title_raw,
                         film_year=film_year,
                         film_genres=genres,
+                        film_countries=countries,
+                        primary_director_name=director_name,
                         tags=tags,
                         rating=rating,
                         is_favorite=bool(card.is_favorite),

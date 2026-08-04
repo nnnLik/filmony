@@ -11,6 +11,7 @@ from typing import Self
 from uuid import UUID
 
 from models.card_enums import CardMoodAfter
+from services.telegram.film_metadata_hint import format_film_meta_html_line
 from services.telegram.mini_app_link import html_app_deep_link_block
 from services.telegram.subscribed_activity_digest_candidates import (
     DigestCandidate,
@@ -122,6 +123,21 @@ def _mood_after_label(mood: str | None) -> str | None:
     return _MOOD_AFTER_RU.get(mood, mood)
 
 
+def _format_director(name: str | None) -> str:
+    cleaned = (name or '').strip()
+    if not cleaned:
+        return ''
+    return html.escape(cleaned)
+
+
+def _format_country(countries: tuple[str, ...]) -> str:
+    for raw in countries:
+        label = raw.strip()
+        if label and len(label) <= 28:
+            return html.escape(label)
+    return ''
+
+
 def _render_new_user_card(candidate: DigestCandidate) -> str:
     title = _title_html(candidate)
     year = f' ({candidate.film_year})' if candidate.film_year is not None else ''
@@ -129,8 +145,14 @@ def _render_new_user_card(candidate: DigestCandidate) -> str:
     fav = ' ⭐' if candidate.is_favorite else ''
     genres = _format_genres(candidate.film_genres)
     tags = _format_tags(candidate.tags)
+    director = _format_director(candidate.primary_director_name)
+    country = _format_country(candidate.film_countries)
 
     detail_parts: list[str] = []
+    if director:
+        detail_parts.append(f'🎬 {director}')
+    if country:
+        detail_parts.append(f'🌍 {country}')
     if genres:
         detail_parts.append(f'🎭 {genres}')
     if tags:
@@ -151,9 +173,18 @@ def _render_high_rating_card(candidate: DigestCandidate) -> str:
     title = _title_html(candidate)
     rating = f'{candidate.rating:.0f}/10' if candidate.rating is not None else '9+/10'
     genres = _format_genres(candidate.film_genres)
-    genre_suffix = f' · {genres}' if genres else ''
+    director = _format_director(candidate.primary_director_name)
+    country = _format_country(candidate.film_countries)
+    meta_parts: list[str] = []
+    if director:
+        meta_parts.append(director)
+    if country:
+        meta_parts.append(country)
+    if genres:
+        meta_parts.append(genres)
+    meta_suffix = f' · {" · ".join(meta_parts)}' if meta_parts else ''
     fav = ' и в избранном' if candidate.is_favorite else ''
-    return f'🔥 <b>{candidate.author_display}</b> поставил(а) {rating} «{title}»{fav}{genre_suffix}'
+    return f'🔥 <b>{candidate.author_display}</b> поставил(а) {rating} «{title}»{fav}{meta_suffix}'
 
 
 def _render_feed_post(candidate: DigestCandidate) -> str:

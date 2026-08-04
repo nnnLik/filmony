@@ -58,9 +58,18 @@ def test_message_includes_rich_html_film_deeplink_and_inline_button(
 ) -> None:
     monkeypatch.setattr(settings.telegram, 'bot_username', 'stubfilmony_bot')
 
-    payload = _render()
+    payload = _render(
+        bundle=_bundle(
+            primary=_controversy(
+                primary_director_name='Дени Вильнёв',
+                primary_country='США',
+            ),
+        ),
+    )
 
     assert '🎬 «Spicy Film» (2024)' in payload.html
+    assert 'Дени Вильнёв' in payload.html
+    assert 'США' in payload.html
     assert 'Ваш круг разошёлся: от 2 до 10 (ср. 6.0)' in payload.html
     assert '👎 2/10 — <b>Alice</b>' in payload.html
     assert '👍 10/10 — <b>Bob</b>' in payload.html

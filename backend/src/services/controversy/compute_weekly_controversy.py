@@ -18,6 +18,7 @@ from services.controversy.week_bounds import rating_window_start
 from services.subscriptions.list_following_user_ids_for_follower_user import (
     ListFollowingUserIdsForFollowerUserService,
 )
+from services.telegram.film_metadata_hint import primary_country_label
 
 MIN_RATER_COUNT = 3
 
@@ -44,6 +45,8 @@ class WeeklyControversyResult:
     polar_low: ControversyPolarCard | None = None
     polar_high: ControversyPolarCard | None = None
     viewer_rating: float | None = None
+    primary_director_name: str | None = None
+    primary_country: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +56,14 @@ class WeeklyControversyBundle:
 
 
 AnchorKind = Literal['film', 'catalog']
+
+
+def _film_metadata_from_row(film: Film | None) -> tuple[str | None, str | None]:
+    if film is None:
+        return None, None
+    director = (film.primary_director_name or '').strip() or None
+    country = primary_country_label(film.countries)
+    return director, country
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,10 +214,17 @@ class ComputeWeeklyControversyService:
             anchor=anchor,
         )
         film_year = result.film_year
-        if anchor.kind == 'film' and film_year is None:
+        primary_director_name = result.primary_director_name
+        primary_country = result.primary_country
+        if anchor.kind == 'film':
             film = await self._session.get(Film, anchor.id)
-            if film is not None and film.year is not None:
-                film_year = int(film.year)
+            if film is not None:
+                if film.year is not None:
+                    film_year = int(film.year)
+                if primary_director_name is None or primary_country is None:
+                    loaded_director, loaded_country = _film_metadata_from_row(film)
+                    primary_director_name = primary_director_name or loaded_director
+                    primary_country = primary_country or loaded_country
 
         following_ids = await ListFollowingUserIdsForFollowerUserService.build(
             self._session
@@ -226,6 +244,8 @@ class ComputeWeeklyControversyService:
                 polar_low=result.polar_low,
                 polar_high=result.polar_high,
                 viewer_rating=viewer_rating,
+                primary_director_name=primary_director_name,
+                primary_country=primary_country,
             )
 
         cards = await self._load_circle_rated_cards(following_ids)
@@ -270,6 +290,8 @@ class ComputeWeeklyControversyService:
             polar_low=polar_low,
             polar_high=polar_high,
             viewer_rating=viewer_rating,
+            primary_director_name=primary_director_name,
+            primary_country=primary_country,
         )
 
     async def _build_result_for_anchor(
@@ -302,10 +324,14 @@ class ComputeWeeklyControversyService:
 
         title = await self._resolve_title(anchor=anchor, cards=cards)
         film_year: int | None = None
+        primary_director_name: str | None = None
+        primary_country: str | None = None
         if anchor.kind == 'film':
             film = await self._session.get(Film, anchor.id)
-            if film is not None and film.year is not None:
-                film_year = int(film.year)
+            if film is not None:
+                if film.year is not None:
+                    film_year = int(film.year)
+                primary_director_name, primary_country = _film_metadata_from_row(film)
 
         viewer_rating = await self._load_viewer_rating(
             viewer_user_id=viewer_user_id,
@@ -330,6 +356,8 @@ class ComputeWeeklyControversyService:
             polar_low=polar_low,
             polar_high=polar_high,
             viewer_rating=viewer_rating,
+            primary_director_name=primary_director_name,
+            primary_country=primary_country,
         )
 
     async def _load_viewer_rating(

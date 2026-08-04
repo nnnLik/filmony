@@ -212,7 +212,9 @@ async def test_marathon_franchise_unlock(async_client: AsyncClient) -> None:
     response = await async_client.get('/api/me/gamification')
     assert response.status_code == 200
     marathons = response.json()['marathons']
-    assert any(item['kind'] == 'franchise' and item['count'] == 5 for item in marathons)
+    franchise_marathon = next(item for item in marathons if item['kind'] == 'franchise')
+    assert franchise_marathon['count'] == 5
+    assert franchise_marathon['label'] == 'Matrix Part 0'
 
 
 @pytest.mark.asyncio

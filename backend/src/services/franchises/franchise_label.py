@@ -64,4 +64,15 @@ async def resolve_franchise_label(session: AsyncSession, franchise_key: str) -> 
         if collection_name is not None:
             return collection_name
 
+    first_title_row = (
+        await session.execute(
+            select(Film.title)
+            .where(Film.franchise_key == key)
+            .order_by(Film.kinopoisk_id.asc().nulls_last(), Film.id.asc())
+            .limit(1),
+        )
+    ).scalar_one_or_none()
+    if first_title_row is not None and str(first_title_row).strip() != '':
+        return str(first_title_row).strip()
+
     return franchise_fallback_label(key)

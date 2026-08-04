@@ -9,12 +9,15 @@ type MarathonShelfFrameProps = {
   children: ReactNode
 }
 
-function marathonChipLabel(marathon: MarathonAchievement): string {
-  const prefix = marathon.kind === 'director' ? 'Режиссёр' : 'Франшиза'
-  return `${prefix}: ${marathon.label} · ${marathon.count} фильмов`
+function marathonKindLabel(marathon: MarathonAchievement): string {
+  return marathon.kind === 'director' ? 'Режиссёр' : 'Франшиза'
 }
 
-function marathonChipTo(marathon: MarathonAchievement): string | null {
+function marathonFilmCountLabel(count: number): string {
+  return `${count} ${count === 1 ? 'фильм' : count < 5 ? 'фильма' : 'фильмов'}`
+}
+
+function marathonLinkTo(marathon: MarathonAchievement): string | null {
   if (marathon.kind === 'director') {
     const parsed = Number.parseInt(marathon.key, 10)
     if (Number.isInteger(parsed) && parsed >= 1) {
@@ -31,9 +34,6 @@ function marathonChipTo(marathon: MarathonAchievement): string | null {
   return null
 }
 
-const CHIP_CLASS =
-  'rounded-full border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-2.5 py-1 text-[11px] font-medium text-(--tgui--text_color) no-underline outline-none transition active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-(--tgui--link_color)'
-
 export function MarathonShelfFrame({ marathons, onMarathonDrill, children }: MarathonShelfFrameProps) {
   if (marathons.length === 0) {
     return <>{children}</>
@@ -41,28 +41,39 @@ export function MarathonShelfFrame({ marathons, onMarathonDrill, children }: Mar
 
   return (
     <div className="rounded-2xl border border-[color-mix(in_srgb,var(--tgui--link_color)_22%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_55%,transparent)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="mb-2 flex flex-wrap gap-1.5 px-0.5">
+      <ul className="mb-2 divide-y divide-(--tgui--divider_color) overflow-hidden rounded-xl border border-(--tgui--divider_color)">
         {marathons.map((marathon) => {
-          const to = marathonChipTo(marathon)
-          if (to != null) {
-            return (
-              <Link key={`${marathon.kind}:${marathon.key}`} to={to} className={CHIP_CLASS}>
-                {marathonChipLabel(marathon)}
-              </Link>
-            )
-          }
+          const to = marathonLinkTo(marathon)
+          const title = (
+            <>
+              {marathon.label}
+              {' · '}
+              {marathonFilmCountLabel(marathon.count)}
+            </>
+          )
+
           return (
-            <button
-              key={`${marathon.kind}:${marathon.key}`}
-              type="button"
-              className={CHIP_CLASS}
-              onClick={() => onMarathonDrill?.(marathon)}
-            >
-              {marathonChipLabel(marathon)}
-            </button>
+            <li key={`${marathon.kind}:${marathon.key}`} className="px-3 py-2.5">
+              <p className="text-[11px] text-(--tgui--hint_color)">{marathonKindLabel(marathon)}</p>
+              <p className="text-sm font-medium">
+                {to != null ? (
+                  <Link to={to} className="text-(--tgui--link_color) no-underline">
+                    {title}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-left text-(--tgui--text_color)"
+                    onClick={() => onMarathonDrill?.(marathon)}
+                  >
+                    {title}
+                  </button>
+                )}
+              </p>
+            </li>
           )
         })}
-      </div>
+      </ul>
       {children}
     </div>
   )

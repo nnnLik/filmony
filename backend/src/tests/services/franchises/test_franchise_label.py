@@ -21,6 +21,28 @@ def test_franchise_fallback_label_for_tmdb_collection() -> None:
 
 
 @pytest.mark.asyncio
+async def test_resolve_franchise_label_from_first_franchise_film(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    key = 'kp_franchise:301'
+    async with session_factory() as session:
+        for index in range(2):
+            film = Film(
+                kinopoisk_id=9400300 + index,
+                title=f'Matrix Part {index}',
+                year=1999 + index,
+                poster_url=None,
+                genres=[],
+                franchise_key=key,
+            )
+            session.add(film)
+        await session.commit()
+
+    async with session_factory() as session:
+        label = await resolve_franchise_label(session, key)
+        assert label == 'Matrix Part 0'
+
+
+@pytest.mark.asyncio
 async def test_resolve_franchise_label_from_tmdb_snapshot(prepare_db: None) -> None:
     session_factory = get_session_factory()
     key = 'tmdb_collection:10'

@@ -9,10 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.film import Film
 from models.user_card import UserCard
 from services.directors.get_director_summary import _rated_card_filters
-from services.franchises.franchise_label import (
-    franchise_fallback_label,
-    parse_franchise_min_kinopoisk_id,
-)
+from services.franchises.franchise_label import resolve_franchise_label
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +38,7 @@ class GetFranchiseSummaryService:
         if key == '':
             raise self.FranchiseNotFound
 
-        label = await self._resolve_label(key)
+        label = await resolve_franchise_label(self._session, key)
 
         stats_row = (
             await self._session.execute(
@@ -70,15 +67,3 @@ class GetFranchiseSummaryService:
             films_count=films_count,
             avg_community_rating=avg_community_rating,
         )
-
-    async def _resolve_label(self, franchise_key: str) -> str:
-        min_kp_id = parse_franchise_min_kinopoisk_id(franchise_key)
-        if min_kp_id is not None:
-            title_row = (
-                await self._session.execute(
-                    select(Film.title).where(Film.kinopoisk_id == min_kp_id).limit(1),
-                )
-            ).scalar_one_or_none()
-            if title_row is not None and str(title_row).strip() != '':
-                return str(title_row).strip()
-        return franchise_fallback_label(franchise_key)
