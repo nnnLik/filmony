@@ -2,10 +2,15 @@ import { Button, Section, Title } from '@telegram-apps/telegram-ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { getCatalogCommunityCardsPage, getCatalogItemById } from '../api/cardApi'
+import { getCatalogCommunityCardsPage, getCatalogItemById, getFollowingRatingsForCatalogItem } from '../api/cardApi'
 import type { CatalogItemDetail, CommunityCardItem } from '../api/catalogTypes'
 import { ApiError, formatApiDetail } from '../api/client'
 import { CommunityRatingsList } from '../components/catalog/CommunityRatingsList'
+import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
+import {
+  buildFollowingRatingDisplayRows,
+  type FollowingRatingRow,
+} from '../lib/followingRatingsDisplay'
 import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
@@ -30,6 +35,7 @@ export function CatalogDetailPage() {
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communityErr, setCommunityErr] = useState<string | null>(null)
   const [communityMoreBusy, setCommunityMoreBusy] = useState(false)
+  const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
   const [viewerId] = useState<string | null>(
     () => readMyProfileBundleCache()?.profile.id ?? null,
   )
@@ -119,6 +125,29 @@ export function CatalogDetailPage() {
       alive = false
     }
   }, [item, catalogItemId])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready' || catalogItemId < 1) {
+      queueMicrotask(() => setFollowingRatings(null))
+      return
+    }
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setFollowingRatings(null)
+    })
+    void getFollowingRatingsForCatalogItem(catalogItemId)
+      .then((data) => {
+        if (!alive) return
+        setFollowingRatings(buildFollowingRatingDisplayRows(data.viewer_rating ?? null, data.items))
+      })
+      .catch(() => {
+        if (!alive) return
+        setFollowingRatings([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [auth.kind, catalogItemId])
 
   const loadMoreCommunity = useCallback(async () => {
     if (catalogItemId < 1 || communityNext == null) return
@@ -290,6 +319,10 @@ export function CatalogDetailPage() {
                 ) : null}
               </div>
             </Section>
+
+            {auth.kind === 'ready' ? (
+              <FollowingRatingsPanel rows={followingRatings} />
+            ) : null}
 
             <Section header="Оценки в Filmony">
               <CommunityRatingsList

@@ -7,16 +7,47 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.directors.schemas import (
+    DirectorCatalogItemResponse,
     DirectorFilmItemResponse,
     DirectorFilmsPageResponse,
+    DirectorsCatalogPageResponse,
     DirectorSummaryResponse,
 )
 from core.database import get_db
 from deps.auth import CurrentUser
 from services.directors.get_director_summary import GetDirectorSummaryService
 from services.directors.list_director_rated_films import ListDirectorRatedFilmsService
+from services.directors.list_directors_catalog import ListDirectorsCatalogService
 
 router = APIRouter(prefix='/directors', tags=['directors'])
+
+
+@router.get(
+    '',
+    response_model=DirectorsCatalogPageResponse,
+    summary='Каталог режиссёров с оценёнными фильмами в Filmony',
+)
+async def list_directors_catalog(
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: str | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+) -> DirectorsCatalogPageResponse:
+    try:
+        page = await ListDirectorsCatalogService.build(db).execute(cursor, limit)
+    except ListDirectorsCatalogService.InvalidCursor:
+        raise HTTPException(status_code=422, detail='invalid cursor') from None
+    return DirectorsCatalogPageResponse(
+        items=[
+            DirectorCatalogItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                name=item.name,
+                films_count=item.films_count,
+            )
+            for item in page.items
+        ],
+        next_cursor=page.next_cursor,
+    )
 
 
 @router.get(

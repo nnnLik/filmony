@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.cards.schemas import FollowingRatingsListResponse
 from api.catalog.schemas import (
     CatalogCandidateResponse,
     CatalogCandidatesMetaResponse,
@@ -30,8 +31,10 @@ from models.catalog_item import CatalogItem, CatalogProvider
 from models.user_card import UserCard
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.rawg.rawg_provider_transport import RawgProviderTransport
+from services.cards.following_ratings_response import following_ratings_list_response
 from services.cards.get_my_user_card_id_for_catalog_item import GetMyUserCardIdForCatalogItemService
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
+from services.cards.list_following_ratings_for_title import ListFollowingRatingsForTitleService
 from services.catalog.catalog_candidate_dto import CatalogCandidateDTO
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
 from services.catalog.get_catalog_item_detail import GetCatalogItemDetailService
@@ -163,6 +166,30 @@ async def get_catalog_item_detail(
         genres=list(detail.genres),
         my_card_id=my_card_id,
     )
+
+
+@router.get(
+    '/items/{catalog_item_id}/following-ratings',
+    response_model=FollowingRatingsListResponse,
+    summary='Оценки подписок для элемента каталога',
+)
+async def list_catalog_item_following_ratings(
+    catalog_item_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FollowingRatingsListResponse:
+    try:
+        await GetCatalogItemDetailService.build(db).execute(catalog_item_id)
+    except GetCatalogItemDetailService.CatalogItemNotFound as e:
+        raise HTTPException(status_code=404, detail='catalog item not found') from e
+    try:
+        result = await ListFollowingRatingsForTitleService.build(db).execute(
+            viewer.id,
+            catalog_item_id=catalog_item_id,
+        )
+    except ListFollowingRatingsForTitleService.InvalidTitleRef:
+        raise HTTPException(status_code=422, detail='invalid title ref') from None
+    return following_ratings_list_response(result)
 
 
 @router.get(

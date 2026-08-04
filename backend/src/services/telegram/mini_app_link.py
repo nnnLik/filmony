@@ -54,6 +54,18 @@ def telegram_mini_app_taste_quiz_url(invite_token: str) -> str | None:
     return f'{base}?startapp=tq{invite_token}'
 
 
+def telegram_mini_app_recap_url(*, year: int, month: int) -> str | None:
+    """Deep link into monthly recap screen (handled by start_param ``mr{year}-{month}``)."""
+    raw = settings.telegram.bot_username
+    if raw is None:
+        return None
+    name = raw.strip().lstrip('@')
+    if not name:
+        return None
+    base = f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
+    return f'{base}?startapp=mr{year}-{month}'
+
+
 def html_card_deep_link_block(card_id: int, *, link_text: str | None = None) -> str:
     url = telegram_mini_app_card_url(card_id)
     if url is None:
@@ -88,6 +100,15 @@ def html_film_deep_link_block(film_id: int, *, link_text: str | None = None) -> 
         return '📱 Откройте приложение Filmony из Telegram'
     esc_url = html.escape(url, quote=True)
     label = html.escape(link_text or _DEFAULT_LINK_LABEL)
+    return f'🔗 <a href="{esc_url}">{label}</a>'
+
+
+def html_recap_deep_link_block(*, year: int, month: int, link_text: str | None = None) -> str:
+    url = telegram_mini_app_recap_url(year=year, month=month)
+    if url is None:
+        return '📱 Откройте приложение Filmony из Telegram'
+    esc_url = html.escape(url, quote=True)
+    label = html.escape(link_text or 'Посмотреть итоги месяца')
     return f'🔗 <a href="{esc_url}">{label}</a>'
 
 

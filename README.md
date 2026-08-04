@@ -1,62 +1,63 @@
 # Filmony
 
-[![CI Backend](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-backend.yml?query=branch%3Amaster)
-[![Codecov](https://codecov.io/gh/nnnLik/Filmony/branch/master/graph/badge.svg)](https://codecov.io/gh/nnnLik/Filmony)
-[![CI Frontend](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml/badge.svg?branch=master)](https://github.com/nnnLik/Filmony/actions/workflows/ci-frontend.yml?query=branch%3Amaster)
-[![Deploy](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml/badge.svg)](https://github.com/nnnLik/Filmony/actions/workflows/deploy.yml)
-![Python](https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![Postgres](https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white)
+**Telegram Mini App** для тех, кто не может просто «посмотрел и забыл». Оценивай фильмы, делись впечатлениями с друзьями и собирай свою кино-историю — прямо в Telegram.
 
-**Telegram Mini App** для оценки фильмов: шкала 1–10, контекстные теги, рекомендации по «двойникам». Бэкенд — **FastAPI** + **PostgreSQL**; авторизация через Telegram.
+## Что это
 
-Детали стека, сценарии и правила разработки: [`.cursor/tech.md`](.cursor/tech.md), структура репозитория — [`docs/engineering/project-structure-and-style.md`](docs/engineering/project-structure-and-style.md).
+Filmony — личный кино-дневник в формате мини-приложения. Поставил оценку от 1 до 10, наклеил теги настроения и компании — и карточка уже в ленте. Подписываешься на друзей, реагируешь мемами, сравниваешь вкусы. Без лишних вкладок и регистраций: открыл бота — и ты в кино.
 
-## Стек (кратко)
+## Фичи
 
-| Слой | Технологии |
-|------|------------|
-| Frontend | React 19, TypeScript, Vite, Tailwind 4, [@telegram-apps/sdk](https://docs.telegram-mini-apps.com/) |
-| Backend | FastAPI, SQLAlchemy 2 async, Alembic, asyncpg, [uv](https://docs.astral.sh/uv/) |
-| Данные | PostgreSQL, Redis (в деве — **homelab-infra**, см. `vars/.env.development`) |
-| Локальная инфра | `docker-compose.yml` (RustFS, backend, Celery) |
+### Лента и карточки
 
-## Структура
+Лента подписок: чужие оценки, комментарии, обсуждения. Своя карточка — оценка, теги («один», «с друзьями», «ночью»), пара слов — и в эфир.
 
-```
-backend/   frontend/   docs/   vars/
-docker-compose.yml   docker-compose.prod.yml   Makefile
-```
+![Лента](docs/assets/screenshots/01-feed.png)
 
-## Локальная разработка (Docker)
+![Создание карточки](docs/assets/screenshots/02-create-card.png)
 
-1. Поднять **homelab-infra** (`make dev-up`), сеть **`homelab-infra-network`**. В **`/etc/hosts`**: `filmony-api.localhost`, `filmony.localhost` → `127.0.0.1`.
-2. Скопировать/настроить [`vars/.env.development`](vars/.env.development) (Postgres/Redis хосты homelab, `VITE_API_ORIGIN=http://filmony-api.localhost:5080`, `RUSTFS_INTERNAL_BASE_URL=http://rustfs:9000`).
-3. `make start` → API **http://127.0.0.1:8888**; через Caddy dev — **http://filmony-api.localhost:5080/** (порт **5080**, не 80). Postgres с хоста: **127.0.0.1:15432**.
-4. `make migrate`
-5. Фронт отдельно: `cd frontend && npm run dev` (Vite **5176**).
+![Деталка карточки](docs/assets/screenshots/08-card-detail.png)
 
-Стикеры в RustFS: `make sync-reactions-rustfs` / `make sync-reactions-rustfs WITH_DB=1` (для БД с хоста порт Postgres подменяется на **15432**, см. `Makefile`).
+### Мем-реакции
 
-## Продакшен
+Не лайки, а настроение: Pepe, кастомные стикеры и прочий хаос. Реагируй так, как фильм того заслужил.
 
-Образ backend: **GitHub Actions** → **`ghcr.io/<org>/<repo>/backend:latest`**. На сервере достаточно **`compose.yml`** + `vars/.env.production` (**`GITHUB_REPO`** = `org/repo` в нижнем регистре).
+![Реакции](docs/assets/screenshots/03-reactions.png)
 
-```bash
-export GITHUB_REPO=org/repo
-make prod-up   # pull + up + alembic upgrade head
-```
+### Угадай вкус
 
-Деплой из UI: **Actions → Deploy → Run workflow** (секреты `SERVER_*`, для сборки фронта в CI — `VITE_API_ORIGIN`, `VITE_TELEGRAM_BOT_USERNAME`). После деплоя создаётся **GitHub Release** с авто-тегом `deploy-<run>-<attempt>`. Нужны права workflow **Read and write** для `contents` (Settings → Actions → General).
+Taste Quiz — угадай, как друг оценил фильм. Попал — получи Knowledge badge. Промахнулся — ну, бывает, пересмотришь.
 
-## Makefile (частое)
+![Угадай вкус](docs/assets/screenshots/04-taste-quiz.png)
 
-| Цель | Назначение |
-|------|------------|
-| `make start` | dev: build + up |
-| `make migrate` / `make prod-migrate` | Alembic upgrade head |
-| `make prod-up` | prod: pull GHCR + up + миграции |
-| `make backend-test` | pytest в контейнере backend |
+### Taste Match
 
+Алгоритм находит похожие профили: те, кто смотрит и чувствует примерно как ты. Полезно, когда «что посмотреть?» уже не вопрос, а крик души.
+
+### Профиль и статистика
+
+Heatmap просмотров, цифры, публичные профили. Смотри, как менялся твой вкус — и чей ещё рядом.
+
+![Профиль и статистика](docs/assets/screenshots/05-profile-stats.png)
+
+### Геймификация
+
+Кино-паспорт со штампами, марафоны, полка с физикой — коллекция, которой хочется хвастаться. Каждый просмотренный фильм — ещё один штамп в паспорте.
+
+![Кино-паспорт](docs/assets/screenshots/06-passport.png)
+
+### «Позже» и смотрим вместе
+
+Watchlist «Позже» — фильмы в закладки, пока не созреешь. Смотрим вместе — когда синхронный просмотр важнее одиночного катания.
+
+![Watchlist «Позже»](docs/assets/screenshots/07-watchlist.png)
+
+### Audio vibe
+
+На карточках — короткий audio vibe: атмосфера фильма в пару секунд, без спойлеров и без «прочитай синопсис».
+
+---
+
+## Для разработчиков
+
+Хочешь поднять локально или покопаться в коде? → [Как запустить / для разработчиков](docs/engineering/getting-started.md)

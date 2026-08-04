@@ -16,6 +16,7 @@ from models.game import Game
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from services.cards.card_catalog_release_fields import universal_release_year_date
+from services.genres.resolve_genre_by_slug import ResolveGenreBySlugService
 
 _FAV_CURSOR_PREFIX = 'fav1'
 _RATING_DESC_PREFIX = 'rtd'
@@ -186,6 +187,9 @@ class ListUserCardsService:
     class InvalidCategoryFilter(Exception):
         """category_id does not belong to the profile user."""
 
+    class InvalidGenreFilter(Exception):
+        """genre slug does not resolve to a known genre."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -208,6 +212,7 @@ class ListUserCardsService:
         completed_on: dt.date | None = None,
         director_kinopoisk_id: int | None = None,
         franchise_key: str | None = None,
+        genre: str | None = None,
     ) -> UserCardListPage:
         tags = list(tags_all or [])
         title_q = _normalize_film_title_search(film_title_search)
@@ -222,6 +227,11 @@ class ListUserCardsService:
             ).scalar_one_or_none()
             if owns is None:
                 raise self.InvalidCategoryFilter
+        genre_label: str | None = None
+        if genre is not None:
+            genre_label = await ResolveGenreBySlugService.build(self._session).execute(genre)
+            if genre_label is None:
+                raise self.InvalidGenreFilter
         if favorites_only:
             return await self._execute_favorites(
                 user_id,
@@ -239,6 +249,7 @@ class ListUserCardsService:
                 completed_on=completed_on,
                 director_kinopoisk_id=director_kinopoisk_id,
                 franchise_key=franchise_key,
+                genre_label=genre_label,
             )
         return await self._execute_default(
             user_id,
@@ -256,6 +267,7 @@ class ListUserCardsService:
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
             franchise_key=franchise_key,
+            genre_label=genre_label,
         )
 
     def _apply_filters(
@@ -273,6 +285,7 @@ class ListUserCardsService:
         completed_on: dt.date | None,
         director_kinopoisk_id: int | None,
         franchise_key: str | None,
+        genre_label: str | None,
     ) -> SASelect[tuple[UserCard, Film | None, Game | None]]:
         for tag in tags_all:
             query = query.where(
@@ -312,6 +325,11 @@ class ListUserCardsService:
             query = query.where(Film.primary_director_kinopoisk_id == director_kinopoisk_id)
         if franchise_key is not None:
             query = query.where(Film.franchise_key == franchise_key)
+        if genre_label is not None:
+            from sqlalchemy import cast
+            from sqlalchemy.dialects.postgresql import JSONB
+
+            query = query.where(cast(Film.genres, JSONB).contains([genre_label]))
         return query
 
     async def _execute_default(
@@ -332,6 +350,7 @@ class ListUserCardsService:
         completed_on: dt.date | None,
         director_kinopoisk_id: int | None,
         franchise_key: str | None,
+        genre_label: str | None,
     ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
@@ -354,6 +373,7 @@ class ListUserCardsService:
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
             franchise_key=franchise_key,
+            genre_label=genre_label,
         )
 
         if sort == 'recent':
@@ -433,6 +453,7 @@ class ListUserCardsService:
         completed_on: dt.date | None,
         director_kinopoisk_id: int | None,
         franchise_key: str | None,
+        genre_label: str | None,
     ) -> UserCardListPage:
         query: Select[tuple[UserCard, Film | None, Game | None]] = (
             select(UserCard, Film, Game)
@@ -460,6 +481,7 @@ class ListUserCardsService:
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
             franchise_key=franchise_key,
+            genre_label=genre_label,
         )
 
         if sort == 'rating_desc':

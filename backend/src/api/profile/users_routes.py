@@ -222,6 +222,11 @@ async def list_user_cards(
         max_length=64,
         description='Фильтр по ключу франшизы фильма',
     ),
+    genre: str | None = Query(
+        default=None,
+        max_length=64,
+        description='Фильтр по slug жанра (Film.genres)',
+    ),
 ) -> UserCardPageResponse:
     exists = await GetPublicUserByIdService(db).execute(user_id)
     if exists is None:
@@ -251,11 +256,14 @@ async def list_user_cards(
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
             franchise_key=franchise_key,
+            genre=genre,
         )
     except ListUserCardsService.InvalidCursor:
         raise HTTPException(status_code=422, detail='invalid cursor') from None
     except ListUserCardsService.InvalidCategoryFilter:
         raise HTTPException(status_code=422, detail='invalid category for user') from None
+    except ListUserCardsService.InvalidGenreFilter:
+        raise HTTPException(status_code=422, detail='invalid genre') from None
     community = await load_card_community_fields(
         db,
         cards=page.items,

@@ -95,3 +95,27 @@ export function buildMiniAppTasteQuizDeepLink(inviteToken: string): string | nul
   if (bot == null) return null
   return `https://t.me/${bot}/app?startapp=tq${token}`
 }
+
+/** Parses Telegram mini-app start_param for monthly recap deeplinks (`mr{year}-{month}` or legacy `r{year}{month}`). */
+export function parseMiniAppRecapStartParam(startParam: string): { year: number; month: number } | null {
+  const sp = startParam.trim()
+  const modern = /^mr(\d{4})-(\d{1,2})$/i.exec(sp)
+  if (modern != null) {
+    const year = Number(modern[1])
+    const month = Number(modern[2])
+    if (Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12) {
+      return { year, month }
+    }
+  }
+  const legacy = /^r(\d{4})(\d{1,2})$/i.exec(sp)
+  if (legacy == null) return null
+  const year = Number(legacy[1])
+  const month = Number(legacy[2])
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) return null
+  return { year, month }
+}
+
+export function buildMiniAppRecapDeepLink(year: number, month: number, botUsername: string): string {
+  const bot = botUsername.trim().replace(/^@/, '')
+  return `https://t.me/${bot}/app?startapp=mr${year}-${month}`
+}

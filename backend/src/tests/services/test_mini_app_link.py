@@ -36,6 +36,15 @@ def test_film_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
     assert telegram_mini_app_film_url(7) == 'https://t.me/mybot/app?startapp=f7'
 
 
+def test_recap_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
+    from services.telegram.mini_app_link import telegram_mini_app_recap_url
+
+    monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
+    assert (
+        telegram_mini_app_recap_url(year=2026, month=8) == 'https://t.me/mybot/app?startapp=r20268'
+    )
+
+
 def test_resolve_controversy_deeplink_prefers_film(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
     url = resolve_controversy_deeplink_url(anchor_film_id=3, link_card_id=9)

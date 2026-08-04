@@ -15,6 +15,47 @@ export type PassportStampMeta = {
   category: PassportStampCategory
 }
 
+export type StampDisplayFields = {
+  stamp_id: string
+  title?: string | null
+  description?: string | null
+  unlock_film_poster_url?: string | null
+  unlock_poster_url?: string | null
+}
+
+export const DYNAMIC_LIST_STAMP_CATEGORIES: readonly PassportStampCategory[] = ['director', 'country'] as const
+
+export const COLLAPSED_STAMP_LIST_LIMIT = 8
+
+export function isDynamicListStampCategory(category: PassportStampCategory): boolean {
+  return category === 'director' || category === 'country'
+}
+
+export function getStampPosterUrl(stamp: StampDisplayFields): string | null {
+  return stamp.unlock_film_poster_url ?? stamp.unlock_poster_url ?? null
+}
+
+export function getStampDisplayTitle(stamp: StampDisplayFields): string {
+  const apiTitle = stamp.title?.trim()
+  if (apiTitle != null && apiTitle !== '') {
+    return apiTitle
+  }
+  return getPassportStampMeta(stamp.stamp_id).title
+}
+
+export function getStampDisplayDescription(stamp: StampDisplayFields): string {
+  const apiDescription = stamp.description?.trim()
+  if (apiDescription != null && apiDescription !== '') {
+    return apiDescription
+  }
+  return getPassportStampMeta(stamp.stamp_id).description
+}
+
+export function parseDirectorFirstKinopoiskId(stampId: string): string | null {
+  const match = /^director_first_(\d+)$/.exec(stampId)
+  return match?.[1] ?? null
+}
+
 const DECADE_LABELS: Record<number, string> = {
   1960: '1960‑е',
   1970: '1970‑е',

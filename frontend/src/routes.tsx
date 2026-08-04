@@ -40,6 +40,22 @@ const DirectorDetailPage = lazy(async () => {
   const m = await import('./pages/DirectorDetailPage')
   return { default: m.DirectorDetailPage }
 })
+const DirectorsIndexPage = lazy(async () => {
+  const m = await import('./pages/DirectorsIndexPage')
+  return { default: m.DirectorsIndexPage }
+})
+const FranchiseDetailPage = lazy(async () => {
+  const m = await import('./pages/FranchiseDetailPage')
+  return { default: m.FranchiseDetailPage }
+})
+const GenresIndexPage = lazy(async () => {
+  const m = await import('./pages/GenresIndexPage')
+  return { default: m.GenresIndexPage }
+})
+const GenreDetailPage = lazy(async () => {
+  const m = await import('./pages/GenreDetailPage')
+  return { default: m.GenreDetailPage }
+})
 const CatalogDetailPage = lazy(async () => {
   const m = await import('./pages/CatalogDetailPage')
   return { default: m.CatalogDetailPage }
@@ -84,6 +100,10 @@ const TasteQuizStatsPage = lazy(async () => {
   const m = await import('./pages/TasteQuizStatsPage')
   return { default: m.TasteQuizStatsPage }
 })
+const MonthlyRecapPage = lazy(async () => {
+  const m = await import('./pages/MonthlyRecapPage')
+  return { default: m.MonthlyRecapPage }
+})
 
 export function AppRoutes() {
   return (
@@ -101,7 +121,11 @@ export function AppRoutes() {
         <Route path="/u/:userId" element={<PublicProfilePage />} />
         <Route path="/u/:userId/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/films/:filmId" element={<FilmDetailPage />} />
+        <Route path="/directors" element={<DirectorsIndexPage />} />
         <Route path="/directors/:kinopoiskId" element={<DirectorDetailPage />} />
+        <Route path="/franchises/:franchiseKey" element={<FranchiseDetailPage />} />
+        <Route path="/genres" element={<GenresIndexPage />} />
+        <Route path="/genres/:slug" element={<GenreDetailPage />} />
         <Route path="/catalog/:catalogItemId" element={<CatalogDetailPage />} />
         <Route path="/feed-posts/:postId" element={<FeedPostDetailPage />} />
         <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
@@ -112,6 +136,8 @@ export function AppRoutes() {
         <Route path="/taste-quiz/invite/:inviteToken" element={<TasteQuizInviteLandingPage />} />
         <Route path="/taste-quiz/invite" element={<TasteQuizInvitePage />} />
         <Route path="/taste-quiz/stats" element={<TasteQuizStatsPage />} />
+        <Route path="/me/recap/:year/:month" element={<MonthlyRecapPage />} />
+        <Route path="/me/recap/latest" element={<MonthlyRecapPage />} />
       </Routes>
     </Suspense>
   )

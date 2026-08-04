@@ -14,6 +14,8 @@ from api.gamification.schemas import (
     PublicPassportResponse,
     RatedDirectorItemResponse,
     RatedDirectorsListResponse,
+    RatedFranchiseItemResponse,
+    RatedFranchisesListResponse,
     ShelfPhysicsResponse,
 )
 from core.database import get_db
@@ -25,6 +27,7 @@ from services.gamification.compute_passport_stamps import (
 )
 from services.gamification.compute_shelf_physics import ComputeShelfPhysicsService
 from services.gamification.list_user_rated_directors import ListUserRatedDirectorsService
+from services.gamification.list_user_rated_franchises import ListUserRatedFranchisesService
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 
 router = APIRouter(tags=['gamification'])
@@ -116,6 +119,32 @@ async def list_user_rated_directors(
             RatedDirectorItemResponse(
                 kinopoisk_id=item.kinopoisk_id,
                 name=item.name,
+                count=item.count,
+            )
+            for item in items
+        ],
+    )
+
+
+@router.get(
+    '/users/{user_id}/rated-franchises',
+    response_model=RatedFranchisesListResponse,
+    summary='Франшизы с оценёнными фильмами пользователя',
+)
+async def list_user_rated_franchises(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RatedFranchisesListResponse:
+    target = await GetPublicUserByIdService(db).execute(user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail='user not found')
+    items = await ListUserRatedFranchisesService.build(db).execute(user_id)
+    return RatedFranchisesListResponse(
+        items=[
+            RatedFranchiseItemResponse(
+                franchise_key=item.franchise_key,
+                label=item.label,
                 count=item.count,
             )
             for item in items

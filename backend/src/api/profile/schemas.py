@@ -334,6 +334,15 @@ class ProfileInsightsResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class TasteMatchBreakdownResponse(BaseModel):
+    shared_titles: float
+    tag_overlap: float
+    rating_agreement: float
+    shared_favorites: float
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class TastePeerItemResponse(BaseModel):
     id: UUID
     profile_slug: str
@@ -341,6 +350,8 @@ class TastePeerItemResponse(BaseModel):
     photo_url: str | None
     similarity_score: float
     shared_films_count: int
+    score_v2: float
+    breakdown: TasteMatchBreakdownResponse
 
     model_config = ConfigDict(extra='forbid')
 
@@ -355,6 +366,13 @@ class ProfileSocialInsightsResponse(BaseModel):
 class CategoryDistributionItemResponse(BaseModel):
     category_id: int | None
     name: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class GenreDistributionItemResponse(BaseModel):
+    genre: str
     count: int
 
     model_config = ConfigDict(extra='forbid')
@@ -388,6 +406,7 @@ class UserCardStatsApiResponse(BaseModel):
     watch_with_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
     mood_after_distribution: list[ValueDistributionItemResponse] = Field(default_factory=list)
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
+    genre_distribution: list[GenreDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     activity_distribution: list[ActivityDistributionItemResponse] = Field(default_factory=list)
@@ -618,6 +637,10 @@ def build_user_card_stats_response(
             )
             for item in stats.category_distribution
         ],
+        genre_distribution=[
+            GenreDistributionItemResponse(genre=item.genre, count=item.count)
+            for item in stats.genre_distribution
+        ],
         top_movies=[
             ProfileStatsMovieItemResponse(
                 card_id=item.card_id,
@@ -656,8 +679,103 @@ def build_user_card_stats_response(
                     photo_url=peer.photo_url,
                     similarity_score=peer.similarity_score,
                     shared_films_count=peer.shared_films_count,
+                    score_v2=peer.score_v2,
+                    breakdown=TasteMatchBreakdownResponse(
+                        shared_titles=peer.breakdown.shared_titles,
+                        tag_overlap=peer.breakdown.tag_overlap,
+                        rating_agreement=peer.breakdown.rating_agreement,
+                        shared_favorites=peer.breakdown.shared_favorites,
+                    ),
                 )
                 for peer in social.taste_peers
             ],
         ),
+    )
+
+
+class MonthlyRecapTopFilmResponse(BaseModel):
+    card_id: int
+    film_id: int | None
+    title: str
+    poster_url: str | None
+    rating: float
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapStampResponse(BaseModel):
+    stamp_id: str
+    title: str
+    unlocked_at: datetime
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapMarathonResponse(BaseModel):
+    kind: str
+    key: str
+    label: str
+    unlocked_at: datetime
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapResponse(BaseModel):
+    year: int
+    month: int
+    month_label: str
+    total_rated: int
+    average_rating: float
+    top_films: list[MonthlyRecapTopFilmResponse] = Field(default_factory=list)
+    new_stamps: list[MonthlyRecapStampResponse] = Field(default_factory=list)
+    marathons_unlocked: list[MonthlyRecapMarathonResponse] = Field(default_factory=list)
+    peak_activity_date: date | None
+    peak_activity_count: int
+    genre_of_month: str | None
+    genre_of_month_count: int = 0
+
+    model_config = ConfigDict(extra='forbid')
+
+
+def build_monthly_recap_response(recap) -> MonthlyRecapResponse:
+    from services.profile.build_monthly_recap import MonthlyRecap
+
+    assert isinstance(recap, MonthlyRecap)
+    return MonthlyRecapResponse(
+        year=recap.year,
+        month=recap.month,
+        month_label=recap.month_label,
+        total_rated=recap.total_rated,
+        average_rating=recap.average_rating,
+        top_films=[
+            MonthlyRecapTopFilmResponse(
+                card_id=item.card_id,
+                film_id=item.film_id,
+                title=item.title,
+                poster_url=item.poster_url,
+                rating=item.rating,
+            )
+            for item in recap.top_films
+        ],
+        new_stamps=[
+            MonthlyRecapStampResponse(
+                stamp_id=item.stamp_id,
+                title=item.title,
+                unlocked_at=item.unlocked_at,
+            )
+            for item in recap.new_stamps
+        ],
+        marathons_unlocked=[
+            MonthlyRecapMarathonResponse(
+                kind=item.kind,
+                key=item.key,
+                label=item.label,
+                unlocked_at=item.unlocked_at,
+            )
+            for item in recap.marathons_unlocked
+        ],
+        peak_activity_date=recap.peak_activity_date,
+        peak_activity_count=recap.peak_activity_count,
+        genre_of_month=recap.genre_of_month,
+        genre_of_month_count=recap.genre_of_month_count,
     )

@@ -116,6 +116,19 @@ export const SHELF_DONUT_COLORS: readonly string[] = [
   '#94a3b8',
 ]
 
+export const GENRE_DONUT_COLORS: readonly string[] = [
+  '#5de1d4',
+  '#4f87ff',
+  '#e8b86d',
+  '#ef7d9b',
+  '#6366f1',
+  '#34d399',
+  '#f59e0b',
+  '#a78bfa',
+  '#fb7185',
+  '#38bdf8',
+]
+
 export const DECADE_DONUT_COLORS: readonly string[] = [
   '#64748b',
   '#94a3b8',

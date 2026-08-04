@@ -9,6 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.profile.schemas import (
+    MonthlyRecapResponse,
     MyProfileResponse,
     MyUserCardCategoryCreateRequest,
     MyUserCardCategoryListResponse,
@@ -24,6 +25,7 @@ from api.profile.schemas import (
     WatchlistFilmCreateRequest,
     WatchlistMembershipResponse,
     WatchlistOverlapListResponse,
+    build_monthly_recap_response,
     build_my_profile_response,
     build_watchlist_entry_item_response,
     build_watchlist_overlap_list_response,
@@ -34,6 +36,10 @@ from deps.auth import CurrentUser
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from services.cards.get_planned_user_card import GetPlannedUserCardService
+from services.profile.build_monthly_recap import (
+    BuildMonthlyRecapService,
+    previous_complete_month,
+)
 from services.profile.export_my_user_cards_csv_telegram import ExportMyUserCardsCsvTelegramService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_my_user_card_tag_stats import ListMyUserCardTagStatsService
@@ -413,6 +419,55 @@ async def delete_my_watchlist_film(
     except DeleteWatchlistEntryService.WatchlistEntryNotFoundError:
         raise HTTPException(status_code=404, detail='watchlist entry not found') from None
     return Response(status_code=204)
+
+
+@router.get(
+    '/recap/latest',
+    response_model=MonthlyRecapResponse,
+    summary='Monthly recap for the latest complete calendar month',
+)
+async def get_my_latest_monthly_recap(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MonthlyRecapResponse:
+    year, month = previous_complete_month()
+    try:
+        recap = await BuildMonthlyRecapService.build(db).execute(
+            user.id,
+            year=year,
+            month=month,
+        )
+    except BuildMonthlyRecapService.InvalidMonth:
+        raise HTTPException(status_code=422, detail='invalid month') from None
+    except BuildMonthlyRecapService.RecapNotFound:
+        raise HTTPException(status_code=404, detail='recap not found') from None
+    return build_monthly_recap_response(recap)
+
+
+@router.get(
+    '/recap/{year}/{month}',
+    response_model=MonthlyRecapResponse,
+    summary='Monthly recap for a specific calendar month (UTC)',
+)
+async def get_my_monthly_recap(
+    year: int,
+    month: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MonthlyRecapResponse:
+    if year < 2000 or year > 2100:
+        raise HTTPException(status_code=422, detail='invalid year')
+    try:
+        recap = await BuildMonthlyRecapService.build(db).execute(
+            user.id,
+            year=year,
+            month=month,
+        )
+    except BuildMonthlyRecapService.InvalidMonth:
+        raise HTTPException(status_code=422, detail='invalid month') from None
+    except BuildMonthlyRecapService.RecapNotFound:
+        raise HTTPException(status_code=404, detail='recap not found') from None
+    return build_monthly_recap_response(recap)
 
 
 @router.post(

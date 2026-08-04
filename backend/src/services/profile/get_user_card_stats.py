@@ -81,12 +81,19 @@ class ProfileMovieStatsItem:
 
 
 @dataclass(frozen=True, slots=True)
+class GenreDistributionItem:
+    genre: str
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class UserCardStats:
     total_movies: int
     average_rating: float
     rating_distribution: list[RatingDistributionItem]
     year_distribution: list[YearDistributionItem]
     rated_year_distribution: list[YearDistributionItem]
+    genre_distribution: list[GenreDistributionItem]
     popular_tags: list[TagDistributionItem]
     tag_taste: list[TagTasteItem]
     insights: ProfileInsights
@@ -151,6 +158,7 @@ class GetUserCardStatsService:
                     Film.title,
                     Film.year,
                     Film.poster_url,
+                    Film.genres,
                     UserCardCategory.id.label('shelf_category_id'),
                     UserCardCategory.name.label('shelf_category_name'),
                 )
@@ -173,6 +181,7 @@ class GetUserCardStatsService:
         mood_after_counts: dict[str, int] = {}
         category_counts: dict[int | None, int] = {}
         category_names: dict[int, str] = {}
+        genre_counts: dict[str, int] = {}
         movies: list[ProfileMovieStatsItem] = []
 
         for row in card_rows:
@@ -182,6 +191,10 @@ class GetUserCardStatsService:
             rating_counts[rating_bucket] += 1
             if row.year is not None:
                 year_counts[int(row.year)] = year_counts.get(int(row.year), 0) + 1
+            for genre_name in row.genres or []:
+                label = str(genre_name).strip()
+                if label:
+                    genre_counts[label] = genre_counts.get(label, 0) + 1
             rated_at = row.completed_at or row.created_at
             rated_year = rated_at.year
             rated_year_counts[rated_year] = rated_year_counts.get(rated_year, 0) + 1
@@ -219,6 +232,10 @@ class GetUserCardStatsService:
             for year, count in sorted(
                 rated_year_counts.items(), key=lambda item: item[0], reverse=True
             )
+        ]
+        genre_distribution = [
+            GenreDistributionItem(genre=genre, count=count)
+            for genre, count in sorted(genre_counts.items(), key=lambda item: (-item[1], item[0]))
         ]
         watch_with_distribution = [
             ValueDistributionItem(value=value, count=count)
@@ -310,6 +327,7 @@ class GetUserCardStatsService:
             rating_distribution=rating_distribution,
             year_distribution=year_distribution,
             rated_year_distribution=rated_year_distribution,
+            genre_distribution=genre_distribution,
             popular_tags=popular_tags,
             tag_taste=tag_taste,
             insights=insights,

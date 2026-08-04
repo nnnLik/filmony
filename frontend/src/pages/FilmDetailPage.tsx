@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { getFilmById, getFilmCommunityCardsPage } from '../api/cardApi'
+import { getFilmById, getFilmCommunityCardsPage, getFollowingRatingsForFilm } from '../api/cardApi'
 import { getMyWeeklyControversy } from '../api/controversyApi'
 import { ApiError, formatApiDetail } from '../api/client'
 import {
@@ -15,8 +15,14 @@ import {
 import type { Film, FilmCommunityCardItem } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { CommunityRatingsList } from '../components/catalog/CommunityRatingsList'
+import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { DirectorChip } from '../components/films/DirectorChip'
+import { FranchiseChip } from '../components/films/FranchiseChip'
+import {
+  buildFollowingRatingDisplayRows,
+  type FollowingRatingRow,
+} from '../lib/followingRatingsDisplay'
 import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
@@ -43,6 +49,7 @@ export function FilmDetailPage() {
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communityErr, setCommunityErr] = useState<string | null>(null)
   const [communityMoreBusy, setCommunityMoreBusy] = useState(false)
+  const [followingRatings, setFollowingRatings] = useState<FollowingRatingRow[] | null>(null)
   const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
 
   const communityAuthorIds = useMemo(
@@ -147,6 +154,29 @@ export function FilmDetailPage() {
       alive = false
     }
   }, [film, filmId])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready' || filmId < 1) {
+      queueMicrotask(() => setFollowingRatings(null))
+      return
+    }
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setFollowingRatings(null)
+    })
+    void getFollowingRatingsForFilm(filmId)
+      .then((data) => {
+        if (!alive) return
+        setFollowingRatings(buildFollowingRatingDisplayRows(data.viewer_rating ?? null, data.items))
+      })
+      .catch(() => {
+        if (!alive) return
+        setFollowingRatings([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [auth.kind, filmId])
 
   useEffect(() => {
     let alive = true
@@ -327,6 +357,16 @@ export function FilmDetailPage() {
                         className="mt-2"
                       />
                     ) : null}
+                    {film.franchise_key != null &&
+                    film.franchise_label != null &&
+                    film.franchise_label.trim() !== '' ? (
+                      <FranchiseChip
+                        franchiseKey={film.franchise_key}
+                        label={film.franchise_label}
+                        size="md"
+                        className="mt-2"
+                      />
+                    ) : null}
                     <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
                     {weeklyControversyForFilm != null ? (
                       <span
@@ -436,6 +476,10 @@ export function FilmDetailPage() {
                 ) : null}
               </div>
             </Section>
+
+            {auth.kind === 'ready' ? (
+              <FollowingRatingsPanel rows={followingRatings} />
+            ) : null}
 
             <Section header="Оценки в Filmony">
               <CommunityRatingsList

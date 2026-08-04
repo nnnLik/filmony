@@ -7,6 +7,7 @@ from .feed_post import FeedPost
 from .feed_post_comment import FeedPostComment
 from .film import Film
 from .game import Game
+from .monthly_recap_nudge_state import MonthlyRecapNudgeState
 from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .subscribed_activity_digest_state import SubscribedActivityDigestState
@@ -38,6 +39,7 @@ __all__ = (
     'FeedPostComment',
     'Film',
     'Game',
+    'MonthlyRecapNudgeState',
     'ReactionTargetKind',
     'ReactionType',
     'SubscribedActivityDigestState',

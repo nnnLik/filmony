@@ -797,6 +797,20 @@ async def test_user_stats_social_insights(async_client: AsyncClient) -> None:
         rating=5.0,
         tags=['alpha'],
     )
+    await _seed_movie_card_for_film(
+        user_id=UUID(str(peer_low['id'])),
+        film_id=film_beta_id,
+        kinopoisk_id=5290004,
+        rating=4.0,
+        tags=['beta'],
+    )
+    await _seed_movie_card_for_film(
+        user_id=UUID(str(peer_low['id'])),
+        film_id=film_owner_only_id,
+        kinopoisk_id=5290005,
+        rating=6.0,
+        tags=['gamma'],
+    )
 
     await _login(async_client, telegram_user_id=5291)
     assert (await async_client.post(f'/api/users/{owner_id}/subscriptions')).status_code == 204
@@ -819,12 +833,18 @@ async def test_user_stats_social_insights(async_client: AsyncClient) -> None:
     assert body['social']['mutual_subscriptions_count'] == 1
     peers = body['social']['taste_peers']
     assert len(peers) == 2
-    assert peers[0]['id'] == peer_high['id']
-    assert peers[0]['shared_films_count'] == 2
-    assert peers[0]['similarity_score'] == round(2 / (3 + 3 - 2), 3)
-    assert peers[1]['id'] == peer_low['id']
-    assert peers[1]['shared_films_count'] == 1
-    assert peer_none['id'] not in {p['id'] for p in peers}
+    assert peers[0]['score_v2'] >= peers[1]['score_v2']
+    by_id = {p['id']: p for p in peers}
+    assert peer_high['id'] in by_id
+    assert peer_low['id'] in by_id
+    high = by_id[peer_high['id']]
+    assert high['shared_films_count'] == 2
+    assert high['similarity_score'] == round(2 / (3 + 3 - 2), 3)
+    assert high['score_v2'] >= 0
+    assert high['breakdown']['shared_titles'] >= 0
+    low = by_id[peer_low['id']]
+    assert low['shared_films_count'] == 3
+    assert peer_none['id'] not in by_id
 
 
 @pytest.mark.asyncio

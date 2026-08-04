@@ -17,6 +17,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T120000Z-social-catalog-slices-abc-code.md`
+- `2026-08-04T030000Z-social-catalog-slices-d-e-code.md`
 - `2026-08-04T024100Z-director-catalog-pages-code.md`
 - `2026-08-04T104900Z-profile-gamification-stamps-docs.md`
 - `2026-08-04T011600Z-offline-feed-cache-code.md`

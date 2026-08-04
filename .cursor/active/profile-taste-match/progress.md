@@ -1,7 +1,8 @@
-# Profile Taste Match — Progress
+# profile-taste-match v2 — progress
 
-**Status:** completed
+Status: **done** (2026-08-04)
 
-- 2026-07-03: Feature spec expanded with pre-implementation decision checklist (§1–§10).
-- 2026-07-03: Created `decisions.md` template — implementation blocked until filled.
-- 2026-07-27: Feature closed out — shipped to production and verified per user confirmation. Decision gate resolved by prod ship; see `result.md` and `decisions.md`.
+- `ComputeWeightedTasteMatchService` integrated into social insights.
+- API extended with `score_v2` + `breakdown`; v1 `similarity_score` retained.
+- `SocialTastePeers` accordion UI.
+- Golden tests in `test_profile_taste_match_v2.py`.

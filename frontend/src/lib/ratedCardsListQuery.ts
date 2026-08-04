@@ -21,6 +21,7 @@ export const RATED_CARDS_FILTER_PARAM_KEYS = [
   'completedOn',
   'directorKinopoiskId',
   'franchiseKey',
+  'genre',
 ] as const
 
 export type RatedCardsListQuery = {
@@ -42,6 +43,8 @@ export type RatedCardsListQuery = {
   directorKinopoiskId: string
   /** Стабильный ключ франшизы, напр. `kp_franchise:301`; пустая строка = все. */
   franchiseKey: string
+  /** Slug жанра (Film.genres); пустая строка = все. */
+  genre: string
 }
 
 export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
@@ -58,6 +61,7 @@ export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   completedOn: '',
   directorKinopoiskId: '',
   franchiseKey: '',
+  genre: '',
 }
 
 export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
@@ -74,7 +78,8 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
     q.categoryId.trim() === '' &&
     q.completedOn.trim() === '' &&
     q.directorKinopoiskId.trim() === '' &&
-    q.franchiseKey.trim() === ''
+    q.franchiseKey.trim() === '' &&
+    q.genre.trim() === ''
   )
 }
 
@@ -93,6 +98,7 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
     completed: q.completedOn.trim(),
     dir: q.directorKinopoiskId.trim(),
     franchise: q.franchiseKey.trim(),
+    genre: q.genre.trim(),
   })
 }
 
@@ -187,6 +193,10 @@ export function ratedCardsQueryToSearchParams(query: RatedCardsListQuery): URLSe
   if (franchiseKey !== '') {
     params.set('franchiseKey', franchiseKey)
   }
+  const genre = query.genre.trim()
+  if (genre !== '') {
+    params.set('genre', genre)
+  }
 
   return params
 }
@@ -206,6 +216,7 @@ export function ratedCardsQueryFromSearchParams(searchParams: URLSearchParams): 
     completedOn: searchParams.get('completedOn') ?? '',
     directorKinopoiskId: searchParams.get('directorKinopoiskId') ?? '',
     franchiseKey: searchParams.get('franchiseKey') ?? '',
+    genre: searchParams.get('genre') ?? '',
   }
 }
 
@@ -238,6 +249,7 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
   const directorKinopoiskId =
     dirNum != null && Number.isInteger(dirNum) && dirNum >= 1 ? dirNum : null
   const franchiseKey = q.franchiseKey.trim() === '' ? null : q.franchiseKey.trim()
+  const genre = q.genre.trim() === '' ? null : q.genre.trim()
 
   return {
     sort: q.sort,
@@ -253,5 +265,6 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
     completedOn: q.completedOn.trim() === '' ? null : q.completedOn.trim(),
     directorKinopoiskId,
     franchiseKey,
+    genre,
   }
 }

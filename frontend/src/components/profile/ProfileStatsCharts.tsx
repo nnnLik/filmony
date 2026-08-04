@@ -1,4 +1,6 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
+import { ChevronDown } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 
 import type { ProfileInsightItem, SocialTastePeerItem, TagTasteItem } from '../../api/profileTypes'
@@ -383,6 +385,66 @@ function peerInitials(peer: SocialTastePeerItem): string {
   return name.slice(0, 2).toUpperCase()
 }
 
+function formatBreakdownPercent(value: number): string {
+  return `${Math.round(value * 100)}%`
+}
+
+function TastePeerBreakdown({ peer }: { peer: SocialTastePeerItem }) {
+  const [open, setOpen] = useState(false)
+  const breakdown = peer.breakdown
+
+  return (
+    <div className="border-t border-(--tgui--divider_color) px-3 pb-2">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between py-2 text-left text-[11px] text-(--tgui--hint_color)"
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          setOpen((prev) => !prev)
+        }}
+        aria-expanded={open}
+      >
+        <span>
+          Совпадение v2: <span className="font-semibold text-(--tgui--link_color)">{formatBreakdownPercent(peer.score_v2)}</span>
+        </span>
+        <ChevronDown
+          className={`block size-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+      {open ? (
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1 pb-1 text-[10px] text-(--tgui--hint_color)">
+          <div>
+            <dt>Общие тайтлы</dt>
+            <dd className="font-semibold tabular-nums text-(--tgui--text_color)">
+              {formatBreakdownPercent(breakdown.shared_titles)}
+            </dd>
+          </div>
+          <div>
+            <dt>Теги</dt>
+            <dd className="font-semibold tabular-nums text-(--tgui--text_color)">
+              {formatBreakdownPercent(breakdown.tag_overlap)}
+            </dd>
+          </div>
+          <div>
+            <dt>Близость оценок</dt>
+            <dd className="font-semibold tabular-nums text-(--tgui--text_color)">
+              {formatBreakdownPercent(breakdown.rating_agreement)}
+            </dd>
+          </div>
+          <div>
+            <dt>Избранное</dt>
+            <dd className="font-semibold tabular-nums text-(--tgui--text_color)">
+              {formatBreakdownPercent(breakdown.shared_favorites)}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+    </div>
+  )
+}
+
 export function SocialTastePeers({ peers }: { peers: SocialTastePeerItem[] }) {
   if (peers.length === 0) {
     return <p className="text-sm text-(--tgui--hint_color)">Пока нет похожих профилей</p>
@@ -403,11 +465,12 @@ export function SocialTastePeers({ peers }: { peers: SocialTastePeerItem[] }) {
             </div>
             <div className="shrink-0 text-right text-[10px] tabular-nums text-(--tgui--hint_color)">
               <span className="block font-semibold text-(--tgui--link_color)">
-                {Math.round(peer.similarity_score * 100)}%
+                {Math.round(peer.score_v2 * 100)}%
               </span>
               <span>{peer.shared_films_count} общих</span>
             </div>
           </Link>
+          <TastePeerBreakdown peer={peer} />
         </li>
       ))}
     </ul>

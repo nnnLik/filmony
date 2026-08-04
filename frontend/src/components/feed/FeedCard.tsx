@@ -37,6 +37,7 @@ import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthor
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { DirectorChip } from '../films/DirectorChip'
+import { FranchiseChip } from '../films/FranchiseChip'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { ReactionStrip } from '../reactions/ReactionStrip'
@@ -508,6 +509,16 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           <DirectorChip
             kinopoiskId={card.film_primary_director_kinopoisk_id}
             name={card.film_primary_director_name}
+            className="mt-0.5"
+          />
+        ) : null}
+
+        {card.film_franchise_key != null &&
+        card.film_franchise_label != null &&
+        card.film_franchise_label.trim() !== '' ? (
+          <FranchiseChip
+            franchiseKey={card.film_franchise_key}
+            label={card.film_franchise_label}
             className="mt-0.5"
           />
         ) : null}

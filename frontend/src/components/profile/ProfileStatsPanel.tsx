@@ -22,12 +22,14 @@ import {
   aggregateYearDistributionToDecades,
   COMPANY_DONUT_COLORS,
   DECADE_DONUT_COLORS,
+  GENRE_DONUT_COLORS,
   findPeakRatedYear,
   MOOD_AFTER_DONUT_COLORS,
   RATING_DONUT_COLORS,
   SHELF_DONUT_COLORS,
   type DonutSegmentInput,
 } from '../../lib/statsDonutChart'
+import { genreSlug } from '../../lib/genreSlug'
 import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
@@ -407,6 +409,18 @@ export function ProfileStatsPanel({
     }))
   }, [stats?.year_distribution])
 
+  const genreDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const rows = stats?.genre_distribution ?? []
+    return rows
+      .filter((item) => item.count > 0)
+      .map((item, idx) => ({
+        label: item.genre,
+        count: item.count,
+        value: genreSlug(item.genre),
+        color: GENRE_DONUT_COLORS[idx % GENRE_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [stats?.genre_distribution])
+
   const peakRatedYear = useMemo(
     () => findPeakRatedYear(stats?.rated_year_distribution),
     [stats?.rated_year_distribution],
@@ -505,6 +519,18 @@ export function ProfileStatsPanel({
       ...cardsQuery,
       yearMin: String(start),
       yearMax: String(start + 9),
+    })
+    onDrillToRatedCards?.()
+  }
+
+  const handleGenreDistributionDrill = (slug: string) => {
+    const trimmed = slug.trim()
+    if (trimmed === '') return
+    onCardsQueryChange({
+      ...cardsQuery,
+      genre: trimmed,
+      directorKinopoiskId: '',
+      franchiseKey: '',
     })
     onDrillToRatedCards?.()
   }
@@ -685,6 +711,26 @@ export function ProfileStatsPanel({
                 activeValue={cardsQuery.categoryId === '' ? undefined : cardsQuery.categoryId}
                 onSegmentClick={handleShelfDistributionDrill}
               />
+            ) : (
+              <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
+            )}
+          </ProfileStatsSectionCard>
+
+          <ProfileStatsSectionCard title="По жанрам">
+            {genreDonutSegments.length > 0 ? (
+              <div className="space-y-3">
+                <StatsDonutChart
+                  segments={genreDonutSegments}
+                  onSegmentClick={handleGenreDistributionDrill}
+                  activeValue={cardsQuery.genre === '' ? undefined : cardsQuery.genre}
+                />
+                <Link
+                  to="/genres"
+                  className="block text-center text-sm text-(--tgui--link_color) no-underline"
+                >
+                  Все жанры →
+                </Link>
+              </div>
             ) : (
               <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
             )}

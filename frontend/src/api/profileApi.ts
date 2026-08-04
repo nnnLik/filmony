@@ -13,6 +13,7 @@ import type {
   SubscriptionListResponse,
   SubscriptionListType,
   UserMovieCardStats,
+  MonthlyRecap,
   WatchlistEntryItem,
   WatchlistEntryPage,
   WatchlistMembership,
@@ -47,6 +48,8 @@ export type GetUserCardsParams = {
   directorKinopoiskId?: number | null
   /** Стабильный ключ франшизы фильма, напр. `kp_franchise:301`. */
   franchiseKey?: string | null
+  /** Slug жанра (Film.genres). */
+  genre?: string | null
 }
 
 export type CreateWatchlistEntryBody = {
@@ -172,6 +175,9 @@ export async function getUserCards(userId: string, params: GetUserCardsParams): 
   }
   if (params.franchiseKey != null && params.franchiseKey.trim() !== '') {
     q.set('franchise_key', params.franchiseKey.trim())
+  }
+  if (params.genre != null && params.genre.trim() !== '') {
+    q.set('genre', params.genre.trim())
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<MovieCardPage>(`/api/users/${encodeURIComponent(userId)}/cards${suffix}`)
@@ -407,4 +413,14 @@ export async function postExportMyCardsCsv(): Promise<MovieCardsExportCsvRespons
   return apiJson<MovieCardsExportCsvResponse>('/api/me/cards/export-csv', {
     method: 'POST',
   })
+}
+
+export async function getMyLatestMonthlyRecap(): Promise<MonthlyRecap> {
+  return apiJson<MonthlyRecap>('/api/me/recap/latest')
+}
+
+export async function getMyMonthlyRecap(year: number, month: number): Promise<MonthlyRecap> {
+  return apiJson<MonthlyRecap>(
+    `/api/me/recap/${encodeURIComponent(String(year))}/${encodeURIComponent(String(month))}`,
+  )
 }

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import {
   parseMiniAppFilmStartParam,
+  parseMiniAppRecapStartParam,
   parseMiniAppTasteQuizStartParam,
   parseMiniAppWatchlistStartParam,
 } from '../lib/miniAppCardDeepLink'
@@ -45,6 +46,18 @@ export function TelegramMiniAppStartParamRedirect() {
           watchlistInviteCardId: watchlistCardId,
         },
       })
+      return
+    }
+
+    const recapTarget = parseMiniAppRecapStartParam(sp)
+    if (recapTarget != null) {
+      const key = `filmony.handled_start_param.${sp}`
+      if (sessionStorage.getItem(key) === '1') {
+        return
+      }
+      ran.current = true
+      sessionStorage.setItem(key, '1')
+      void navigate(`/me/recap/${recapTarget.year}/${recapTarget.month}`, { replace: true })
       return
     }
 

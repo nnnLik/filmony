@@ -109,10 +109,10 @@ from services.cards.delete_user_card_comment import (
 from services.cards.delete_user_card_comment import (
     UserCardCommentNotFoundError as DeleteUserCardCommentNotFoundError,
 )
+from services.cards.following_ratings_response import following_ratings_list_response
 from services.cards.get_user_card_details import GetUserCardDetailsService, UserCardNotFoundError
 from services.cards.inline_user_card_ref_tokens import batch_resolve_inline_user_card_refs
 from services.cards.list_following_ratings_for_user_card import (
-    FollowingRatingRow,
     ListFollowingRatingsForUserCardService,
     UserCardAnchorNotFoundError,
 )
@@ -584,24 +584,7 @@ async def list_following_ratings_for_user_card(
     except UserCardAnchorNotFoundError:
         raise HTTPException(status_code=404, detail='movie card not found') from None
 
-    def _entry(r: FollowingRatingRow) -> FollowingRatingEntryResponse:
-        return FollowingRatingEntryResponse(
-            user_id=r.user_id,
-            movie_card_id=r.user_card_id,
-            profile_slug=r.profile_slug,
-            username=r.username,
-            first_name=r.first_name,
-            last_name=r.last_name,
-            photo_url=r.photo_url,
-            display_name=r.display_name,
-            rating=r.rating,
-            is_planned=r.is_planned,
-        )
-
-    return FollowingRatingsListResponse(
-        viewer_rating=_entry(result.viewer_row) if result.viewer_row is not None else None,
-        items=[_entry(r) for r in result.items],
-    )
+    return following_ratings_list_response(result)
 
 
 @router.post(

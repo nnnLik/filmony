@@ -191,6 +191,18 @@ export async function getFollowingRatingsForCard(cardId: number): Promise<Follow
   return apiJson<FollowingRatingsResponse>(`/api/cards/${cardId}/following-ratings`)
 }
 
+export async function getFollowingRatingsForFilm(filmId: number): Promise<FollowingRatingsResponse> {
+  return apiJson<FollowingRatingsResponse>(`/api/films/${filmId}/following-ratings`)
+}
+
+export async function getFollowingRatingsForCatalogItem(
+  catalogItemId: number,
+): Promise<FollowingRatingsResponse> {
+  return apiJson<FollowingRatingsResponse>(
+    `/api/catalog/items/${catalogItemId}/following-ratings`,
+  )
+}
+
 function normalizeFeedPageItem(raw: Record<string, unknown>): FeedPageItem {
   if (raw.kind === 'feed_post') {
     const commentsCount = typeof raw.comments_count === 'number' ? raw.comments_count : 0

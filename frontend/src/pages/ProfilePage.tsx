@@ -4,8 +4,9 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'rea
 import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
-import { getMyProfile, getUserCards, getUserFeedPosts, getUserWatchlist, postExportMyCardsCsv } from '../api/profileApi'
+import { getMyProfile, getMyLatestMonthlyRecap, getUserCards, getUserFeedPosts, getUserWatchlist, postExportMyCardsCsv } from '../api/profileApi'
 import type {
+  MonthlyRecap,
   MovieCard,
   MovieCardPage,
   MyProfile,
@@ -103,6 +104,7 @@ export function ProfilePage() {
   const [postsLoadingMore, setPostsLoadingMore] = useState(false)
   const [favoriteStripFetched, setFavoriteStripFetched] = useState<MovieCard[]>([])
   const [favoriteStripForUserId, setFavoriteStripForUserId] = useState<string | null>(null)
+  const [recapBanner, setRecapBanner] = useState<MonthlyRecap | null>(null)
   const [ratedQuery, setRatedQuery] = useRatedCardsQueryFromUrl()
   const [ratedCardsLoading, setRatedCardsLoading] = useState(false)
   const deferredRatedQuery = useDeferredValue(ratedQuery)
@@ -143,6 +145,22 @@ export function ProfilePage() {
   useEffect(() => {
     scheduleDeferredPepeDancingPrewarm()
   }, [])
+
+  useEffect(() => {
+    if (auth.kind !== 'ready') return
+    let alive = true
+    void getMyLatestMonthlyRecap()
+      .then((recap) => {
+        if (!alive || recap.total_rated <= 0) return
+        const key = `recap_dismissed_${recap.year}_${recap.month}`
+        if (localStorage.getItem(key) === '1') return
+        setRecapBanner(recap)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [auth.kind])
 
   useEffect(() => {
     if (auth.kind !== 'ready') {
@@ -456,10 +474,26 @@ export function ProfilePage() {
 
   const handleMarathonDrill = useCallback(
     (marathon: MarathonAchievement) => {
+      if (marathon.kind === 'director') {
+        const parsed = Number.parseInt(marathon.key, 10)
+        const id =
+          Number.isInteger(parsed) && parsed >= 1 ? String(parsed) : marathon.key.trim()
+        if (id !== '') {
+          void navigate(`/directors/${encodeURIComponent(id)}`)
+        }
+        return
+      }
+      if (marathon.kind === 'franchise') {
+        const key = marathon.key.trim()
+        if (key !== '') {
+          void navigate(`/franchises/${encodeURIComponent(key)}`)
+        }
+        return
+      }
       setRatedQuery((prev) => marathonDrillToRatedQuery(prev, marathon))
       drillToRatedCards()
     },
-    [drillToRatedCards, setRatedQuery],
+    [drillToRatedCards, navigate, setRatedQuery],
   )
 
   const drillToWatchlist = useCallback(() => {
@@ -614,6 +648,39 @@ export function ProfilePage() {
           <p className="filmony-text-panel mt-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
             {profile.bio}
           </p>
+        ) : null}
+
+        {recapBanner != null ? (
+          <div className="mx-auto mt-4 max-w-sm rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-4 py-3 text-left">
+            <p className="text-sm font-medium text-(--tgui--text_color)">Итоги месяца готовы</p>
+            <p className="filmony-text-panel mt-1 text-sm text-(--tgui--hint_color)">
+              {recapBanner.total_rated} оценок за последний полный месяц — открой сводку.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <Button
+                size="s"
+                stretched
+                onClick={() => {
+                  void navigate(`/me/recap/${recapBanner.year}/${recapBanner.month}`)
+                }}
+              >
+                Посмотреть
+              </Button>
+              <Button
+                size="s"
+                mode="gray"
+                onClick={() => {
+                  localStorage.setItem(
+                    `recap_dismissed_${recapBanner.year}_${recapBanner.month}`,
+                    '1',
+                  )
+                  setRecapBanner(null)
+                }}
+              >
+                Скрыть
+              </Button>
+            </div>
+          </div>
         ) : null}
 
         <div className="mt-4 flex justify-center">

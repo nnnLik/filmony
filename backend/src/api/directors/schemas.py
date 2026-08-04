@@ -30,3 +30,18 @@ class DirectorFilmsPageResponse(BaseModel):
     next_cursor: str | None = None
 
     model_config = ConfigDict(extra='forbid')
+
+
+class DirectorCatalogItemResponse(BaseModel):
+    kinopoisk_id: int
+    name: str
+    films_count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class DirectorsCatalogPageResponse(BaseModel):
+    items: list[DirectorCatalogItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+    model_config = ConfigDict(extra='forbid')

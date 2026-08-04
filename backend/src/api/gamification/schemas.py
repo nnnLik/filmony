@@ -72,3 +72,17 @@ class RatedDirectorsListResponse(BaseModel):
     items: list[RatedDirectorItemResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
+
+
+class RatedFranchiseItemResponse(BaseModel):
+    franchise_key: str
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class RatedFranchisesListResponse(BaseModel):
+    items: list[RatedFranchiseItemResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')

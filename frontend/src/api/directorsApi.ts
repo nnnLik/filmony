@@ -23,6 +23,31 @@ export type DirectorFilmsPage = {
   next_cursor: string | null
 }
 
+export type DirectorCatalogItem = {
+  kinopoisk_id: number
+  name: string
+  films_count: number
+}
+
+export type DirectorsCatalogPage = {
+  items: DirectorCatalogItem[]
+  next_cursor: string | null
+}
+
+export async function getDirectorsCatalogPage(
+  params: { cursor?: string | null; limit?: number } = {},
+): Promise<DirectorsCatalogPage> {
+  const q = new URLSearchParams()
+  if (params.cursor != null && params.cursor !== '') {
+    q.set('cursor', params.cursor)
+  }
+  if (params.limit != null) {
+    q.set('limit', String(params.limit))
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : ''
+  return apiJson<DirectorsCatalogPage>(`/api/directors${suffix}`)
+}
+
 export async function getDirectorSummary(kinopoiskId: number): Promise<DirectorSummary> {
   return apiJson<DirectorSummary>(`/api/directors/${encodeURIComponent(String(kinopoiskId))}`)
 }

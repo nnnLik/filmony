@@ -2,6 +2,7 @@ import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
 
 import {
   getMyCardCategories,
@@ -9,6 +10,7 @@ import {
   getUserPublicCardCategories,
   getUserRatedDirectors,
 } from '../../api/profileApi'
+import { getGenresCatalogPage } from '../../api/genresApi'
 import type { ProfileCardsSort, UserRatedDirectorsResponse } from '../../api/profileApi'
 import type {
   CardCompany,
@@ -102,10 +104,20 @@ export function ProfileRatedCardsFilters({
   const fetchDirectorsEnabled =
     profileUserId !== '' && (filtersOpen || cardsQuery.directorKinopoiskId.trim() !== '')
 
+  const fetchGenresEnabled = filtersOpen || cardsQuery.genre.trim() !== ''
+
   const directorsQuery = useQuery<UserRatedDirectorsResponse>({
     queryKey: userRatedDirectorsQueryKey(profileUserId),
     queryFn: () => getUserRatedDirectors(profileUserId),
     enabled: fetchDirectorsEnabled,
+    staleTime: 15 * 60_000,
+    gcTime: 60 * 60_000,
+  })
+
+  const genresQuery = useQuery({
+    queryKey: ['genresCatalogFilter'],
+    queryFn: () => getGenresCatalogPage({ limit: 100 }),
+    enabled: fetchGenresEnabled,
     staleTime: 15 * 60_000,
     gcTime: 60 * 60_000,
   })
@@ -144,6 +156,7 @@ export function ProfileRatedCardsFilters({
     () => directorsQuery.data?.items ?? [],
     [directorsQuery.data?.items],
   )
+  const genreItems = useMemo(() => genresQuery.data?.items ?? [], [genresQuery.data?.items])
   const shelvesErr: string | null =
     enableCategoryFilter && filtersOpen && shelvesQuery.isError
     ? shelvesQuery.error instanceof ApiError
@@ -156,6 +169,13 @@ export function ProfileRatedCardsFilters({
       ? directorsQuery.error instanceof ApiError
         ? formatApiDetail(directorsQuery.error.detail)
         : 'Не удалось загрузить режиссёров'
+      : null
+
+  const genresErr: string | null =
+    filtersOpen && genresQuery.isError
+      ? genresQuery.error instanceof ApiError
+        ? formatApiDetail(genresQuery.error.detail)
+        : 'Не удалось загрузить жанры'
       : null
 
   const tagItems: MyMovieCardTagStatItem[] = tagsQuery.data?.items ?? []
@@ -182,12 +202,26 @@ export function ProfileRatedCardsFilters({
     return match?.name ?? null
   }, [cardsQuery.directorKinopoiskId, directorItems])
 
+  const activeGenreName = useMemo(() => {
+    const slug = cardsQuery.genre.trim()
+    if (slug === '') {
+      return null
+    }
+    const match = genreItems.find((row) => row.slug === slug)
+    return match?.genre ?? null
+  }, [cardsQuery.genre, genreItems])
+
   const activeFilterHint = useMemo(() => {
     const parts: string[] = []
     if (activeDirectorName != null) {
       parts.push(`режиссёр: ${activeDirectorName}`)
     } else if (cardsQuery.directorKinopoiskId.trim() !== '') {
       parts.push('режиссёр')
+    }
+    if (activeGenreName != null) {
+      parts.push(`жанр: ${activeGenreName}`)
+    } else if (cardsQuery.genre.trim() !== '') {
+      parts.push('жанр')
     }
     if (cardsQuery.franchiseKey.trim() !== '') {
       parts.push('франшиза')
@@ -196,7 +230,14 @@ export function ProfileRatedCardsFilters({
       parts.push('поиск')
     }
     return parts.length > 0 ? parts.join(' · ') : null
-  }, [activeDirectorName, cardsQuery.directorKinopoiskId, cardsQuery.franchiseKey, cardsQuery.filmTitle])
+  }, [
+    activeDirectorName,
+    activeGenreName,
+    cardsQuery.directorKinopoiskId,
+    cardsQuery.franchiseKey,
+    cardsQuery.genre,
+    cardsQuery.filmTitle,
+  ])
 
   return (
     <div className="mb-3 overflow-hidden rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color)">
@@ -267,6 +308,15 @@ export function ProfileRatedCardsFilters({
           aria-labelledby="profile-rated-cards-filters-trigger"
           className="space-y-3 border-t border-[color-mix(in_srgb,var(--tgui--divider_color)_70%,transparent)] px-3 pb-3 pt-3"
         >
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Link to="/directors" className="font-medium text-(--tgui--link_color) no-underline">
+              Все режиссёры →
+            </Link>
+            <Link to="/genres" className="font-medium text-(--tgui--link_color) no-underline">
+              Каталог жанров →
+            </Link>
+          </div>
+
           <label className="flex flex-wrap items-center gap-2 rounded-xl px-1 py-1 text-xs font-medium text-(--tgui--hint_color)">
             <span className="grow basis-full">Только избранное</span>
             <input
@@ -330,6 +380,7 @@ export function ProfileRatedCardsFilters({
                   ...cardsQuery,
                   directorKinopoiskId: e.currentTarget.value,
                   franchiseKey: e.currentTarget.value !== '' ? '' : cardsQuery.franchiseKey,
+                  genre: e.currentTarget.value !== '' ? '' : cardsQuery.genre,
                 })
               }
               aria-label="Фильтр: режиссёр"
@@ -346,6 +397,36 @@ export function ProfileRatedCardsFilters({
               <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{directorsErr}</p>
             ) : directorsQuery.isFetching && directorItems.length === 0 ? (
               <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка режиссёров…</p>
+            ) : null}
+          </label>
+
+          <label className="block text-xs font-medium text-(--tgui--hint_color)">
+            Жанр
+            <select
+              className={`${SELECT_CLASS} mt-1`}
+              value={cardsQuery.genre}
+              onChange={(e) =>
+                onChange({
+                  ...cardsQuery,
+                  genre: e.currentTarget.value,
+                  directorKinopoiskId: e.currentTarget.value !== '' ? '' : cardsQuery.directorKinopoiskId,
+                  franchiseKey: e.currentTarget.value !== '' ? '' : cardsQuery.franchiseKey,
+                })
+              }
+              aria-label="Фильтр: жанр"
+            >
+              <option value="">Все жанры</option>
+              {genreItems.map((row) => (
+                <option key={row.slug} value={row.slug}>
+                  {row.genre}
+                  {row.films_count > 1 ? ` · ${row.films_count}` : ''}
+                </option>
+              ))}
+            </select>
+            {genresErr != null ? (
+              <p className="mt-1 text-xs text-(--tgui--destructive_text_color)">{genresErr}</p>
+            ) : genresQuery.isFetching && genreItems.length === 0 ? (
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка жанров…</p>
             ) : null}
           </label>
 

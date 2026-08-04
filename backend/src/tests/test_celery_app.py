@@ -29,6 +29,7 @@ def test_celery_app_registers_telegram_engagement_tasks() -> None:
     assert 'tasks.telegram_engagement.notify_followers_new_user_card' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.notify_followers_new_feed_post' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.send_subscribed_activity_digests' in celery_app.app.tasks
+    assert 'tasks.monthly_recap.send_monthly_recap_nudges' in celery_app.app.tasks
 
 
 def test_celery_app_freezes_gc_before_worker_fork(monkeypatch) -> None:

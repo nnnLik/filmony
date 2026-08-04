@@ -1,9 +1,17 @@
+import { Button } from '@telegram-apps/telegram-ui'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
 
 import type { MarathonAchievement, PassportStamp } from '../../../api/gamificationTypes'
 import { useGamification, usePublicPassport } from '../../../hooks/useGamification'
 import {
+  COLLAPSED_STAMP_LIST_LIMIT,
   getPassportStampMeta,
+  getStampDisplayDescription,
+  getStampDisplayTitle,
+  getStampPosterUrl,
+  isDynamicListStampCategory,
+  parseDirectorFirstKinopoiskId,
   PASSPORT_STAMP_CATEGORY_LABELS,
   PASSPORT_STAMP_CATEGORY_ORDER,
   type PassportStampCategory,
@@ -26,6 +34,33 @@ function formatProgress(stamp: PassportStamp): string | null {
   return `${current}/${target}`
 }
 
+function StampPosterThumb({ stamp }: { stamp: PassportStamp }) {
+  const posterUrl = getStampPosterUrl(stamp)
+
+  if (posterUrl != null) {
+    return (
+      <img
+        src={posterUrl}
+        alt=""
+        className={`size-10 shrink-0 rounded-md object-cover ${stamp.unlocked ? '' : 'grayscale'}`}
+        loading="lazy"
+        decoding="async"
+      />
+    )
+  }
+
+  return (
+    <span
+      className={`flex size-10 shrink-0 items-center justify-center rounded-md text-lg ${
+        stamp.unlocked ? 'bg-(--tgui--bg_color)' : 'bg-(--tgui--bg_color) text-(--tgui--hint_color)'
+      }`}
+      aria-hidden
+    >
+      {stamp.unlocked ? '✓' : '?'}
+    </span>
+  )
+}
+
 function StampTile({
   stamp,
   onSelect,
@@ -33,7 +68,7 @@ function StampTile({
   stamp: PassportStamp
   onSelect: (stamp: PassportStamp) => void
 }) {
-  const meta = getPassportStampMeta(stamp.stamp_id)
+  const title = getStampDisplayTitle(stamp)
   const progress = formatProgress(stamp)
 
   return (
@@ -46,30 +81,59 @@ function StampTile({
       }`}
       onClick={() => onSelect(stamp)}
     >
-      {stamp.unlock_poster_url ? (
-        <img
-          src={stamp.unlock_poster_url}
-          alt=""
-          className={`size-10 rounded-md object-cover ${stamp.unlocked ? '' : 'grayscale'}`}
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span
-          className={`flex size-10 items-center justify-center rounded-md text-lg ${
-            stamp.unlocked ? 'bg-(--tgui--bg_color)' : 'bg-(--tgui--bg_color) text-(--tgui--hint_color)'
-          }`}
-          aria-hidden
-        >
-          {stamp.unlocked ? '✓' : '?'}
-        </span>
-      )}
+      <StampPosterThumb stamp={stamp} />
       <span className="line-clamp-2 text-[10px] font-medium leading-tight text-(--tgui--text_color)">
-        {meta.title}
+        {title}
       </span>
       {progress != null ? (
         <span className="text-[9px] tabular-nums text-(--tgui--hint_color)">{progress}</span>
       ) : null}
+    </button>
+  )
+}
+
+function StampListRow({
+  stamp,
+  onSelect,
+}: {
+  stamp: PassportStamp
+  onSelect: (stamp: PassportStamp) => void
+}) {
+  const title = getStampDisplayTitle(stamp)
+  const progress = formatProgress(stamp)
+  const directorId = parseDirectorFirstKinopoiskId(stamp.stamp_id)
+  const rowClassName = `flex w-full items-center gap-3 px-3 py-2.5 text-left transition active:scale-[0.99] ${
+    stamp.unlocked ? 'opacity-100' : 'opacity-75'
+  }`
+
+  const content = (
+    <>
+      <StampPosterThumb stamp={stamp} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-(--tgui--text_color)">{title}</p>
+        {stamp.unlocked && stamp.unlock_film_title ? (
+          <p className="truncate text-xs text-(--tgui--hint_color)">{stamp.unlock_film_title}</p>
+        ) : progress != null ? (
+          <p className="text-xs tabular-nums text-(--tgui--hint_color)">{progress}</p>
+        ) : null}
+      </div>
+    </>
+  )
+
+  if (directorId != null) {
+    return (
+      <Link
+        to={`/directors/${encodeURIComponent(directorId)}`}
+        className={`${rowClassName} no-underline`}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <button type="button" className={rowClassName} onClick={() => onSelect(stamp)}>
+      {content}
     </button>
   )
 }
@@ -85,7 +149,8 @@ function StampDetailModal({
     return null
   }
 
-  const meta = getPassportStampMeta(stamp.stamp_id)
+  const title = getStampDisplayTitle(stamp)
+  const description = getStampDisplayDescription(stamp)
   const progress = formatProgress(stamp)
 
   return (
@@ -101,9 +166,9 @@ function StampDetailModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h3 id="passport-stamp-title" className="text-base font-semibold text-(--tgui--text_color)">
-          {meta.title}
+          {title}
         </h3>
-        <p className="mt-1 text-sm text-(--tgui--hint_color)">{meta.description}</p>
+        <p className="mt-1 text-sm text-(--tgui--hint_color)">{description}</p>
         {stamp.unlocked && stamp.unlock_film_title ? (
           <p className="mt-3 text-sm text-(--tgui--text_color)">
             Открыл: <span className="font-medium">{stamp.unlock_film_title}</span>
@@ -124,6 +189,67 @@ function StampDetailModal({
         </button>
       </div>
     </div>
+  )
+}
+
+function StampCategorySection({
+  category,
+  sectionStamps,
+  onSelectStamp,
+}: {
+  category: PassportStampCategory
+  sectionStamps: PassportStamp[]
+  onSelectStamp: (stamp: PassportStamp) => void
+}) {
+  const isDynamicList = isDynamicListStampCategory(category)
+  const [expanded, setExpanded] = useState(false)
+  const canCollapse = isDynamicList && sectionStamps.length > COLLAPSED_STAMP_LIST_LIMIT
+  const visibleStamps =
+    canCollapse && !expanded ? sectionStamps.slice(0, COLLAPSED_STAMP_LIST_LIMIT) : sectionStamps
+  const hiddenCount = sectionStamps.length - COLLAPSED_STAMP_LIST_LIMIT
+
+  return (
+    <section>
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-(--tgui--hint_color)">
+          {PASSPORT_STAMP_CATEGORY_LABELS[category]}
+        </h4>
+        {isDynamicList ? (
+          <span className="text-[10px] tabular-nums text-(--tgui--hint_color)">
+            {canCollapse && !expanded
+              ? `${COLLAPSED_STAMP_LIST_LIMIT} из ${sectionStamps.length}`
+              : sectionStamps.length}
+          </span>
+        ) : null}
+      </div>
+      {isDynamicList ? (
+        <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color)">
+          <ul className="divide-y divide-(--tgui--divider_color)">
+            {visibleStamps.map((stamp) => (
+              <li key={stamp.stamp_id}>
+                <StampListRow stamp={stamp} onSelect={onSelectStamp} />
+              </li>
+            ))}
+          </ul>
+          {canCollapse && !expanded ? (
+            <Button
+              className="rounded-none! border-t border-(--tgui--divider_color)"
+              mode="gray"
+              stretched
+              onClick={() => setExpanded(true)}
+            >
+              Показать ещё {hiddenCount}
+            </Button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {sectionStamps.map((stamp) => (
+            <StampTile key={stamp.stamp_id} stamp={stamp} onSelect={onSelectStamp} />
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -201,16 +327,12 @@ export function ProfilePassportPanel({ userId, isOwnProfile, onMarathonDrill }: 
                 return null
               }
               return (
-                <section key={category}>
-                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-(--tgui--hint_color)">
-                    {PASSPORT_STAMP_CATEGORY_LABELS[category]}
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {sectionStamps.map((stamp) => (
-                      <StampTile key={stamp.stamp_id} stamp={stamp} onSelect={setSelectedStamp} />
-                    ))}
-                  </div>
-                </section>
+                <StampCategorySection
+                  key={category}
+                  category={category}
+                  sectionStamps={sectionStamps}
+                  onSelectStamp={setSelectedStamp}
+                />
               )
             })}
           </div>

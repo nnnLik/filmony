@@ -230,6 +230,8 @@ export type MovieCard = {
   film_genres: string[]
   film_primary_director_kinopoisk_id?: number | null
   film_primary_director_name?: string | null
+  film_franchise_key?: string | null
+  film_franchise_label?: string | null
   film_title: string
   film_year: number | null
   /** Kinopoisk: mirrors ``film_year``. RAWG: from ``Game.released``. */
@@ -387,6 +389,8 @@ export type Film = {
   genres: string[]
   primary_director_kinopoisk_id?: number | null
   primary_director_name?: string | null
+  franchise_key?: string | null
+  franchise_label?: string | null
   title: string
   year: number | null
   poster_url: string | null
@@ -444,6 +448,11 @@ export type TagDistributionItem = {
   count: number
 }
 
+export type GenreDistributionItem = {
+  genre: string
+  count: number
+}
+
 /** Срез оценённых карточек по пользовательской полке (GET /stats). */
 export type CategoryDistributionItem = {
   category_id: number | null
@@ -493,6 +502,14 @@ export type ProfileInsightsSnapshot = {
   top_tag: string | null
 }
 
+/** Breakdown of weighted taste match signals (v2). */
+export type TasteMatchBreakdown = {
+  shared_titles: number
+  tag_overlap: number
+  rating_agreement: number
+  shared_favorites: number
+}
+
 /** Пользователь с пересечением вкуса (GET /stats social.taste_peers). */
 export type SocialTastePeerItem = {
   id: string
@@ -501,6 +518,8 @@ export type SocialTastePeerItem = {
   photo_url: string | null
   similarity_score: number
   shared_films_count: number
+  score_v2: number
+  breakdown: TasteMatchBreakdown
 }
 
 /** Социальные агрегаты профиля (GET /stats social). */
@@ -517,6 +536,7 @@ export type UserMovieCardStats = {
   /** Год с наибольшим числом оценок (GET /stats rated_year_distribution). */
   rated_year_distribution?: YearDistributionItem[]
   category_distribution: CategoryDistributionItem[]
+  genre_distribution?: GenreDistributionItem[]
   popular_tags: TagDistributionItem[]
   watch_with_distribution: ValueDistributionItem[]
   mood_after_distribution: ValueDistributionItem[]
@@ -531,4 +551,40 @@ export type UserMovieCardStats = {
   insights?: ProfileInsightsSnapshot
   /** Социальные метрики и похожие профили. */
   social?: ProfileStatsSocial
+}
+
+export type MonthlyRecapTopFilm = {
+  card_id: number
+  film_id: number | null
+  title: string
+  poster_url: string | null
+  rating: number
+}
+
+export type MonthlyRecapStamp = {
+  stamp_id: string
+  title: string
+  unlocked_at: string
+}
+
+export type MonthlyRecapMarathon = {
+  kind: string
+  key: string
+  label: string
+  unlocked_at: string
+}
+
+export type MonthlyRecap = {
+  year: number
+  month: number
+  month_label?: string
+  total_rated: number
+  average_rating: number
+  top_films: MonthlyRecapTopFilm[]
+  new_stamps: MonthlyRecapStamp[]
+  marathons_unlocked: MonthlyRecapMarathon[]
+  peak_activity_date: string | null
+  peak_activity_count: number
+  genre_of_month: string | null
+  genre_of_month_count?: number
 }

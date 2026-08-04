@@ -98,6 +98,12 @@ import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRat
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { DirectorChip } from '../components/films/DirectorChip'
+import { FranchiseChip } from '../components/films/FranchiseChip'
+import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
+import {
+  buildFollowingRatingDisplayRows,
+  type FollowingRatingRow,
+} from '../lib/followingRatingsDisplay'
 import { FilmSynopsisBlock } from '../components/films/FilmSynopsisBlock'
 import { useRemoveMovieCard } from '../hooks/useRemoveMovieCard'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
@@ -173,69 +179,6 @@ function snippet(text: string): string {
   const compact = text.replace(/\s+/g, ' ').trim()
   if (compact.length <= 72) return compact
   return `${compact.slice(0, 69)}...`
-}
-
-type FollowingRatingRow = {
-  user_id: string
-  movie_card_id: number
-  profile_slug: string
-  username: string | null
-  first_name: string | null
-  last_name: string | null
-  photo_url: string | null
-  display_name: string | null
-  rating?: number | null
-  is_planned?: boolean
-  is_viewer?: boolean
-}
-
-function followingRowShowsPlannedLabel(row: FollowingRatingRow): boolean {
-  return row.is_planned === true || row.rating == null || row.rating < 1
-}
-
-function buildFollowingRatingDisplayRows(
-  viewerRating: FollowingRatingRow | null | undefined,
-  items: FollowingRatingRow[],
-): FollowingRatingRow[] {
-  const rows: FollowingRatingRow[] = []
-  if (viewerRating != null) {
-    rows.push({ ...viewerRating, is_viewer: true })
-  }
-  for (const row of items) {
-    rows.push({ ...row, is_viewer: false })
-  }
-  return rows
-}
-
-type FollowingNamePick = {
-  display_name: string | null
-  first_name: string | null
-  last_name: string | null
-  username: string | null
-}
-
-function followingRowToProfileFields(row: FollowingRatingRow): FollowingNamePick {
-  return {
-    display_name: row.display_name,
-    first_name: row.first_name,
-    last_name: row.last_name,
-    username: row.username,
-  }
-}
-
-function followingRowDisplayName(row: FollowingRatingRow): string {
-  if (row.is_viewer) return 'Вы'
-  return displayNameFromProfile(followingRowToProfileFields(row))
-}
-
-function followingRowInitials(row: FollowingRatingRow): string {
-  if (row.is_viewer) return 'В'
-  const p = followingRowToProfileFields(row)
-  return profileInitials({
-    display_name: p.display_name,
-    first_name: p.first_name,
-    username: p.username,
-  })
 }
 
 function movieCardAuthorOrNull(value: MovieCard): MovieCardCommentAuthor | null {
@@ -1305,6 +1248,16 @@ function MovieCardDetailLoadedBody({
                         className="mt-2"
                       />
                     ) : null}
+                    {card.film_franchise_key != null &&
+                    card.film_franchise_label != null &&
+                    card.film_franchise_label.trim() !== '' ? (
+                      <FranchiseChip
+                        franchiseKey={card.film_franchise_key}
+                        label={card.film_franchise_label}
+                        size="md"
+                        className="mt-2"
+                      />
+                    ) : null}
                     <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
                     <FilmSynopsisBlock
                       shortDescription={synopsisShort}
@@ -1474,65 +1427,17 @@ function MovieCardDetailLoadedBody({
             </section>
 
             {!isPlannedCard ? (
-            <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Друзья оценили</p>
-                  <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">Сравнить с подписками.</p>
-                </div>
-                {card.provider === 'rawg' &&
-                card.catalog_item_id != null &&
-                card.catalog_item_id > 0 ? (
-                  <Link
-                    to={`/catalog/${encodeURIComponent(String(card.catalog_item_id))}`}
-                    className="shrink-0 text-xs font-semibold text-(--tgui--link_color) no-underline"
-                  >
-                    Все оценки →
-                  </Link>
-                ) : null}
-              </div>
-              {followingRatings == null ? (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">Загрузка…</p>
-              ) : followingRatings.length === 0 ? (
-                <p className="mt-3 text-sm text-(--tgui--hint_color)">Пока некого показать.</p>
-              ) : (
-                <ul className="mt-3 list-none space-y-1.5 p-0">
-                  {followingRatings.map((row: FollowingRatingRow) => {
-                    const showsPlanned = followingRowShowsPlannedLabel(row)
-                    const rp = showsPlanned ? null : ratingPalette(row.rating ?? 0)
-                    return (
-                      <li key={row.movie_card_id}>
-                        <Link
-                          to={`/cards/${row.movie_card_id}`}
-                          className="flex items-center gap-3 rounded-xl px-1 py-1.5 no-underline outline-none transition-colors duration-200 motion-safe:hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_06%,transparent)] ring-(--tgui--link_color) focus-visible:ring-2"
-                        >
-                          <Avatar
-                            src={row.photo_url ?? undefined}
-                            acronym={followingRowInitials(row)}
-                            size={40}
-                          />
-                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-(--tgui--text_color)">
-                            {followingRowDisplayName(row)}
-                          </span>
-                          {showsPlanned ? (
-                            <span className="shrink-0 text-sm font-medium text-(--tgui--hint_color)">
-                              {row.is_viewer ? 'У вас в планах' : 'В «Позже»'}
-                            </span>
-                          ) : (
-                            <span
-                              className="shrink-0 text-lg font-semibold tabular-nums"
-                              style={{ color: rp?.text }}
-                            >
-                              {formatRating(row.rating ?? 0)}
-                            </span>
-                          )}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </section>
+            <FollowingRatingsPanel
+              className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2"
+              rows={followingRatings}
+              communityLink={
+                card.provider === 'rawg' && card.catalog_item_id != null && card.catalog_item_id > 0
+                  ? {
+                      to: `/catalog/${encodeURIComponent(String(card.catalog_item_id))}`,
+                    }
+                  : null
+              }
+            />
             ) : null}
 
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-3 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
