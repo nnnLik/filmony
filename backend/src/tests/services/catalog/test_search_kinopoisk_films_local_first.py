@@ -6,6 +6,7 @@ from sqlalchemy import select
 from core.database import get_session_factory
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     KinopoiskFilmSearchResponseDTO,
@@ -161,3 +162,49 @@ async def test_merges_local_then_remote_without_duplicate_kinopoisk_ids(
         assert kp_ids == [100, 200]
         sources = [h.source for h in result.hits]
         assert sources == ['local', 'provider']
+
+
+@pytest.mark.asyncio
+async def test_remote_failure_still_returns_local_hits(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            Film(
+                kinopoisk_id=301,
+                title='Fallback QueryTok Film',
+                year=2005,
+                poster_url=None,
+                genres=[],
+                short_description=None,
+                description=None,
+            ),
+        )
+        await session.commit()
+
+    class FailingTransport:
+        async def search_films_by_keyword(self, keyword: str, page: int = 1):
+            _ = (keyword, page)
+            raise KinopoiskProviderTransport.KinopoiskProviderTransportError('kp down')
+
+    async with session_factory() as session:
+        svc = SearchKinopoiskFilmsLocalFirstService.build(session, transport=FailingTransport())
+        result = await svc.execute('QueryTok')
+
+    assert len(result.hits) == 1
+    assert result.hits[0].source == 'local'
+    assert result.hits[0].kinopoisk_id == 301
+    assert result.has_more is False
+
+
+@pytest.mark.asyncio
+async def test_remote_failure_without_local_hits_reraises(prepare_db: None) -> None:
+    class FailingTransport:
+        async def search_films_by_keyword(self, keyword: str, page: int = 1):
+            _ = (keyword, page)
+            raise KinopoiskProviderTransport.KinopoiskProviderTransportError('kp down')
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        svc = SearchKinopoiskFilmsLocalFirstService.build(session, transport=FailingTransport())
+        with pytest.raises(KinopoiskProviderTransport.KinopoiskProviderTransportError):
+            await svc.execute('nolocalmatch')

@@ -145,21 +145,39 @@ class SearchKinopoiskFilmsLocalFirstService:
                 has_more=False,
             )
 
-        remote = await self._transport.search_films_by_keyword(norm, page=page)
+        try:
+            remote = await self._transport.search_films_by_keyword(norm, page=page)
+        except KinopoiskProviderTransport.KinopoiskProviderTransportError:
+            if local_hits:
+                return SearchKinopoiskFilmsResult(
+                    keyword=norm,
+                    page=page,
+                    pages_count=1,
+                    total_remote=len(local_hits),
+                    hits=tuple(local_hits),
+                    has_more=False,
+                )
+            raise
+
         merged = list(local_hits)
 
         if page > 1:
             merged = []
             seen_kp = set()
 
+        remote_items: list[KinopoiskFilmSearchItemDTO] = []
         for item in remote.films:
             if item.kinopoisk_id in seen_kp:
                 continue
-            film, catalog_item = await self._upsert_film_and_catalog_from_search_item(item)
-            merged.append(self._hit_from_provider_row(film, item, catalog_item))
+            remote_items.append(item)
             seen_kp.add(item.kinopoisk_id)
-            if page == 1 and len(merged) >= PAGE_SIZE:
+            if page == 1 and len(merged) + len(remote_items) >= PAGE_SIZE:
                 break
+
+        upserted = await self._upsert_films_and_catalog_from_search_items(tuple(remote_items))
+        for item in remote_items:
+            film, catalog_item = upserted[item.kinopoisk_id]
+            merged.append(self._hit_from_provider_row(film, item, catalog_item))
 
         kw_out = remote.keyword or norm
         has_more = page < remote.pages_count
@@ -247,17 +265,66 @@ class SearchKinopoiskFilmsLocalFirstService:
         await self._session.refresh(item)
         return item
 
-    async def _upsert_film_and_catalog_from_search_item(
+    async def _ensure_kinopoisk_catalog_items_batch(
+        self,
+        films: tuple[Film, ...],
+    ) -> dict[int, CatalogItem]:
+        if not films:
+            return {}
+
+        external_ids = [str(film.kinopoisk_id) for film in films]
+        existing_rows = (
+            (
+                await self._session.execute(
+                    select(CatalogItem).where(
+                        CatalogItem.provider == CatalogProvider.kinopoisk,
+                        CatalogItem.external_id.in_(external_ids),
+                    ),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        existing_by_external_id = {row.external_id: row for row in existing_rows}
+
+        out: dict[int, CatalogItem] = {}
+        dirty = False
+        for film in films:
+            external_id = str(film.kinopoisk_id)
+            existing = existing_by_external_id.get(external_id)
+            if existing is not None:
+                if existing.film_id != film.id:
+                    existing.film_id = film.id
+                    dirty = True
+                out[film.kinopoisk_id] = existing
+                continue
+
+            item = CatalogItem(
+                provider=CatalogProvider.kinopoisk,
+                external_id=external_id,
+                film_id=film.id,
+            )
+            self._session.add(item)
+            existing_by_external_id[external_id] = item
+            out[film.kinopoisk_id] = item
+            dirty = True
+
+        if dirty:
+            await self._session.commit()
+            for item in out.values():
+                await self._session.refresh(item)
+
+        return out
+
+    def _apply_search_item_to_film(
         self,
         item: KinopoiskFilmSearchItemDTO,
-    ) -> tuple[Film, CatalogItem]:
+        existing: Film | None,
+    ) -> Film:
         title = item.display_title()
         if title == '':
             title = f'kinopoisk:{item.kinopoisk_id}'
 
-        existing = (
-            await self._session.execute(select(Film).where(Film.kinopoisk_id == item.kinopoisk_id))
-        ).scalar_one_or_none()
         year = item.year_as_int()
         poster = item.poster_url_normalized()
         genres = genres_for_film_model(item)
@@ -274,24 +341,55 @@ class SearchKinopoiskFilmsLocalFirstService:
             existing.countries = countries
             if summary_text is not None:
                 existing.short_description = summary_text
-        else:
-            existing = Film(
-                kinopoisk_id=item.kinopoisk_id,
-                title=title,
-                year=year,
-                poster_url=poster,
-                genres=genres,
-                countries=countries,
-                short_description=summary_text,
-                description=None,
+            return existing
+
+        film = Film(
+            kinopoisk_id=item.kinopoisk_id,
+            title=title,
+            year=year,
+            poster_url=poster,
+            genres=genres,
+            countries=countries,
+            short_description=summary_text,
+            description=None,
+        )
+        self._session.add(film)
+        return film
+
+    async def _upsert_films_and_catalog_from_search_items(
+        self,
+        items: tuple[KinopoiskFilmSearchItemDTO, ...],
+    ) -> dict[int, tuple[Film, CatalogItem]]:
+        if not items:
+            return {}
+
+        kp_ids = [item.kinopoisk_id for item in items]
+        existing_films = (
+            (await self._session.execute(select(Film).where(Film.kinopoisk_id.in_(kp_ids))))
+            .scalars()
+            .all()
+        )
+        existing_by_kp = {film.kinopoisk_id: film for film in existing_films}
+
+        films: list[Film] = []
+        for item in items:
+            films.append(
+                self._apply_search_item_to_film(item, existing_by_kp.get(item.kinopoisk_id))
             )
-            self._session.add(existing)
 
         await self._session.commit()
-        await self._session.refresh(existing)
+        for film in films:
+            await self._session.refresh(film)
 
-        cat = await self._ensure_kinopoisk_catalog_item(existing)
-        return existing, cat
+        catalog_by_kp = await self._ensure_kinopoisk_catalog_items_batch(tuple(films))
+        return {film.kinopoisk_id: (film, catalog_by_kp[film.kinopoisk_id]) for film in films}
+
+    async def _upsert_film_and_catalog_from_search_item(
+        self,
+        item: KinopoiskFilmSearchItemDTO,
+    ) -> tuple[Film, CatalogItem]:
+        upserted = await self._upsert_films_and_catalog_from_search_items((item,))
+        return upserted[item.kinopoisk_id]
 
 
 def _kinopoisk_hit_json(h: CatalogFilmSearchHitDTO) -> dict:

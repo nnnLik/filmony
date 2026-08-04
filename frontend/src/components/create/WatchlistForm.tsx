@@ -415,7 +415,7 @@ export function WatchlistForm({
                 ) : null}
                 {!urlLike && searchDraft.trim().length >= 3 ? (
                   <div className="mt-3 space-y-2">
-                    {candidatesQuery.isLoading ? (
+                    {candidatesQuery.isDebouncing || candidatesQuery.isLoading ? (
                       <p className="text-xs text-(--tgui--hint_color)">Ищем…</p>
                     ) : null}
                     {candidateItems.map((hit) => {

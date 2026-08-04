@@ -29,6 +29,7 @@ from services.catalog.search_rawg_catalog_games_service import (
 
 logger = logging.getLogger(__name__)
 
+_CATALOG_PROVIDER_TIMEOUT_SECONDS = 5.0
 _KINOPOISK_MIN_LEN = 3
 _RAWG_MIN_LEN = 4
 
@@ -127,10 +128,18 @@ class SearchCatalogCandidatesService:
 
     async def _fetch_kinopoisk(self, keyword: str, page: int) -> SearchKinopoiskFilmsResult:
         async with self._session_factory() as session:
-            return await SearchKinopoiskFilmsLocalFirstService.build(
+            coro = SearchKinopoiskFilmsLocalFirstService.build(
                 session,
                 transport=self._kinopoisk_transport,
             ).execute(keyword=keyword, page=page)
+            try:
+                return await asyncio.wait_for(coro, timeout=_CATALOG_PROVIDER_TIMEOUT_SECONDS)
+            except TimeoutError:
+                logger.warning(
+                    'Catalog candidate source timed out',
+                    extra={'catalog_source': 'kinopoisk'},
+                )
+                raise
 
     async def _fetch_rawg(
         self,
@@ -139,10 +148,18 @@ class SearchCatalogCandidatesService:
         page: int,
     ) -> SearchRawgCatalogGamesResult:
         async with self._session_factory() as session:
-            return await SearchRawgCatalogGamesService.build(
+            coro = SearchRawgCatalogGamesService.build(
                 session,
                 transport=self._rawg_transport,
             ).execute(keyword, limit, page=page)
+            try:
+                return await asyncio.wait_for(coro, timeout=_CATALOG_PROVIDER_TIMEOUT_SECONDS)
+            except TimeoutError:
+                logger.warning(
+                    'Catalog candidate source timed out',
+                    extra={'catalog_source': 'rawg'},
+                )
+                raise
 
     async def execute(
         self,

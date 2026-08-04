@@ -680,7 +680,10 @@ export function CreateCardPage() {
                 <CatalogCandidatesList
                   items={candidatesQuery.data?.items ?? []}
                   meta={candidatesQuery.data?.meta}
-                  loading={candidatesQuery.isFetching && !searchBusy}
+                  loading={
+                    candidatesQuery.isDebouncing ||
+                    (candidatesQuery.isFetching && !searchBusy)
+                  }
                   errorMessage={
                     candidatesQuery.isError
                       ? candidatesQuery.error.message || 'Не удалось выполнить поиск'
@@ -695,9 +698,12 @@ export function CreateCardPage() {
               candidatesQuery.isSuccess &&
               smartQuery.trim().length >= 3 &&
               (candidatesQuery.data?.items.length ?? 0) === 0 &&
+              !candidatesQuery.isDebouncing &&
               !candidatesQuery.isFetching ? (
                 <p className="text-sm text-(--tgui--hint_color)">
-                  Ничего не нашли — уточните запрос или создайте карточку вручную.
+                  {candidatesQuery.data?.meta?.degraded_sources?.includes('kinopoisk')
+                    ? 'Каталог Кинопоиска временно недоступен — попробуйте позже или создайте карточку вручную.'
+                    : 'Ничего не нашли — уточните запрос или создайте карточку вручную.'}
                 </p>
               ) : null}
 

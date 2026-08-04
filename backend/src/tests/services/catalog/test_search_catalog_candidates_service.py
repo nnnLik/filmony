@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from http import HTTPStatus
+
 import pytest
 
 from models.catalog_item import CatalogProvider
+from providers.base_provider_http_transport import BaseProviderHttpTransport
+from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from providers.kinopoisk.kinopoisk_search_dto import (
     KinopoiskFilmSearchItemDTO,
     KinopoiskFilmSearchResponseDTO,
@@ -228,7 +232,7 @@ async def test_both_sources_fail_returns_empty_items(prepare_db: None) -> None:
     class FailingKp:
         async def search_films_by_keyword(self, keyword: str, page: int = 1):
             _ = (keyword, page)
-            raise KinopoiskProviderTransport.KinopoiskProviderTransportError(msg='kp down')
+            raise KinopoiskProviderTransport.KinopoiskProviderTransportError('kp down')
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -274,3 +278,65 @@ async def test_dedup_same_provider_external_id(prepare_db: None) -> None:
     )
     items, _ = _merge_candidates(film_result=film_result, game_result=None, limit=10)
     assert len(items) == 1
+
+
+@pytest.mark.asyncio
+async def test_kinopoisk_transport_402_raises_quota_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get(
+        self: KinopoiskProviderTransport,
+        url: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        _ = (self, url, headers, params)
+        raise BaseProviderHttpTransport.ProviderUnexpectedStatusError(
+            msg='unexpected status 402',
+            status_code=HTTPStatus.PAYMENT_REQUIRED,
+        )
+
+    monkeypatch.setattr(KinopoiskProviderTransport, 'get', fake_get)
+    transport = KinopoiskProviderTransport()
+    with pytest.raises(KinopoiskProviderTransport.KinopoiskProviderTransportError):
+        await transport.search_films_by_keyword('avengers')
+
+
+@pytest.mark.asyncio
+async def test_kinopoisk_remote_failure_keeps_local_film_hits(prepare_db: None) -> None:
+    from core.database import get_session_factory
+    from models.film import Film
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            Film(
+                kinopoisk_id=882_001,
+                title='LocalOnly QueryTok Film',
+                year=2018,
+                poster_url=None,
+                genres=[],
+                short_description=None,
+                description=None,
+            ),
+        )
+        await session.commit()
+
+    class FailingKinopoiskTransport:
+        async def search_films_by_keyword(self, keyword: str, page: int = 1):
+            _ = (keyword, page)
+            raise KinopoiskProviderTransport.KinopoiskProviderTransportError('kp down')
+
+    async with session_factory() as session:
+        svc = SearchCatalogCandidatesService.build(
+            session,
+            kinopoisk_transport=FailingKinopoiskTransport(),
+            rawg_transport=FailingRawgTransport(),
+        )
+        result = await svc.execute('QueryTok', limit=5)
+
+    assert 'rawg' in result.degraded_sources
+    assert 'kinopoisk' not in result.degraded_sources
+    assert len(result.items) == 1
+    assert result.items[0].title == 'LocalOnly QueryTok Film'
+    assert result.items[0].source == 'local'

@@ -8,7 +8,7 @@ import {
 } from '../api/catalogApi'
 import { normalizeCatalogSearchQuery } from '../lib/normalizeCatalogSearchQuery'
 
-const CATALOG_CANDIDATES_DEBOUNCE_MS = 800
+const CATALOG_CANDIDATES_DEBOUNCE_MS = 300
 
 export type UseCatalogCandidatesOptions = {
   enabled?: boolean
@@ -20,32 +20,42 @@ export type UseCatalogCandidatesOptions = {
 export function useCatalogCandidates(q: string, options?: UseCatalogCandidatesOptions) {
   const normalized = useMemo(() => normalizeCatalogSearchQuery(q), [q])
   const urlLike = isLikelyUrl(q)
+  const searchEligible = normalized.length >= 3 && !urlLike
   const [debouncedQ, setDebouncedQ] = useState('')
 
   useEffect(() => {
-    if (urlLike || normalized.length < 3) {
-      const timer = window.setTimeout(() => setDebouncedQ(''))
-      return () => window.clearTimeout(timer)
+    if (!searchEligible) {
+      queueMicrotask(() => setDebouncedQ(''))
+      return
     }
     const timer = window.setTimeout(
       () => setDebouncedQ(normalized),
       CATALOG_CANDIDATES_DEBOUNCE_MS,
     )
     return () => window.clearTimeout(timer)
-  }, [normalized, urlLike])
+  }, [normalized, searchEligible])
+
+  const activeQ = searchEligible ? debouncedQ : ''
+  const isDebouncing = searchEligible && debouncedQ !== normalized
 
   const enabled =
-    (options?.enabled ?? true) && !urlLike && debouncedQ.length >= 3
+    (options?.enabled ?? true) && searchEligible && activeQ.length >= 3
 
-  return useQuery<CatalogCandidatesResponse, Error>({
-    queryKey: ['catalogCandidates', debouncedQ, options?.page ?? 1, options?.limit ?? 15],
+  const queryResult = useQuery<CatalogCandidatesResponse, Error>({
+    queryKey: ['catalogCandidates', activeQ, options?.page ?? 1, options?.limit ?? 15],
     queryFn: ({ signal }) =>
       searchCatalogCandidates({
-        q: debouncedQ,
+        q: activeQ,
         page: options?.page,
         limit: options?.limit,
         signal,
       }),
     enabled,
   })
+
+  return {
+    ...queryResult,
+    isDebouncing,
+    normalizedQuery: normalized,
+  }
 }
