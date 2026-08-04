@@ -19,11 +19,13 @@ def test_kinopoisk_staff_member_dto_from_dict() -> None:
             'nameRu': 'Кристофер Нолан',
             'nameEn': 'Christopher Nolan',
             'professionKey': 'DIRECTOR',
+            'posterUrl': 'https://kinopoisk-ru.clstorage.net/staff/1001.jpg',
         },
     )
     assert dto.staff_id == 1001
     assert dto.display_name() == 'Кристофер Нолан'
     assert dto.profession_key == 'DIRECTOR'
+    assert dto.poster_url == 'https://kinopoisk-ru.clstorage.net/staff/1001.jpg'
 
 
 def test_staff_members_from_list_skips_invalid_rows() -> None:

@@ -10,6 +10,7 @@ import {
   subscribeToUser,
   unsubscribeFromUser,
 } from '../api/profileApi'
+import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import {
   isDefaultRatedCardsQuery,
@@ -36,6 +37,7 @@ import { PlayfulHint } from '../components/ui/PlayfulHint'
 import { InlineLoadingState } from '../components/ui/InlineLoadingState'
 import {
   userCardsQueryKey,
+  userFeedPostsQueryKey,
   userFollowingStatusQueryKey,
   userPublicProfileQueryKey,
 } from '../lib/profileQueryKeys'
@@ -274,6 +276,26 @@ export function PublicProfilePage() {
     isBusy: postsQuery.isFetchingNextPage,
     onLoadMore: () => void postsQuery.fetchNextPage(),
   })
+
+  const onPublicProfilePostDeleted = useCallback(
+    (postId: number) => {
+      if (profile == null) return
+      queryClient.setQueryData<InfiniteData<UserFeedPostsPage, string | null>>(
+        userFeedPostsQueryKey(profile.id),
+        (prev) => {
+          if (prev == null) return prev
+          return {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((entry) => entry.id !== postId),
+            })),
+          }
+        },
+      )
+    },
+    [profile, queryClient],
+  )
 
   const canLoadMore = Boolean(cards?.next_cursor)
   const canLoadMoreWatchlist = Boolean(watchlist?.next_cursor)
@@ -625,7 +647,12 @@ export function PublicProfilePage() {
               {!postsLoading && feedPosts != null && feedPosts.items.length > 0 ? (
                 <>
                   {feedPosts.items.map((post) => (
-                    <FeedPostCard key={`public-profile-post-${post.id}`} post={post} viewerUserId={myUserId} />
+                    <FeedPostCard
+                      key={`public-profile-post-${post.id}`}
+                      post={post}
+                      viewerUserId={myUserId}
+                      onPostDeleted={onPublicProfilePostDeleted}
+                    />
                   ))}
                   {feedPosts.next_cursor != null && feedPosts.next_cursor !== '' ? (
                     <>

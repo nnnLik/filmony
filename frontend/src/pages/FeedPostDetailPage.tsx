@@ -545,6 +545,12 @@ export function FeedPostDetailPage() {
   const invalidPostId = parsedPostId == null
   const showLoading = !invalidPostId && loading
 
+  const handlePostDeleted = useCallback(() => {
+    const st = location.state as { fromFeed?: boolean } | undefined
+    if (st?.fromFeed) void navigate('/')
+    else void navigate(-1)
+  }, [location.state, navigate])
+
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) text-(--tgui--text_color)">
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_92%,transparent)] px-3 py-2 backdrop-blur-md">
@@ -580,7 +586,14 @@ export function FeedPostDetailPage() {
 
         {!showLoading && post != null ? (
           <MentionProfileLookupProvider value={mentionRowsForPostDetail}>
-            <FeedPostCard post={post} viewerUserId={viewerId} linkToDetail={false} inlineComments={false} onPostUpdated={setPost} />
+            <FeedPostCard
+              post={post}
+              viewerUserId={viewerId}
+              linkToDetail={false}
+              inlineComments={false}
+              onPostUpdated={setPost}
+              onPostDeleted={handlePostDeleted}
+            />
 
             <section className="mt-4 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 sm:p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">

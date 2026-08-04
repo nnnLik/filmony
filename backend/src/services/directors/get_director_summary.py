@@ -22,6 +22,7 @@ def _rated_card_filters():
 class DirectorSummaryDTO:
     kinopoisk_id: int
     name: str
+    poster_url: str | None
     films_count: int
     avg_community_rating: float | None
 
@@ -45,6 +46,14 @@ class GetDirectorSummaryService:
                 select(Film.primary_director_name)
                 .where(Film.primary_director_kinopoisk_id == kinopoisk_id)
                 .where(Film.primary_director_name.is_not(None))
+                .limit(1),
+            )
+        ).scalar_one_or_none()
+        poster_row = (
+            await self._session.execute(
+                select(Film.primary_director_poster_url)
+                .where(Film.primary_director_kinopoisk_id == kinopoisk_id)
+                .where(Film.primary_director_poster_url.is_not(None))
                 .limit(1),
             )
         ).scalar_one_or_none()
@@ -84,6 +93,7 @@ class GetDirectorSummaryService:
         return DirectorSummaryDTO(
             kinopoisk_id=kinopoisk_id,
             name=name,
+            poster_url=str(poster_row).strip() if poster_row else None,
             films_count=films_count,
             avg_community_rating=avg_community_rating,
         )

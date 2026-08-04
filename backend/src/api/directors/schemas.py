@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class DirectorSummaryResponse(BaseModel):
     kinopoisk_id: int
     name: str
+    poster_url: str | None = None
     films_count: int
     avg_community_rating: float | None = None
 

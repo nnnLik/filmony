@@ -22,7 +22,7 @@ import argparse
 import asyncio
 import logging
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 
 from core.database import get_session_factory
 from models.film import Film
@@ -80,10 +80,15 @@ def _needs_enrichment(force: bool) -> object:
         Film.countries.is_(None),
         func.coalesce(func.json_array_length(Film.countries), 0) == 0,
     )
+    director_poster_missing = and_(
+        Film.primary_director_kinopoisk_id.is_not(None),
+        Film.primary_director_poster_url.is_(None),
+    )
     return or_(
         countries_missing,
         Film.primary_director_kinopoisk_id.is_(None),
         Film.franchise_key.is_(None),
+        director_poster_missing,
     )
 
 

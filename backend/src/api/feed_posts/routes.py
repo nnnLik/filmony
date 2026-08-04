@@ -61,6 +61,7 @@ from services.feed_posts.create_feed_post_comment import (
     ParentCommentMismatchError,
     ParentCommentNotFoundError,
 )
+from services.feed_posts.delete_feed_post import DeleteFeedPostService
 from services.feed_posts.delete_feed_post_comment import (
     DeleteFeedPostCommentService,
 )
@@ -511,6 +512,29 @@ async def delete_feed_post_comment_route(
     except DeleteFeedPostCommentMismatchError:
         raise HTTPException(status_code=404, detail='comment not found') from None
     except DeleteFeedPostCommentForbiddenError:
+        raise HTTPException(status_code=403, detail='forbidden') from None
+    return Response(status_code=204)
+
+
+@router.delete(
+    '/{post_id}',
+    status_code=204,
+    response_class=Response,
+    summary='Удалить пост ленты',
+)
+async def delete_feed_post_route(
+    post_id: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        await DeleteFeedPostService.build(db).execute(
+            feed_post_id=post_id,
+            actor_user_id=user.id,
+        )
+    except FeedPostNotFoundError:
+        raise HTTPException(status_code=404, detail='feed post not found') from None
+    except UpdateFeedPostForbiddenError:
         raise HTTPException(status_code=403, detail='forbidden') from None
     return Response(status_code=204)
 

@@ -47,6 +47,7 @@ class FilmGamificationMetadataPreview:
     countries: list[str]
     primary_director_kinopoisk_id: int | None
     primary_director_name: str | None
+    primary_director_poster_url: str | None
     franchise_key: str | None
 
 
@@ -91,6 +92,7 @@ class EnrichFilmGamificationMetadataService:
         if not skip_staff:
             film.primary_director_kinopoisk_id = preview.primary_director_kinopoisk_id
             film.primary_director_name = preview.primary_director_name
+            film.primary_director_poster_url = preview.primary_director_poster_url
         if not skip_sequels:
             film.franchise_key = preview.franchise_key
 
@@ -122,12 +124,14 @@ class EnrichFilmGamificationMetadataService:
 
         director_id: int | None = None
         director_name: str | None = None
+        director_poster_url: str | None = None
         if not skip_staff:
             staff = await self._transport.get_staff_by_film_id(kinopoisk_id)
             director = _first_director(staff)
             if director is not None:
                 director_id = director.staff_id
                 director_name = director.display_name()
+                director_poster_url = director.poster_url
 
         franchise_key: str | None = None
         if not skip_sequels:
@@ -138,6 +142,7 @@ class EnrichFilmGamificationMetadataService:
             countries=countries,
             primary_director_kinopoisk_id=director_id,
             primary_director_name=director_name,
+            primary_director_poster_url=director_poster_url,
             franchise_key=franchise_key,
         )
 

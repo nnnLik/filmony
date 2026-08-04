@@ -76,6 +76,8 @@ class ResolveKinopoiskFilmService:
                 film.primary_director_kinopoisk_id = director.staff_id
                 if film.primary_director_name is None:
                     film.primary_director_name = director.display_name()
+                if film.primary_director_poster_url is None:
+                    film.primary_director_poster_url = director.poster_url
 
 
 __all__ = (

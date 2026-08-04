@@ -13,6 +13,8 @@ from conf import settings
 from core.database import get_session_factory
 from models.card_comment import CardComment
 from models.catalog_item import CatalogProvider
+from models.feed_post import FeedPost
+from models.feed_post_comment import FeedPostComment
 from models.film import Film
 from models.reaction_type import ReactionType
 from models.user import User
@@ -971,4 +973,54 @@ async def test_feed_post_update_not_found(async_client: AsyncClient) -> None:
         '/api/feed-posts/999999',
         json={'body': 'ghost'},
     )
+    assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_feed_post_delete_success(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8907)
+    create = await async_client.post('/api/feed-posts', json={'body': 'to delete'})
+    assert create.status_code == 200
+    pid = int(create.json()['id'])
+
+    com = await async_client.post(
+        f'/api/feed-posts/{pid}/comments',
+        json={'text': 'will cascade'},
+    )
+    assert com.status_code == 200
+    cid = int(com.json()['id'])
+
+    deleted = await async_client.delete(f'/api/feed-posts/{pid}')
+    assert deleted.status_code == 204
+
+    missing = await async_client.get(f'/api/feed-posts/{pid}')
+    assert missing.status_code == 404
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        post_gone = (
+            await session.execute(select(FeedPost).where(FeedPost.id == pid))
+        ).scalar_one_or_none()
+        assert post_gone is None
+        comment_gone = (
+            await session.execute(select(FeedPostComment).where(FeedPostComment.id == cid))
+        ).scalar_one_or_none()
+        assert comment_gone is None
+
+
+@pytest.mark.asyncio
+async def test_feed_post_delete_forbidden_non_owner(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8908)
+    create = await async_client.post('/api/feed-posts', json={'body': 'mine'})
+    pid = int(create.json()['id'])
+
+    await _login(async_client, telegram_user_id=8909)
+    forbidden = await async_client.delete(f'/api/feed-posts/{pid}')
+    assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_feed_post_delete_not_found(async_client: AsyncClient) -> None:
+    await _login(async_client, telegram_user_id=8910)
+    missing = await async_client.delete('/api/feed-posts/999999')
     assert missing.status_code == 404

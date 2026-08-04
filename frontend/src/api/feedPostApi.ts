@@ -202,3 +202,12 @@ export async function deleteFeedPostComment(postId: number, commentId: number): 
     throw new ApiError(res.status, await readHttpErrorDetail(res))
   }
 }
+
+export async function deleteFeedPost(postId: number): Promise<void> {
+  const res = await apiFetch(`/api/feed-posts/${postId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readHttpErrorDetail(res))
+  }
+}

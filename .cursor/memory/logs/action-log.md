@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-04T170000Z-feed-post-delete-menu-closeout.md`
 - `2026-08-04T160000Z-tmdb-film-integration-closeout.md`
 - `2026-08-04T153000Z-profile-stats-director-franchise-closeout.md`
 - `2026-08-04T120000Z-cursor-memory-hot-archive-closeout.md`
@@ -42,6 +43,3 @@
 - `2026-07-27T142500Z-profile-taste-match-docs.md`
 - `2026-07-27T140000Z-backlog-cleanup-decision.md`
 - `2026-07-23T180900Z-taste-quiz-guess-rating-docs.md`
-- `2026-07-23T180800Z-taste-quiz-guess-rating-frontend-code.md`
-- `2026-07-23T180700Z-taste-quiz-guess-rating-code.md`
-- `2026-07-23T170000Z-comment-edit-delete-test.md`

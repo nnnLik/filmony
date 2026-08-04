@@ -69,6 +69,7 @@ async def get_director_summary(
     return DirectorSummaryResponse(
         kinopoisk_id=summary.kinopoisk_id,
         name=summary.name,
+        poster_url=summary.poster_url,
         films_count=summary.films_count,
         avg_community_rating=summary.avg_community_rating,
     )

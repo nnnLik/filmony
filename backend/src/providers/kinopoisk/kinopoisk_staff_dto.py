@@ -18,6 +18,7 @@ class KinopoiskStaffMemberDTO:
     name_ru: str | None
     name_en: str | None
     profession_key: str | None
+    poster_url: str | None
 
     def display_name(self) -> str | None:
         for key in (self.name_ru, self.name_en):
@@ -32,6 +33,7 @@ class KinopoiskStaffMemberDTO:
             name_ru=_optional_str(d, 'nameRu'),
             name_en=_optional_str(d, 'nameEn'),
             profession_key=_optional_str(d, 'professionKey'),
+            poster_url=_optional_str(d, 'posterUrl'),
         )
 
 

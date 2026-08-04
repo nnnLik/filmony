@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { postExportMyCardsCsv } from '../api/profileApi'
+import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import type {
   MovieCardPage,
   MyProfile,
@@ -52,7 +53,7 @@ import { useProfileMoviesSegmentFromUrl } from '../hooks/useProfileMoviesSegment
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { computeShelfPhysicsFromCards } from '../lib/gamification/shelfPhysicsFallback'
 import type { MarathonAchievement } from '../api/gamificationTypes'
-import { myProfileQueryKey, userCardsQueryKey } from '../lib/profileQueryKeys'
+import { myProfileQueryKey, userCardsQueryKey, userFeedPostsQueryKey } from '../lib/profileQueryKeys'
 import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
 import './ProfilePage.css'
 
@@ -399,6 +400,26 @@ export function ProfilePage() {
     onLoadMore: () => void postsQuery.fetchNextPage(),
   })
 
+  const onProfilePostDeleted = useCallback(
+    (postId: number) => {
+      if (profile == null) return
+      queryClient.setQueryData<InfiniteData<UserFeedPostsPage, string | null>>(
+        userFeedPostsQueryKey(profile.id),
+        (prev) => {
+          if (prev == null) return prev
+          return {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((entry) => entry.id !== postId),
+            })),
+          }
+        },
+      )
+    },
+    [profile, queryClient],
+  )
+
   if (auth.kind === 'loading') {
     return <InlineLoadingState message="Вход…" />
   }
@@ -735,7 +756,12 @@ export function ProfilePage() {
             {!postsLoading && feedPosts != null && feedPosts.items.length > 0 ? (
               <div className="flex flex-col gap-3 px-1">
                 {feedPosts.items.map((post) => (
-                  <FeedPostCard key={`profile-post-${post.id}`} post={post} viewerUserId={profile.id} />
+                  <FeedPostCard
+                    key={`profile-post-${post.id}`}
+                    post={post}
+                    viewerUserId={profile.id}
+                    onPostDeleted={onProfilePostDeleted}
+                  />
                 ))}
                 {feedPosts.next_cursor != null && feedPosts.next_cursor !== '' ? (
                   <>

@@ -12,7 +12,12 @@ import {
   feedPostReferencedCardTitle,
   movieCardReleaseCompactSuffix,
 } from '../../lib/movieCardDisplay'
-import { createFeedPostComment, listAllFeedPostComments, updateFeedPost } from '../../api/feedPostApi'
+import {
+  createFeedPostComment,
+  deleteFeedPost,
+  listAllFeedPostComments,
+  updateFeedPost,
+} from '../../api/feedPostApi'
 import type { FeedPostComment, ReactionSummary, ReferencedMentionSnippet } from '../../api/profileTypes'
 import { MentionProfileLookupProvider } from '../../context/MentionProfileLookupProvider'
 import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
@@ -37,6 +42,7 @@ import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButt
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { CoViewSplitRatings } from './CoViewSplitRatings'
+import { PostHeaderActions } from './PostHeaderActions'
 import { formatCommentTime, formatRating } from './feedCardUtils'
 import { feedPostSourceBadge } from './feedPostSourceBadge'
 import { IconChevronDown, IconSend } from './FeedCardIcons'
@@ -58,6 +64,8 @@ export type FeedPostCardProps = {
   ) => void
   /** Called after the viewer successfully edits their own post body. */
   onPostUpdated?: (post: FeedPostInFeed) => void
+  /** Called after the viewer successfully deletes their own post. */
+  onPostDeleted?: (postId: number) => void
 }
 
 function feedPostImageSrc(url: string): string {
@@ -200,6 +208,7 @@ export function FeedPostCard({
   inlineComments = true,
   onCommentsState,
   onPostUpdated,
+  onPostDeleted,
 }: FeedPostCardProps) {
   const navigate = useNavigate()
   const {
@@ -266,6 +275,8 @@ export function FeedPostCard({
   const [editBody, setEditBody] = useState('')
   const [editBusy, setEditBusy] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [bodyOverride, setBodyOverride] = useState<string | null>(null)
   const [editSync, setEditSync] = useState(() => ({ postId: post.id, body }))
   const displayBody = bodyOverride ?? body
@@ -300,6 +311,30 @@ export function FeedPostCard({
     setEditBody('')
     setEditError(null)
   }, [])
+
+  const handleStartPostEdit = useCallback(() => {
+    setEditingPost(true)
+    setEditBody(displayBody)
+    setEditError(null)
+    setDeleteError(null)
+  }, [displayBody])
+
+  const handleDeletePost = useCallback(async () => {
+    if (deleteBusy) return
+    const confirmed = window.confirm('Удалить пост? Комментарии тоже будут удалены.')
+    if (!confirmed) return
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      await deleteFeedPost(id)
+      safeHapticSuccess()
+      onPostDeleted?.(id)
+    } catch (e) {
+      setDeleteError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось удалить пост')
+    } finally {
+      setDeleteBusy(false)
+    }
+  }, [deleteBusy, id, onPostDeleted])
 
   const handleSavePostEdit = useCallback(async () => {
     if (editBusy) return
@@ -848,24 +883,28 @@ export function FeedPostCard({
                 />
                 <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={user_id} />
                 <span className="shrink-0 text-[11px] text-(--tgui--hint_color)">{formatCommentTime(created_at)}</span>
-                {isOwn && !editingPost ? (
-                  <button
-                    type="button"
-                    onMouseDown={linkToDetail ? stopPostNav : undefined}
-                    onClick={(e) => {
-                      if (linkToDetail) stopPostNavClick(e)
-                      setEditingPost(true)
-                      setEditBody(displayBody)
-                      setEditError(null)
-                    }}
-                    className="shrink-0 text-[11px] font-medium text-(--tgui--link_color)"
-                  >
-                    Редактировать
-                  </button>
-                ) : null}
               </div>
             </div>
+            {isOwn && !editingPost ? (
+              <div
+                onMouseDown={linkToDetail ? stopPostNav : undefined}
+                onClick={linkToDetail ? stopPostNavClick : undefined}
+              >
+                <PostHeaderActions
+                  canManage={isOwn}
+                  onEdit={handleStartPostEdit}
+                  onDelete={() => void handleDeletePost()}
+                  busy={editBusy}
+                  deleteBusy={deleteBusy}
+                  disabled={editBusy}
+                />
+              </div>
+            ) : null}
           </div>
+
+          {deleteError != null ? (
+            <p className="text-xs text-(--tgui--destructive_text_color)">{deleteError}</p>
+          ) : null}
 
           {sourceCommentQuote != null ? (
             <div

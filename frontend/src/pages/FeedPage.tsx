@@ -379,6 +379,27 @@ export function FeedPage() {
     [queryClient, feedKind, excludeOwn, viewerUserIdString],
   )
 
+  const onFeedPostDeleted = useCallback(
+    (postId: number) => {
+      const key = globalFeedQueryKey(feedKind, excludeOwn)
+      queryClient.setQueryData<InfiniteData<FeedMovieCardPage, string | null>>(key, (old) => {
+        if (old == null) return old
+        const next = {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((entry) => entry.kind !== 'feed_post' || entry.id !== postId),
+          })),
+        }
+        if (viewerUserIdString != null) {
+          void writeCachedGlobalFeedPage(viewerUserIdString, feedKind, excludeOwn, next)
+        }
+        return next
+      })
+    },
+    [queryClient, feedKind, excludeOwn, viewerUserIdString],
+  )
+
   const onToggleHideMine = useCallback(() => {
     setHideMine((prev) => {
       const next = !prev
@@ -545,6 +566,7 @@ export function FeedPage() {
                         post={entry}
                         viewerUserId={viewerUserIdString}
                         onCommentsState={onFeedPostCommentsState}
+                        onPostDeleted={onFeedPostDeleted}
                       />
                     </div>
                   )

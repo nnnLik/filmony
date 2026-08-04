@@ -19,6 +19,7 @@ class Film(Base):
     countries: Mapped[list[str]] = mapped_column(JSON, default=list)
     primary_director_kinopoisk_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     primary_director_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    primary_director_poster_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     primary_director_tmdb_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     franchise_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     short_description: Mapped[str | None] = mapped_column(Text, nullable=True)

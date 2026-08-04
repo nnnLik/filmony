@@ -78,6 +78,7 @@ async def _insert_film(
     countries: list[str] | None = None,
     primary_director_kinopoisk_id: int | None = None,
     primary_director_name: str | None = None,
+    primary_director_poster_url: str | None = None,
     franchise_key: str | None = None,
 ) -> Film:
     session_factory = get_session_factory()
@@ -91,6 +92,7 @@ async def _insert_film(
             countries=countries if countries is not None else [],
             primary_director_kinopoisk_id=primary_director_kinopoisk_id,
             primary_director_name=primary_director_name,
+            primary_director_poster_url=primary_director_poster_url,
             franchise_key=franchise_key,
         )
         session.add(film)
@@ -197,6 +199,7 @@ async def test_needs_enrichment_skips_fully_enriched_film(prepare_db: None) -> N
         countries=['США'],
         primary_director_kinopoisk_id=66539,
         primary_director_name='Test Director',
+        primary_director_poster_url='https://kinopoisk.example/staff/66539.jpg',
         franchise_key='kp_franchise:301',
     )
 

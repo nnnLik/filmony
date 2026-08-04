@@ -23,12 +23,14 @@ async def test_enrich_service_sets_countries_director_and_franchise_key() -> Non
                 name_ru='Лана Вачowski',
                 name_en='Lana Wachowski',
                 profession_key='ACTOR',
+                poster_url=None,
             ),
             KinopoiskStaffMemberDTO(
                 staff_id=11,
                 name_ru='Лана Вачowski',
                 name_en='Lana Wachowski',
                 profession_key='DIRECTOR',
+                poster_url='https://kinopoisk.example/staff/11.jpg',
             ),
         ),
         sequels=(
@@ -50,6 +52,7 @@ async def test_enrich_service_sets_countries_director_and_franchise_key() -> Non
     assert film.countries == ['США', 'Австралия']
     assert film.primary_director_kinopoisk_id == 11
     assert film.primary_director_name == 'Лана Вачowski'
+    assert film.primary_director_poster_url == 'https://kinopoisk.example/staff/11.jpg'
     assert film.franchise_key == 'kp_franchise:301'
 
 
@@ -62,6 +65,7 @@ async def test_enrich_service_preview_respects_skip_flags() -> None:
                 name_ru='Director',
                 name_en=None,
                 profession_key='DIRECTOR',
+                poster_url=None,
             ),
         ),
         sequels=(KinopoiskSequelFilmDTO(film_id=999, name_ru='Other', relation_type='SEQUEL'),),

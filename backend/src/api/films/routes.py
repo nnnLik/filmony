@@ -41,6 +41,7 @@ async def _film_response(db: AsyncSession, film, viewer_id) -> FilmResponse:
         genres=list(film.genres or []),
         primary_director_kinopoisk_id=film.primary_director_kinopoisk_id,
         primary_director_name=film.primary_director_name,
+        primary_director_poster_url=film.primary_director_poster_url,
         primary_director_tmdb_id=film.primary_director_tmdb_id,
         imdb_id=film.imdb_id,
         tmdb_id=film.tmdb_id,
