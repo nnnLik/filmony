@@ -1,0 +1,25 @@
+{
+  "source": "Academy Awards Best Picture nominees",
+  "source_url": "https://www.oscars.org/oscars/ceremonies/",
+  "category": "Best Picture",
+  "ceremony_years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "count_by_year": {
+    "2020": 9,
+    "2021": 8,
+    "2022": 10,
+    "2023": 10,
+    "2024": 10,
+    "2025": 10,
+    "2026": 10
+  },
+  "total_films": 67,
+  "created_at": "2026-08-06T21:45:50Z"
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "CODA",
+    "year": 2021,
+    "imdb_id": "tt10366460",
+    "is_winner": true,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 2,
+    "name": "Belfast",
+    "year": 2021,
+    "imdb_id": "tt12789558",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 3,
+    "name": "Don't Look Up",
+    "year": 2021,
+    "imdb_id": "tt10539606",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 4,
+    "name": "Drive My Car",
+    "year": 2021,
+    "imdb_id": "tt14039582",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 5,
+    "name": "Dune",
+    "year": 2021,
+    "imdb_id": "tt1160419",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 6,
+    "name": "King Richard",
+    "year": 2021,
+    "imdb_id": "tt9620288",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 7,
+    "name": "Licorice Pizza",
+    "year": 2021,
+    "imdb_id": "tt14885896",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 8,
+    "name": "Nightmare Alley",
+    "year": 2021,
+    "imdb_id": "tt7740496",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 9,
+    "name": "The Power of the Dog",
+    "year": 2021,
+    "imdb_id": "tt10293406",
+    "is_winner": false,
+    "ceremony_year": 2022
+  },
+  {
+    "sort_order": 10,
+    "name": "West Side Story",
+    "year": 2021,
+    "imdb_id": "tt3581652",
+    "is_winner": false,
+    "ceremony_year": 2022
+  }
+]

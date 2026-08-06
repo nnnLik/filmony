@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "One Battle After Another",
+    "year": 2025,
+    "imdb_id": "tt30144839",
+    "is_winner": true,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 2,
+    "name": "Bugonia",
+    "year": 2025,
+    "imdb_id": "tt12300742",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 3,
+    "name": "F1",
+    "year": 2025,
+    "imdb_id": "tt16311594",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 4,
+    "name": "Frankenstein",
+    "year": 2025,
+    "imdb_id": "tt1312221",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 5,
+    "name": "Hamnet",
+    "year": 2025,
+    "imdb_id": "tt14905854",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 6,
+    "name": "Marty Supreme",
+    "year": 2025,
+    "imdb_id": "tt32916440",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 7,
+    "name": "The Secret Agent",
+    "year": 2025,
+    "imdb_id": "tt27847051",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 8,
+    "name": "Sentimental Value",
+    "year": 2025,
+    "imdb_id": "tt27714581",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 9,
+    "name": "Sinners",
+    "year": 2025,
+    "imdb_id": "tt31193180",
+    "is_winner": false,
+    "ceremony_year": 2026
+  },
+  {
+    "sort_order": 10,
+    "name": "Train Dreams",
+    "year": 2025,
+    "imdb_id": "tt29768334",
+    "is_winner": false,
+    "ceremony_year": 2026
+  }
+]

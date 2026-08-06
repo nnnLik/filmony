@@ -1,5 +1,5 @@
 import { Avatar, Button } from '@telegram-apps/telegram-ui'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router'
 
 import type { FilmCommunityCardItem } from '../../api/profileTypes'
@@ -56,46 +56,19 @@ export function CommunityRatingsList({
   followingUserIds,
   onLoadMore,
 }: CommunityRatingsListProps) {
-  const [friendsFirst, setFriendsFirst] = useState(false)
-
   const displayItems = useMemo(() => {
-    if (!friendsFirst || followingUserIds == null || followingUserIds.size === 0) {
+    if (followingUserIds == null) {
       return items
     }
-    const friends: FilmCommunityCardItem[] = []
-    const others: FilmCommunityCardItem[] = []
-    for (const row of items) {
-      if (followingUserIds.has(row.author.id)) {
-        friends.push(row)
-      } else {
-        others.push(row)
-      }
-    }
-    return [...friends, ...others]
-  }, [items, friendsFirst, followingUserIds])
-
-  const canSortFriends =
-    followingUserIds != null && followingUserIds.size > 0 && !loading && error == null && items.length > 0
+    return items.filter(
+      (row) =>
+        followingUserIds.has(row.author.id) ||
+        (viewerId != null && row.author.id === viewerId),
+    )
+  }, [items, followingUserIds, viewerId])
 
   return (
     <div className="px-3 py-3">
-      {canSortFriends ? (
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={friendsFirst}
-            className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${
-              friendsFirst
-                ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,transparent)] text-(--tgui--text_color)'
-                : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--hint_color)'
-            }`}
-            onClick={() => setFriendsFirst((prev) => !prev)}
-          >
-            Сначала друзья
-          </button>
-        </div>
-      ) : null}
       {loading ? (
         <p className="text-center text-sm text-(--tgui--hint_color)">Загружаем оценки…</p>
       ) : null}
@@ -105,6 +78,11 @@ export function CommunityRatingsList({
       {!loading && error == null && items.length === 0 ? (
         <p className="text-[14px] leading-relaxed text-(--tgui--hint_color)">
           Пока никто не оценил эту тему в Filmony — станьте первым.
+        </p>
+      ) : null}
+      {!loading && error == null && items.length > 0 && displayItems.length === 0 && followingUserIds != null ? (
+        <p className="text-[14px] leading-relaxed text-(--tgui--hint_color)">
+          Пока никто из ваших подписок не оценил эту тему.
         </p>
       ) : null}
       {!loading && error == null && displayItems.length > 0 ? (

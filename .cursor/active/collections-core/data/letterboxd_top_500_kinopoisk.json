@@ -1,0 +1,4503 @@
+[
+  {
+    "rank": 1,
+    "letterboxd_name": "Harakiri",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/harakiri/",
+    "imdb_id": "tt0056058",
+    "kinopoisk_id": 103148,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 2,
+    "letterboxd_name": "The Human Condition III: A Soldier's Prayer",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/the-human-condition-iii-a-soldiers-prayer/",
+    "imdb_id": "tt0055233",
+    "kinopoisk_id": 160350,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 3,
+    "letterboxd_name": "12 Angry Men",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/12-angry-men/",
+    "imdb_id": "tt0050083",
+    "kinopoisk_id": 346,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 4,
+    "letterboxd_name": "Come and See",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/come-and-see/",
+    "imdb_id": "tt0091251",
+    "kinopoisk_id": 42571,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 5,
+    "letterboxd_name": "High and Low",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/high-and-low/",
+    "imdb_id": "tt0057565",
+    "kinopoisk_id": 8412,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 6,
+    "letterboxd_name": "Seven Samurai",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/seven-samurai/",
+    "imdb_id": "tt0047478",
+    "kinopoisk_id": 522003,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 7,
+    "letterboxd_name": "The Shawshank Redemption",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/the-shawshank-redemption/",
+    "imdb_id": "tt0111161",
+    "kinopoisk_id": 326,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 8,
+    "letterboxd_name": "The Godfather Part II",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-godfather-part-ii/",
+    "imdb_id": "tt0071562",
+    "kinopoisk_id": 327,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 9,
+    "letterboxd_name": "City of God",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/city-of-god/",
+    "imdb_id": "tt0317248",
+    "kinopoisk_id": 553394,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 10,
+    "letterboxd_name": "The Human Condition I: No Greater Love",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/the-human-condition-i-no-greater-love/",
+    "imdb_id": "tt0053114",
+    "kinopoisk_id": 160355,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 11,
+    "letterboxd_name": "The Lord of the Rings: The Return of the King",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lord-of-the-rings-the-return-of-the-king/",
+    "imdb_id": "tt0167260",
+    "kinopoisk_id": 3498,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 12,
+    "letterboxd_name": "Schindler's List",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/schindlers-list/",
+    "imdb_id": "tt0108052",
+    "kinopoisk_id": 329,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 13,
+    "letterboxd_name": "Yi Yi",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/yi-yi/",
+    "imdb_id": "tt0244316",
+    "kinopoisk_id": 888,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 14,
+    "letterboxd_name": "Parasite",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/parasite-2019/",
+    "imdb_id": "tt6751668",
+    "kinopoisk_id": 1043758,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 15,
+    "letterboxd_name": "Ikiru",
+    "year": 1952,
+    "letterboxd_uri": "https://letterboxd.com/film/ikiru/",
+    "imdb_id": "tt0044741",
+    "kinopoisk_id": 64131,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 16,
+    "letterboxd_name": "The Godfather",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/the-godfather/",
+    "imdb_id": "tt0068646",
+    "kinopoisk_id": 325,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 17,
+    "letterboxd_name": "The Good, the Bad and the Ugly",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-good-the-bad-and-the-ugly/",
+    "imdb_id": "tt0060196",
+    "kinopoisk_id": 349,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 18,
+    "letterboxd_name": "Cinema Paradiso",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/cinema-paradiso/",
+    "imdb_id": "tt0095765",
+    "kinopoisk_id": 424,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 19,
+    "letterboxd_name": "Ran",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/ran/",
+    "imdb_id": "tt0089881",
+    "kinopoisk_id": 400,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 20,
+    "letterboxd_name": "La Haine",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/la-haine/",
+    "imdb_id": "tt0113247",
+    "kinopoisk_id": 9448,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 21,
+    "letterboxd_name": "Le Trou",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/le-trou/",
+    "imdb_id": "tt0054407",
+    "kinopoisk_id": 146600,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 22,
+    "letterboxd_name": "The Dark Knight",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/the-dark-knight/",
+    "imdb_id": "tt0468569",
+    "kinopoisk_id": 111543,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 23,
+    "letterboxd_name": "Autumn Sonata",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/autumn-sonata/",
+    "imdb_id": "tt0077711",
+    "kinopoisk_id": 4538197,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 24,
+    "letterboxd_name": "A Brighter Summer Day",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/a-brighter-summer-day/",
+    "imdb_id": "tt0101985",
+    "kinopoisk_id": 165366,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 25,
+    "letterboxd_name": "Grave of the Fireflies",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/grave-of-the-fireflies/",
+    "imdb_id": "tt0095327",
+    "kinopoisk_id": 8219,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 26,
+    "letterboxd_name": "The Human Condition II: Road to Eternity",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/the-human-condition-ii-road-to-eternity/",
+    "imdb_id": "tt0053115",
+    "kinopoisk_id": 99807,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 27,
+    "letterboxd_name": "Neon Genesis Evangelion: The End of Evangelion",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/neon-genesis-evangelion-the-end-of-evangelion/",
+    "imdb_id": "tt0169858",
+    "kinopoisk_id": 41956,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 28,
+    "letterboxd_name": "The Battle of Algiers",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-battle-of-algiers/",
+    "imdb_id": "tt0058946",
+    "kinopoisk_id": 8384,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 29,
+    "letterboxd_name": "I Am Cuba",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/i-am-cuba/",
+    "imdb_id": "tt0058604",
+    "kinopoisk_id": 43937,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 30,
+    "letterboxd_name": "GoodFellas",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/goodfellas/",
+    "imdb_id": "tt0099685",
+    "kinopoisk_id": 350,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 31,
+    "letterboxd_name": "There Will Be Blood",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/there-will-be-blood/",
+    "imdb_id": "tt0469494",
+    "kinopoisk_id": 196604,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 32,
+    "letterboxd_name": "The Cranes Are Flying",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cranes-are-flying/",
+    "imdb_id": "tt0050634",
+    "kinopoisk_id": 7724,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 33,
+    "letterboxd_name": "Interstellar",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/interstellar/",
+    "imdb_id": "tt0816692",
+    "kinopoisk_id": 258687,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 34,
+    "letterboxd_name": "Incendies",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/incendies/",
+    "imdb_id": "tt1255953",
+    "kinopoisk_id": 425400,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 35,
+    "letterboxd_name": "Woman in the Dunes",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/woman-in-the-dunes/",
+    "imdb_id": "tt0058625",
+    "kinopoisk_id": 81421,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 36,
+    "letterboxd_name": "Paths of Glory",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/paths-of-glory/",
+    "imdb_id": "tt0050825",
+    "kinopoisk_id": 360,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 37,
+    "letterboxd_name": "It's a Wonderful Life",
+    "year": 1946,
+    "letterboxd_uri": "https://letterboxd.com/film/its-a-wonderful-life/",
+    "imdb_id": "tt0038650",
+    "kinopoisk_id": 819248,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 38,
+    "letterboxd_name": "Sunset Boulevard",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/sunset-boulevard/",
+    "imdb_id": "tt0043014",
+    "kinopoisk_id": 353,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 39,
+    "letterboxd_name": "Andrei Rublev",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/andrei-rublev/",
+    "imdb_id": "tt0060107",
+    "kinopoisk_id": 8385,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 40,
+    "letterboxd_name": "The Lord of the Rings: The Two Towers",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lord-of-the-rings-the-two-towers/",
+    "imdb_id": "tt0167261",
+    "kinopoisk_id": 312,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 41,
+    "letterboxd_name": "Apocalypse Now",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/apocalypse-now/",
+    "imdb_id": "tt0078788",
+    "kinopoisk_id": 354,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 42,
+    "letterboxd_name": "Spirited Away",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/spirited-away/",
+    "imdb_id": "tt0245429",
+    "kinopoisk_id": 370,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 43,
+    "letterboxd_name": "Tokyo Story",
+    "year": 1953,
+    "letterboxd_uri": "https://letterboxd.com/film/tokyo-story/",
+    "imdb_id": "tt0046438",
+    "kinopoisk_id": 79836,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 44,
+    "letterboxd_name": "The Ascent",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/the-ascent/",
+    "imdb_id": "tt0075404",
+    "kinopoisk_id": 460637,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 45,
+    "letterboxd_name": "The Apartment",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/the-apartment/",
+    "imdb_id": "tt0053604",
+    "kinopoisk_id": 404,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 46,
+    "letterboxd_name": "Portrait of a Lady on Fire",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/portrait-of-a-lady-on-fire/",
+    "imdb_id": "tt8613070",
+    "kinopoisk_id": 1169370,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 47,
+    "letterboxd_name": "Whiplash",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/whiplash-2014/",
+    "imdb_id": "tt2582802",
+    "kinopoisk_id": 725190,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 48,
+    "letterboxd_name": "Memories of Murder",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/memories-of-murder/",
+    "imdb_id": "tt0353969",
+    "kinopoisk_id": 65770,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 49,
+    "letterboxd_name": "The Passion of Joan of Arc",
+    "year": 1928,
+    "letterboxd_uri": "https://letterboxd.com/film/the-passion-of-joan-of-arc/",
+    "imdb_id": "tt0019254",
+    "kinopoisk_id": 568,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 50,
+    "letterboxd_name": "Mishima: A Life in Four Chapters",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/mishima-a-life-in-four-chapters/",
+    "imdb_id": "tt0089603",
+    "kinopoisk_id": 7326,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 51,
+    "letterboxd_name": "Lawrence of Arabia",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/lawrence-of-arabia/",
+    "imdb_id": "tt0056172",
+    "kinopoisk_id": 347,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 52,
+    "letterboxd_name": "Nobody Knows",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/nobody-knows/",
+    "imdb_id": "tt0408664",
+    "kinopoisk_id": 249956,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 53,
+    "letterboxd_name": "Life Is Beautiful",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/life-is-beautiful/",
+    "imdb_id": "tt0118799",
+    "kinopoisk_id": 4635781,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 54,
+    "letterboxd_name": "Barry Lyndon",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/barry-lyndon/",
+    "imdb_id": "tt0072684",
+    "kinopoisk_id": 5032,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 55,
+    "letterboxd_name": "Witness for the Prosecution",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/witness-for-the-prosecution-1957/",
+    "imdb_id": "tt0051201",
+    "kinopoisk_id": 489,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 56,
+    "letterboxd_name": "The Red Shoes",
+    "year": 1948,
+    "letterboxd_uri": "https://letterboxd.com/film/the-red-shoes/",
+    "imdb_id": "tt0040725",
+    "kinopoisk_id": 8443,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 57,
+    "letterboxd_name": "The Pianist",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/the-pianist/",
+    "imdb_id": "tt0253474",
+    "kinopoisk_id": 355,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 58,
+    "letterboxd_name": "Swing Girls",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/swing-girls/",
+    "imdb_id": "tt0435434",
+    "kinopoisk_id": 110042,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 59,
+    "letterboxd_name": "The Voice of Hind Rajab",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/the-voice-of-hind-rajab/",
+    "imdb_id": "tt36943034",
+    "kinopoisk_id": 8537798,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 60,
+    "letterboxd_name": "The Empire Strikes Back",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/the-empire-strikes-back/",
+    "imdb_id": "tt0080684",
+    "kinopoisk_id": 338,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 61,
+    "letterboxd_name": "Close-Up",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/close-up/",
+    "imdb_id": "tt0100234",
+    "kinopoisk_id": 245805,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 62,
+    "letterboxd_name": "The Odyssey",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/the-odyssey-2026/",
+    "imdb_id": "tt33764258",
+    "kinopoisk_id": 6385370,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 63,
+    "letterboxd_name": "Sansho the Bailiff",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/sansho-the-bailiff/",
+    "imdb_id": "tt0047445",
+    "kinopoisk_id": 86297,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 64,
+    "letterboxd_name": "Spider-Man: Across the Spider-Verse",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/spider-man-across-the-spider-verse/",
+    "imdb_id": "tt9362722",
+    "kinopoisk_id": 1219177,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 65,
+    "letterboxd_name": "Fanny and Alexander",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/fanny-and-alexander/",
+    "imdb_id": "tt0083922",
+    "kinopoisk_id": 8400,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 66,
+    "letterboxd_name": "Farewell My Concubine",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/farewell-my-concubine/",
+    "imdb_id": "tt0106332",
+    "kinopoisk_id": 7699,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 67,
+    "letterboxd_name": "A Woman Under the Influence",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/a-woman-under-the-influence/",
+    "imdb_id": "tt0072417",
+    "kinopoisk_id": 1633,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 68,
+    "letterboxd_name": "A Separation",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/a-separation/",
+    "imdb_id": "tt1832382",
+    "kinopoisk_id": 579739,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 69,
+    "letterboxd_name": "Do the Right Thing",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/do-the-right-thing/",
+    "imdb_id": "tt0097216",
+    "kinopoisk_id": 4328,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 70,
+    "letterboxd_name": "The Handmaiden",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/the-handmaiden/",
+    "imdb_id": "tt4016934",
+    "kinopoisk_id": 851960,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 71,
+    "letterboxd_name": "Princess Mononoke",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/princess-mononoke/",
+    "imdb_id": "tt0119698",
+    "kinopoisk_id": 441,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 72,
+    "letterboxd_name": "Love Exposure",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/love-exposure/",
+    "imdb_id": "tt1128075",
+    "kinopoisk_id": 408342,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 73,
+    "letterboxd_name": "Spider-Man: Into the Spider-Verse",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/spider-man-into-the-spider-verse/",
+    "imdb_id": "tt4633694",
+    "kinopoisk_id": 920265,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 74,
+    "letterboxd_name": "Once Upon a Time in the West",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/once-upon-a-time-in-the-west/",
+    "imdb_id": "tt0064116",
+    "kinopoisk_id": 376,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 75,
+    "letterboxd_name": "The Lord of the Rings: The Fellowship of the Ring",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lord-of-the-rings-the-fellowship-of-the-ring/",
+    "imdb_id": "tt0120737",
+    "kinopoisk_id": 328,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 76,
+    "letterboxd_name": "Stalker",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/stalker/",
+    "imdb_id": "tt0079944",
+    "kinopoisk_id": 43970,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 77,
+    "letterboxd_name": "Nights of Cabiria",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/nights-of-cabiria/",
+    "imdb_id": "tt0050783",
+    "kinopoisk_id": 63929,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 78,
+    "letterboxd_name": "Paper Moon",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/paper-moon/",
+    "imdb_id": "tt0070510",
+    "kinopoisk_id": 5033,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 79,
+    "letterboxd_name": "Good Will Hunting",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/good-will-hunting/",
+    "imdb_id": "tt0119217",
+    "kinopoisk_id": 539,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 80,
+    "letterboxd_name": "Se7en",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/se7en/",
+    "imdb_id": "tt0114369",
+    "kinopoisk_id": 377,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 81,
+    "letterboxd_name": "An Elephant Sitting Still",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/an-elephant-sitting-still/",
+    "imdb_id": "tt8020896",
+    "kinopoisk_id": 1112854,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 82,
+    "letterboxd_name": "Perfect Blue",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/perfect-blue/",
+    "imdb_id": "tt0156887",
+    "kinopoisk_id": 91829,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 83,
+    "letterboxd_name": "Dune: Part Two",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/dune-part-two/",
+    "imdb_id": "tt15239678",
+    "kinopoisk_id": 4540126,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 84,
+    "letterboxd_name": "Red Beard",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/red-beard/",
+    "imdb_id": "tt0058888",
+    "kinopoisk_id": 64017,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 85,
+    "letterboxd_name": "In the Mood for Love",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/in-the-mood-for-love/",
+    "imdb_id": "tt0118694",
+    "kinopoisk_id": 656,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 86,
+    "letterboxd_name": "Persona",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/persona/",
+    "imdb_id": "tt0060827",
+    "kinopoisk_id": 79506,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 87,
+    "letterboxd_name": "Z",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/z/",
+    "imdb_id": "tt0065234",
+    "kinopoisk_id": 23889,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 88,
+    "letterboxd_name": "One Flew Over the Cuckoo's Nest",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/one-flew-over-the-cuckoos-nest/",
+    "imdb_id": "tt0073486",
+    "kinopoisk_id": 336,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 89,
+    "letterboxd_name": "Apur Sansar",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/apur-sansar/",
+    "imdb_id": "tt0052572",
+    "kinopoisk_id": 84790,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 90,
+    "letterboxd_name": "How to Make Millions Before Grandma Dies",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/how-to-make-millions-before-grandma-dies/",
+    "imdb_id": "tt31392609",
+    "kinopoisk_id": 6134805,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 91,
+    "letterboxd_name": "Inglourious Basterds",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/inglourious-basterds/",
+    "imdb_id": "tt0361748",
+    "kinopoisk_id": 9691,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 92,
+    "letterboxd_name": "Paris, Texas",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/paris-texas/",
+    "imdb_id": "tt0087884",
+    "kinopoisk_id": 4401,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 93,
+    "letterboxd_name": "Amadeus",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/amadeus/",
+    "imdb_id": "tt0086879",
+    "kinopoisk_id": 397,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 94,
+    "letterboxd_name": "Rear Window",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/rear-window/",
+    "imdb_id": "tt0047396",
+    "kinopoisk_id": 337,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 95,
+    "letterboxd_name": "All About Eve",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/all-about-eve/",
+    "imdb_id": "tt0042192",
+    "kinopoisk_id": 372,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 96,
+    "letterboxd_name": "Where Is the Friend's House?",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/where-is-the-friends-house/",
+    "imdb_id": "tt0093342",
+    "kinopoisk_id": 245819,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 97,
+    "letterboxd_name": "Scenes from a Marriage",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/scenes-from-a-marriage/",
+    "imdb_id": "tt6725014",
+    "kinopoisk_id": 1083065,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 98,
+    "letterboxd_name": "Oldboy",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/oldboy/",
+    "imdb_id": "tt0364569",
+    "kinopoisk_id": 75871,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 99,
+    "letterboxd_name": "The Wages of Fear",
+    "year": 1953,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wages-of-fear/",
+    "imdb_id": "tt0046268",
+    "kinopoisk_id": 959200,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 100,
+    "letterboxd_name": "Sherlock Jr.",
+    "year": 1924,
+    "letterboxd_uri": "https://letterboxd.com/film/sherlock-jr/",
+    "imdb_id": "tt0015324",
+    "kinopoisk_id": 11380,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 101,
+    "letterboxd_name": "Howl's Moving Castle",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/howls-moving-castle/",
+    "imdb_id": "tt0347149",
+    "kinopoisk_id": 49684,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 102,
+    "letterboxd_name": "Judgment at Nuremberg",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/judgment-at-nuremberg/",
+    "imdb_id": "tt0055031",
+    "kinopoisk_id": 13738,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 103,
+    "letterboxd_name": "It's Such a Beautiful Day",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/its-such-a-beautiful-day/",
+    "imdb_id": "tt2396224",
+    "kinopoisk_id": 707675,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 104,
+    "letterboxd_name": "Satantango",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/satantango/",
+    "imdb_id": "tt0111341",
+    "kinopoisk_id": 56328,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 105,
+    "letterboxd_name": "Chainsaw Man – The Movie: Reze Arc",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/chainsaw-man-the-movie-reze-arc/",
+    "imdb_id": "tt30472557",
+    "kinopoisk_id": 5430477,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 106,
+    "letterboxd_name": "Dead Poets Society",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-poets-society/",
+    "imdb_id": "tt0097165",
+    "kinopoisk_id": 4996,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 107,
+    "letterboxd_name": "Monster",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/monster-2023/",
+    "imdb_id": "tt23736044",
+    "kinopoisk_id": 5395239,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 108,
+    "letterboxd_name": "The Thing",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/the-thing/",
+    "imdb_id": "tt0084787",
+    "kinopoisk_id": 8366,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 109,
+    "letterboxd_name": "Singin' in the Rain",
+    "year": 1952,
+    "letterboxd_uri": "https://letterboxd.com/film/singin-in-the-rain/",
+    "imdb_id": "tt0045152",
+    "kinopoisk_id": 368,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 110,
+    "letterboxd_name": "The Departed",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/the-departed/",
+    "imdb_id": "tt0407887",
+    "kinopoisk_id": 81314,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 111,
+    "letterboxd_name": "Twin Peaks: Fire Walk with Me",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/twin-peaks-fire-walk-with-me/",
+    "imdb_id": "tt0105665",
+    "kinopoisk_id": 4392,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 112,
+    "letterboxd_name": "Army of Shadows",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/army-of-shadows/",
+    "imdb_id": "tt0064040",
+    "kinopoisk_id": 26765,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 113,
+    "letterboxd_name": "Central Station",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/central-station/",
+    "imdb_id": "tt0140888",
+    "kinopoisk_id": 7749,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 114,
+    "letterboxd_name": "A Man Escaped",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/a-man-escaped/",
+    "imdb_id": "tt0049902",
+    "kinopoisk_id": 143103,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 115,
+    "letterboxd_name": "Django Unchained",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/django-unchained/",
+    "imdb_id": "tt1853728",
+    "kinopoisk_id": 586397,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 116,
+    "letterboxd_name": "All That Jazz",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/all-that-jazz/",
+    "imdb_id": "tt0078754",
+    "kinopoisk_id": 7708,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 117,
+    "letterboxd_name": "Raise the Red Lantern",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/raise-the-red-lantern/",
+    "imdb_id": "tt0101640",
+    "kinopoisk_id": 8483,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 118,
+    "letterboxd_name": "Prisoners",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/prisoners/",
+    "imdb_id": "tt1392214",
+    "kinopoisk_id": 455194,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 119,
+    "letterboxd_name": "The Silence of the Lambs",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/the-silence-of-the-lambs/",
+    "imdb_id": "tt0102926",
+    "kinopoisk_id": 345,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 120,
+    "letterboxd_name": "Still Walking",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/still-walking/",
+    "imdb_id": "tt1087578",
+    "kinopoisk_id": 394746,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 121,
+    "letterboxd_name": "Eternity and a Day",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/eternity-and-a-day/",
+    "imdb_id": "tt0156794",
+    "kinopoisk_id": 7696,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 122,
+    "letterboxd_name": "I'm Still Here",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/im-still-here-2024/",
+    "imdb_id": "tt14961016",
+    "kinopoisk_id": 6040913,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 123,
+    "letterboxd_name": "A Special Day",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/a-special-day/",
+    "imdb_id": "tt0076085",
+    "kinopoisk_id": 26808,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 124,
+    "letterboxd_name": "Three Colours: Red",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/three-colours-red/",
+    "imdb_id": "tt0111495",
+    "kinopoisk_id": 501,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 125,
+    "letterboxd_name": "Ordet",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/ordet/",
+    "imdb_id": "tt0048452",
+    "kinopoisk_id": 74507,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 126,
+    "letterboxd_name": "Das Boot",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/das-boot/",
+    "imdb_id": "tt0082096",
+    "kinopoisk_id": 362,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 127,
+    "letterboxd_name": "The Young Girls of Rochefort",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/the-young-girls-of-rochefort/",
+    "imdb_id": "tt0062873",
+    "kinopoisk_id": 13154,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 128,
+    "letterboxd_name": "To Be or Not to Be",
+    "year": 1942,
+    "letterboxd_uri": "https://letterboxd.com/film/to-be-or-not-to-be/",
+    "imdb_id": "tt0035446",
+    "kinopoisk_id": 512,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 129,
+    "letterboxd_name": "The Great Dictator",
+    "year": 1940,
+    "letterboxd_uri": "https://letterboxd.com/film/the-great-dictator/",
+    "imdb_id": "tt0032553",
+    "kinopoisk_id": 431,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 130,
+    "letterboxd_name": "Perfect Days",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/perfect-days-2023/",
+    "imdb_id": "tt27503384",
+    "kinopoisk_id": 5283168,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 131,
+    "letterboxd_name": "The Celebration",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/the-celebration/",
+    "imdb_id": "tt0154420",
+    "kinopoisk_id": 465,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 132,
+    "letterboxd_name": "Late Spring",
+    "year": 1949,
+    "letterboxd_uri": "https://letterboxd.com/film/late-spring/",
+    "imdb_id": "tt0041154",
+    "kinopoisk_id": 156821,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 133,
+    "letterboxd_name": "Mommy",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/mommy-2014/",
+    "imdb_id": "tt3612616",
+    "kinopoisk_id": 839219,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 134,
+    "letterboxd_name": "Taste of Cherry",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/taste-of-cherry/",
+    "imdb_id": "tt0120265",
+    "kinopoisk_id": 7697,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 135,
+    "letterboxd_name": "Heat",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/heat-1995/",
+    "imdb_id": "tt0113277",
+    "kinopoisk_id": 571,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 136,
+    "letterboxd_name": "Brief Encounter",
+    "year": 1945,
+    "letterboxd_uri": "https://letterboxd.com/film/brief-encounter/",
+    "imdb_id": "tt0037558",
+    "kinopoisk_id": 7730,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 137,
+    "letterboxd_name": "Project Hail Mary",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/project-hail-mary/",
+    "imdb_id": "tt12042730",
+    "kinopoisk_id": 1382256,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 138,
+    "letterboxd_name": "Wild Strawberries",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/wild-strawberries/",
+    "imdb_id": "tt0050986",
+    "kinopoisk_id": 508,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 139,
+    "letterboxd_name": "Puella Magi Madoka Magica the Movie Part III: Rebellion",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/puella-magi-madoka-magica-the-movie-part-iii-rebellion/",
+    "imdb_id": "tt2457282",
+    "kinopoisk_id": 713543,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 140,
+    "letterboxd_name": "Funeral Parade of Roses",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/funeral-parade-of-roses/",
+    "imdb_id": "tt0064068",
+    "kinopoisk_id": 146178,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 141,
+    "letterboxd_name": "The Seventh Seal",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/the-seventh-seal/",
+    "imdb_id": "tt0050976",
+    "kinopoisk_id": 425,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 142,
+    "letterboxd_name": "Pather Panchali",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/pather-panchali/",
+    "imdb_id": "tt0048473",
+    "kinopoisk_id": 97788,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 143,
+    "letterboxd_name": "Before Sunset",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/before-sunset/",
+    "imdb_id": "tt0381681",
+    "kinopoisk_id": 50598,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 144,
+    "letterboxd_name": "City Lights",
+    "year": 1931,
+    "letterboxd_uri": "https://letterboxd.com/film/city-lights/",
+    "imdb_id": "tt0021749",
+    "kinopoisk_id": 414,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 145,
+    "letterboxd_name": "Shoplifters",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/shoplifters/",
+    "imdb_id": "tt8075192",
+    "kinopoisk_id": 1114967,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 146,
+    "letterboxd_name": "The Elephant Man",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/the-elephant-man/",
+    "imdb_id": "tt0080678",
+    "kinopoisk_id": 464,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 147,
+    "letterboxd_name": "Rocco and His Brothers",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/rocco-and-his-brothers/",
+    "imdb_id": "tt0054248",
+    "kinopoisk_id": 13540,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 148,
+    "letterboxd_name": "Dog Day Afternoon",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/dog-day-afternoon/",
+    "imdb_id": "tt0072890",
+    "kinopoisk_id": 500,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 149,
+    "letterboxd_name": "Mirror",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/mirror/",
+    "imdb_id": "tt0072443",
+    "kinopoisk_id": 1010308,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 150,
+    "letterboxd_name": "Psycho",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/psycho/",
+    "imdb_id": "tt0054215",
+    "kinopoisk_id": 344,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 151,
+    "letterboxd_name": "No Country for Old Men",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/no-country-for-old-men/",
+    "imdb_id": "tt0477348",
+    "kinopoisk_id": 195434,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 152,
+    "letterboxd_name": "Wings of Desire",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/wings-of-desire/",
+    "imdb_id": "tt0093191",
+    "kinopoisk_id": 8403,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 153,
+    "letterboxd_name": "Chinatown",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/chinatown/",
+    "imdb_id": "tt0071315",
+    "kinopoisk_id": 365,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 154,
+    "letterboxd_name": "Landscape in the Mist",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/landscape-in-the-mist/",
+    "imdb_id": "tt0096288",
+    "kinopoisk_id": 7738,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 155,
+    "letterboxd_name": "Children of Men",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/children-of-men/",
+    "imdb_id": "tt0206634",
+    "kinopoisk_id": 6803,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 156,
+    "letterboxd_name": "The Prestige",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/the-prestige/",
+    "imdb_id": "tt0482571",
+    "kinopoisk_id": 195334,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 157,
+    "letterboxd_name": "Yojimbo",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/yojimbo/",
+    "imdb_id": "tt0055630",
+    "kinopoisk_id": 1048670,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 158,
+    "letterboxd_name": "The Green Mile",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/the-green-mile/",
+    "imdb_id": "tt0120689",
+    "kinopoisk_id": 435,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 159,
+    "letterboxd_name": "Tampopo",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/tampopo/",
+    "imdb_id": "tt0092048",
+    "kinopoisk_id": 76905,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 160,
+    "letterboxd_name": "The Father",
+    "year": 2020,
+    "letterboxd_uri": "https://letterboxd.com/film/the-father-2020/",
+    "imdb_id": "tt10272386",
+    "kinopoisk_id": 1262160,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 161,
+    "letterboxd_name": "Sing Sing",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/sing-sing-2023/",
+    "imdb_id": "tt28479262",
+    "kinopoisk_id": 5378058,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 162,
+    "letterboxd_name": "The Treasure of the Sierra Madre",
+    "year": 1948,
+    "letterboxd_uri": "https://letterboxd.com/film/the-treasure-of-the-sierra-madre/",
+    "imdb_id": "tt0040897",
+    "kinopoisk_id": 393,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 163,
+    "letterboxd_name": "Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/dr-strangelove-or-how-i-learned-to-stop-worrying-and-love-the-bomb/",
+    "imdb_id": "tt0057012",
+    "kinopoisk_id": 334,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 164,
+    "letterboxd_name": "Fantastic Mr. Fox",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/fantastic-mr-fox/",
+    "imdb_id": "tt0432283",
+    "kinopoisk_id": 86621,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 165,
+    "letterboxd_name": "Before Sunrise",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/before-sunrise/",
+    "imdb_id": "tt0112471",
+    "kinopoisk_id": 18368,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 166,
+    "letterboxd_name": "Evangelion: 3.0+1.0 Thrice Upon a Time",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/evangelion-3010-thrice-upon-a-time/",
+    "imdb_id": "tt2458948",
+    "kinopoisk_id": 713366,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 167,
+    "letterboxd_name": "Malcolm X",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/malcolm-x-1992/",
+    "imdb_id": "tt0104797",
+    "kinopoisk_id": 1105,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 168,
+    "letterboxd_name": "Terminator 2: Judgment Day",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/terminator-2-judgment-day/",
+    "imdb_id": "tt0103064",
+    "kinopoisk_id": 444,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 169,
+    "letterboxd_name": "The 400 Blows",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/the-400-blows/",
+    "imdb_id": "tt0053198",
+    "kinopoisk_id": 510,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 170,
+    "letterboxd_name": "The Cremator",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cremator/",
+    "imdb_id": "tt0063633",
+    "kinopoisk_id": 179307,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 171,
+    "letterboxd_name": "Underground",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/underground-1995/",
+    "imdb_id": "tt0114787",
+    "kinopoisk_id": 7698,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 172,
+    "letterboxd_name": "Fail Safe",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/fail-safe/",
+    "imdb_id": "tt0058083",
+    "kinopoisk_id": 8363,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 173,
+    "letterboxd_name": "Song of the Sea",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/song-of-the-sea/",
+    "imdb_id": "tt1865505",
+    "kinopoisk_id": 714248,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 174,
+    "letterboxd_name": "Life, and Nothing More…",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/life-and-nothing-more/",
+    "imdb_id": "tt0105888",
+    "kinopoisk_id": 245817,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 175,
+    "letterboxd_name": "Werckmeister Harmonies",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/werckmeister-harmonies/",
+    "imdb_id": "tt0249241",
+    "kinopoisk_id": 50377,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 176,
+    "letterboxd_name": "The Lives of Others",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lives-of-others/",
+    "imdb_id": "tt0405094",
+    "kinopoisk_id": 126196,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 177,
+    "letterboxd_name": "M",
+    "year": 1931,
+    "letterboxd_uri": "https://letterboxd.com/film/m/",
+    "imdb_id": "tt0022100",
+    "kinopoisk_id": 373,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 178,
+    "letterboxd_name": "Dersu Uzala",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/dersu-uzala/",
+    "imdb_id": "tt0071411",
+    "kinopoisk_id": 8208,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 179,
+    "letterboxd_name": "The Hunt",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hunt-2012/",
+    "imdb_id": "tt2106476",
+    "kinopoisk_id": 568550,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 180,
+    "letterboxd_name": "Secrets & Lies",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/secrets-lies/",
+    "imdb_id": "tt0117589",
+    "kinopoisk_id": 6775,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 181,
+    "letterboxd_name": "The Iron Giant",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/the-iron-giant/",
+    "imdb_id": "tt0129167",
+    "kinopoisk_id": 538,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 182,
+    "letterboxd_name": "Look Back",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/look-back-2024/",
+    "imdb_id": "tt31711040",
+    "kinopoisk_id": 6046385,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 183,
+    "letterboxd_name": "Cure",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/cure/",
+    "imdb_id": "tt0123948",
+    "kinopoisk_id": 60832,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 184,
+    "letterboxd_name": "Akira",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/akira/",
+    "imdb_id": "tt0094625",
+    "kinopoisk_id": 6766817,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 185,
+    "letterboxd_name": "Some Like It Hot",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/some-like-it-hot/",
+    "imdb_id": "tt0053291",
+    "kinopoisk_id": 356,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 186,
+    "letterboxd_name": "Bicycle Thieves",
+    "year": 1948,
+    "letterboxd_uri": "https://letterboxd.com/film/bicycle-thieves/",
+    "imdb_id": "tt0040522",
+    "kinopoisk_id": 432,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 187,
+    "letterboxd_name": "Casablanca",
+    "year": 1942,
+    "letterboxd_uri": "https://letterboxd.com/film/casablanca/",
+    "imdb_id": "tt0034583",
+    "kinopoisk_id": 330,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 188,
+    "letterboxd_name": "Opening Night",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/opening-night/",
+    "imdb_id": "tt0079672",
+    "kinopoisk_id": 1630,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 189,
+    "letterboxd_name": "Ritual",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/ritual-2000/",
+    "imdb_id": "tt0269856",
+    "kinopoisk_id": 105090,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 190,
+    "letterboxd_name": "The Sacrifice",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sacrifice/",
+    "imdb_id": "tt0091670",
+    "kinopoisk_id": 79821,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 191,
+    "letterboxd_name": "Interstella 5555: The 5tory of the 5ecret 5tar 5ystem",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/interstella-5555-the-5tory-of-the-5ecret-5tar-5ystem/",
+    "imdb_id": "tt0368667",
+    "kinopoisk_id": 49869,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 192,
+    "letterboxd_name": "Children of Paradise",
+    "year": 1945,
+    "letterboxd_uri": "https://letterboxd.com/film/children-of-paradise/",
+    "imdb_id": "tt0037674",
+    "kinopoisk_id": 8442,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 193,
+    "letterboxd_name": "The Man Who Shot Liberty Valance",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/the-man-who-shot-liberty-valance/",
+    "imdb_id": "tt0056217",
+    "kinopoisk_id": 492,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 194,
+    "letterboxd_name": "Chungking Express",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/chungking-express/",
+    "imdb_id": "tt0109424",
+    "kinopoisk_id": 22819,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 195,
+    "letterboxd_name": "Ace in the Hole",
+    "year": 1951,
+    "letterboxd_uri": "https://letterboxd.com/film/ace-in-the-hole/",
+    "imdb_id": "tt0043338",
+    "kinopoisk_id": 8287,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 196,
+    "letterboxd_name": "Sorcerer",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/sorcerer/",
+    "imdb_id": "tt0076740",
+    "kinopoisk_id": 14906,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 197,
+    "letterboxd_name": "The Fall",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fall/",
+    "imdb_id": "tt0460791",
+    "kinopoisk_id": 105813,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 198,
+    "letterboxd_name": "Fight Club",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/fight-club/",
+    "imdb_id": "tt0137523",
+    "kinopoisk_id": 361,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 199,
+    "letterboxd_name": "Who's Afraid of Virginia Woolf?",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/whos-afraid-of-virginia-woolf/",
+    "imdb_id": "tt0061184",
+    "kinopoisk_id": 490,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 200,
+    "letterboxd_name": "Mary and Max",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/mary-and-max/",
+    "imdb_id": "tt0978762",
+    "kinopoisk_id": 378246,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 201,
+    "letterboxd_name": "Throne of Blood",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/throne-of-blood/",
+    "imdb_id": "tt0050613",
+    "kinopoisk_id": 8386,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 202,
+    "letterboxd_name": "A Matter of Life and Death",
+    "year": 1946,
+    "letterboxd_uri": "https://letterboxd.com/film/a-matter-of-life-and-death/",
+    "imdb_id": "tt0038733",
+    "kinopoisk_id": 8417,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 203,
+    "letterboxd_name": "La Notte",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/la-notte/",
+    "imdb_id": "tt0054130",
+    "kinopoisk_id": 7780,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 204,
+    "letterboxd_name": "Network",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/network/",
+    "imdb_id": "tt0074958",
+    "kinopoisk_id": 520,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 205,
+    "letterboxd_name": "The Holdovers",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/the-holdovers/",
+    "imdb_id": "tt14849194",
+    "kinopoisk_id": 4499386,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 206,
+    "letterboxd_name": "Saving Private Ryan",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/saving-private-ryan/",
+    "imdb_id": "tt0120815",
+    "kinopoisk_id": 371,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 207,
+    "letterboxd_name": "Rififi",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/rififi/",
+    "imdb_id": "tt0048021",
+    "kinopoisk_id": 81009,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 208,
+    "letterboxd_name": "The Tale of The Princess Kaguya",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tale-of-the-princess-kaguya/",
+    "imdb_id": "tt2576852",
+    "kinopoisk_id": 723841,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 209,
+    "letterboxd_name": "Jeanne Dielman, 23, quai du Commerce, 1080 Bruxelles",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/jeanne-dielman-23-quai-du-commerce-1080-bruxelles/",
+    "imdb_id": "tt0073198",
+    "kinopoisk_id": 127756,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 210,
+    "letterboxd_name": "Double Indemnity",
+    "year": 1944,
+    "letterboxd_uri": "https://letterboxd.com/film/double-indemnity/",
+    "imdb_id": "tt0036775",
+    "kinopoisk_id": 364,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 211,
+    "letterboxd_name": "Tokyo Godfathers",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/tokyo-godfathers/",
+    "imdb_id": "tt0388473",
+    "kinopoisk_id": 63767,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 212,
+    "letterboxd_name": "Mulholland Drive",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/mulholland-drive/",
+    "imdb_id": "tt0166924",
+    "kinopoisk_id": 466,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 213,
+    "letterboxd_name": "8½",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/8-half/",
+    "imdb_id": "tt0056801",
+    "kinopoisk_id": 535,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 214,
+    "letterboxd_name": "I Swear",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/i-swear/",
+    "imdb_id": "tt31514146",
+    "kinopoisk_id": 8472578,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 215,
+    "letterboxd_name": "Nostalgia",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/nostalgia-1983/",
+    "imdb_id": "tt0086022",
+    "kinopoisk_id": 811038,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 216,
+    "letterboxd_name": "We All Loved Each Other So Much",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/we-all-loved-each-other-so-much/",
+    "imdb_id": "tt0075793",
+    "kinopoisk_id": 57096,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 217,
+    "letterboxd_name": "Kamikaze Girls",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/kamikaze-girls/",
+    "imdb_id": "tt0416220",
+    "kinopoisk_id": 103220,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 218,
+    "letterboxd_name": "The Night of the Hunter",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/the-night-of-the-hunter/",
+    "imdb_id": "tt0048424",
+    "kinopoisk_id": 453,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 219,
+    "letterboxd_name": "Aparajito",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/aparajito/",
+    "imdb_id": "tt0048956",
+    "kinopoisk_id": 4907701,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 220,
+    "letterboxd_name": "La Dolce Vita",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/la-dolce-vita/",
+    "imdb_id": "tt0053779",
+    "kinopoisk_id": 7722,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 221,
+    "letterboxd_name": "The First Slam Dunk",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/the-first-slam-dunk/",
+    "imdb_id": "tt15242330",
+    "kinopoisk_id": 4641580,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 222,
+    "letterboxd_name": "The Sound of Music",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sound-of-music/",
+    "imdb_id": "tt0059742",
+    "kinopoisk_id": 7665,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 223,
+    "letterboxd_name": "Vada Chennai",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/vada-chennai/",
+    "imdb_id": "tt5959980",
+    "kinopoisk_id": 996679,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 224,
+    "letterboxd_name": "Ugetsu",
+    "year": 1953,
+    "letterboxd_uri": "https://letterboxd.com/film/ugetsu/",
+    "imdb_id": "tt0046478",
+    "kinopoisk_id": 156647,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 225,
+    "letterboxd_name": "4 Months, 3 Weeks and 2 Days",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/4-months-3-weeks-and-2-days/",
+    "imdb_id": "tt1032846",
+    "kinopoisk_id": 318550,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 226,
+    "letterboxd_name": "Alien",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/alien/",
+    "imdb_id": "tt0078748",
+    "kinopoisk_id": 386,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 227,
+    "letterboxd_name": "The Bridge on the River Kwai",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/the-bridge-on-the-river-kwai/",
+    "imdb_id": "tt0050212",
+    "kinopoisk_id": 369,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 228,
+    "letterboxd_name": "For a Few Dollars More",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/for-a-few-dollars-more/",
+    "imdb_id": "tt0059578",
+    "kinopoisk_id": 8190,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 229,
+    "letterboxd_name": "A Moment of Innocence",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/a-moment-of-innocence/",
+    "imdb_id": "tt0117214",
+    "kinopoisk_id": 76710,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 230,
+    "letterboxd_name": "Modern Times",
+    "year": 1936,
+    "letterboxd_uri": "https://letterboxd.com/film/modern-times/",
+    "imdb_id": "tt0027977",
+    "kinopoisk_id": 408,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 231,
+    "letterboxd_name": "Anatomy of a Murder",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/anatomy-of-a-murder/",
+    "imdb_id": "tt0052561",
+    "kinopoisk_id": 8343,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 232,
+    "letterboxd_name": "Wolfwalkers",
+    "year": 2020,
+    "letterboxd_uri": "https://letterboxd.com/film/wolfwalkers/",
+    "imdb_id": "tt5198068",
+    "kinopoisk_id": 958541,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 233,
+    "letterboxd_name": "Marcel the Shell with Shoes On",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/marcel-the-shell-with-shoes-on-2021/",
+    "imdb_id": "tt15339456",
+    "kinopoisk_id": 4630822,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 234,
+    "letterboxd_name": "The Best Years of Our Lives",
+    "year": 1946,
+    "letterboxd_uri": "https://letterboxd.com/film/the-best-years-of-our-lives/",
+    "imdb_id": "tt0036868",
+    "kinopoisk_id": 429,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 235,
+    "letterboxd_name": "Il Sorpasso",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/il-sorpasso/",
+    "imdb_id": "tt0056512",
+    "kinopoisk_id": 57117,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 236,
+    "letterboxd_name": "The Face of Another",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-face-of-another/",
+    "imdb_id": "tt0061065",
+    "kinopoisk_id": 56064,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 237,
+    "letterboxd_name": "Umberto D.",
+    "year": 1952,
+    "letterboxd_uri": "https://letterboxd.com/film/umberto-d/",
+    "imdb_id": "tt0045274",
+    "kinopoisk_id": 79502,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 238,
+    "letterboxd_name": "WALL·E",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/walle/",
+    "imdb_id": "tt0910970",
+    "kinopoisk_id": 279102,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 239,
+    "letterboxd_name": "Better Days",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/better-days-2019/",
+    "imdb_id": "tt9586294",
+    "kinopoisk_id": 1175592,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 240,
+    "letterboxd_name": "Quo Vadis, Aida?",
+    "year": 2020,
+    "letterboxd_uri": "https://letterboxd.com/film/quo-vadis-aida/",
+    "imdb_id": "tt8633462",
+    "kinopoisk_id": 1395427,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 241,
+    "letterboxd_name": "Everything Everywhere All at Once",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/everything-everywhere-all-at-once/",
+    "imdb_id": "tt6710474",
+    "kinopoisk_id": 1322324,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 242,
+    "letterboxd_name": "Metropolis",
+    "year": 1927,
+    "letterboxd_uri": "https://letterboxd.com/film/metropolis/",
+    "imdb_id": "tt0017136",
+    "kinopoisk_id": 417,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 243,
+    "letterboxd_name": "Eternal Sunshine of the Spotless Mind",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/eternal-sunshine-of-the-spotless-mind/",
+    "imdb_id": "tt0338013",
+    "kinopoisk_id": 5492,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 244,
+    "letterboxd_name": "Dreams",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/dreams/",
+    "imdb_id": "tt0100998",
+    "kinopoisk_id": 7104,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 245,
+    "letterboxd_name": "The Secret in Their Eyes",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/the-secret-in-their-eyes/",
+    "imdb_id": "tt1305806",
+    "kinopoisk_id": 428003,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 246,
+    "letterboxd_name": "The Third Man",
+    "year": 1949,
+    "letterboxd_uri": "https://letterboxd.com/film/the-third-man/",
+    "imdb_id": "tt0041959",
+    "kinopoisk_id": 359,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 247,
+    "letterboxd_name": "Hope",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/hope-2013/",
+    "imdb_id": "tt3153634",
+    "kinopoisk_id": 794605,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 248,
+    "letterboxd_name": "The King of Comedy",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/the-king-of-comedy/",
+    "imdb_id": "tt0085794",
+    "kinopoisk_id": 6412,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 249,
+    "letterboxd_name": "Sweet Smell of Success",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/sweet-smell-of-success/",
+    "imdb_id": "tt0051036",
+    "kinopoisk_id": 8282,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 250,
+    "letterboxd_name": "The Grand Budapest Hotel",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/the-grand-budapest-hotel/",
+    "imdb_id": "tt2278388",
+    "kinopoisk_id": 683999,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 251,
+    "letterboxd_name": "Inception",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/inception/",
+    "imdb_id": "tt1375666",
+    "kinopoisk_id": 447301,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 252,
+    "letterboxd_name": "Millennium Actress",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/millennium-actress/",
+    "imdb_id": "tt0291350",
+    "kinopoisk_id": 41900,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 253,
+    "letterboxd_name": "Nirvanna the Band the Show the Movie",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/nirvanna-the-band-the-show-the-movie/",
+    "imdb_id": "tt35522483",
+    "kinopoisk_id": 11280739,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 254,
+    "letterboxd_name": "Amour",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/amour/",
+    "imdb_id": "tt1602620",
+    "kinopoisk_id": 506239,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 255,
+    "letterboxd_name": "Kes",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/kes/",
+    "imdb_id": "tt0064541",
+    "kinopoisk_id": 58778,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 256,
+    "letterboxd_name": "2001: A Space Odyssey",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/2001-a-space-odyssey/",
+    "imdb_id": "tt0062622",
+    "kinopoisk_id": 380,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 257,
+    "letterboxd_name": "Your Name.",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/your-name/",
+    "imdb_id": "tt5311514",
+    "kinopoisk_id": 958722,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 258,
+    "letterboxd_name": "Magnolia",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/magnolia/",
+    "imdb_id": "tt0175880",
+    "kinopoisk_id": 477,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 259,
+    "letterboxd_name": "Macario",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/macario/",
+    "imdb_id": "tt0054042",
+    "kinopoisk_id": 174963,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 260,
+    "letterboxd_name": "The Life and Death of Colonel Blimp",
+    "year": 1943,
+    "letterboxd_uri": "https://letterboxd.com/film/the-life-and-death-of-colonel-blimp/",
+    "imdb_id": "tt0036112",
+    "kinopoisk_id": 8390,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 261,
+    "letterboxd_name": "A Taxi Driver",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/a-taxi-driver/",
+    "imdb_id": "tt6878038",
+    "kinopoisk_id": 1008113,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 262,
+    "letterboxd_name": "Pulp Fiction",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/pulp-fiction/",
+    "imdb_id": "tt0110912",
+    "kinopoisk_id": 342,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 263,
+    "letterboxd_name": "Son of the White Mare",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/son-of-the-white-mare/",
+    "imdb_id": "tt0083931",
+    "kinopoisk_id": 69502,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 264,
+    "letterboxd_name": "Capernaum",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/capernaum/",
+    "imdb_id": "tt8267604",
+    "kinopoisk_id": 1118042,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 265,
+    "letterboxd_name": "Fireworks",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/fireworks-1997/",
+    "imdb_id": "tt0119250",
+    "kinopoisk_id": 50737,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 266,
+    "letterboxd_name": "Winter Light",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/winter-light/",
+    "imdb_id": "tt0057358",
+    "kinopoisk_id": 15183,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 267,
+    "letterboxd_name": "A Silent Voice: The Movie",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/a-silent-voice-the-movie/",
+    "imdb_id": "tt5323662",
+    "kinopoisk_id": 963343,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 268,
+    "letterboxd_name": "Poetry",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/poetry/",
+    "imdb_id": "tt1287878",
+    "kinopoisk_id": 465370,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 269,
+    "letterboxd_name": "Joint Security Area",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/joint-security-area/",
+    "imdb_id": "tt0260991",
+    "kinopoisk_id": 47386,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 270,
+    "letterboxd_name": "Trainspotting",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/trainspotting/",
+    "imdb_id": "tt0117951",
+    "kinopoisk_id": 515,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 271,
+    "letterboxd_name": "The Devils",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils/",
+    "imdb_id": "tt0066993",
+    "kinopoisk_id": 17527,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 272,
+    "letterboxd_name": "The Lion King",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lion-king/",
+    "imdb_id": "tt0110357",
+    "kinopoisk_id": 2360,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 273,
+    "letterboxd_name": "Persepolis",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/persepolis/",
+    "imdb_id": "tt0808417",
+    "kinopoisk_id": 257900,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 274,
+    "letterboxd_name": "Children of Heaven",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/children-of-heaven/",
+    "imdb_id": "tt0118849",
+    "kinopoisk_id": 76749,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 275,
+    "letterboxd_name": "Ratatouille",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/ratatouille/",
+    "imdb_id": "tt0382932",
+    "kinopoisk_id": 89514,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 276,
+    "letterboxd_name": "Mysterious Skin",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/mysterious-skin/",
+    "imdb_id": "tt0370986",
+    "kinopoisk_id": 61271,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 277,
+    "letterboxd_name": "Kwaidan",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/kwaidan/",
+    "imdb_id": "tt0058279",
+    "kinopoisk_id": 63539,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 278,
+    "letterboxd_name": "Thelma & Louise",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/thelma-louise/",
+    "imdb_id": "tt0103074",
+    "kinopoisk_id": 2614,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 279,
+    "letterboxd_name": "The Deer Hunter",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/the-deer-hunter/",
+    "imdb_id": "tt0077416",
+    "kinopoisk_id": 428,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 280,
+    "letterboxd_name": "To Live",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/to-live/",
+    "imdb_id": "tt0110081",
+    "kinopoisk_id": 197842,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 281,
+    "letterboxd_name": "Kill Bill: Vol. 1",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/kill-bill-vol-1/",
+    "imdb_id": "tt0266697",
+    "kinopoisk_id": 2717,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 282,
+    "letterboxd_name": "The Truman Show",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/the-truman-show/",
+    "imdb_id": "tt0120382",
+    "kinopoisk_id": 4541,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 283,
+    "letterboxd_name": "Casino",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/casino/",
+    "imdb_id": "tt0112641",
+    "kinopoisk_id": 2494,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 284,
+    "letterboxd_name": "Kagemusha",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/kagemusha/",
+    "imdb_id": "tt0080979",
+    "kinopoisk_id": 7330,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 285,
+    "letterboxd_name": "Solaris",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/solaris/",
+    "imdb_id": "tt0069293",
+    "kinopoisk_id": 43911,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 286,
+    "letterboxd_name": "Little Miss Sunshine",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/little-miss-sunshine/",
+    "imdb_id": "tt0449059",
+    "kinopoisk_id": 164089,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 287,
+    "letterboxd_name": "Dancer in the Dark",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/dancer-in-the-dark/",
+    "imdb_id": "tt0168629",
+    "kinopoisk_id": 646,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 288,
+    "letterboxd_name": "Le Samouraï",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/le-samourai/",
+    "imdb_id": "tt0062229",
+    "kinopoisk_id": 80253,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 289,
+    "letterboxd_name": "Once Upon a Time in America",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/once-upon-a-time-in-america/",
+    "imdb_id": "tt0087843",
+    "kinopoisk_id": 12380946,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 290,
+    "letterboxd_name": "Meiyazhagan",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/meiyazhagan/",
+    "imdb_id": "tt26758372",
+    "kinopoisk_id": 11790868,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 291,
+    "letterboxd_name": "Turtles Can Fly",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/turtles-can-fly/",
+    "imdb_id": "tt0424227",
+    "kinopoisk_id": 85960,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 292,
+    "letterboxd_name": "Vertigo",
+    "year": 1958,
+    "letterboxd_uri": "https://letterboxd.com/film/vertigo/",
+    "imdb_id": "tt0052357",
+    "kinopoisk_id": 352,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 293,
+    "letterboxd_name": "Back to the Future",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/back-to-the-future/",
+    "imdb_id": "tt0088763",
+    "kinopoisk_id": 476,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 294,
+    "letterboxd_name": "Sound of Metal",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/sound-of-metal/",
+    "imdb_id": "tt5363618",
+    "kinopoisk_id": 957883,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 295,
+    "letterboxd_name": "The Shining",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/the-shining/",
+    "imdb_id": "tt0081505",
+    "kinopoisk_id": 409,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 296,
+    "letterboxd_name": "The Lovers on the Bridge",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lovers-on-the-bridge/",
+    "imdb_id": "tt0101318",
+    "kinopoisk_id": 18349,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 297,
+    "letterboxd_name": "Aftersun",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/aftersun/",
+    "imdb_id": "tt19770238",
+    "kinopoisk_id": 4948281,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 298,
+    "letterboxd_name": "The Wild Robot",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wild-robot/",
+    "imdb_id": "tt29623480",
+    "kinopoisk_id": 5457899,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 299,
+    "letterboxd_name": "They Shoot Horses, Don't They?",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/they-shoot-horses-dont-they/",
+    "imdb_id": "tt0065088",
+    "kinopoisk_id": 15559,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 300,
+    "letterboxd_name": "Embrace of the Serpent",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/embrace-of-the-serpent/",
+    "imdb_id": "tt4285496",
+    "kinopoisk_id": 875336,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 301,
+    "letterboxd_name": "An Autumn Afternoon",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/an-autumn-afternoon/",
+    "imdb_id": "tt0056444",
+    "kinopoisk_id": 175118,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 302,
+    "letterboxd_name": "The Young and the Damned",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/the-young-and-the-damned/",
+    "imdb_id": "tt0042804",
+    "kinopoisk_id": 120916,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 303,
+    "letterboxd_name": "Happy Together",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/happy-together-1997/",
+    "imdb_id": "tt0118845",
+    "kinopoisk_id": 22810,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 304,
+    "letterboxd_name": "Unforgiven",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/unforgiven/",
+    "imdb_id": "tt0105695",
+    "kinopoisk_id": 451,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 305,
+    "letterboxd_name": "HAIKYU!! The Dumpster Battle",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/haikyu-the-dumpster-battle/",
+    "imdb_id": "tt30476486",
+    "kinopoisk_id": 5453250,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 306,
+    "letterboxd_name": "Kumbalangi Nights",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/kumbalangi-nights/",
+    "imdb_id": "tt8413338",
+    "kinopoisk_id": 1142646,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 307,
+    "letterboxd_name": "The White Ribbon",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/the-white-ribbon/",
+    "imdb_id": "tt1149362",
+    "kinopoisk_id": 400873,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 308,
+    "letterboxd_name": "The Sting",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sting/",
+    "imdb_id": "tt0070735",
+    "kinopoisk_id": 383,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 309,
+    "letterboxd_name": "Azur & Asmar: The Princes' Quest",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/azur-asmar-the-princes-quest/",
+    "imdb_id": "tt0439123",
+    "kinopoisk_id": 105114,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 310,
+    "letterboxd_name": "Drive My Car",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/drive-my-car/",
+    "imdb_id": "tt14039582",
+    "kinopoisk_id": 5699215,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 311,
+    "letterboxd_name": "Raging Bull",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/raging-bull/",
+    "imdb_id": "tt0081398",
+    "kinopoisk_id": 374,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 312,
+    "letterboxd_name": "Linda Linda Linda",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/linda-linda-linda/",
+    "imdb_id": "tt0468795",
+    "kinopoisk_id": 119311,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 313,
+    "letterboxd_name": "In the Name of the Father",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/in-the-name-of-the-father-1993/",
+    "imdb_id": "tt0107207",
+    "kinopoisk_id": 4885,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 314,
+    "letterboxd_name": "RRR",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/rrr/",
+    "imdb_id": "tt8178634",
+    "kinopoisk_id": 1115117,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 315,
+    "letterboxd_name": "Boogie Nights",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/boogie-nights/",
+    "imdb_id": "tt0118749",
+    "kinopoisk_id": 2990,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 316,
+    "letterboxd_name": "Rosemary's Baby",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/rosemarys-baby/",
+    "imdb_id": "tt0063522",
+    "kinopoisk_id": 8425,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 317,
+    "letterboxd_name": "Time of the Gypsies",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/time-of-the-gypsies/",
+    "imdb_id": "tt0097223",
+    "kinopoisk_id": 63782,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 318,
+    "letterboxd_name": "Y Tu Mamá También",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/y-tu-mama-tambien/",
+    "imdb_id": "tt0245574",
+    "kinopoisk_id": 572,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 319,
+    "letterboxd_name": "The Last Picture Show",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-last-picture-show/",
+    "imdb_id": "tt0067328",
+    "kinopoisk_id": 1864,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 320,
+    "letterboxd_name": "Le Cercle Rouge",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/le-cercle-rouge/",
+    "imdb_id": "tt0065531",
+    "kinopoisk_id": 79507,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 321,
+    "letterboxd_name": "Night Is Short, Walk On Girl",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/night-is-short-walk-on-girl/",
+    "imdb_id": "tt6335734",
+    "kinopoisk_id": 1008458,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 322,
+    "letterboxd_name": "Comrades, Almost a Love Story",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/comrades-almost-a-love-story/",
+    "imdb_id": "tt0117905",
+    "kinopoisk_id": 22739,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 323,
+    "letterboxd_name": "Shame",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/shame/",
+    "imdb_id": "tt0063611",
+    "kinopoisk_id": 15176,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 324,
+    "letterboxd_name": "Roman Holiday",
+    "year": 1953,
+    "letterboxd_uri": "https://letterboxd.com/film/roman-holiday/",
+    "imdb_id": "tt0046250",
+    "kinopoisk_id": 497,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 325,
+    "letterboxd_name": "Au Revoir les Enfants",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/au-revoir-les-enfants/",
+    "imdb_id": "tt0092593",
+    "kinopoisk_id": 8402,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 326,
+    "letterboxd_name": "The Man Who Sleeps",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-man-who-sleeps/",
+    "imdb_id": "tt0192718",
+    "kinopoisk_id": 1200133,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 327,
+    "letterboxd_name": "Amélie",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/amelie/",
+    "imdb_id": "tt0211915",
+    "kinopoisk_id": 341,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 328,
+    "letterboxd_name": "Gladiator",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/gladiator-2000/",
+    "imdb_id": "tt0172495",
+    "kinopoisk_id": 474,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 329,
+    "letterboxd_name": "North by Northwest",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/north-by-northwest/",
+    "imdb_id": "tt0053125",
+    "kinopoisk_id": 343,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 330,
+    "letterboxd_name": "A Face in the Crowd",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/a-face-in-the-crowd/",
+    "imdb_id": "tt0050371",
+    "kinopoisk_id": 15048,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 331,
+    "letterboxd_name": "The Straight Story",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/the-straight-story/",
+    "imdb_id": "tt0166896",
+    "kinopoisk_id": 442,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 332,
+    "letterboxd_name": "Hamnet",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/hamnet/",
+    "imdb_id": "tt14905854",
+    "kinopoisk_id": 5454868,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 333,
+    "letterboxd_name": "Good Morning",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/good-morning/",
+    "imdb_id": "tt0053134",
+    "kinopoisk_id": 174607,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 334,
+    "letterboxd_name": "The Taste of Tea",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/the-taste-of-tea/",
+    "imdb_id": "tt0413893",
+    "kinopoisk_id": 84839,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 335,
+    "letterboxd_name": "Hard Boiled",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/hard-boiled/",
+    "imdb_id": "tt0104684",
+    "kinopoisk_id": 5343,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 336,
+    "letterboxd_name": "Gangs of Wasseypur – Part 2",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/gangs-of-wasseypur-part-2/",
+    "imdb_id": null,
+    "kinopoisk_id": 595987,
+    "match_method": "manual_keyword_hints",
+    "match_note": "KP lists single Gangs of Wasseypur entry; Part 2 may share/near this id"
+  },
+  {
+    "rank": 337,
+    "letterboxd_name": "Shutter Island",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/shutter-island/",
+    "imdb_id": "tt1130884",
+    "kinopoisk_id": 397667,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 338,
+    "letterboxd_name": "The Children's Hour",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/the-childrens-hour/",
+    "imdb_id": "tt0054743",
+    "kinopoisk_id": 2577,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 339,
+    "letterboxd_name": "The Kid",
+    "year": 1921,
+    "letterboxd_uri": "https://letterboxd.com/film/the-kid/",
+    "imdb_id": "tt0012349",
+    "kinopoisk_id": 2127,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 340,
+    "letterboxd_name": "Full Metal Jacket",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/full-metal-jacket/",
+    "imdb_id": "tt0093058",
+    "kinopoisk_id": 418,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 341,
+    "letterboxd_name": "Moonlight",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/moonlight-2016/",
+    "imdb_id": "tt4975722",
+    "kinopoisk_id": 939981,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 342,
+    "letterboxd_name": "Grand Illusion",
+    "year": 1937,
+    "letterboxd_uri": "https://letterboxd.com/film/grand-illusion/",
+    "imdb_id": "tt0028950",
+    "kinopoisk_id": 473,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 343,
+    "letterboxd_name": "What Ever Happened to Baby Jane?",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/what-ever-happened-to-baby-jane/",
+    "imdb_id": "tt0056687",
+    "kinopoisk_id": 8432,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 344,
+    "letterboxd_name": "Stand by Me",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/stand-by-me/",
+    "imdb_id": "tt0092005",
+    "kinopoisk_id": 498,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 345,
+    "letterboxd_name": "Nausicaä of the Valley of the Wind",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/nausicaa-of-the-valley-of-the-wind/",
+    "imdb_id": "tt0087544",
+    "kinopoisk_id": 8240,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 346,
+    "letterboxd_name": "Like Father, Like Son",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/like-father-like-son-2013/",
+    "imdb_id": "tt2331143",
+    "kinopoisk_id": 797756,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 347,
+    "letterboxd_name": "PlayTime",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/playtime/",
+    "imdb_id": "tt0062136",
+    "kinopoisk_id": 63911,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 348,
+    "letterboxd_name": "Joyland",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/joyland-2022/",
+    "imdb_id": "tt19719976",
+    "kinopoisk_id": 4918260,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 349,
+    "letterboxd_name": "My Neighbor Totoro",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/my-neighbor-totoro/",
+    "imdb_id": "tt0096283",
+    "kinopoisk_id": 8221,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 350,
+    "letterboxd_name": "Rashomon",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/rashomon/",
+    "imdb_id": "tt0042876",
+    "kinopoisk_id": 388,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 351,
+    "letterboxd_name": "Investigation of a Citizen Above Suspicion",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/investigation-of-a-citizen-above-suspicion/",
+    "imdb_id": "tt0065889",
+    "kinopoisk_id": 182754,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 352,
+    "letterboxd_name": "Coraline",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/coraline/",
+    "imdb_id": "tt0327597",
+    "kinopoisk_id": 49166,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 353,
+    "letterboxd_name": "All About My Mother",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/all-about-my-mother/",
+    "imdb_id": "tt0185125",
+    "kinopoisk_id": 517,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 354,
+    "letterboxd_name": "Klaus",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/klaus/",
+    "imdb_id": "tt4729430",
+    "kinopoisk_id": 957887,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 355,
+    "letterboxd_name": "Diabolique",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/diabolique-1955/",
+    "imdb_id": "tt0046911",
+    "kinopoisk_id": 8342,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 356,
+    "letterboxd_name": "Cria!",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/cria/",
+    "imdb_id": "tt0074360",
+    "kinopoisk_id": 59011,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 357,
+    "letterboxd_name": "Little Women",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/little-women-2019/",
+    "imdb_id": "tt3281548",
+    "kinopoisk_id": 807339,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 358,
+    "letterboxd_name": "Ivan's Childhood",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/ivans-childhood/",
+    "imdb_id": "tt0056111",
+    "kinopoisk_id": 42667,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 359,
+    "letterboxd_name": "The Conformist",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/the-conformist/",
+    "imdb_id": "tt0065571",
+    "kinopoisk_id": 58763,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 360,
+    "letterboxd_name": "The Turin Horse",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/the-turin-horse/",
+    "imdb_id": "tt1316540",
+    "kinopoisk_id": 434189,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 361,
+    "letterboxd_name": "All the President's Men",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/all-the-presidents-men/",
+    "imdb_id": "tt0074119",
+    "kinopoisk_id": 493,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 362,
+    "letterboxd_name": "Whisper of the Heart",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/whisper-of-the-heart/",
+    "imdb_id": "tt0113824",
+    "kinopoisk_id": 32714,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 363,
+    "letterboxd_name": "Citizen Kane",
+    "year": 1941,
+    "letterboxd_uri": "https://letterboxd.com/film/citizen-kane/",
+    "imdb_id": "tt0033467",
+    "kinopoisk_id": 331,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 364,
+    "letterboxd_name": "My Life as a Zucchini",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/my-life-as-a-zucchini/",
+    "imdb_id": "tt2321405",
+    "kinopoisk_id": 716041,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 365,
+    "letterboxd_name": "Threads",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/threads/",
+    "imdb_id": "tt0090163",
+    "kinopoisk_id": 335205,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 366,
+    "letterboxd_name": "Pixote",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/pixote/",
+    "imdb_id": "tt0082912",
+    "kinopoisk_id": 54228,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 367,
+    "letterboxd_name": "Mind Game",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/mind-game/",
+    "imdb_id": "tt0452039",
+    "kinopoisk_id": 119318,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 368,
+    "letterboxd_name": "It Happened One Night",
+    "year": 1934,
+    "letterboxd_uri": "https://letterboxd.com/film/it-happened-one-night/",
+    "imdb_id": "tt0025316",
+    "kinopoisk_id": 437,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 369,
+    "letterboxd_name": "Vampire Hunter D: Bloodlust",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/vampire-hunter-d-bloodlust/",
+    "imdb_id": "tt0216651",
+    "kinopoisk_id": 8236,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 370,
+    "letterboxd_name": "Tokyo Sonata",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/tokyo-sonata/",
+    "imdb_id": "tt0938341",
+    "kinopoisk_id": 281280,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 371,
+    "letterboxd_name": "A Prophet",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/a-prophet/",
+    "imdb_id": "tt1235166",
+    "kinopoisk_id": 982056,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 372,
+    "letterboxd_name": "The Long Goodbye",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-long-goodbye/",
+    "imdb_id": "tt0070334",
+    "kinopoisk_id": 6307,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 373,
+    "letterboxd_name": "Amores Perros",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/amores-perros/",
+    "imdb_id": "tt0245712",
+    "kinopoisk_id": 488,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 374,
+    "letterboxd_name": "Forrest Gump",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/forrest-gump/",
+    "imdb_id": "tt0109830",
+    "kinopoisk_id": 448,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 375,
+    "letterboxd_name": "Memento",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/memento/",
+    "imdb_id": "tt0209144",
+    "kinopoisk_id": 335,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 376,
+    "letterboxd_name": "Ernest & Celestine",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/ernest-celestine/",
+    "imdb_id": "tt1816518",
+    "kinopoisk_id": 592260,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 377,
+    "letterboxd_name": "Winter Sleep",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/winter-sleep/",
+    "imdb_id": "tt2758880",
+    "kinopoisk_id": 744903,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 378,
+    "letterboxd_name": "All Quiet on the Western Front",
+    "year": 1930,
+    "letterboxd_uri": "https://letterboxd.com/film/all-quiet-on-the-western-front/",
+    "imdb_id": "tt0020629",
+    "kinopoisk_id": 460,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 379,
+    "letterboxd_name": "The General",
+    "year": 1926,
+    "letterboxd_uri": "https://letterboxd.com/film/the-general/",
+    "imdb_id": "tt0017925",
+    "kinopoisk_id": 415,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 380,
+    "letterboxd_name": "The Shop Around the Corner",
+    "year": 1940,
+    "letterboxd_uri": "https://letterboxd.com/film/the-shop-around-the-corner/",
+    "imdb_id": "tt0033045",
+    "kinopoisk_id": 9003,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 381,
+    "letterboxd_name": "The Matrix",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/the-matrix/",
+    "imdb_id": "tt0133093",
+    "kinopoisk_id": 301,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 382,
+    "letterboxd_name": "In a Lonely Place",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/in-a-lonely-place/",
+    "imdb_id": "tt0042593",
+    "kinopoisk_id": 8296,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 383,
+    "letterboxd_name": "Cléo from 5 to 7",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/cleo-from-5-to-7/",
+    "imdb_id": "tt0055852",
+    "kinopoisk_id": 38309,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 384,
+    "letterboxd_name": "Blue Giant",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/blue-giant/",
+    "imdb_id": "tt15737898",
+    "kinopoisk_id": 5018659,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 385,
+    "letterboxd_name": "Memoir of a Snail",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/memoir-of-a-snail/",
+    "imdb_id": "tt23770030",
+    "kinopoisk_id": 5925061,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 386,
+    "letterboxd_name": "Day for Night",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/day-for-night/",
+    "imdb_id": "tt0070460",
+    "kinopoisk_id": 7744,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 387,
+    "letterboxd_name": "Cries and Whispers",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/cries-and-whispers/",
+    "imdb_id": "tt0069467",
+    "kinopoisk_id": 66517,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 388,
+    "letterboxd_name": "The Grapes of Wrath",
+    "year": 1940,
+    "letterboxd_uri": "https://letterboxd.com/film/the-grapes-of-wrath/",
+    "imdb_id": "tt0032551",
+    "kinopoisk_id": 446,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 389,
+    "letterboxd_name": "Cabaret",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/cabaret/",
+    "imdb_id": "tt0068327",
+    "kinopoisk_id": 7745,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 390,
+    "letterboxd_name": "Lilya 4-ever",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/lilya-4-ever/",
+    "imdb_id": "tt0300140",
+    "kinopoisk_id": 739,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 391,
+    "letterboxd_name": "Céline and Julie Go Boating",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/celine-and-julie-go-boating/",
+    "imdb_id": "tt0071381",
+    "kinopoisk_id": 23885,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 392,
+    "letterboxd_name": "The Cook, the Thief, His Wife & Her Lover",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cook-the-thief-his-wife-her-lover/",
+    "imdb_id": "tt0097108",
+    "kinopoisk_id": 6715,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 393,
+    "letterboxd_name": "12 Years a Slave",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/12-years-a-slave/",
+    "imdb_id": "tt2024544",
+    "kinopoisk_id": 606646,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 394,
+    "letterboxd_name": "Silenced",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/silenced/",
+    "imdb_id": "tt2070649",
+    "kinopoisk_id": 629470,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 395,
+    "letterboxd_name": "Sunrise: A Song of Two Humans",
+    "year": 1927,
+    "letterboxd_uri": "https://letterboxd.com/film/sunrise-a-song-of-two-humans/",
+    "imdb_id": "tt0018455",
+    "kinopoisk_id": 8441,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 396,
+    "letterboxd_name": "Dogville",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/dogville/",
+    "imdb_id": "tt0276919",
+    "kinopoisk_id": 7226,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 397,
+    "letterboxd_name": "Touch of Evil",
+    "year": 1958,
+    "letterboxd_uri": "https://letterboxd.com/film/touch-of-evil/",
+    "imdb_id": "tt0052311",
+    "kinopoisk_id": 384,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 398,
+    "letterboxd_name": "Mother",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/mother-2009/",
+    "imdb_id": "tt1216496",
+    "kinopoisk_id": 521604,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 399,
+    "letterboxd_name": "All About Lily Chou-Chou",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/all-about-lily-chou-chou/",
+    "imdb_id": "tt0297721",
+    "kinopoisk_id": 221531,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 400,
+    "letterboxd_name": "Ali: Fear Eats the Soul",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/ali-fear-eats-the-soul/",
+    "imdb_id": "tt0071141",
+    "kinopoisk_id": 57936,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 401,
+    "letterboxd_name": "3 Idiots",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/3-idiots/",
+    "imdb_id": "tt1187043",
+    "kinopoisk_id": 423210,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 402,
+    "letterboxd_name": "Short Term 12",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/short-term-12-2013/",
+    "imdb_id": "tt2370248",
+    "kinopoisk_id": 707485,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 403,
+    "letterboxd_name": "The Killer",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/the-killer/",
+    "imdb_id": "tt0097202",
+    "kinopoisk_id": 532,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 404,
+    "letterboxd_name": "Mulan",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/mulan/",
+    "imdb_id": "tt0120762",
+    "kinopoisk_id": 5277,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 405,
+    "letterboxd_name": "Spring, Summer, Fall, Winter... and Spring",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/spring-summer-fall-winter-and-spring/",
+    "imdb_id": "tt0374546",
+    "kinopoisk_id": 47814,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 406,
+    "letterboxd_name": "Who Killed Captain Alex?",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/who-killed-captain-alex/",
+    "imdb_id": "tt1813757",
+    "kinopoisk_id": 579844,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 407,
+    "letterboxd_name": "Butch Cassidy and the Sundance Kid",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/butch-cassidy-and-the-sundance-kid/",
+    "imdb_id": "tt0064115",
+    "kinopoisk_id": 421,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 408,
+    "letterboxd_name": "The Green Ray",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-green-ray/",
+    "imdb_id": "tt0091830",
+    "kinopoisk_id": 48683,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 409,
+    "letterboxd_name": "Mad Max: Fury Road",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/mad-max-fury-road/",
+    "imdb_id": "tt1392190",
+    "kinopoisk_id": 453406,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 410,
+    "letterboxd_name": "Love Streams",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/love-streams/",
+    "imdb_id": "tt0087644",
+    "kinopoisk_id": 7758,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 411,
+    "letterboxd_name": "American History X",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/american-history-x/",
+    "imdb_id": "tt0120586",
+    "kinopoisk_id": 382,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 412,
+    "letterboxd_name": "Black Swan",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/black-swan/",
+    "imdb_id": "tt0947798",
+    "kinopoisk_id": 278273,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 413,
+    "letterboxd_name": "The Great Escape",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-great-escape/",
+    "imdb_id": "tt0057115",
+    "kinopoisk_id": 392,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 414,
+    "letterboxd_name": "Phantom Thread",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/phantom-thread/",
+    "imdb_id": "tt5776858",
+    "kinopoisk_id": 991628,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 415,
+    "letterboxd_name": "Rome, Open City",
+    "year": 1945,
+    "letterboxd_uri": "https://letterboxd.com/film/rome-open-city/",
+    "imdb_id": "tt0038890",
+    "kinopoisk_id": 7731,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 416,
+    "letterboxd_name": "On the Waterfront",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/on-the-waterfront/",
+    "imdb_id": "tt0047296",
+    "kinopoisk_id": 398,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 417,
+    "letterboxd_name": "Through the Olive Trees",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/through-the-olive-trees/",
+    "imdb_id": "tt0111845",
+    "kinopoisk_id": 239454,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 418,
+    "letterboxd_name": "Carandiru",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/carandiru/",
+    "imdb_id": "tt0293007",
+    "kinopoisk_id": 32036,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 419,
+    "letterboxd_name": "Rio Bravo",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/rio-bravo/",
+    "imdb_id": "tt0053221",
+    "kinopoisk_id": 545,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 420,
+    "letterboxd_name": "Cool Hand Luke",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/cool-hand-luke/",
+    "imdb_id": "tt0061512",
+    "kinopoisk_id": 443,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 421,
+    "letterboxd_name": "Güeros",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/gueros/",
+    "imdb_id": "tt3499048",
+    "kinopoisk_id": 823435,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 422,
+    "letterboxd_name": "Brokeback Mountain",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/brokeback-mountain/",
+    "imdb_id": "tt0388795",
+    "kinopoisk_id": 77647,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 423,
+    "letterboxd_name": "Fallen Angels",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/fallen-angels/",
+    "imdb_id": "tt0112913",
+    "kinopoisk_id": 22844,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 424,
+    "letterboxd_name": "Star Wars",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/star-wars/",
+    "imdb_id": "tt0076759",
+    "kinopoisk_id": 333,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 425,
+    "letterboxd_name": "Mustang",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/mustang-2015/",
+    "imdb_id": "tt3966404",
+    "kinopoisk_id": 861468,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 426,
+    "letterboxd_name": "Big World",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/big-world-2024/",
+    "imdb_id": "tt30476518",
+    "kinopoisk_id": 6793606,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 427,
+    "letterboxd_name": "After Life",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/after-life/",
+    "imdb_id": "tt0165078",
+    "kinopoisk_id": 55158,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 428,
+    "letterboxd_name": "Past Lives",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/past-lives/",
+    "imdb_id": "tt13238346",
+    "kinopoisk_id": 1346482,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 429,
+    "letterboxd_name": "La Strada",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/la-strada/",
+    "imdb_id": "tt0047528",
+    "kinopoisk_id": 531,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 430,
+    "letterboxd_name": "Oppenheimer",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/oppenheimer-2023/",
+    "imdb_id": "tt15398776",
+    "kinopoisk_id": 4664634,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 431,
+    "letterboxd_name": "Pride",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/pride-2014/",
+    "imdb_id": "tt3169706",
+    "kinopoisk_id": 797558,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 432,
+    "letterboxd_name": "The Fire Within",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fire-within/",
+    "imdb_id": "tt0057058",
+    "kinopoisk_id": 33807,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 433,
+    "letterboxd_name": "Society of the Snow",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/society-of-the-snow/",
+    "imdb_id": "tt16277242",
+    "kinopoisk_id": 4745702,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 434,
+    "letterboxd_name": "Raiders of the Lost Ark",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/raiders-of-the-lost-ark/",
+    "imdb_id": "tt0082971",
+    "kinopoisk_id": 339,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 435,
+    "letterboxd_name": "Nashville",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/nashville/",
+    "imdb_id": "tt0073440",
+    "kinopoisk_id": 912,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 436,
+    "letterboxd_name": "Synecdoche, New York",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/synecdoche-new-york/",
+    "imdb_id": "tt0383028",
+    "kinopoisk_id": 77177,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 437,
+    "letterboxd_name": "Dial M for Murder",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/dial-m-for-murder/",
+    "imdb_id": "tt0046912",
+    "kinopoisk_id": 9028,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 438,
+    "letterboxd_name": "The Intouchables",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/the-intouchables/",
+    "imdb_id": "tt1675434",
+    "kinopoisk_id": 535341,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 439,
+    "letterboxd_name": "How to Train Your Dragon",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/how-to-train-your-dragon/",
+    "imdb_id": "tt0892769",
+    "kinopoisk_id": 280172,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 440,
+    "letterboxd_name": "A Bronx Tale",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/a-bronx-tale/",
+    "imdb_id": "tt0106489",
+    "kinopoisk_id": 7466,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 441,
+    "letterboxd_name": "The Virgin Spring",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/the-virgin-spring/",
+    "imdb_id": "tt0053976",
+    "kinopoisk_id": 15188,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 442,
+    "letterboxd_name": "Scarface",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/scarface-1983/",
+    "imdb_id": "tt0086250",
+    "kinopoisk_id": 4695,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 443,
+    "letterboxd_name": "Pink Floyd: The Wall",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/pink-floyd-the-wall/",
+    "imdb_id": "tt0084503",
+    "kinopoisk_id": 23712,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 444,
+    "letterboxd_name": "Pan's Labyrinth",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/pans-labyrinth/",
+    "imdb_id": "tt0457430",
+    "kinopoisk_id": 103733,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 445,
+    "letterboxd_name": "The Great Silence",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/the-great-silence/",
+    "imdb_id": "tt0063032",
+    "kinopoisk_id": 57194,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 446,
+    "letterboxd_name": "Mr. Smith Goes to Washington",
+    "year": 1939,
+    "letterboxd_uri": "https://letterboxd.com/film/mr-smith-goes-to-washington/",
+    "imdb_id": "tt0031679",
+    "kinopoisk_id": 387,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 447,
+    "letterboxd_name": "Sentimental Value",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/sentimental-value-2025/",
+    "imdb_id": "tt27714581",
+    "kinopoisk_id": 6555640,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 448,
+    "letterboxd_name": "12th Fail",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/12th-fail/",
+    "imdb_id": "tt23849204",
+    "kinopoisk_id": 5356479,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 449,
+    "letterboxd_name": "The Spirit of the Beehive",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-spirit-of-the-beehive/",
+    "imdb_id": "tt0070040",
+    "kinopoisk_id": 151720,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 450,
+    "letterboxd_name": "To Wong Foo, Thanks for Everything! Julie Newmar",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/to-wong-foo-thanks-for-everything-julie-newmar/",
+    "imdb_id": "tt0114682",
+    "kinopoisk_id": 1064,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 451,
+    "letterboxd_name": "The Return",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/the-return/",
+    "imdb_id": "tt0376968",
+    "kinopoisk_id": 47040,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 452,
+    "letterboxd_name": "Monty Python and the Holy Grail",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/monty-python-and-the-holy-grail/",
+    "imdb_id": "tt0071853",
+    "kinopoisk_id": 375,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 453,
+    "letterboxd_name": "Midnight Cowboy",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/midnight-cowboy/",
+    "imdb_id": "tt0064665",
+    "kinopoisk_id": 506,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 454,
+    "letterboxd_name": "I Dream in Another Language",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/i-dream-in-another-language/",
+    "imdb_id": "tt3278224",
+    "kinopoisk_id": 813757,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 455,
+    "letterboxd_name": "Harry Potter and the Prisoner of Azkaban",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/harry-potter-and-the-prisoner-of-azkaban/",
+    "imdb_id": "tt0304141",
+    "kinopoisk_id": 322,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 456,
+    "letterboxd_name": "Punishment Park",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/punishment-park/",
+    "imdb_id": "tt0067633",
+    "kinopoisk_id": 84429,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 457,
+    "letterboxd_name": "Le Bonheur",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/happiness-1965/",
+    "imdb_id": "tt0058985",
+    "kinopoisk_id": 57336,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 458,
+    "letterboxd_name": "The Umbrellas of Cherbourg",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/the-umbrellas-of-cherbourg/",
+    "imdb_id": "tt0058450",
+    "kinopoisk_id": 7718,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 459,
+    "letterboxd_name": "Spider-Man: Brand New Day",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/spider-man-brand-new-day/",
+    "imdb_id": "tt22084616",
+    "kinopoisk_id": 5494049,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 460,
+    "letterboxd_name": "Kiki's Delivery Service",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/kikis-delivery-service/",
+    "imdb_id": "tt0097814",
+    "kinopoisk_id": 107412,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 461,
+    "letterboxd_name": "The Hidden Fortress",
+    "year": 1958,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden-fortress/",
+    "imdb_id": "tt0051808",
+    "kinopoisk_id": 8191,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 462,
+    "letterboxd_name": "Hiroshima Mon Amour",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/hiroshima-mon-amour/",
+    "imdb_id": "tt0052893",
+    "kinopoisk_id": 80754,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 463,
+    "letterboxd_name": "Pride & Prejudice",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/pride-prejudice/",
+    "imdb_id": "tt0414387",
+    "kinopoisk_id": 81733,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 464,
+    "letterboxd_name": "Phantom of the Paradise",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/phantom-of-the-paradise/",
+    "imdb_id": "tt0071994",
+    "kinopoisk_id": 15781,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 465,
+    "letterboxd_name": "The Second Mother",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/the-second-mother/",
+    "imdb_id": "tt3742378",
+    "kinopoisk_id": 863919,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 466,
+    "letterboxd_name": "Princes and Princesses",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/princes-and-princesses/",
+    "imdb_id": "tt0229664",
+    "kinopoisk_id": 49980,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 467,
+    "letterboxd_name": "The Conversation",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-conversation/",
+    "imdb_id": "tt0071360",
+    "kinopoisk_id": 461,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 468,
+    "letterboxd_name": "Seconds",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/seconds/",
+    "imdb_id": "tt0060955",
+    "kinopoisk_id": 8352,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 469,
+    "letterboxd_name": "The Exterminating Angel",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/the-exterminating-angel/",
+    "imdb_id": "tt0056732",
+    "kinopoisk_id": 8348,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 470,
+    "letterboxd_name": "A Dog's Will",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/a-dogs-will/",
+    "imdb_id": "tt0271383",
+    "kinopoisk_id": 40608,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 471,
+    "letterboxd_name": "Love Letter",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/love-letter/",
+    "imdb_id": "tt0113703",
+    "kinopoisk_id": 109565,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 472,
+    "letterboxd_name": "My Night at Maud's",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/my-night-at-mauds/",
+    "imdb_id": "tt0064612",
+    "kinopoisk_id": 23889,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 473,
+    "letterboxd_name": "Redline",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/redline/",
+    "imdb_id": "tt1483797",
+    "kinopoisk_id": 597442,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 474,
+    "letterboxd_name": "Eat Drink Man Woman",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/eat-drink-man-woman/",
+    "imdb_id": "tt0111797",
+    "kinopoisk_id": 13733,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 475,
+    "letterboxd_name": "Rope",
+    "year": 1948,
+    "letterboxd_uri": "https://letterboxd.com/film/rope/",
+    "imdb_id": "tt0040746",
+    "kinopoisk_id": 8996,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 476,
+    "letterboxd_name": "Alice in the Cities",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/alice-in-the-cities/",
+    "imdb_id": "tt0069687",
+    "kinopoisk_id": 31488,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 477,
+    "letterboxd_name": "Through a Glass Darkly",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/through-a-glass-darkly/",
+    "imdb_id": "tt0055499",
+    "kinopoisk_id": 15186,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 478,
+    "letterboxd_name": "Hundreds of Beavers",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/hundreds-of-beavers/",
+    "imdb_id": "tt12818328",
+    "kinopoisk_id": 1426925,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 479,
+    "letterboxd_name": "Arrival",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/arrival-2016/",
+    "imdb_id": "tt2543164",
+    "kinopoisk_id": 718811,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 480,
+    "letterboxd_name": "Sanjuro",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/sanjuro/",
+    "imdb_id": "tt0056443",
+    "kinopoisk_id": 63734,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 481,
+    "letterboxd_name": "The Sword of Doom",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sword-of-doom/",
+    "imdb_id": "tt0060277",
+    "kinopoisk_id": 80770,
+    "match_method": "manual_keyword_hints"
+  },
+  {
+    "rank": 482,
+    "letterboxd_name": "3 Women",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/3-women/",
+    "imdb_id": "tt0075612",
+    "kinopoisk_id": 14401,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 483,
+    "letterboxd_name": "The Gold Rush",
+    "year": 1925,
+    "letterboxd_uri": "https://letterboxd.com/film/the-gold-rush/",
+    "imdb_id": "tt0015864",
+    "kinopoisk_id": 478,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 484,
+    "letterboxd_name": "The Wolf House",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wolf-house/",
+    "imdb_id": "tt8173728",
+    "kinopoisk_id": 1123415,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 485,
+    "letterboxd_name": "Us and Them",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/us-and-them-2018/",
+    "imdb_id": "tt8033592",
+    "kinopoisk_id": 1334818,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 486,
+    "letterboxd_name": "The Leopard",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-leopard/",
+    "imdb_id": "tt0057091",
+    "kinopoisk_id": 7719,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 487,
+    "letterboxd_name": "Fargo",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/fargo/",
+    "imdb_id": "tt0116282",
+    "kinopoisk_id": 1355789,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 488,
+    "letterboxd_name": "Reservoir Dogs",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/reservoir-dogs/",
+    "imdb_id": "tt0105236",
+    "kinopoisk_id": 394,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 489,
+    "letterboxd_name": "My Father's Shadow",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/my-fathers-shadow-2025/",
+    "imdb_id": "tt35695538",
+    "kinopoisk_id": 7605776,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 490,
+    "letterboxd_name": "There's Still Tomorrow",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/theres-still-tomorrow/",
+    "imdb_id": "tt21800162",
+    "kinopoisk_id": 5081085,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 491,
+    "letterboxd_name": "About Elly",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/about-elly/",
+    "imdb_id": "tt1360860",
+    "kinopoisk_id": 447348,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 492,
+    "letterboxd_name": "Wild Tales",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/wild-tales/",
+    "imdb_id": "tt3011894",
+    "kinopoisk_id": 775727,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 493,
+    "letterboxd_name": "Close",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/close-2022/",
+    "imdb_id": "tt9660502",
+    "kinopoisk_id": 4918047,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 494,
+    "letterboxd_name": "Puss in Boots: The Last Wish",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/puss-in-boots-the-last-wish/",
+    "imdb_id": "tt3915174",
+    "kinopoisk_id": 840821,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 495,
+    "letterboxd_name": "Fitzcarraldo",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/fitzcarraldo/",
+    "imdb_id": "tt0083946",
+    "kinopoisk_id": 13499,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 496,
+    "letterboxd_name": "Three Colours: Blue",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/three-colours-blue/",
+    "imdb_id": "tt0108394",
+    "kinopoisk_id": 18348,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 497,
+    "letterboxd_name": "Cowboy Bebop: The Movie",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/cowboy-bebop-the-movie/",
+    "imdb_id": "tt0275277",
+    "kinopoisk_id": 41832,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 498,
+    "letterboxd_name": "Manchester by the Sea",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/manchester-by-the-sea/",
+    "imdb_id": "tt4034228",
+    "kinopoisk_id": 884376,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 499,
+    "letterboxd_name": "Our Little Sister",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/our-little-sister/",
+    "imdb_id": "tt3756788",
+    "kinopoisk_id": 846911,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 500,
+    "letterboxd_name": "Little Fish",
+    "year": 2020,
+    "letterboxd_uri": "https://letterboxd.com/film/little-fish-2020/",
+    "imdb_id": "tt9735470",
+    "kinopoisk_id": 1245545,
+    "match_method": "imdbId"
+  }
+]

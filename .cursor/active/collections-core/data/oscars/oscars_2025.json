@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Anora",
+    "year": 2024,
+    "imdb_id": "tt28607951",
+    "is_winner": true,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 2,
+    "name": "The Brutalist",
+    "year": 2024,
+    "imdb_id": "tt8999762",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 3,
+    "name": "A Complete Unknown",
+    "year": 2024,
+    "imdb_id": "tt11563598",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 4,
+    "name": "Conclave",
+    "year": 2024,
+    "imdb_id": "tt20215234",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 5,
+    "name": "Dune: Part Two",
+    "year": 2024,
+    "imdb_id": "tt15239678",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 6,
+    "name": "Emilia Pérez",
+    "year": 2024,
+    "imdb_id": "tt20221436",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 7,
+    "name": "I'm Still Here",
+    "year": 2024,
+    "imdb_id": "tt14961016",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 8,
+    "name": "Nickel Boys",
+    "year": 2024,
+    "imdb_id": "tt23055660",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 9,
+    "name": "The Substance",
+    "year": 2024,
+    "imdb_id": "tt17523904",
+    "is_winner": false,
+    "ceremony_year": 2025
+  },
+  {
+    "sort_order": 10,
+    "name": "Wicked",
+    "year": 2024,
+    "imdb_id": "tt1262426",
+    "is_winner": false,
+    "ceremony_year": 2025
+  }
+]

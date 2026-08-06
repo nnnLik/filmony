@@ -1,0 +1,500 @@
+1. Harakiri — 103148
+2. The Human Condition III: A Soldier's Prayer — 160350
+3. 12 Angry Men — 346
+4. Come and See — 42571
+5. High and Low — 8412
+6. Seven Samurai — 522003
+7. The Shawshank Redemption — 326
+8. The Godfather Part II — 327
+9. City of God — 553394
+10. The Human Condition I: No Greater Love — 160355
+11. The Lord of the Rings: The Return of the King — 3498
+12. Schindler's List — 329
+13. Yi Yi — 888
+14. Parasite — 1043758
+15. Ikiru — 64131
+16. The Godfather — 325
+17. The Good, the Bad and the Ugly — 349
+18. Cinema Paradiso — 424
+19. Ran — 400
+20. La Haine — 9448
+21. Le Trou — 146600
+22. The Dark Knight — 111543
+23. Autumn Sonata — 4538197
+24. A Brighter Summer Day — 165366
+25. Grave of the Fireflies — 8219
+26. The Human Condition II: Road to Eternity — 99807
+27. Neon Genesis Evangelion: The End of Evangelion — 41956
+28. The Battle of Algiers — 8384
+29. I Am Cuba — 43937
+30. GoodFellas — 350
+31. There Will Be Blood — 196604
+32. The Cranes Are Flying — 7724
+33. Interstellar — 258687
+34. Incendies — 425400
+35. Woman in the Dunes — 81421
+36. Paths of Glory — 360
+37. It's a Wonderful Life — 819248
+38. Sunset Boulevard — 353
+39. Andrei Rublev — 8385
+40. The Lord of the Rings: The Two Towers — 312
+41. Apocalypse Now — 354
+42. Spirited Away — 370
+43. Tokyo Story — 79836
+44. The Ascent — 460637
+45. The Apartment — 404
+46. Portrait of a Lady on Fire — 1169370
+47. Whiplash — 725190
+48. Memories of Murder — 65770
+49. The Passion of Joan of Arc — 568
+50. Mishima: A Life in Four Chapters — 7326
+51. Lawrence of Arabia — 347
+52. Nobody Knows — 249956
+53. Life Is Beautiful — 4635781
+54. Barry Lyndon — 5032
+55. Witness for the Prosecution — 489
+56. The Red Shoes — 8443
+57. The Pianist — 355
+58. Swing Girls — 110042
+59. The Voice of Hind Rajab — 8537798
+60. The Empire Strikes Back — 338
+61. Close-Up — 245805
+62. The Odyssey — 6385370
+63. Sansho the Bailiff — 86297
+64. Spider-Man: Across the Spider-Verse — 1219177
+65. Fanny and Alexander — 8400
+66. Farewell My Concubine — 7699
+67. A Woman Under the Influence — 1633
+68. A Separation — 579739
+69. Do the Right Thing — 4328
+70. The Handmaiden — 851960
+71. Princess Mononoke — 441
+72. Love Exposure — 408342
+73. Spider-Man: Into the Spider-Verse — 920265
+74. Once Upon a Time in the West — 376
+75. The Lord of the Rings: The Fellowship of the Ring — 328
+76. Stalker — 43970
+77. Nights of Cabiria — 63929
+78. Paper Moon — 5033
+79. Good Will Hunting — 539
+80. Se7en — 377
+81. An Elephant Sitting Still — 1112854
+82. Perfect Blue — 91829
+83. Dune: Part Two — 4540126
+84. Red Beard — 64017
+85. In the Mood for Love — 656
+86. Persona — 79506
+87. Z — 23889
+88. One Flew Over the Cuckoo's Nest — 336
+89. Apur Sansar — 84790
+90. How to Make Millions Before Grandma Dies — 6134805
+91. Inglourious Basterds — 9691
+92. Paris, Texas — 4401
+93. Amadeus — 397
+94. Rear Window — 337
+95. All About Eve — 372
+96. Where Is the Friend's House? — 245819
+97. Scenes from a Marriage — 1083065
+98. Oldboy — 75871
+99. The Wages of Fear — 959200
+100. Sherlock Jr. — 11380
+101. Howl's Moving Castle — 49684
+102. Judgment at Nuremberg — 13738
+103. It's Such a Beautiful Day — 707675
+104. Satantango — 56328
+105. Chainsaw Man – The Movie: Reze Arc — 5430477
+106. Dead Poets Society — 4996
+107. Monster — 5395239
+108. The Thing — 8366
+109. Singin' in the Rain — 368
+110. The Departed — 81314
+111. Twin Peaks: Fire Walk with Me — 4392
+112. Army of Shadows — 26765
+113. Central Station — 7749
+114. A Man Escaped — 143103
+115. Django Unchained — 586397
+116. All That Jazz — 7708
+117. Raise the Red Lantern — 8483
+118. Prisoners — 455194
+119. The Silence of the Lambs — 345
+120. Still Walking — 394746
+121. Eternity and a Day — 7696
+122. I'm Still Here — 6040913
+123. A Special Day — 26808
+124. Three Colours: Red — 501
+125. Ordet — 74507
+126. Das Boot — 362
+127. The Young Girls of Rochefort — 13154
+128. To Be or Not to Be — 512
+129. The Great Dictator — 431
+130. Perfect Days — 5283168
+131. The Celebration — 465
+132. Late Spring — 156821
+133. Mommy — 839219
+134. Taste of Cherry — 7697
+135. Heat — 571
+136. Brief Encounter — 7730
+137. Project Hail Mary — 1382256
+138. Wild Strawberries — 508
+139. Puella Magi Madoka Magica the Movie Part III: Rebellion — 713543
+140. Funeral Parade of Roses — 146178
+141. The Seventh Seal — 425
+142. Pather Panchali — 97788
+143. Before Sunset — 50598
+144. City Lights — 414
+145. Shoplifters — 1114967
+146. The Elephant Man — 464
+147. Rocco and His Brothers — 13540
+148. Dog Day Afternoon — 500
+149. Mirror — 1010308
+150. Psycho — 344
+151. No Country for Old Men — 195434
+152. Wings of Desire — 8403
+153. Chinatown — 365
+154. Landscape in the Mist — 7738
+155. Children of Men — 6803
+156. The Prestige — 195334
+157. Yojimbo — 1048670
+158. The Green Mile — 435
+159. Tampopo — 76905
+160. The Father — 1262160
+161. Sing Sing — 5378058
+162. The Treasure of the Sierra Madre — 393
+163. Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb — 334
+164. Fantastic Mr. Fox — 86621
+165. Before Sunrise — 18368
+166. Evangelion: 3.0+1.0 Thrice Upon a Time — 713366
+167. Malcolm X — 1105
+168. Terminator 2: Judgment Day — 444
+169. The 400 Blows — 510
+170. The Cremator — 179307
+171. Underground — 7698
+172. Fail Safe — 8363
+173. Song of the Sea — 714248
+174. Life, and Nothing More… — 245817
+175. Werckmeister Harmonies — 50377
+176. The Lives of Others — 126196
+177. M — 373
+178. Dersu Uzala — 8208
+179. The Hunt — 568550
+180. Secrets & Lies — 6775
+181. The Iron Giant — 538
+182. Look Back — 6046385
+183. Cure — 60832
+184. Akira — 6766817
+185. Some Like It Hot — 356
+186. Bicycle Thieves — 432
+187. Casablanca — 330
+188. Opening Night — 1630
+189. Ritual — 105090
+190. The Sacrifice — 79821
+191. Interstella 5555: The 5tory of the 5ecret 5tar 5ystem — 49869
+192. Children of Paradise — 8442
+193. The Man Who Shot Liberty Valance — 492
+194. Chungking Express — 22819
+195. Ace in the Hole — 8287
+196. Sorcerer — 14906
+197. The Fall — 105813
+198. Fight Club — 361
+199. Who's Afraid of Virginia Woolf? — 490
+200. Mary and Max — 378246
+201. Throne of Blood — 8386
+202. A Matter of Life and Death — 8417
+203. La Notte — 7780
+204. Network — 520
+205. The Holdovers — 4499386
+206. Saving Private Ryan — 371
+207. Rififi — 81009
+208. The Tale of The Princess Kaguya — 723841
+209. Jeanne Dielman, 23, quai du Commerce, 1080 Bruxelles — 127756
+210. Double Indemnity — 364
+211. Tokyo Godfathers — 63767
+212. Mulholland Drive — 466
+213. 8½ — 535
+214. I Swear — 8472578
+215. Nostalgia — 811038
+216. We All Loved Each Other So Much — 57096
+217. Kamikaze Girls — 103220
+218. The Night of the Hunter — 453
+219. Aparajito — 4907701
+220. La Dolce Vita — 7722
+221. The First Slam Dunk — 4641580
+222. The Sound of Music — 7665
+223. Vada Chennai — 996679
+224. Ugetsu — 156647
+225. 4 Months, 3 Weeks and 2 Days — 318550
+226. Alien — 386
+227. The Bridge on the River Kwai — 369
+228. For a Few Dollars More — 8190
+229. A Moment of Innocence — 76710
+230. Modern Times — 408
+231. Anatomy of a Murder — 8343
+232. Wolfwalkers — 958541
+233. Marcel the Shell with Shoes On — 4630822
+234. The Best Years of Our Lives — 429
+235. Il Sorpasso — 57117
+236. The Face of Another — 56064
+237. Umberto D. — 79502
+238. WALL·E — 279102
+239. Better Days — 1175592
+240. Quo Vadis, Aida? — 1395427
+241. Everything Everywhere All at Once — 1322324
+242. Metropolis — 417
+243. Eternal Sunshine of the Spotless Mind — 5492
+244. Dreams — 7104
+245. The Secret in Their Eyes — 428003
+246. The Third Man — 359
+247. Hope — 794605
+248. The King of Comedy — 6412
+249. Sweet Smell of Success — 8282
+250. The Grand Budapest Hotel — 683999
+251. Inception — 447301
+252. Millennium Actress — 41900
+253. Nirvanna the Band the Show the Movie — 11280739
+254. Amour — 506239
+255. Kes — 58778
+256. 2001: A Space Odyssey — 380
+257. Your Name. — 958722
+258. Magnolia — 477
+259. Macario — 174963
+260. The Life and Death of Colonel Blimp — 8390
+261. A Taxi Driver — 1008113
+262. Pulp Fiction — 342
+263. Son of the White Mare — 69502
+264. Capernaum — 1118042
+265. Fireworks — 50737
+266. Winter Light — 15183
+267. A Silent Voice: The Movie — 963343
+268. Poetry — 465370
+269. Joint Security Area — 47386
+270. Trainspotting — 515
+271. The Devils — 17527
+272. The Lion King — 2360
+273. Persepolis — 257900
+274. Children of Heaven — 76749
+275. Ratatouille — 89514
+276. Mysterious Skin — 61271
+277. Kwaidan — 63539
+278. Thelma & Louise — 2614
+279. The Deer Hunter — 428
+280. To Live — 197842
+281. Kill Bill: Vol. 1 — 2717
+282. The Truman Show — 4541
+283. Casino — 2494
+284. Kagemusha — 7330
+285. Solaris — 43911
+286. Little Miss Sunshine — 164089
+287. Dancer in the Dark — 646
+288. Le Samouraï — 80253
+289. Once Upon a Time in America — 12380946
+290. Meiyazhagan — 11790868
+291. Turtles Can Fly — 85960
+292. Vertigo — 352
+293. Back to the Future — 476
+294. Sound of Metal — 957883
+295. The Shining — 409
+296. The Lovers on the Bridge — 18349
+297. Aftersun — 4948281
+298. The Wild Robot — 5457899
+299. They Shoot Horses, Don't They? — 15559
+300. Embrace of the Serpent — 875336
+301. An Autumn Afternoon — 175118
+302. The Young and the Damned — 120916
+303. Happy Together — 22810
+304. Unforgiven — 451
+305. HAIKYU!! The Dumpster Battle — 5453250
+306. Kumbalangi Nights — 1142646
+307. The White Ribbon — 400873
+308. The Sting — 383
+309. Azur & Asmar: The Princes' Quest — 105114
+310. Drive My Car — 5699215
+311. Raging Bull — 374
+312. Linda Linda Linda — 119311
+313. In the Name of the Father — 4885
+314. RRR — 1115117
+315. Boogie Nights — 2990
+316. Rosemary's Baby — 8425
+317. Time of the Gypsies — 63782
+318. Y Tu Mamá También — 572
+319. The Last Picture Show — 1864
+320. Le Cercle Rouge — 79507
+321. Night Is Short, Walk On Girl — 1008458
+322. Comrades, Almost a Love Story — 22739
+323. Shame — 15176
+324. Roman Holiday — 497
+325. Au Revoir les Enfants — 8402
+326. The Man Who Sleeps — 1200133
+327. Amélie — 341
+328. Gladiator — 474
+329. North by Northwest — 343
+330. A Face in the Crowd — 15048
+331. The Straight Story — 442
+332. Hamnet — 5454868
+333. Good Morning — 174607
+334. The Taste of Tea — 84839
+335. Hard Boiled — 5343
+336. Gangs of Wasseypur – Part 2 — 595987
+337. Shutter Island — 397667
+338. The Children's Hour — 2577
+339. The Kid — 2127
+340. Full Metal Jacket — 418
+341. Moonlight — 939981
+342. Grand Illusion — 473
+343. What Ever Happened to Baby Jane? — 8432
+344. Stand by Me — 498
+345. Nausicaä of the Valley of the Wind — 8240
+346. Like Father, Like Son — 797756
+347. PlayTime — 63911
+348. Joyland — 4918260
+349. My Neighbor Totoro — 8221
+350. Rashomon — 388
+351. Investigation of a Citizen Above Suspicion — 182754
+352. Coraline — 49166
+353. All About My Mother — 517
+354. Klaus — 957887
+355. Diabolique — 8342
+356. Cria! — 59011
+357. Little Women — 807339
+358. Ivan's Childhood — 42667
+359. The Conformist — 58763
+360. The Turin Horse — 434189
+361. All the President's Men — 493
+362. Whisper of the Heart — 32714
+363. Citizen Kane — 331
+364. My Life as a Zucchini — 716041
+365. Threads — 335205
+366. Pixote — 54228
+367. Mind Game — 119318
+368. It Happened One Night — 437
+369. Vampire Hunter D: Bloodlust — 8236
+370. Tokyo Sonata — 281280
+371. A Prophet — 982056
+372. The Long Goodbye — 6307
+373. Amores Perros — 488
+374. Forrest Gump — 448
+375. Memento — 335
+376. Ernest & Celestine — 592260
+377. Winter Sleep — 744903
+378. All Quiet on the Western Front — 460
+379. The General — 415
+380. The Shop Around the Corner — 9003
+381. The Matrix — 301
+382. In a Lonely Place — 8296
+383. Cléo from 5 to 7 — 38309
+384. Blue Giant — 5018659
+385. Memoir of a Snail — 5925061
+386. Day for Night — 7744
+387. Cries and Whispers — 66517
+388. The Grapes of Wrath — 446
+389. Cabaret — 7745
+390. Lilya 4-ever — 739
+391. Céline and Julie Go Boating — 23885
+392. The Cook, the Thief, His Wife & Her Lover — 6715
+393. 12 Years a Slave — 606646
+394. Silenced — 629470
+395. Sunrise: A Song of Two Humans — 8441
+396. Dogville — 7226
+397. Touch of Evil — 384
+398. Mother — 521604
+399. All About Lily Chou-Chou — 221531
+400. Ali: Fear Eats the Soul — 57936
+401. 3 Idiots — 423210
+402. Short Term 12 — 707485
+403. The Killer — 532
+404. Mulan — 5277
+405. Spring, Summer, Fall, Winter... and Spring — 47814
+406. Who Killed Captain Alex? — 579844
+407. Butch Cassidy and the Sundance Kid — 421
+408. The Green Ray — 48683
+409. Mad Max: Fury Road — 453406
+410. Love Streams — 7758
+411. American History X — 382
+412. Black Swan — 278273
+413. The Great Escape — 392
+414. Phantom Thread — 991628
+415. Rome, Open City — 7731
+416. On the Waterfront — 398
+417. Through the Olive Trees — 239454
+418. Carandiru — 32036
+419. Rio Bravo — 545
+420. Cool Hand Luke — 443
+421. Güeros — 823435
+422. Brokeback Mountain — 77647
+423. Fallen Angels — 22844
+424. Star Wars — 333
+425. Mustang — 861468
+426. Big World — 6793606
+427. After Life — 55158
+428. Past Lives — 1346482
+429. La Strada — 531
+430. Oppenheimer — 4664634
+431. Pride — 797558
+432. The Fire Within — 33807
+433. Society of the Snow — 4745702
+434. Raiders of the Lost Ark — 339
+435. Nashville — 912
+436. Synecdoche, New York — 77177
+437. Dial M for Murder — 9028
+438. The Intouchables — 535341
+439. How to Train Your Dragon — 280172
+440. A Bronx Tale — 7466
+441. The Virgin Spring — 15188
+442. Scarface — 4695
+443. Pink Floyd: The Wall — 23712
+444. Pan's Labyrinth — 103733
+445. The Great Silence — 57194
+446. Mr. Smith Goes to Washington — 387
+447. Sentimental Value — 6555640
+448. 12th Fail — 5356479
+449. The Spirit of the Beehive — 151720
+450. To Wong Foo, Thanks for Everything! Julie Newmar — 1064
+451. The Return — 47040
+452. Monty Python and the Holy Grail — 375
+453. Midnight Cowboy — 506
+454. I Dream in Another Language — 813757
+455. Harry Potter and the Prisoner of Azkaban — 322
+456. Punishment Park — 84429
+457. Le Bonheur — 57336
+458. The Umbrellas of Cherbourg — 7718
+459. Spider-Man: Brand New Day — 5494049
+460. Kiki's Delivery Service — 107412
+461. The Hidden Fortress — 8191
+462. Hiroshima Mon Amour — 80754
+463. Pride & Prejudice — 81733
+464. Phantom of the Paradise — 15781
+465. The Second Mother — 863919
+466. Princes and Princesses — 49980
+467. The Conversation — 461
+468. Seconds — 8352
+469. The Exterminating Angel — 8348
+470. A Dog's Will — 40608
+471. Love Letter — 109565
+472. My Night at Maud's — 23889
+473. Redline — 597442
+474. Eat Drink Man Woman — 13733
+475. Rope — 8996
+476. Alice in the Cities — 31488
+477. Through a Glass Darkly — 15186
+478. Hundreds of Beavers — 1426925
+479. Arrival — 718811
+480. Sanjuro — 63734
+481. The Sword of Doom — 80770
+482. 3 Women — 14401
+483. The Gold Rush — 478
+484. The Wolf House — 1123415
+485. Us and Them — 1334818
+486. The Leopard — 7719
+487. Fargo — 1355789
+488. Reservoir Dogs — 394
+489. My Father's Shadow — 7605776
+490. There's Still Tomorrow — 5081085
+491. About Elly — 447348
+492. Wild Tales — 775727
+493. Close — 4918047
+494. Puss in Boots: The Last Wish — 840821
+495. Fitzcarraldo — 13499
+496. Three Colours: Blue — 18348
+497. Cowboy Bebop: The Movie — 41832
+498. Manchester by the Sea — 884376
+499. Our Little Sister — 846911
+500. Little Fish — 1245545

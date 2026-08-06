@@ -1,0 +1,102 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Everything Everywhere All at Once",
+    "year": 2022,
+    "imdb_id": "tt6710474",
+    "kinopoisk_id": 1322324,
+    "match_method": "keyword",
+    "is_winner": true,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 2,
+    "name": "All Quiet on the Western Front",
+    "year": 2022,
+    "imdb_id": "tt1016150",
+    "kinopoisk_id": 316376,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 3,
+    "name": "Avatar: The Way of Water",
+    "year": 2022,
+    "imdb_id": "tt1630029",
+    "kinopoisk_id": 505898,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 4,
+    "name": "The Banshees of Inisherin",
+    "year": 2022,
+    "imdb_id": "tt11813216",
+    "kinopoisk_id": 1354524,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 5,
+    "name": "Elvis",
+    "year": 2022,
+    "imdb_id": "tt3704428",
+    "kinopoisk_id": 1179041,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 6,
+    "name": "The Fabelmans",
+    "year": 2022,
+    "imdb_id": "tt14208870",
+    "kinopoisk_id": 4472502,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 7,
+    "name": "Tár",
+    "year": 2022,
+    "imdb_id": "tt8565868",
+    "kinopoisk_id": 4511218,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 8,
+    "name": "Top Gun: Maverick",
+    "year": 2022,
+    "imdb_id": "tt1745960",
+    "kinopoisk_id": 572032,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 9,
+    "name": "Triangle of Sadness",
+    "year": 2022,
+    "imdb_id": "tt7320974",
+    "kinopoisk_id": 1348487,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2023
+  },
+  {
+    "sort_order": 10,
+    "name": "Women Talking",
+    "year": 2022,
+    "imdb_id": "tt13640696",
+    "kinopoisk_id": 4294078,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2023
+  }
+]

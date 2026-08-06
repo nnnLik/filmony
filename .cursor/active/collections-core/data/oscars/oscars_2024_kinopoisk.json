@@ -1,0 +1,102 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Oppenheimer",
+    "year": 2023,
+    "imdb_id": "tt15398776",
+    "kinopoisk_id": 4664634,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 2,
+    "name": "American Fiction",
+    "year": 2023,
+    "imdb_id": "tt23503634",
+    "kinopoisk_id": 5212291,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 3,
+    "name": "Anatomy of a Fall",
+    "year": 2023,
+    "imdb_id": "tt17009710",
+    "kinopoisk_id": 4910679,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 4,
+    "name": "Barbie",
+    "year": 2023,
+    "imdb_id": "tt1517268",
+    "kinopoisk_id": 478052,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 5,
+    "name": "The Holdovers",
+    "year": 2023,
+    "imdb_id": "tt14849194",
+    "kinopoisk_id": 4499386,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 6,
+    "name": "Killers of the Flower Moon",
+    "year": 2023,
+    "imdb_id": "tt5537002",
+    "kinopoisk_id": 1077781,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 7,
+    "name": "Maestro",
+    "year": 2023,
+    "imdb_id": "tt5535276",
+    "kinopoisk_id": 1156789,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 8,
+    "name": "Past Lives",
+    "year": 2023,
+    "imdb_id": "tt13238334",
+    "kinopoisk_id": 4294218,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 9,
+    "name": "Poor Things",
+    "year": 2023,
+    "imdb_id": "tt14230458",
+    "kinopoisk_id": 4396438,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  },
+  {
+    "sort_order": 10,
+    "name": "The Zone of Interest",
+    "year": 2023,
+    "imdb_id": "tt7160372",
+    "kinopoisk_id": 1048873,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2024
+  }
+]

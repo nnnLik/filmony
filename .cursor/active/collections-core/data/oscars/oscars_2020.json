@@ -1,0 +1,74 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Parasite",
+    "year": 2019,
+    "imdb_id": "tt6751668",
+    "is_winner": true,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 2,
+    "name": "Ford v Ferrari",
+    "year": 2019,
+    "imdb_id": "tt1950186",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 3,
+    "name": "The Irishman",
+    "year": 2019,
+    "imdb_id": "tt1302006",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 4,
+    "name": "Jojo Rabbit",
+    "year": 2019,
+    "imdb_id": "tt2584384",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 5,
+    "name": "Joker",
+    "year": 2019,
+    "imdb_id": "tt7286456",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 6,
+    "name": "Little Women",
+    "year": 2019,
+    "imdb_id": "tt3281548",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 7,
+    "name": "Marriage Story",
+    "year": 2019,
+    "imdb_id": "tt7653254",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 8,
+    "name": "1917",
+    "year": 2019,
+    "imdb_id": "tt8579674",
+    "is_winner": false,
+    "ceremony_year": 2020
+  },
+  {
+    "sort_order": 9,
+    "name": "Once Upon a Time in Hollywood",
+    "year": 2019,
+    "imdb_id": "tt7131622",
+    "is_winner": false,
+    "ceremony_year": 2020
+  }
+]
