@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import type { MovieCardPage } from '../api/profileTypes'
-import type { ProfileMainTab } from '../components/profile/ProfileMainTabs'
+import type { ProfileMainTab } from '../components/profile/profileMainTab'
 import {
   isDefaultRatedCardsQuery,
   type RatedCardsListQuery,

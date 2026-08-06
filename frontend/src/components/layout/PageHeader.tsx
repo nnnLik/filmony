@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 import { useHeaderPepeGifSrc } from '../../lib/pepeGif'
 
@@ -22,9 +22,34 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   const headerPepeSrc = useHeaderPepeGifSrc()
+  const headerRef = useRef<HTMLElement | null>(null)
+
+  // Publishes the real header height so sticky sub-navigation can align right below it.
+  useEffect(() => {
+    const node = headerRef.current
+    if (node == null) {
+      return
+    }
+    const publish = () => {
+      document.documentElement.style.setProperty(
+        '--filmony-page-header-h',
+        `${Math.round(node.getBoundingClientRect().height)}px`,
+      )
+    }
+    publish()
+    if (typeof ResizeObserver === 'undefined') {
+      return
+    }
+    const observer = new ResizeObserver(publish)
+    observer.observe(node)
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   return (
     <header
+      ref={headerRef}
       className={`sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md ${className ?? ''}`}
     >
       <div className="px-4 pb-3 pt-3">

@@ -1,4 +1,4 @@
-import { Button, Section } from '@telegram-apps/telegram-ui'
+import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
@@ -21,9 +21,13 @@ import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
 import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
-import { ProfileHeader } from '../components/profile/ProfileHeader'
-import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
-import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
+import { ProfileIdentityCard } from '../components/profile/ProfileIdentityCard'
+import { type ProfileMainTab } from '../components/profile/profileMainTab'
+import {
+  ProfileSectionTabs,
+  profileSectionOf,
+  type ProfileSection,
+} from '../components/profile/ProfileSectionTabs'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
@@ -176,6 +180,15 @@ export function PublicProfilePage() {
     setMoviesSegment('rated')
   }, [])
 
+  const handleSectionChange = useCallback((section: ProfileSection) => {
+    if (section === 'stats') {
+      setMainTab('stats')
+      return
+    }
+    setMainTab('movies')
+    setMoviesSegment(section)
+  }, [])
+
   const handleNavigateBack = useCallback(() => {
     const st = location.state as { cardEntry?: string } | undefined
     if (st?.cardEntry === 'telegram_start_param' || location.key === 'default') {
@@ -270,6 +283,7 @@ export function PublicProfilePage() {
   }
 
   const isOwnPublicProfile = myUserId != null && myUserId === profile.id
+  const canFollow = myUserId != null && profile.id !== myUserId
 
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) pb-6 text-(--tgui--text_color)">
@@ -286,110 +300,107 @@ export function PublicProfilePage() {
       </header>
 
       <div className="mx-auto max-w-md px-4 pt-4">
-        <ProfileHeader
+        <ProfileIdentityCard
           profile={profile}
-          subtitle=""
           viewerId={myUserId}
           knowledgeByOwnerId={knowledgeByOwnerId}
           streakByUserId={streakByUserId}
-        />
-        <div className="mb-4">
-          <ProfileCompactMetrics
-            followers_count={profile.followers_count}
-            following_count={profile.following_count}
-            cards_count={profile.cards_count}
-            watchlist_count={profile.watchlist_count}
-            favorites_count={profile.favorites_count}
-            onFollowersClick={() =>
-              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=followers`)
-            }
-            onFollowingClick={() =>
-              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=following`)
-            }
-            onRatedClick={drillToRatedSegment}
-            onWatchlistClick={drillToWatchlist}
-            onFavoritesClick={drillToRatedSegment}
-          />
-        </div>
-
-        {myUserId != null && profile.id !== myUserId ? (
-          <div className="mb-4 flex flex-col items-center gap-2">
-            {followError != null ? (
-              <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">
-                {followError}
-              </p>
-            ) : null}
-            <Button mode={isFollowing ? 'gray' : 'filled'} disabled={followBusy} onClick={() => void toggleFollowing()}>
-              {followBusy ? '...' : isFollowing ? 'Отписаться' : 'Подписаться'}
-            </Button>
-            {isFollowing ? (
+          headerAction={
+            canFollow ? (
               <Button
-                mode="filled"
+                size="s"
+                mode={isFollowing ? 'bezeled' : 'filled'}
+                disabled={followBusy}
+                onClick={() => void toggleFollowing()}
+              >
+                {followBusy ? '...' : isFollowing ? 'Отписаться' : 'Подписаться'}
+              </Button>
+            ) : null
+          }
+          metrics={
+            <ProfileCompactMetrics
+              followers_count={profile.followers_count}
+              following_count={profile.following_count}
+              cards_count={profile.cards_count}
+              watchlist_count={profile.watchlist_count}
+              favorites_count={profile.favorites_count}
+              onFollowersClick={() =>
+                void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=followers`)
+              }
+              onFollowingClick={() =>
+                void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=following`)
+              }
+              onRatedClick={drillToRatedSegment}
+              onWatchlistClick={drillToWatchlist}
+              onFavoritesClick={drillToRatedSegment}
+            />
+          }
+          actions={
+            canFollow && isFollowing ? (
+              <Button
+                size="s"
+                mode="bezeled"
+                stretched
                 onClick={() => void navigate(`/taste-quiz/play/${encodeURIComponent(profile.id)}`)}
               >
                 Угадать вкус
               </Button>
-            ) : null}
-          </div>
+            ) : null
+          }
+        />
+
+        {followError != null ? (
+          <p className="mt-3 text-center text-sm text-(--tgui--destructive_text_color)">
+            {followError}
+          </p>
         ) : null}
 
-        {profile.bio ? (
-          <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
-        ) : null}
-
-        <ProfileMainTabs value={mainTab} onChange={setMainTab} className="mb-4" />
+        <ProfileSectionTabs
+          value={profileSectionOf(mainTab, moviesSegment)}
+          onChange={handleSectionChange}
+          counts={{
+            rated: profile.cards_count,
+            watchlist: profile.watchlist_count,
+          }}
+          sticky
+          className="mt-5"
+        />
 
         {mainTab === 'movies' ? (
-          <div id="profile-rated-cards-panel">
-            <Section header="Карточки">
-              <ProfileMoviesSegmentToggle
-                value={moviesSegment}
-                onChange={setMoviesSegment}
-                className="mx-4 mb-3"
+          <div className="mt-4" id="profile-rated-cards-panel">
+            {moviesSegment === 'rated' ? (
+              <ProfileRatedPanel
+                profileUserId={profile.id}
+                viewerUserId={myUserId}
+                ratedQuery={ratedQuery}
+                onRatedQueryChange={setRatedQuery}
+                enableCategoryFilter
+                favoriteStripItems={favoriteStripItems}
+                cards={cards}
+                loading={ratedCardsLoading}
+                error={cardsError}
+                canLoadMore={canLoadMoreCards}
+                isFetchingNextPage={cardsQuery.isFetchingNextPage}
+                loadMoreRef={ratedCardsLoadMoreRef}
+                emptyUserId={myUserId}
+                emptyFallback="Пока нет карточек."
+                filteredEmptyFallback="Нет карточек с такими фильтрами."
+                showFavoriteToggle={isOwnPublicProfile}
+                onFavoriteToggled={isOwnPublicProfile ? handleFavoriteToggled : undefined}
               />
-
-              {moviesSegment === 'rated' ? (
-                <ProfileRatedPanel
-                  profileUserId={profile.id}
-                  viewerUserId={myUserId}
-                  ratedQuery={ratedQuery}
-                  onRatedQueryChange={setRatedQuery}
-                  enableCategoryFilter
-                  favoriteStripItems={favoriteStripItems}
-                  cards={cards}
-                  loading={ratedCardsLoading}
-                  error={cardsError}
-                  canLoadMore={canLoadMoreCards}
-                  isFetchingNextPage={cardsQuery.isFetchingNextPage}
-                  loadMoreRef={ratedCardsLoadMoreRef}
-                  emptyUserId={myUserId}
-                  emptyFallback="Пока нет карточек."
-                  filteredEmptyFallback="Нет карточек с такими фильтрами."
-                  showFavoriteToggle={isOwnPublicProfile}
-                  onFavoriteToggled={isOwnPublicProfile ? handleFavoriteToggled : undefined}
-                  filtersClassName="mx-4"
-                  gridClassName="px-3 pb-3"
-                  errorClassName="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)"
-                  refreshingClassName="filmony-text-panel mx-4 my-2 text-center text-xs text-(--tgui--hint_color)"
-                  emptyClassName="mx-4 my-4"
-                  loadMoreClassName="px-3 pb-3 pt-1"
-                />
-              ) : (
-                <ProfileWatchlistPanel
-                  watchlist={watchlist}
-                  error={watchlistError}
-                  canLoadMore={canLoadMoreWatchlist}
-                  isFetchingNextPage={watchlistQuery.isFetchingNextPage}
-                  loadMoreRef={watchlistLoadMoreRef}
-                  errorClassName="filmony-text-panel mx-4 my-2 text-sm text-(--tgui--destructive_text_color)"
-                  gridClassName="px-3 pb-3"
-                  loadMoreClassName="px-3 pb-3 pt-1"
-                />
-              )}
-            </Section>
+            ) : (
+              <ProfileWatchlistPanel
+                watchlist={watchlist}
+                error={watchlistError}
+                canLoadMore={canLoadMoreWatchlist}
+                isFetchingNextPage={watchlistQuery.isFetchingNextPage}
+                loadMoreRef={watchlistLoadMoreRef}
+              />
+            )}
           </div>
         ) : (
           <ProfileStatsTab
+            className="mt-4"
             userId={profile.id}
             cardsQuery={ratedQuery}
             onCardsQueryChange={setRatedQuery}

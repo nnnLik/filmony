@@ -10,15 +10,17 @@ function shownCount(value: number | undefined): string {
 }
 
 const METRIC_CHIP_CLASS =
-  'flex min-w-[3.5rem] flex-col items-center rounded-xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_28%,var(--tgui--divider_color))] bg-(--tgui--secondary_bg_color) px-3 py-2 shadow-[0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_8%,transparent),0_4px_14px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_6%,transparent)] sm:min-w-[4rem] sm:px-3.5 sm:py-2.5'
+  'flex w-full flex-col items-center justify-center rounded-xl bg-(--tgui--secondary_bg_color) px-1 py-2'
 
 function MetricChipButton({ chip }: { chip: MetricChip }) {
   const content = (
     <>
-      <span className="text-base font-bold tabular-nums leading-none text-(--tgui--text_color) sm:text-lg">
+      <span className="text-[15px] font-semibold tabular-nums leading-none text-(--tgui--text_color)">
         {shownCount(chip.value)}
       </span>
-      <span className="mt-1 text-[10px] leading-tight text-(--tgui--hint_color) sm:text-[11px]">{chip.label}</span>
+      <span className="mt-1 w-full truncate text-center text-[10px] leading-tight text-(--tgui--hint_color)">
+        {chip.label}
+      </span>
     </>
   )
 
@@ -26,7 +28,7 @@ function MetricChipButton({ chip }: { chip: MetricChip }) {
     return (
       <button
         type="button"
-        className={`${METRIC_CHIP_CLASS} outline-none transition-opacity active:opacity-80 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color)`}
+        className={`${METRIC_CHIP_CLASS} outline-none transition-colors active:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,var(--tgui--secondary_bg_color))] focus-visible:ring-2 focus-visible:ring-(--tgui--link_color)`}
         onClick={chip.onClick}
         aria-label={`${chip.label}: ${shownCount(chip.value)}`}
       >
@@ -77,12 +79,12 @@ export function ProfileCompactMetrics({
 
   return (
     <div
-      className="grid w-full grid-cols-5 justify-items-center gap-3 max-[380px]:grid-cols-3 max-[380px]:gap-2"
+      className="grid w-full grid-cols-5 gap-1.5"
       role="list"
       aria-label="Сводка профиля"
     >
       {chips.map((chip) => (
-        <div key={chip.key} role="listitem" className="w-full max-w-[5.5rem]">
+        <div key={chip.key} role="listitem" className="min-w-0">
           <MetricChipButton chip={chip} />
         </div>
       ))}

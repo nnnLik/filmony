@@ -1,4 +1,4 @@
-import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
+import { Button, IconButton } from '@telegram-apps/telegram-ui'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Download, Settings } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
@@ -13,15 +13,19 @@ import type {
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
-import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
-import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
+import { ProfileIdentityCard } from '../components/profile/ProfileIdentityCard'
+import { type ProfileMainTab } from '../components/profile/profileMainTab'
+import {
+  ProfileSectionTabs,
+  profileSectionOf,
+  type ProfileSection,
+} from '../components/profile/ProfileSectionTabs'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
 import { PageHeader } from '../components/layout/PageHeader'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
-import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
 import { useMyLatestMonthlyRecapQuery } from '../hooks/useMyLatestMonthlyRecapQuery'
@@ -32,7 +36,6 @@ import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
 } from '../lib/ratedCardsListQuery'
-import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import {
   isTelegramChatUnavailableDetail,
   notificationFailureMessage,
@@ -286,6 +289,18 @@ export function ProfilePage() {
     setMoviesSegment('rated')
   }, [setMoviesSegment])
 
+  const handleSectionChange = useCallback(
+    (section: ProfileSection) => {
+      if (section === 'stats') {
+        setMainTab('stats')
+        return
+      }
+      setMainTab('movies')
+      setMoviesSegment(section)
+    },
+    [setMoviesSegment],
+  )
+
   if (auth.kind === 'loading') {
     return <PageLoadingState authPending />
   }
@@ -313,7 +328,6 @@ export function ProfilePage() {
   }
 
   const pub = toPublicShape(profile)
-  const shownName = displayNameFromProfile(pub)
 
   return (
     <div className="min-h-full">
@@ -341,23 +355,12 @@ export function ProfilePage() {
         }
       />
 
-      <main className="px-4 py-6">
-        <div className="flex flex-col items-center text-center">
-          <Avatar
-            src={profile.photo_url ?? undefined}
-            acronym={profileInitials(pub)}
-            size={96}
-          />
-          <Title className="mt-3" level="2" weight="2">
-            {shownName}
-          </Title>
-          {profile != null ? (
-            <div className="mt-1 flex justify-center">
-              <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={profile.id} />
-            </div>
-          ) : null}
-          <p className="mt-1 font-mono text-[11px] text-(--tgui--hint_color)">@{profile.profile_slug}</p>
-          <div className="mt-4 w-full max-w-sm">
+      <main className="px-4 pb-6 pt-4">
+        <ProfileIdentityCard
+          profile={pub}
+          viewerId={profile.id}
+          streakByUserId={streakByUserId}
+          metrics={
             <ProfileCompactMetrics
               followers_count={profile.followers_count}
               following_count={profile.following_count}
@@ -370,17 +373,21 @@ export function ProfilePage() {
               onWatchlistClick={drillToWatchlist}
               onFavoritesClick={drillToRatedSegment}
             />
-          </div>
-        </div>
-
-        {profile.bio ? (
-          <p className="filmony-text-panel mt-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
-            {profile.bio}
-          </p>
-        ) : null}
+          }
+          actions={
+            <Button
+              size="s"
+              mode="bezeled"
+              stretched
+              onClick={() => void navigate('/taste-quiz/invite')}
+            >
+              Пригласить угадать
+            </Button>
+          }
+        />
 
         {recapBanner != null ? (
-          <div className="mx-auto mt-4 max-w-sm rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-4 py-3 text-left">
+          <div className="mt-4 rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-4 py-3 text-left">
             <p className="text-sm font-medium text-(--tgui--text_color)">Итоги месяца готовы</p>
             <p className="filmony-text-panel mt-1 text-sm text-(--tgui--hint_color)">
               {recapBanner.total_rated} оценок за последний полный месяц — открой сводку.
@@ -409,12 +416,6 @@ export function ProfilePage() {
             </div>
           </div>
         ) : null}
-
-        <div className="mt-4 flex justify-center">
-          <Button mode="gray" onClick={() => void navigate('/taste-quiz/invite')}>
-            Пригласить угадать
-          </Button>
-        </div>
 
         {exportOk != null ? (
           <p className="filmony-text-panel mt-4 text-center text-sm text-[color-mix(in_srgb,var(--tgui--hint_color)_92%,var(--tgui--link_color)_8%)]">
@@ -451,16 +452,19 @@ export function ProfilePage() {
           </p>
         ) : null}
 
-        <ProfileMainTabs value={mainTab} onChange={setMainTab} className="mt-6" />
+        <ProfileSectionTabs
+          value={profileSectionOf(mainTab, moviesSegment)}
+          onChange={handleSectionChange}
+          counts={{
+            rated: profile.cards_count,
+            watchlist: profile.watchlist_count,
+          }}
+          sticky
+          className="mt-5"
+        />
 
         {mainTab === 'movies' ? (
-          <div className="mt-6" id="profile-rated-cards-panel">
-            <ProfileMoviesSegmentToggle
-              value={moviesSegment}
-              onChange={setMoviesSegment}
-              className="mb-4"
-            />
-
+          <div className="mt-4" id="profile-rated-cards-panel">
             {moviesSegment === 'rated' ? (
               <ProfileRatedPanel
                 profileUserId={profile.id}
@@ -498,7 +502,7 @@ export function ProfilePage() {
 
         {mainTab === 'stats' ? (
           <ProfileStatsTab
-            className="mt-6"
+            className="mt-4"
             userId={profile.id}
             cardsQuery={ratedQuery}
             onCardsQueryChange={setRatedQuery}
