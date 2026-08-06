@@ -4,6 +4,7 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Self
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
@@ -91,6 +92,22 @@ class SyncFilmFromTmdbService:
             )
 
         detail = await self._transport.get_movie_by_id(resolved_tmdb_id)
+
+        if session is not None and film.id is not None:
+            conflict_id = await session.scalar(
+                select(Film.id).where(
+                    Film.tmdb_id == detail.id,
+                    Film.id != film.id,
+                ),
+            )
+            if conflict_id is not None:
+                return SyncFilmFromTmdbResult(
+                    synced=False,
+                    tmdb_id=None,
+                    imdb_id=resolved_imdb,
+                    reason='tmdb_id conflict',
+                )
+
         now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
         film.tmdb_id = detail.id
         film.tmdb_detail_snapshot_json = detail.raw

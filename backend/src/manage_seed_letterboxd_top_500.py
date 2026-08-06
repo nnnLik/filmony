@@ -26,6 +26,7 @@ Direct CLI (inside container, ``-w /opt/app``):
   python src/manage_seed_letterboxd_top_500.py [--dry-run] [--limit N] [--sleep 0.2]
 
 Idempotent: safe to re-run; upserts ``Collection`` / ``CollectionFilm`` only (no user progress).
+Bulk seed skips TMDB enrich to avoid ``ix_film_tmdb_id`` collisions; use backfill if needed.
 """
 
 from __future__ import annotations
@@ -45,9 +46,7 @@ from core.database import get_session_factory
 from models.collection import Collection, CollectionKind
 from models.collection_film import CollectionFilm
 from models.film import Film
-from providers.tmdb.tmdb_provider_transport import TmdbProviderTransport
 from services.kinopoisk.client import KinopoiskClient, KinopoiskClientError
-from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 
 _log = logging.getLogger(__name__)
 
@@ -197,22 +196,6 @@ async def _ensure_film(
             exc,
         )
         return None, True
-
-    try:
-        await ResolveKinopoiskFilmService(session).sync_metadata_for_film(film)
-    except TmdbProviderTransport.TmdbProviderTransportError:
-        _log.debug(
-            '[rank %s] kp=%s — optional TMDB enrich skipped',
-            row.rank,
-            row.kinopoisk_id,
-        )
-    except Exception as exc:
-        _log.debug(
-            '[rank %s] kp=%s — optional enrich skipped (%s)',
-            row.rank,
-            row.kinopoisk_id,
-            type(exc).__name__,
-        )
 
     return film, True
 
