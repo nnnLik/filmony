@@ -6,7 +6,6 @@ import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import { postExportMyCardsCsv } from '../api/profileApi'
-import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import type {
   MovieCardPage,
   MyProfile,
@@ -16,7 +15,6 @@ import { useAuthStatus } from '../auth/useAuthStatus'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
-import { ProfilePostsPanel } from '../components/profile/ProfilePostsPanel'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
@@ -26,7 +24,6 @@ import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
-import { useUserFeedPostsInfiniteQuery } from '../hooks/useUserFeedPostsInfiniteQuery'
 import { useMyLatestMonthlyRecapQuery } from '../hooks/useMyLatestMonthlyRecapQuery'
 import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
 import { readMyProfileBundleCache, writeMyProfileBundleCache } from '../lib/myProfileBundleCache'
@@ -42,13 +39,12 @@ import {
   openTelegramDeepLink,
   telegramBotOpenUrl,
 } from '../lib/telegramNotificationError'
-import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useGamification } from '../hooks/useGamification'
 import { useProfileMoviesSegmentFromUrl } from '../hooks/useProfileMoviesSegmentFromUrl'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { computeShelfPhysicsFromCards } from '../lib/gamification/shelfPhysicsFallback'
 import type { MarathonAchievement } from '../api/gamificationTypes'
-import { myProfileQueryKey, userCardsQueryKey, userFeedPostsQueryKey } from '../lib/profileQueryKeys'
+import { myProfileQueryKey, userCardsQueryKey } from '../lib/profileQueryKeys'
 import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
 import './ProfilePage.css'
 
@@ -133,21 +129,6 @@ export function ProfilePage() {
     initialCardsPageUpdatedAt: initialBundle?.storedAt,
   })
 
-  const postsQuery = useUserFeedPostsInfiniteQuery(profile?.id ?? '', {
-    enabled: authReady && profile != null && mainTab === 'posts',
-  })
-
-  const feedPosts = useMemo(() => {
-    const pages = postsQuery.data?.pages
-    if (pages == null || pages.length === 0) {
-      return null
-    }
-    return {
-      items: pages.flatMap((p) => p.items),
-      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
-    }
-  }, [postsQuery.data])
-
   const recapQuery = useMyLatestMonthlyRecapQuery()
   const recapBanner = useMemo(() => {
     const recap = recapQuery.data
@@ -189,8 +170,6 @@ export function ProfilePage() {
     return 'neutral' as const
   }, [gamificationQuery.data, cards, ratedQuery])
 
-  const unlockedMarathons = gamificationQuery.data?.marathons ?? []
-
   useEffect(() => {
     scheduleDeferredPepeDancingPrewarm()
   }, [])
@@ -201,15 +180,6 @@ export function ProfilePage() {
     }
     writeMyProfileBundleCache(profile, cards)
   }, [profile, cardsQuery.data, ratedQuery, cards])
-
-  const postsErr =
-    postsQuery.error instanceof ApiError
-      ? formatApiDetail(postsQuery.error.detail)
-      : postsQuery.error != null
-        ? 'Не удалось загрузить посты'
-        : null
-
-  const postsLoading = postsQuery.isPending && postsQuery.fetchStatus === 'fetching'
 
   const handleFavoriteToggled = useCallback(
     (cardId: number, nextFavorite: boolean) => {
@@ -315,36 +285,6 @@ export function ProfilePage() {
     setMainTab('movies')
     setMoviesSegment('rated')
   }, [setMoviesSegment])
-
-  const postsLoadMoreRef = useInfiniteScrollLoadMore({
-    enabled:
-      authReady &&
-      mainTab === 'posts' &&
-      Boolean(feedPosts?.next_cursor) &&
-      (feedPosts?.items.length ?? 0) > 0,
-    isBusy: postsQuery.isFetchingNextPage,
-    onLoadMore: () => void postsQuery.fetchNextPage(),
-  })
-
-  const onProfilePostDeleted = useCallback(
-    (postId: number) => {
-      if (profile == null) return
-      queryClient.setQueryData<InfiniteData<UserFeedPostsPage, string | null>>(
-        userFeedPostsQueryKey(profile.id),
-        (prev) => {
-          if (prev == null) return prev
-          return {
-            ...prev,
-            pages: prev.pages.map((page) => ({
-              ...page,
-              items: page.items.filter((entry) => entry.id !== postId),
-            })),
-          }
-        },
-      )
-    },
-    [profile, queryClient],
-  )
 
   if (auth.kind === 'loading') {
     return <PageLoadingState authPending />
@@ -540,8 +480,6 @@ export function ProfilePage() {
                 showContrarianBadge
                 onFavoriteToggled={handleFavoriteToggled}
                 shelfPhysicsMode={shelfPhysicsMode}
-                unlockedMarathons={unlockedMarathons}
-                onMarathonDrill={handleMarathonDrill}
               />
             ) : (
               <ProfileWatchlistPanel
@@ -556,20 +494,6 @@ export function ProfilePage() {
               />
             )}
           </div>
-        ) : null}
-
-        {mainTab === 'posts' ? (
-          <ProfilePostsPanel
-            className="mt-6 space-y-3"
-            posts={feedPosts}
-            error={postsErr}
-            loading={postsLoading}
-            isFetchingNextPage={postsQuery.isFetchingNextPage}
-            loadMoreRef={postsLoadMoreRef}
-            viewerUserId={profile.id}
-            onPostDeleted={onProfilePostDeleted}
-            emptyUserId={profile.id}
-          />
         ) : null}
 
         {mainTab === 'stats' ? (

@@ -763,6 +763,7 @@ export function ProfileStatsPanel({
               <div className="space-y-3">
                 <StatsDonutChart
                   segments={genreDonutSegments}
+                  legendCollapsedTopN={8}
                   onSegmentClick={handleGenreDistributionDrill}
                   activeValue={cardsQuery.genre === '' ? undefined : cardsQuery.genre}
                 />
@@ -783,6 +784,7 @@ export function ProfileStatsPanel({
               <div className="space-y-3">
                 <StatsDonutChart
                   segments={directorDonutSegments}
+                  legendCollapsedTopN={8}
                   onSegmentClick={handleDirectorDistributionDrill}
                   activeValue={
                     cardsQuery.directorKinopoiskId === ''
@@ -816,6 +818,7 @@ export function ProfileStatsPanel({
             {franchiseDonutSegments.length > 0 ? (
               <StatsDonutChart
                 segments={franchiseDonutSegments}
+                legendCollapsedTopN={8}
                 onSegmentClick={handleFranchiseDistributionDrill}
                 activeValue={cardsQuery.franchiseKey === '' ? undefined : cardsQuery.franchiseKey}
               />
@@ -839,6 +842,7 @@ export function ProfileStatsPanel({
               <div className="flex w-full min-w-0 flex-col gap-4">
                 <StatsDonutChart
                   segments={decadeDonutSegments}
+                  legendCollapsedTopN={8}
                   onSegmentClick={handleDecadeDistributionDrill}
                 />
                 {peakRatedYear != null ? (

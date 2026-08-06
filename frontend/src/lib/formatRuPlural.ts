@@ -9,3 +9,7 @@ export function formatFilmsCount(count: number): string {
 export function formatRatingsCount(count: number): string {
   return `${count} ${ruPluralForm(count, 'оценка', 'оценки', 'оценок')}`
 }
+
+export function formatDaysCount(count: number): string {
+  return `${count} ${ruPluralForm(count, 'день', 'дня', 'дней')}`
+}

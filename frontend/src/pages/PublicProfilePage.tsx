@@ -10,7 +10,6 @@ import {
   subscribeToUser,
   unsubscribeFromUser,
 } from '../api/profileApi'
-import type { UserFeedPostsPage } from '../api/feedInFeedTypes'
 import type { MovieCardPage, PublicProfile } from '../api/profileTypes'
 import {
   ratedCardsQueryKey,
@@ -18,16 +17,13 @@ import {
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
-import { useInfiniteScrollLoadMore } from '../hooks/useInfiniteScrollLoadMore'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
-import { useUserFeedPostsInfiniteQuery } from '../hooks/useUserFeedPostsInfiniteQuery'
 import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
 import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
-import { ProfilePostsPanel } from '../components/profile/ProfilePostsPanel'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
@@ -36,7 +32,6 @@ import { PageLoadingState } from '../components/ui/PageLoadingState'
 import type { ProfileMoviesSegment } from '../lib/profileMoviesSegment'
 import {
   userCardsQueryKey,
-  userFeedPostsQueryKey,
   userFollowingStatusQueryKey,
   userPublicProfileQueryKey,
 } from '../lib/profileQueryKeys'
@@ -122,30 +117,6 @@ export function PublicProfilePage() {
     eagerWatchlist: true,
   })
 
-  const postsQuery = useUserFeedPostsInfiniteQuery(profile?.id ?? '', {
-    enabled: authReady && profile != null && mainTab === 'posts',
-  })
-
-  const feedPosts = useMemo(() => {
-    const pages = postsQuery.data?.pages
-    if (pages == null || pages.length === 0) {
-      return null
-    }
-    return {
-      items: pages.flatMap((p) => p.items),
-      next_cursor: pages[pages.length - 1]?.next_cursor ?? null,
-    }
-  }, [postsQuery.data])
-
-  const postsErr =
-    postsQuery.error instanceof ApiError
-      ? formatApiDetail(postsQuery.error.detail)
-      : postsQuery.error != null
-        ? 'Не удалось загрузить посты'
-        : null
-
-  const postsLoading = postsQuery.isPending && postsQuery.fetchStatus === 'fetching'
-
   const handleFavoriteToggled = useCallback(
     (cardId: number, nextFavorite: boolean) => {
       if (profile == null) {
@@ -203,36 +174,6 @@ export function PublicProfilePage() {
     setMainTab('movies')
     setMoviesSegment('rated')
   }, [])
-
-  const postsLoadMoreRef = useInfiniteScrollLoadMore({
-    enabled:
-      authReady &&
-      mainTab === 'posts' &&
-      Boolean(feedPosts?.next_cursor) &&
-      (feedPosts?.items.length ?? 0) > 0,
-    isBusy: postsQuery.isFetchingNextPage,
-    onLoadMore: () => void postsQuery.fetchNextPage(),
-  })
-
-  const onPublicProfilePostDeleted = useCallback(
-    (postId: number) => {
-      if (profile == null) return
-      queryClient.setQueryData<InfiniteData<UserFeedPostsPage, string | null>>(
-        userFeedPostsQueryKey(profile.id),
-        (prev) => {
-          if (prev == null) return prev
-          return {
-            ...prev,
-            pages: prev.pages.map((page) => ({
-              ...page,
-              items: page.items.filter((entry) => entry.id !== postId),
-            })),
-          }
-        },
-      )
-    },
-    [profile, queryClient],
-  )
 
   async function toggleFollowing() {
     if (profile == null || myUserId == null || profile.id === myUserId) {
@@ -436,21 +377,6 @@ export function PublicProfilePage() {
               )}
             </Section>
           </div>
-        ) : mainTab === 'posts' ? (
-          <Section header="Посты">
-            <ProfilePostsPanel
-              posts={feedPosts}
-              error={postsErr}
-              loading={postsLoading}
-              isFetchingNextPage={postsQuery.isFetchingNextPage}
-              loadMoreRef={postsLoadMoreRef}
-              viewerUserId={myUserId}
-              onPostDeleted={onPublicProfilePostDeleted}
-              emptyUserId={myUserId}
-              listClassName="mx-4 mt-2 space-y-3 pb-3"
-              postKeyPrefix="public-profile-post"
-            />
-          </Section>
         ) : (
           <ProfileStatsTab
             userId={profile.id}

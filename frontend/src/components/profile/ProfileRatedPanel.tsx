@@ -1,10 +1,9 @@
 import type { RefObject } from 'react'
 
-import type { MarathonAchievement, ShelfPhysicsMode } from '../../api/gamificationTypes'
+import type { ShelfPhysicsMode } from '../../api/gamificationTypes'
 import type { MovieCard } from '../../api/profileTypes'
 import { isDefaultRatedCardsQuery, type RatedCardsListQuery } from '../../lib/ratedCardsListQuery'
 import { FavoriteMoviesStrip } from './FavoriteMoviesStrip'
-import { MarathonShelfFrame } from './gamification/MarathonShelfFrame'
 import { ProfileShelfPhysics } from './gamification/ProfileShelfPhysics'
 import { MoviePosterGrid } from './MoviePosterGrid'
 import { ProfileRatedCardsFilters } from './ProfileRatedCardsFilters'
@@ -37,8 +36,6 @@ type ProfileRatedPanelProps = {
   emptyClassName?: string
   loadMoreClassName?: string
   shelfPhysicsMode?: ShelfPhysicsMode
-  unlockedMarathons?: MarathonAchievement[]
-  onMarathonDrill?: (marathon: MarathonAchievement) => void
 }
 
 export function ProfileRatedPanel({
@@ -67,12 +64,7 @@ export function ProfileRatedPanel({
   emptyClassName,
   loadMoreClassName,
   shelfPhysicsMode,
-  unlockedMarathons,
-  onMarathonDrill,
 }: ProfileRatedPanelProps) {
-  const hasGamification =
-    shelfPhysicsMode != null && unlockedMarathons != null && onMarathonDrill != null
-
   const grid = (
     <MoviePosterGrid
       items={cards?.items ?? []}
@@ -117,12 +109,10 @@ export function ProfileRatedPanel({
       ) : null}
       {cards != null && cards.items.length > 0 ? (
         <div className={gridClassName}>
-          {hasGamification ? (
-            <MarathonShelfFrame marathons={unlockedMarathons} onMarathonDrill={onMarathonDrill}>
-              <ProfileShelfPhysics mode={shelfPhysicsMode}>
-                {grid}
-              </ProfileShelfPhysics>
-            </MarathonShelfFrame>
+          {shelfPhysicsMode != null ? (
+            <ProfileShelfPhysics mode={shelfPhysicsMode}>
+              {grid}
+            </ProfileShelfPhysics>
           ) : (
             grid
           )}

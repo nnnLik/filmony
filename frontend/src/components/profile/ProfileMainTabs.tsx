@@ -1,6 +1,6 @@
 import { SegmentedControl } from '../ui/SegmentedControl'
 
-export type ProfileMainTab = 'movies' | 'posts' | 'stats'
+export type ProfileMainTab = 'movies' | 'stats'
 
 type ProfileMainTabsProps = {
   value: ProfileMainTab
@@ -15,11 +15,10 @@ export function ProfileMainTabs({ value, onChange, className }: ProfileMainTabsP
       onChange={onChange}
       ariaLabel="Раздел профиля"
       layout="grid"
-      gridColsClassName="grid-cols-3"
+      gridColsClassName="grid-cols-2"
       className={className}
       segments={[
         { value: 'movies', label: 'Карточки' },
-        { value: 'posts', label: 'Посты' },
         { value: 'stats', label: 'Статистика' },
       ]}
     />

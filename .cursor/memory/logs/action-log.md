@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-07T212500Z-profile-streak-stats-legend-ux-closeout.md`
 - `2026-08-04T111000Z-backend-test-unit-integration-split-closeout.md`
 - `2026-08-04T123000Z-frontend-refactor-ux-polish-closeout.md`
 - `2026-08-04T170000Z-feed-post-delete-menu-closeout.md`
@@ -42,5 +43,3 @@
 - `2026-07-27T151000Z-taste-knowledge-badge-everywhere-docs.md`
 - `2026-07-27T150300Z-comment-header-actions-overflow-complete.md`
 - `2026-07-27T150200Z-comment-header-actions-overflow-docs.md`
-- `2026-07-27T142500Z-profile-taste-match-docs.md`
-- `2026-07-27T140000Z-backlog-cleanup-decision.md`

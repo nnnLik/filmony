@@ -231,14 +231,14 @@ export function MonthlyRecapPage() {
             {genreDonutSegments.length > 0 ? (
               <section className="space-y-2 rounded-xl border border-(--tgui--divider_color) p-3">
                 <h2 className="text-sm font-semibold">Жанры</h2>
-                <StatsDonutChart segments={genreDonutSegments} centerTitle="оценок" />
+                <StatsDonutChart segments={genreDonutSegments} centerTitle="оценок" legendCollapsedTopN={8} />
               </section>
             ) : null}
 
             {decadeDonutSegments.length > 0 ? (
               <section className="space-y-2 rounded-xl border border-(--tgui--divider_color) p-3">
                 <h2 className="text-sm font-semibold">Десятилетия</h2>
-                <StatsDonutChart segments={decadeDonutSegments} centerTitle="оценок" />
+                <StatsDonutChart segments={decadeDonutSegments} centerTitle="оценок" legendCollapsedTopN={8} />
               </section>
             ) : null}
 

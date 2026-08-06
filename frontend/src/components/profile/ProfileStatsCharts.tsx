@@ -91,19 +91,73 @@ export function StatsDonutChart({
   centerTitle = 'всего',
   onSegmentClick,
   activeValue,
+  legendCollapsedTopN,
 }: {
   segments: DonutSegmentInput[]
   centerTitle?: string
   onSegmentClick?: (value: string) => void
   activeValue?: string
+  legendCollapsedTopN?: number
 }) {
   const visibleSegments = segments.filter((segment) => segment.count > 0)
+  const [userExpanded, setUserExpanded] = useState(false)
+
+  const canCollapse =
+    legendCollapsedTopN != null && visibleSegments.length > legendCollapsedTopN
+  const collapsedTopSlice = canCollapse ? visibleSegments.slice(0, legendCollapsedTopN) : visibleSegments
+  const activeInCollapsedTop =
+    activeValue == null || collapsedTopSlice.some((segment) => segment.value === activeValue)
+  const forceExpanded = canCollapse && activeValue != null && !activeInCollapsedTop
+  const expanded = userExpanded || forceExpanded
+
   if (visibleSegments.length === 0) {
     return <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
   }
 
   const total = visibleSegments.reduce((acc, segment) => acc + segment.count, 0)
   const gradient = buildConicGradient(visibleSegments)
+  const legendSegments = canCollapse && !expanded ? collapsedTopSlice : visibleSegments
+  const remaining = canCollapse ? visibleSegments.length - (legendCollapsedTopN ?? 0) : 0
+
+  const renderLegendRow = (segment: DonutSegmentInput) => {
+    const clickable = onSegmentClick != null && segment.value != null && segment.count > 0
+    const active = activeValue != null && segment.value === activeValue
+    const row = (
+      <>
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className="size-2 shrink-0 rounded-full"
+            style={{ backgroundColor: segment.color }}
+            aria-hidden
+          />
+          <span
+            className={`min-w-0 truncate ${active ? 'font-medium text-(--tgui--text_color)' : 'text-(--tgui--hint_color)'}`}
+          >
+            {segment.label}
+          </span>
+        </span>
+        <span className="shrink-0 font-semibold tabular-nums text-(--tgui--text_color)">{segment.count}</span>
+      </>
+    )
+
+    return (
+      <li key={`${segment.label}-${segment.value ?? ''}`}>
+        {clickable ? (
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-0.5 text-xs outline-none transition-opacity active:opacity-90 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) sm:text-sm"
+            aria-pressed={active}
+            aria-label={`Применить фильтр: ${segment.label}`}
+            onClick={() => onSegmentClick(segment.value ?? '')}
+          >
+            {row}
+          </button>
+        ) : (
+          <div className="flex items-center justify-between gap-2 px-1 py-0.5 text-xs sm:text-sm">{row}</div>
+        )}
+      </li>
+    )
+  }
 
   return (
     <div className="flex w-full min-w-0 flex-col items-center gap-4">
@@ -119,45 +173,29 @@ export function StatsDonutChart({
         </div>
       </div>
       <ul className="grid w-full min-w-0 max-w-[18rem] gap-1.5 sm:max-w-none">
-        {visibleSegments.map((segment) => {
-          const clickable = onSegmentClick != null && segment.value != null && segment.count > 0
-          const active = activeValue != null && segment.value === activeValue
-          const row = (
-            <>
-              <span className="flex min-w-0 items-center gap-2">
-                <span
-                  className="size-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: segment.color }}
-                  aria-hidden
-                />
-                <span
-                  className={`min-w-0 truncate ${active ? 'font-medium text-(--tgui--text_color)' : 'text-(--tgui--hint_color)'}`}
-                >
-                  {segment.label}
-                </span>
-              </span>
-              <span className="shrink-0 font-semibold tabular-nums text-(--tgui--text_color)">{segment.count}</span>
-            </>
-          )
-
-          return (
-            <li key={`${segment.label}-${segment.value ?? ''}`}>
-              {clickable ? (
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-0.5 text-xs outline-none transition-opacity active:opacity-90 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) sm:text-sm"
-                  aria-pressed={active}
-                  aria-label={`Применить фильтр: ${segment.label}`}
-                  onClick={() => onSegmentClick(segment.value ?? '')}
-                >
-                  {row}
-                </button>
-              ) : (
-                <div className="flex items-center justify-between gap-2 px-1 py-0.5 text-xs sm:text-sm">{row}</div>
-              )}
-            </li>
-          )
-        })}
+        {legendSegments.map(renderLegendRow)}
+        {canCollapse && !expanded ? (
+          <li>
+            <button
+              type="button"
+              className="w-full rounded-lg px-1 py-1 text-xs text-(--tgui--link_color) outline-none transition-opacity active:opacity-90 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) sm:text-sm"
+              onClick={() => setUserExpanded(true)}
+            >
+              Ещё {remaining}
+            </button>
+          </li>
+        ) : null}
+        {canCollapse && expanded && !forceExpanded ? (
+          <li>
+            <button
+              type="button"
+              className="w-full rounded-lg px-1 py-1 text-xs text-(--tgui--link_color) outline-none transition-opacity active:opacity-90 focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) sm:text-sm"
+              onClick={() => setUserExpanded(false)}
+            >
+              Свернуть
+            </button>
+          </li>
+        ) : null}
       </ul>
     </div>
   )
