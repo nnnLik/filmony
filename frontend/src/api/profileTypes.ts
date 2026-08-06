@@ -2,6 +2,7 @@ import type {
   ReferencedInlineMovieCardSnippet,
   ReferencedMentionSnippet,
 } from './inlineReferenceSnippetTypes'
+import type { PinnedAchievement } from './achievementsTypes'
 
 export type {
   ReferencedInlineMovieCardSnippet,
@@ -51,6 +52,7 @@ export type PublicProfile = {
   friends_count: number
   followers_count: number
   following_count: number
+  pinned_achievements?: PinnedAchievement[]
 }
 
 export type SubscriptionListType = 'followers' | 'following' | 'both'
@@ -383,6 +385,11 @@ export type FeedPostCommentPage = {
   next_cursor: string | null
 }
 
+export type FilmAwardBadge = {
+  kind: 'oscar_best_picture_nominee' | 'oscar_best_picture_winner'
+  ceremony_year: number
+}
+
 export type Film = {
   id: number
   kinopoisk_id: number
@@ -398,6 +405,7 @@ export type Film = {
   description?: string | null
   /** Present when the API knows the viewer already has a card for this film. */
   my_card_id?: number | null
+  award_badges?: FilmAwardBadge[]
 }
 
 export type FilmCommunityAuthor = {

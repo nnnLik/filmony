@@ -16,6 +16,8 @@ from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
+from services.collections.meaningful_rated_card import is_meaningful_rated_card
+from services.collections.refresh_progress_for_film import RefreshProgressForFilmService
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
@@ -239,6 +241,19 @@ class CreateUserCardService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def _refresh_collection_progress_if_meaningful(
+        self,
+        user_id: UUID,
+        card: UserCard,
+    ) -> None:
+        if not is_meaningful_rated_card(card):
+            return
+        assert card.film_id is not None
+        await RefreshProgressForFilmService.build(self._session).execute(
+            user_id,
+            card.film_id,
+        )
+
     async def execute(self, user_id: UUID, payload: CreateUserCardInput) -> UserCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
@@ -439,6 +454,7 @@ class CreateUserCardService:
             for session_id in session_ids:
                 task.delay(str(session_id))
 
+        await self._refresh_collection_progress_if_meaningful(user_id, entity)
         return entity
 
     async def _create_film_backed(
@@ -533,6 +549,7 @@ class CreateUserCardService:
             self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
         await self._session.commit()
         await self._session.refresh(entity)
+        await self._refresh_collection_progress_if_meaningful(user_id, entity)
         return entity
 
     async def _create_catalog_backed(
@@ -645,6 +662,7 @@ class CreateUserCardService:
             self._session.add_all([CardTag(card_id=entity.id, tag=tag) for tag in custom_tags])
         await self._session.commit()
         await self._session.refresh(entity)
+        await self._refresh_collection_progress_if_meaningful(user_id, entity)
         return entity
 
     async def _create_youtube(

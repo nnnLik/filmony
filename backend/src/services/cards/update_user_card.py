@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
 from models.user_card import UserCard
+from services.collections.refresh_progress_for_film import RefreshProgressForFilmService
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -156,4 +157,9 @@ class UpdateUserCardService:
 
         await self._session.commit()
         await self._session.refresh(card)
+        if card.film_id is not None:
+            await RefreshProgressForFilmService.build(self._session).execute(
+                viewer_user_id,
+                card.film_id,
+            )
         return card

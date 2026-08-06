@@ -104,6 +104,14 @@ const MonthlyRecapPage = lazy(async () => {
   const m = await import('./pages/MonthlyRecapPage')
   return { default: m.MonthlyRecapPage }
 })
+const CollectionDetailPage = lazy(async () => {
+  const m = await import('./pages/CollectionDetailPage')
+  return { default: m.CollectionDetailPage }
+})
+const CollectionsIndexPage = lazy(async () => {
+  const m = await import('./pages/CollectionsIndexPage')
+  return { default: m.CollectionsIndexPage }
+})
 
 export function AppRoutes() {
   return (
@@ -112,6 +120,8 @@ export function AppRoutes() {
         <Route path="/" element={<AppShell />}>
           <Route index element={<FeedPage />} />
           <Route path="search" element={<SearchPage />} />
+          <Route path="collections" element={<CollectionsIndexPage />} />
+          <Route path="collections/:slug" element={<CollectionDetailPage />} />
           <Route path="cards/new" element={<CreateCardPage />} />
           <Route path="watchlist/new" element={<CreateWatchlistPage />} />
           <Route path="profile" element={<ProfilePage />} />

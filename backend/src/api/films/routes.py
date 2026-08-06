@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.cards.schemas import FollowingRatingsListResponse
+from api.films.award_badges import film_award_badge_responses
 from api.films.schemas import (
     FilmCommunityAuthorResponse,
     FilmCommunityCardItemResponse,
@@ -35,6 +36,7 @@ async def _film_response(db: AsyncSession, film, viewer_id) -> FilmResponse:
     franchise_label = None
     if film.franchise_key:
         franchise_label = await resolve_franchise_label(db, str(film.franchise_key))
+    award_badges = await film_award_badge_responses(db, film.id)
     return FilmResponse(
         id=film.id,
         kinopoisk_id=film.kinopoisk_id,
@@ -53,6 +55,7 @@ async def _film_response(db: AsyncSession, film, viewer_id) -> FilmResponse:
         short_description=film.short_description,
         description=film.description,
         my_card_id=my_card_id,
+        award_badges=award_badges,
     )
 
 

@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Nomadland",
+    "year": 2020,
+    "imdb_id": "tt9770150",
+    "kinopoisk_id": 1238506,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 2,
+    "name": "The Father",
+    "year": 2020,
+    "imdb_id": "tt10272386",
+    "kinopoisk_id": 1262160,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 3,
+    "name": "Judas and the Black Messiah",
+    "year": 2021,
+    "imdb_id": "tt9784798",
+    "kinopoisk_id": 1239696,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 4,
+    "name": "Mank",
+    "year": 2020,
+    "imdb_id": "tt10608806",
+    "kinopoisk_id": 1283862,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 5,
+    "name": "Minari",
+    "year": 2020,
+    "imdb_id": "tt10633456",
+    "kinopoisk_id": 1286541,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 6,
+    "name": "Promising Young Woman",
+    "year": 2020,
+    "imdb_id": "tt9629682",
+    "kinopoisk_id": 1236567,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 7,
+    "name": "Sound of Metal",
+    "year": 2019,
+    "imdb_id": "tt5363618",
+    "kinopoisk_id": 957883,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2021
+  },
+  {
+    "sort_order": 8,
+    "name": "The Trial of the Chicago 7",
+    "year": 2020,
+    "imdb_id": "tt1070874",
+    "kinopoisk_id": 402981,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2021
+  }
+]

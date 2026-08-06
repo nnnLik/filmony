@@ -1,4 +1,4 @@
-import { Home, Search, User } from 'lucide-react'
+import { Home, Layers, Search, User } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router'
 
@@ -78,6 +78,29 @@ export function BottomNav() {
                     <Search aria-hidden strokeWidth={isActive ? 2.35 : 1.65} />
                   </NavIcon>
                   Поиск
+                </span>
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            to="/collections"
+            className={({ isActive }) =>
+              `${itemBase} ${isActive ? 'text-[var(--filmony-mint,#5eead4)]' : 'text-[var(--filmony-muted,#7f95ab)]'}`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive ? (
+                  <span
+                    className="absolute inset-0 rounded-2xl bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_14%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_22%,transparent)]"
+                    aria-hidden
+                  />
+                ) : null}
+                <span className="relative z-[1] flex flex-col items-center gap-0.5">
+                  <NavIcon active={isActive}>
+                    <Layers aria-hidden strokeWidth={isActive ? 2.25 : 1.55} />
+                  </NavIcon>
+                  Коллекции
                 </span>
               </>
             )}

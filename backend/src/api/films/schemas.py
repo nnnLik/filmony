@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,6 +11,11 @@ class FilmResolveRequest(BaseModel):
     url: str = Field(..., min_length=1)
 
     model_config = ConfigDict(extra='forbid')
+
+
+class FilmAwardBadgeResponse(BaseModel):
+    kind: Literal['oscar_best_picture_nominee', 'oscar_best_picture_winner']
+    ceremony_year: int
 
 
 class FilmResponse(BaseModel):
@@ -33,6 +39,7 @@ class FilmResponse(BaseModel):
         default=None,
         description='Id карточки текущего пользователя для этого фильма, если уже оценивал',
     )
+    award_badges: list[FilmAwardBadgeResponse] = Field(default_factory=list)
 
 
 class FilmCommunityAuthorResponse(BaseModel):

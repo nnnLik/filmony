@@ -57,10 +57,11 @@ import { publicProfileCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
 import { profileStatsFilteredRankingsQueryKey } from '../../lib/profileQueryKeys'
 import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQuery'
 import { ProfilePassportPanel } from './gamification/ProfilePassportPanel'
+import { AchievementsPanel } from './AchievementsPanel'
 
-type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'collection'
+type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'collection' | 'achievements'
 
-const STATS_SUB_TABS: { id: StatsSubTab; label: string }[] = [
+const BASE_STATS_SUB_TABS: { id: StatsSubTab; label: string }[] = [
   { id: 'overview', label: 'Обзор' },
   { id: 'taste', label: 'Вкус' },
   { id: 'social', label: 'Социальность' },
@@ -80,6 +81,8 @@ type ProfileStatsPanelProps = {
   showTasteQuizTeaser?: boolean
   /** Показывать коллекцию штампов (свой профиль — полная, чужой — только открытые). */
   showPassportCollection?: boolean
+  /** Управление достижениями и закреплениями (только свой профиль). */
+  showAchievements?: boolean
   onMarathonDrill?: (marathon: MarathonAchievement) => void
 }
 
@@ -241,9 +244,11 @@ function deriveInsights(
 function StatsSubTabBar({
   active,
   onChange,
+  tabs,
 }: {
   active: StatsSubTab
   onChange: (tab: StatsSubTab) => void
+  tabs: { id: StatsSubTab; label: string }[]
 }) {
   return (
     <div
@@ -251,7 +256,7 @@ function StatsSubTabBar({
       role="tablist"
       aria-label="Разделы статистики"
     >
-      {STATS_SUB_TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
@@ -278,8 +283,16 @@ export function ProfileStatsPanel({
   onDrillToRatedCards,
   showTasteQuizTeaser = false,
   showPassportCollection = false,
+  showAchievements = false,
   onMarathonDrill,
 }: ProfileStatsPanelProps) {
+  const statsSubTabs = useMemo(() => {
+    const tabs = [...BASE_STATS_SUB_TABS]
+    if (showAchievements) {
+      tabs.push({ id: 'achievements', label: 'Достижения' })
+    }
+    return tabs
+  }, [showAchievements])
   const [statsSubTab, setStatsSubTab] = useState<StatsSubTab>('overview')
   const [activityShelfId, setActivityShelfId] = useState('')
   const [tasteQuizTeaserItems, setTasteQuizTeaserItems] = useState<TasteQuizKnowledgeItem[]>([])
@@ -662,7 +675,7 @@ export function ProfileStatsPanel({
 
   return (
     <div className="space-y-4">
-      <StatsSubTabBar active={statsSubTab} onChange={setStatsSubTab} />
+      <StatsSubTabBar active={statsSubTab} onChange={setStatsSubTab} tabs={statsSubTabs} />
 
       {statsSubTab === 'overview' ? (
         <>
@@ -975,6 +988,8 @@ export function ProfileStatsPanel({
           onMarathonDrill={onMarathonDrill}
         />
       ) : null}
+
+      {statsSubTab === 'achievements' && showAchievements ? <AchievementsPanel /> : null}
     </div>
   )
 }

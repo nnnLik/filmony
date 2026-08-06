@@ -25,7 +25,9 @@ import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
+import { ProfileCollectionsPanel } from '../components/profile/ProfileCollectionsPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
+import { PublicProfilePinnedAchievements } from '../components/profile/PublicProfilePinnedAchievements'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
@@ -337,6 +339,11 @@ export function PublicProfilePage() {
           <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
         ) : null}
 
+        <PublicProfilePinnedAchievements
+          items={profile.pinned_achievements ?? []}
+          className="mb-4"
+        />
+
         <ProfileMainTabs value={mainTab} onChange={setMainTab} className="mb-4" />
 
         {mainTab === 'movies' ? (
@@ -388,7 +395,9 @@ export function PublicProfilePage() {
               )}
             </Section>
           </div>
-        ) : (
+        ) : null}
+
+        {mainTab === 'stats' ? (
           <ProfileStatsTab
             userId={profile.id}
             cardsQuery={ratedQuery}
@@ -397,7 +406,15 @@ export function PublicProfilePage() {
             showPassportCollection
             onDrillToRatedCards={drillToRatedCards}
           />
-        )}
+        ) : null}
+
+        {mainTab === 'collections' ? (
+          <ProfileCollectionsPanel
+            userId={profile.id}
+            isOwnProfile={isOwnPublicProfile}
+            className="mt-2"
+          />
+        ) : null}
       </div>
     </div>
   )

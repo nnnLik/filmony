@@ -30,6 +30,7 @@ from core.database import get_db
 from deps.auth import CurrentUser
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
+from services.achievements.list_pinned_achievements import ListPinnedAchievementsService
 from services.catalog.card_community_fields import load_card_community_fields
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
 from services.profile.get_user_card_stats import GetUserCardStatsService
@@ -106,7 +107,8 @@ async def _public_profile_or_404(
     if target is None:
         raise _not_found()
     counts = await GetUserProfileCountsService(db).execute(target.id)
-    return build_public_profile_response(target, counts)
+    pinned = await ListPinnedAchievementsService.build(db).execute(target.id)
+    return build_public_profile_response(target, counts, pinned_achievements=pinned)
 
 
 @router.get(

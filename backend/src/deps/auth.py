@@ -41,3 +41,30 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_optional_user(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    session_cookie: Annotated[
+        str | None,
+        Cookie(alias=settings.auth_jwt.session_cookie_name),
+    ] = None,
+) -> User | None:
+    token: str | None = None
+    if bearer and bearer.scheme.lower() == 'bearer' and bearer.credentials.strip():
+        token = bearer.credentials.strip()
+    elif session_cookie and session_cookie.strip():
+        token = session_cookie.strip()
+    if not token:
+        return None
+    try:
+        uid = DecodeSessionJwtService().execute(token)
+    except ValueError:
+        return None
+
+    result = await db.execute(select(User).where(User.id == uid))
+    return result.scalar_one_or_none()
+
+
+OptionalUser = Annotated[User | None, Depends(get_optional_user)]

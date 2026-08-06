@@ -24,6 +24,7 @@ from api.catalog.schemas import (
     CatalogSearchProvider,
     CatalogSearchResponse,
 )
+from api.films.award_badges import film_award_badge_responses
 from api.films.schemas import FilmResponse
 from core.database import get_db
 from deps.auth import CurrentUser
@@ -334,6 +335,7 @@ async def resolve_catalog_item(
         raise HTTPException(status_code=502, detail=str(e)) from e
 
     my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
+    award_badges = await film_award_badge_responses(db, film.id)
 
     return CatalogResolveResponse(
         catalog_item_id=catalog_item.id,
@@ -354,6 +356,7 @@ async def resolve_catalog_item(
             short_description=film.short_description,
             description=film.description,
             my_card_id=my_card_id,
+            award_badges=award_badges,
         ),
     )
 
@@ -408,6 +411,7 @@ async def resolve_catalog_by_url(
 
     catalog_item, film = result
     my_card_id = await GetMyUserCardIdForLinkedFilmService.build(db).execute(viewer.id, film.id)
+    award_badges = await film_award_badge_responses(db, film.id)
 
     return CatalogResolveByUrlResponse(
         catalog_item_id=catalog_item.id,
@@ -429,6 +433,7 @@ async def resolve_catalog_by_url(
             short_description=film.short_description,
             description=film.description,
             my_card_id=my_card_id,
+            award_badges=award_badges,
         ),
         source_url=None,
         my_card_id=None,

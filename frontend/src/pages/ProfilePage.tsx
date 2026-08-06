@@ -16,6 +16,7 @@ import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetri
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
+import { ProfileCollectionsPanel } from '../components/profile/ProfileCollectionsPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
 import { PageHeader } from '../components/layout/PageHeader'
@@ -64,6 +65,7 @@ function toPublicShape(p: MyProfile): PublicProfile {
     friends_count: p.friends_count,
     followers_count: p.followers_count,
     following_count: p.following_count,
+    pinned_achievements: [],
   }
 }
 
@@ -505,9 +507,14 @@ export function ProfilePage() {
             enableCategoryFilter
             showTasteQuizTeaser
             showPassportCollection
+            showAchievements
             onMarathonDrill={handleMarathonDrill}
             onDrillToRatedCards={drillToRatedCards}
           />
+        ) : null}
+
+        {mainTab === 'collections' ? (
+          <ProfileCollectionsPanel userId={profile.id} isOwnProfile className="mt-6" />
         ) : null}
       </main>
 

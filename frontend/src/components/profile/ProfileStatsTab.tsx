@@ -15,6 +15,7 @@ type ProfileStatsTabProps = {
   enableCategoryFilter?: boolean
   showTasteQuizTeaser?: boolean
   showPassportCollection?: boolean
+  showAchievements?: boolean
   onMarathonDrill?: (marathon: MarathonAchievement) => void
   onDrillToRatedCards?: () => void
   className?: string
@@ -27,6 +28,7 @@ export function ProfileStatsTab({
   enableCategoryFilter,
   showTasteQuizTeaser,
   showPassportCollection,
+  showAchievements,
   onMarathonDrill,
   onDrillToRatedCards,
   className,
@@ -41,6 +43,7 @@ export function ProfileStatsTab({
           enableCategoryFilter={enableCategoryFilter}
           showTasteQuizTeaser={showTasteQuizTeaser}
           showPassportCollection={showPassportCollection}
+          showAchievements={showAchievements}
           onMarathonDrill={onMarathonDrill}
           onDrillToRatedCards={onDrillToRatedCards}
         />

@@ -9,7 +9,7 @@ RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
 RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
 RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata diagnose-film-tmdb-metadata
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata diagnose-film-tmdb-metadata seed-letterboxd-top-500 seed-oscars seed-collections seed-achievements sync-film-award-badges
 
 start: build up
 
@@ -108,3 +108,26 @@ backfill-film-tmdb-metadata:
 
 diagnose-film-tmdb-metadata:
 	$(AEXEC_NO_TTY) $(APP) python src/manage_diagnose_film_tmdb_metadata.py $(ARGS)
+
+seed-letterboxd-top-500:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	LIM=$${LIMIT:+--limit $$LIMIT}; \
+	SLE=$${SLEEP:+--sleep $$SLEEP}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_seed_letterboxd_top_500.py $$DRY $$LIM $$SLE $(ARGS)
+
+seed-oscars:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	LIM=$${LIMIT:+--limit $$LIMIT}; \
+	SLE=$${SLEEP:+--sleep $$SLEEP}; \
+	YEAR=$${YEAR:+--year $$YEAR}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_seed_oscars.py $$YEAR $$DRY $$LIM $$SLE $(ARGS)
+
+seed-collections: seed-letterboxd-top-500 seed-oscars
+
+seed-achievements:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_seed_achievements.py $$DRY $(ARGS)
+
+sync-film-award-badges:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_sync_film_award_badges.py $$DRY $(ARGS)

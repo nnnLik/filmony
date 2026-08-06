@@ -5,11 +5,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from api.achievements.schemas import PinnedAchievementResponse, build_pinned_achievement_response
 from api.cards.schemas import UserCardCategorySnippet
 from api.watchlist.schemas import WatchTag
 from models.card_enums import CardCompany
 from models.catalog_item import CatalogProvider
 from models.user import User
+from services.achievements.list_pinned_achievements import PinnedAchievementDTO
 from services.profile.get_user_card_stats import UserCardStats
 from services.profile.get_user_profile_counts import UserProfileCounts
 from services.profile.get_user_profile_social_insights import UserProfileSocialInsights
@@ -243,6 +245,7 @@ class PublicProfileResponse(BaseModel):
     friends_count: int = 0
     followers_count: int = 0
     following_count: int = 0
+    pinned_achievements: list[PinnedAchievementResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -528,7 +531,13 @@ def build_my_profile_response(user: User, counts: UserProfileCounts) -> MyProfil
     )
 
 
-def build_public_profile_response(user: User, counts: UserProfileCounts) -> PublicProfileResponse:
+def build_public_profile_response(
+    user: User,
+    counts: UserProfileCounts,
+    *,
+    pinned_achievements: list[PinnedAchievementDTO] | None = None,
+) -> PublicProfileResponse:
+    pinned = pinned_achievements or []
     return PublicProfileResponse(
         id=user.id,
         profile_slug=user.profile_slug,
@@ -544,6 +553,7 @@ def build_public_profile_response(user: User, counts: UserProfileCounts) -> Publ
         friends_count=counts.friends,
         followers_count=counts.followers_count,
         following_count=counts.following_count,
+        pinned_achievements=[build_pinned_achievement_response(item) for item in pinned],
     )
 
 

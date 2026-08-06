@@ -1,8 +1,10 @@
 import { Link } from 'react-router'
 
 import { formatRating } from '../feed/feedCardUtils'
+import { FilmAwardBadgeStrip } from '../films/FilmAwardBadgeStrip'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { formatRatingsCount } from '../../lib/formatRuPlural'
+import type { FilmAwardBadge } from '../../api/profileTypes'
 
 export type CatalogRatedFilm = {
   film_id: number
@@ -12,6 +14,7 @@ export type CatalogRatedFilm = {
   genres: string[]
   community_avg_rating: number | null
   ratings_count: number
+  award_badges?: FilmAwardBadge[]
 }
 
 type CatalogRatedFilmRowProps = {
@@ -38,7 +41,12 @@ export function CatalogRatedFilmRow({ film }: CatalogRatedFilmRowProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-medium text-(--tgui--text_color)">{film.title}</p>
-          <p className="mt-0.5 text-xs text-(--tgui--hint_color)">{film.year ?? '—'}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            <p className="text-xs text-(--tgui--hint_color)">{film.year ?? '—'}</p>
+            {film.award_badges != null && film.award_badges.length > 0 ? (
+              <FilmAwardBadgeStrip badges={film.award_badges} compact />
+            ) : null}
+          </div>
           <FilmGenreChips genres={film.genres} maxVisible={2} className="mt-1.5" />
           <p className="mt-1 text-xs tabular-nums text-(--tgui--hint_color)">
             {film.community_avg_rating != null ? (

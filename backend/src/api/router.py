@@ -1,9 +1,19 @@
 from fastapi import APIRouter
 
+from api.achievements.routes import router as achievements_router
 from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
 from api.cards.routes import router as cards_router
 from api.catalog.routes import router as catalog_router
+from api.collections.routes import (
+    me_pins_router as collection_pins_router,
+)
+from api.collections.routes import (
+    profiles_router as profile_collections_router,
+)
+from api.collections.routes import (
+    router as collections_router,
+)
 from api.controversy.routes import router as controversy_router
 from api.directors.routes import router as directors_router
 from api.feed.routes import router as feed_router
@@ -35,6 +45,7 @@ router.include_router(reactions_router)
 router.include_router(search_router)
 router.include_router(notifications_router)
 router.include_router(profile_me_router)
+router.include_router(achievements_router)
 router.include_router(profile_users_router)
 router.include_router(watchlist_router)
 router.include_router(taste_quiz_router)
@@ -45,6 +56,9 @@ router.include_router(gamification_router)
 router.include_router(directors_router)
 router.include_router(franchises_router)
 router.include_router(genres_router)
+router.include_router(collections_router)
+router.include_router(collection_pins_router)
+router.include_router(profile_collections_router)
 
 
 @router.get('/hello')

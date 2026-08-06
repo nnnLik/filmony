@@ -20,6 +20,7 @@ import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { FilmAwardBadgeStrip } from '../components/films/FilmAwardBadgeStrip'
 import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
 import {
@@ -314,6 +315,9 @@ export function FilmDetailPage() {
   const titleMeta = film != null ? (
     <>
       <p className="mt-1 text-sm text-(--tgui--hint_color)">{film.year ?? 'Год неизвестен'}</p>
+      {film.award_badges != null && film.award_badges.length > 0 ? (
+        <FilmAwardBadgeStrip badges={film.award_badges} className="mt-2" />
+      ) : null}
       {film.primary_director_kinopoisk_id != null &&
       film.primary_director_name != null &&
       film.primary_director_name.trim() !== '' ? (
