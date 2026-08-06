@@ -1,5 +1,5 @@
 import { Avatar, Title } from '@telegram-apps/telegram-ui'
-import { Music } from 'lucide-react'
+import { Music, Trophy } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, type MouseEventHandler } from 'react'
 import { Link, useNavigate } from 'react-router'
 
@@ -28,7 +28,6 @@ import { useFeedCardAuthorBadges } from '../../hooks/useFeedCardAuthorBadges'
 import { useFeedInlineCommentsPanel } from '../../hooks/useFeedInlineCommentsPanel'
 import { useCommentScrollHighlight } from '../../hooks/useCommentScrollHighlight'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
-import { FilmAwardBadgeStrip } from '../films/FilmAwardBadgeStrip'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { DirectorChip } from '../films/DirectorChip'
@@ -36,6 +35,7 @@ import { FranchiseChip } from '../films/FranchiseChip'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { ContrarianBadge } from '../gamification/ContrarianBadge'
+import { primaryFilmAwardBadge } from '../../lib/filmAwardBadgeDisplay'
 import { FeedRatingRing } from './FeedRatingRing'
 import {
   authorLabel,
@@ -136,6 +136,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const primaryTitle = movieCardPrimaryTitle(card)
   const primaryPoster = movieCardPrimaryPoster(card)
   const releaseSuffix = movieCardReleaseCompactSuffix(card)
+  const oscarBadge = useMemo(
+    () => primaryFilmAwardBadge(card.award_badges),
+    [card.award_badges],
+  )
   const navigateToCard = useCallback(() => {
     void navigate(cardHref, { state: { fromFeed: true } })
   }, [navigate, cardHref])
@@ -338,13 +342,31 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                 className="line-clamp-2 text-[16px]! leading-tight text-white drop-shadow-sm"
               >
                 {primaryTitle}
-                {releaseSuffix != null ? (
+                {oscarBadge != null ? (
+                  <span
+                    className={`ml-1.5 inline-flex translate-y-[-1px] items-center gap-0.5 rounded-md border px-1 py-0.5 align-middle text-[11px] font-semibold tabular-nums ${
+                      oscarBadge.kind === 'oscar_best_picture_winner'
+                        ? 'border-[color-mix(in_srgb,#eab308_55%,transparent)] bg-[color-mix(in_srgb,#eab308_22%,transparent)] text-[#facc15]'
+                        : 'border-white/35 bg-black/35 text-white/90'
+                    }`}
+                    title={
+                      oscarBadge.kind === 'oscar_best_picture_winner'
+                        ? `Оскар — лучший фильм (победитель), ${oscarBadge.ceremony_year}`
+                        : `Оскар — лучший фильм (номинант), ${oscarBadge.ceremony_year}`
+                    }
+                    aria-label={
+                      oscarBadge.kind === 'oscar_best_picture_winner'
+                        ? `Оскар ${oscarBadge.ceremony_year}, победитель`
+                        : `Оскар ${oscarBadge.ceremony_year}, номинация`
+                    }
+                  >
+                    <Trophy className="block size-3 shrink-0" aria-hidden />
+                    {oscarBadge.ceremony_year}
+                  </span>
+                ) : releaseSuffix != null ? (
                   <span className="font-normal text-white/72"> · {releaseSuffix}</span>
                 ) : null}
               </Title>
-              {card.award_badges != null && card.award_badges.length > 0 ? (
-                <FilmAwardBadgeStrip badges={card.award_badges} compact className="mt-1.5" />
-              ) : null}
             </div>
             {hasMeaningfulCardRating(card) ? (
               <div className="pointer-events-none absolute right-2.5 top-2.5 z-3">
