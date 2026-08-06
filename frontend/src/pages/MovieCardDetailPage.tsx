@@ -542,7 +542,7 @@ export function MovieCardDetailPage() {
             type="button"
             onClick={() => {
               const st = location.state as MovieCardLocationState
-              if (st?.cardEntry === 'telegram_start_param') {
+              if (st?.cardEntry === 'telegram_start_param' || location.key === 'default') {
                 void navigate('/')
                 return
               }

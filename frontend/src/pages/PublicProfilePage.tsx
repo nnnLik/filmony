@@ -1,7 +1,7 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
 import { useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 
 import { ApiError, formatApiDetail } from '../api/client'
 import {
@@ -41,6 +41,7 @@ export function PublicProfilePage() {
   const resolvedUserId = useMemo(() => decodeURIComponent(userId ?? ''), [userId])
   const auth = useAuthStatus()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
 
   const [mainTab, setMainTab] = useState<ProfileMainTab>('movies')
@@ -175,6 +176,15 @@ export function PublicProfilePage() {
     setMoviesSegment('rated')
   }, [])
 
+  const handleNavigateBack = useCallback(() => {
+    const st = location.state as { cardEntry?: string } | undefined
+    if (st?.cardEntry === 'telegram_start_param' || location.key === 'default') {
+      void navigate('/')
+      return
+    }
+    void navigate(-1)
+  }, [location.key, location.state, navigate])
+
   async function toggleFollowing() {
     if (profile == null || myUserId == null || profile.id === myUserId) {
       return
@@ -264,13 +274,14 @@ export function PublicProfilePage() {
   return (
     <div className="min-h-dvh bg-(--tgui--bg_color) pb-6 text-(--tgui--text_color)">
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] px-2 py-2 backdrop-blur-md">
-        <Link
-          className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color) no-underline"
-          to="/profile"
-          aria-label="Назад к профилю"
+        <button
+          type="button"
+          onClick={handleNavigateBack}
+          className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-lg text-(--tgui--link_color)"
+          aria-label="Назад"
         >
           ←
-        </Link>
+        </button>
         <span className="truncate text-sm font-medium text-(--tgui--hint_color)">Профиль</span>
       </header>
 
