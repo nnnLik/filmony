@@ -56,19 +56,29 @@ class FilmAwardBadgeDAO:
         return found
 
     async def list_by_film_id(self, film_id: int) -> list[FilmAwardBadgeRow]:
+        by_film = await self.list_by_film_ids([film_id])
+        return by_film.get(film_id, [])
+
+    async def list_by_film_ids(self, film_ids: list[int]) -> dict[int, list[FilmAwardBadgeRow]]:
+        if not film_ids:
+            return {}
+        unique_ids = list(dict.fromkeys(film_ids))
         result = await self._session.execute(
-            select(FilmAwardBadge.kind, FilmAwardBadge.ceremony_year).where(
-                FilmAwardBadge.film_id == film_id,
-            ),
+            select(
+                FilmAwardBadge.film_id,
+                FilmAwardBadge.kind,
+                FilmAwardBadge.ceremony_year,
+            ).where(FilmAwardBadge.film_id.in_(unique_ids)),
         )
-        rows = [
-            FilmAwardBadgeRow(
-                kind=FilmAwardBadgeKind(kind),
-                ceremony_year=ceremony_year,
+        grouped: dict[int, list[FilmAwardBadgeRow]] = {film_id: [] for film_id in unique_ids}
+        for film_id, kind, ceremony_year in result.all():
+            grouped[int(film_id)].append(
+                FilmAwardBadgeRow(
+                    kind=FilmAwardBadgeKind(kind),
+                    ceremony_year=ceremony_year,
+                ),
             )
-            for kind, ceremony_year in result.all()
-        ]
-        return _sort_badge_rows(rows)
+        return {film_id: _sort_badge_rows(rows) for film_id, rows in grouped.items()}
 
 
 def _sort_badge_rows(rows: list[FilmAwardBadgeRow]) -> list[FilmAwardBadgeRow]:

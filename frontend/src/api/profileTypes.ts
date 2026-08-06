@@ -276,6 +276,8 @@ export type MovieCard = {
   community_avg_rating?: number | null
   /** Расхождение с community avg ≥ 4 при ratings_count ≥ 3. */
   is_contrarian?: boolean
+  /** Oscar Best Picture nominee/winner badges for the film (feed + card detail). */
+  award_badges?: FilmAwardBadge[]
 }
 
 export type MyUserCardCategory = {

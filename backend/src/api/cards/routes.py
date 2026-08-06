@@ -39,7 +39,15 @@ from api.cards.schemas import (
     WatchedInlinePickerListResponse,
     WatchedInlinePickerRowResponse,
 )
+from api.cards.user_card_feed_mapping import (
+    comment_item_to_response,
+    user_card_feed_item_to_response,
+)
 from api.feed_posts.schemas import FeedPostImageUploadResponse
+from api.films.award_badges import (
+    film_award_badge_responses,
+    film_award_badge_responses_by_film_ids,
+)
 from api.reactions.schemas import reaction_target_summary_to_response
 from celery_app import app as celery_application
 from conf import settings
@@ -420,30 +428,7 @@ async def _load_comment_response(
 
 
 def _comment_item_to_response(item: UserCardCommentItem) -> UserCardCommentResponse:
-    return UserCardCommentResponse(
-        id=item.id,
-        movie_card_id=item.user_card_id,
-        parent_comment_id=item.parent_comment_id,
-        text=item.text,
-        image_url=item.image_url,
-        created_at=item.created_at,
-        replies_count=item.replies_count,
-        total_descendants_count=item.total_descendants_count,
-        author=UserCardCommentAuthorResponse(
-            id=item.author.id,
-            profile_slug=item.author.profile_slug,
-            username=item.author.username,
-            first_name=item.author.first_name,
-            last_name=item.author.last_name,
-            photo_url=item.author.photo_url,
-            display_name=item.author.display_name,
-        ),
-        reactions=reaction_target_summary_to_response(item.reactions),
-        referenced_movie_cards=inline_user_card_snippets_to_response(
-            item.referenced_inline_user_cards
-        ),
-        referenced_mentions=inline_mention_snippets_to_response(item.referenced_mentions),
-    )
+    return comment_item_to_response(item)
 
 
 @router.post('', response_model=CardResponse, summary='Создать карточку фильма')
@@ -516,56 +501,19 @@ async def list_user_card_feed(
     ),
 ) -> UserCardFeedPageResponse:
     page = await ListUserCardFeedService(db).execute(viewer.id, cursor, limit, feed_mode=mode)
+    film_ids = [
+        item.film_id
+        for item in page.items
+        if not isinstance(item, FeedPostFeedItem) and item.film_id is not None
+    ]
+    award_badges_by_film_id = await film_award_badge_responses_by_film_ids(db, film_ids)
     out_items: list[UserCardFeedItemResponse | FeedPostFeedItemResponse] = []
     for item in page.items:
         if isinstance(item, FeedPostFeedItem):
             out_items.append(feed_post_feed_item_to_response(item))
             continue
-        out_items.append(
-            UserCardFeedItemResponse(
-                id=item.id,
-                user_id=item.user_id,
-                card_author=UserCardCommentAuthorResponse(
-                    id=item.card_author.id,
-                    profile_slug=item.card_author.profile_slug,
-                    username=item.card_author.username,
-                    first_name=item.card_author.first_name,
-                    last_name=item.card_author.last_name,
-                    photo_url=item.card_author.photo_url,
-                    display_name=item.card_author.display_name,
-                ),
-                film_id=item.film_id,
-                film_kinopoisk_id=item.film_kinopoisk_id,
-                film_genres=item.film_genres,
-                film_primary_director_kinopoisk_id=item.film_primary_director_kinopoisk_id,
-                film_primary_director_name=item.film_primary_director_name,
-                film_title=item.film_title,
-                film_year=item.film_year,
-                release_year=item.release_year,
-                release_date=item.release_date,
-                film_poster_url=item.film_poster_url,
-                catalog_item_id=item.catalog_item_id,
-                provider=item.provider,
-                external_id=item.external_id,
-                display_title=item.display_title,
-                display_cover_url=item.display_cover_url,
-                display_summary=item.display_summary,
-                rating=item.rating,
-                company=item.company,
-                mood_before=item.mood_before,
-                mood_after=item.mood_after,
-                custom_tags=item.custom_tags,
-                watch_note=item.watch_note,
-                category=UserCardCategorySnippet(id=item.category_id, name=item.category_name),
-                feed_source=item.feed_source,
-                reactions=reaction_target_summary_to_response(item.reactions),
-                comments_count=item.comments_count,
-                comments_preview=[_comment_item_to_response(c) for c in item.comments_preview],
-                is_favorite=item.is_favorite,
-                is_planned=item.is_planned,
-                audio_url=item.audio_url,
-            )
-        )
+        badges = award_badges_by_film_id.get(item.film_id, []) if item.film_id is not None else []
+        out_items.append(user_card_feed_item_to_response(item, award_badges=badges))
     return UserCardFeedPageResponse(items=out_items, next_cursor=page.next_cursor)
 
 
@@ -712,6 +660,9 @@ async def get_card(
         viewer_user_id=viewer.id,
         owner_user_id=card.user_id,
     )
+    award_badges = (
+        await film_award_badge_responses(db, card.film_id) if card.film_id is not None else []
+    )
     return UserCardDetailResponse(
         id=card.id,
         user_id=card.user_id,
@@ -755,6 +706,7 @@ async def get_card(
         audio_url=card.audio_url,
         community_avg_rating=community.community_avg_rating,
         is_contrarian=community.is_contrarian,
+        award_badges=award_badges,
         watchlist_entry_id=card.watchlist_entry_id,
         planned_watch_partners=[
             PlannedWatchPartnerResponse(

@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from api.films.schemas import FilmAwardBadgeResponse
 from api.reactions.schemas import ReactionSummaryResponse
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogProvider
@@ -200,6 +201,7 @@ class CardDetailResponse(BaseModel):
     audio_url: str | None = None
     community_avg_rating: float | None = None
     is_contrarian: bool = False
+    award_badges: list[FilmAwardBadgeResponse] = Field(default_factory=list)
 
 
 class PlannedWatchPartnerResponse(UserCardCommentAuthorResponse):

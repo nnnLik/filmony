@@ -28,6 +28,7 @@ import { useFeedCardAuthorBadges } from '../../hooks/useFeedCardAuthorBadges'
 import { useFeedInlineCommentsPanel } from '../../hooks/useFeedInlineCommentsPanel'
 import { useCommentScrollHighlight } from '../../hooks/useCommentScrollHighlight'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
+import { FilmAwardBadgeStrip } from '../films/FilmAwardBadgeStrip'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { DirectorChip } from '../films/DirectorChip'
@@ -341,6 +342,9 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                   <span className="font-normal text-white/72"> · {releaseSuffix}</span>
                 ) : null}
               </Title>
+              {card.award_badges != null && card.award_badges.length > 0 ? (
+                <FilmAwardBadgeStrip badges={card.award_badges} compact className="mt-1.5" />
+              ) : null}
             </div>
             {hasMeaningfulCardRating(card) ? (
               <div className="pointer-events-none absolute right-2.5 top-2.5 z-3">

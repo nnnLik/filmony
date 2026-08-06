@@ -83,6 +83,7 @@ import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { FilmAwardBadgeStrip } from '../components/films/FilmAwardBadgeStrip'
 import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
@@ -961,6 +962,9 @@ function MovieCardDetailLoadedBody({
                     <Title level="2" weight="2" className="text-[1.15rem]! leading-snug! sm:text-[1.2rem]!">
                       {primaryTitle}
                     </Title>
+                    {card.award_badges != null && card.award_badges.length > 0 ? (
+                      <FilmAwardBadgeStrip badges={card.award_badges} className="mt-2" />
+                    ) : null}
                     {isPlannedCard ? (
                       <p className="mt-1 text-sm leading-snug text-(--tgui--hint_color)">
                         Ещё не посмотрел — в списке «Позже»
