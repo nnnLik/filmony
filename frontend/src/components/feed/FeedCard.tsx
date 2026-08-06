@@ -342,28 +342,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
                 className="line-clamp-2 text-[16px]! leading-tight text-white drop-shadow-sm"
               >
                 {primaryTitle}
-                {oscarBadge != null ? (
-                  <span
-                    className={`ml-1.5 inline-flex translate-y-[-1px] items-center gap-0.5 rounded-md border px-1 py-0.5 align-middle text-[11px] font-semibold tabular-nums ${
-                      oscarBadge.kind === 'oscar_best_picture_winner'
-                        ? 'border-[color-mix(in_srgb,#eab308_55%,transparent)] bg-[color-mix(in_srgb,#eab308_22%,transparent)] text-[#facc15]'
-                        : 'border-white/35 bg-black/35 text-white/90'
-                    }`}
-                    title={
-                      oscarBadge.kind === 'oscar_best_picture_winner'
-                        ? `Оскар — лучший фильм (победитель), ${oscarBadge.ceremony_year}`
-                        : `Оскар — лучший фильм (номинант), ${oscarBadge.ceremony_year}`
-                    }
-                    aria-label={
-                      oscarBadge.kind === 'oscar_best_picture_winner'
-                        ? `Оскар ${oscarBadge.ceremony_year}, победитель`
-                        : `Оскар ${oscarBadge.ceremony_year}, номинация`
-                    }
-                  >
-                    <Trophy className="block size-3 shrink-0" aria-hidden />
-                    {oscarBadge.ceremony_year}
-                  </span>
-                ) : releaseSuffix != null ? (
+                {releaseSuffix != null ? (
                   <span className="font-normal text-white/72"> · {releaseSuffix}</span>
                 ) : null}
               </Title>
@@ -418,7 +397,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       {/* Мета: профиль (только аватар, имя в title) + теги — не накрываем overlay-ссылкой */}
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex min-w-0 items-center justify-between gap-1.5">
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             <Link
               to={profileHref}
               className="relative z-10 flex shrink-0 rounded-full p-0.5 no-underline ring-1 ring-transparent transition-[box-shadow,ring-color] hover:ring-(--tgui--link_color) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--tgui--link_color)"
@@ -437,8 +416,39 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               viewerId={viewerUserId}
             />
             <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={card.user_id} />
+            {oscarBadge != null ? (
+              <span
+                className={`inline-flex shrink-0 items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
+                  oscarBadge.kind === 'oscar_best_picture_winner'
+                    ? 'border-[color-mix(in_srgb,#eab308_45%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,#eab308_16%,var(--tgui--secondary_bg_color))] text-[#facc15]'
+                    : 'border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) text-(--tgui--hint_color)'
+                }`}
+                title={
+                  oscarBadge.kind === 'oscar_best_picture_winner'
+                    ? `Оскар — лучший фильм (победитель), ${oscarBadge.ceremony_year}`
+                    : `Оскар — лучший фильм (номинант), ${oscarBadge.ceremony_year}`
+                }
+                aria-label={
+                  oscarBadge.kind === 'oscar_best_picture_winner'
+                    ? `Оскар ${oscarBadge.ceremony_year}, победитель`
+                    : `Оскар ${oscarBadge.ceremony_year}, номинация`
+                }
+              >
+                <Trophy className="block size-3 shrink-0" aria-hidden />
+                {oscarBadge.ceremony_year}
+              </span>
+            ) : null}
+            {card.film_primary_director_kinopoisk_id != null &&
+            card.film_primary_director_name != null &&
+            card.film_primary_director_name.trim() !== '' ? (
+              <DirectorChip
+                kinopoiskId={card.film_primary_director_kinopoisk_id}
+                name={card.film_primary_director_name}
+                className="min-w-0 max-w-[min(100%,11rem)]"
+              />
+            ) : null}
           </div>
-          <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-1">
+          <div className="flex min-w-0 shrink-0 flex-wrap justify-end gap-1">
             <span className="rounded-full border border-transparent bg-[color-mix(in_srgb,var(--tgui--accent_text_color)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--tgui--text_color)">
               {COMPANY_SHORT[card.company]}
             </span>
@@ -454,16 +464,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             ) : null}
           </div>
         </div>
-
-        {card.film_primary_director_kinopoisk_id != null &&
-        card.film_primary_director_name != null &&
-        card.film_primary_director_name.trim() !== '' ? (
-          <DirectorChip
-            kinopoiskId={card.film_primary_director_kinopoisk_id}
-            name={card.film_primary_director_name}
-            className="mt-0.5"
-          />
-        ) : null}
 
         {card.film_franchise_key != null &&
         card.film_franchise_label != null &&

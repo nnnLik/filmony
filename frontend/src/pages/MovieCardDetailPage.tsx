@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { CopyPlus, Link2, Share2 } from 'lucide-react'
+import { CopyPlus, Link2, Share2, Trophy } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
@@ -83,9 +83,9 @@ import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
-import { FilmAwardBadgeStrip } from '../components/films/FilmAwardBadgeStrip'
 import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
+import { primaryFilmAwardBadge } from '../lib/filmAwardBadgeDisplay'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import {
   buildFollowingRatingDisplayRows,
@@ -857,6 +857,10 @@ function MovieCardDetailLoadedBody({
     'fromFeed' in location.state &&
     Boolean((location.state as { fromFeed?: boolean }).fromFeed)
   const detailCardAuthor = movieCardAuthorOrNull(card)
+  const oscarBadge = useMemo(
+    () => primaryFilmAwardBadge(card.award_badges),
+    [card.award_badges],
+  )
   const watchNoteText = movieCardWatchNotePlainText(card)
   const showWatchNote = watchNoteText.trim().length > 0
   const isPlannedCard = card.is_planned === true
@@ -962,23 +966,19 @@ function MovieCardDetailLoadedBody({
                     <Title level="2" weight="2" className="text-[1.15rem]! leading-snug! sm:text-[1.2rem]!">
                       {primaryTitle}
                     </Title>
-                    {card.award_badges != null && card.award_badges.length > 0 ? (
-                      <FilmAwardBadgeStrip badges={card.award_badges} className="mt-2" />
-                    ) : null}
                     {isPlannedCard ? (
                       <p className="mt-1 text-sm leading-snug text-(--tgui--hint_color)">
                         Ещё не посмотрел — в списке «Позже»
                       </p>
                     ) : null}
-                    <div className="mt-3">
+                    <div className="mt-2">
                       <WatchlistOverlapAnchorBanner
                         anchor={cardOverlapAnchor}
                         enabled={!showCardRating || isPlannedCard}
                         inViewerWatchlist={isPlannedCard && isOwner ? true : false}
                       />
                     </div>
-                    <CardCategoryChip category={card.category} className="mt-2" />
-                    <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
                       {detailCardAuthor != null ? (
                         <>
                           <CardAuthorAvatarLink author={detailCardAuthor} />
@@ -993,35 +993,58 @@ function MovieCardDetailLoadedBody({
                           />
                         </>
                       ) : null}
-                      <p className="min-w-0 text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
+                      {oscarBadge != null ? (
+                        <span
+                          className={`inline-flex shrink-0 items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
+                            oscarBadge.kind === 'oscar_best_picture_winner'
+                              ? 'border-[color-mix(in_srgb,#eab308_45%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,#eab308_16%,var(--tgui--secondary_bg_color))] text-[#facc15]'
+                              : 'border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) text-(--tgui--hint_color)'
+                          }`}
+                          title={
+                            oscarBadge.kind === 'oscar_best_picture_winner'
+                              ? `Оскар — лучший фильм (победитель), ${oscarBadge.ceremony_year}`
+                              : `Оскар — лучший фильм (номинант), ${oscarBadge.ceremony_year}`
+                          }
+                          aria-label={
+                            oscarBadge.kind === 'oscar_best_picture_winner'
+                              ? `Оскар ${oscarBadge.ceremony_year}, победитель`
+                              : `Оскар ${oscarBadge.ceremony_year}, номинация`
+                          }
+                        >
+                          <Trophy className="block size-3 shrink-0" aria-hidden />
+                          {oscarBadge.ceremony_year}
+                        </span>
+                      ) : null}
+                      <span className="text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
                         {movieCardReleasePrimaryLabel(card)}
-                      </p>
+                      </span>
+                      <CardCategoryChip category={card.category} />
+                      {card.film_primary_director_kinopoisk_id != null &&
+                      card.film_primary_director_name != null &&
+                      card.film_primary_director_name.trim() !== '' ? (
+                        <DirectorChip
+                          kinopoiskId={card.film_primary_director_kinopoisk_id}
+                          name={card.film_primary_director_name}
+                          size="sm"
+                          className="min-w-0 max-w-[min(100%,12rem)]"
+                        />
+                      ) : null}
+                      {card.film_franchise_key != null &&
+                      card.film_franchise_label != null &&
+                      card.film_franchise_label.trim() !== '' ? (
+                        <FranchiseChip
+                          franchiseKey={card.film_franchise_key}
+                          label={card.film_franchise_label}
+                          size="sm"
+                          className="min-w-0 max-w-[min(100%,12rem)]"
+                        />
+                      ) : null}
                     </div>
-                    {card.film_primary_director_kinopoisk_id != null &&
-                    card.film_primary_director_name != null &&
-                    card.film_primary_director_name.trim() !== '' ? (
-                      <DirectorChip
-                        kinopoiskId={card.film_primary_director_kinopoisk_id}
-                        name={card.film_primary_director_name}
-                        size="md"
-                        className="mt-2"
-                      />
-                    ) : null}
-                    {card.film_franchise_key != null &&
-                    card.film_franchise_label != null &&
-                    card.film_franchise_label.trim() !== '' ? (
-                      <FranchiseChip
-                        franchiseKey={card.film_franchise_key}
-                        label={card.film_franchise_label}
-                        size="md"
-                        className="mt-2"
-                      />
-                    ) : null}
-                    <FilmGenreChips genres={card.film_genres} size="md" className="mt-2" />
+                    <FilmGenreChips genres={card.film_genres} size="sm" className="mt-1.5" />
                     <FilmSynopsisBlock
                       shortDescription={synopsisShort}
                       description={card.film_description ?? null}
-                      className="mt-3"
+                      className="mt-2"
                     />
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
