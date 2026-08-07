@@ -23,6 +23,11 @@ export async function listCollections(
   return apiJson<CollectionListResponse>(`/api/collections${suffix}`)
 }
 
+/** Active collections that include this film (`GET /api/films/{filmId}/collections`). */
+export async function getFilmCollections(filmId: number): Promise<CollectionListResponse> {
+  return apiJson<CollectionListResponse>(`/api/films/${encodeURIComponent(String(filmId))}/collections`)
+}
+
 export async function getCollectionBySlug(slug: string): Promise<CollectionSummary> {
   return apiJson<CollectionSummary>(`/api/collections/${encodeURIComponent(slug.trim())}`)
 }

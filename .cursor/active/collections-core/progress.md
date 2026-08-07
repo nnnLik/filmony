@@ -65,3 +65,9 @@
 - **Nav/routes:** 4th BottomNav tab «Коллекции» → `/collections`; AppShell routes; `ScrollToTopFab` whitelist
 - **Skipped slice 4:** profile pins tab + `PinCollectionButton` (stub omitted)
 - **Verification:** `cd frontend && npm run lint && npm run build` — pass
+
+## 2026-08-07T003000Z — Film card: collections strip
+
+- **API:** `GET /api/films/{film_id}/collections` via `ListFilmCollectionsService`
+- **UI:** `FilmCollectionsStrip` under «Друзья оценили» on `MovieCardDetailPage` (horizontal scroll chips)
+- **Tests:** `backend/src/tests/integration/api/test_film_collections_routes.py` — pass (`make backend-test-one`)

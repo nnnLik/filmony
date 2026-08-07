@@ -11,3 +11,6 @@ export const collectionFilmsQueryKey = (slug: string) =>
 
 export const profilePinnedCollectionsQueryKey = (userId: string) =>
   [...collectionsQueryRootKey, 'profilePinned', userId] as const
+
+export const filmCollectionsQueryKey = (filmId: number) =>
+  [...collectionsQueryRootKey, 'film', filmId] as const

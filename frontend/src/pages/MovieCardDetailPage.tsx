@@ -87,6 +87,10 @@ import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
 import { primaryFilmAwardBadge } from '../lib/filmAwardBadgeDisplay'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
+import { FilmCollectionsStrip } from '../components/collections/FilmCollectionsStrip'
+import { getFilmCollections } from '../api/collectionsApi'
+import type { CollectionSummary } from '../api/collectionsTypes'
+import { filmCollectionsQueryKey } from '../lib/collectionQueryKeys'
 import {
   buildFollowingRatingDisplayRows,
   type FollowingRatingRow,
@@ -840,6 +844,7 @@ function MovieCardDetailLoadedBody({
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
 }: MovieCardDetailLoadedBodyProps) {
+  const auth = useAuthStatus()
   const [cardAttachedAudio, setCardAttachedAudio] = useState<HTMLAudioElement | null>(null)
   const onCardAttachedAudio = useCallback((el: HTMLAudioElement | null) => {
     setCardAttachedAudio(el)
@@ -868,6 +873,24 @@ function MovieCardDetailLoadedBody({
   const showCardRating = hasMeaningfulCardRating(card)
   const hasCardAudio = card.audio_url != null && card.audio_url.trim() !== ''
   const cardAudioUrlTrimmed = (card.audio_url ?? '').trim()
+
+  const filmIdForCollections =
+    card.film_id != null && card.film_id > 0 ? card.film_id : null
+  const filmCollectionsQuery = useQuery<CollectionSummary[], Error>({
+    queryKey: filmCollectionsQueryKey(filmIdForCollections ?? 0),
+    queryFn: async () => {
+      const data = await getFilmCollections(filmIdForCollections as number)
+      return data.items
+    },
+    enabled: auth.kind === 'ready' && filmIdForCollections != null,
+    staleTime: 60_000,
+  })
+  const filmCollectionsItems: CollectionSummary[] | null =
+    filmIdForCollections == null
+      ? []
+      : filmCollectionsQuery.isError
+        ? []
+        : (filmCollectionsQuery.data ?? null)
 
   const posterFs = useFullscreenImageActivator({
     enabled: Boolean(primaryPoster),
@@ -1220,6 +1243,13 @@ function MovieCardDetailLoadedBody({
                   : null
               }
             />
+            ) : null}
+
+            {filmIdForCollections != null ? (
+              <FilmCollectionsStrip
+                className={`filmony-card-detail-panel-enter ${isPlannedCard ? 'filmony-card-detail-panel-enter--delay-2' : 'filmony-card-detail-panel-enter--delay-3'} mt-3`}
+                items={filmCollectionsItems}
+              />
             ) : null}
 
             <CommentThreadSection

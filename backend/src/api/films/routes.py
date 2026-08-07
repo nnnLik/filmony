@@ -6,6 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.cards.schemas import FollowingRatingsListResponse
+from api.collections.schemas import (
+    CollectionListResponse,
+    CollectionSummaryResponse,
+    UserCollectionProgressResponse,
+)
 from api.films.award_badges import film_award_badge_responses
 from api.films.schemas import (
     FilmCommunityAuthorResponse,
@@ -19,6 +24,8 @@ from deps.auth import CurrentUser
 from services.cards.following_ratings_response import following_ratings_list_response
 from services.cards.get_my_user_card_id_for_linked_film import GetMyUserCardIdForLinkedFilmService
 from services.cards.list_following_ratings_for_title import ListFollowingRatingsForTitleService
+from services.collections.list_collections import CollectionSummaryDTO
+from services.collections.list_film_collections import ListFilmCollectionsService
 from services.films.get_film_by_id import GetFilmByIdService
 from services.films.list_film_community_cards import ListFilmCommunityCardsService
 from services.franchises.franchise_label import resolve_franchise_label
@@ -29,6 +36,32 @@ from services.kinopoisk.resolve_kinopoisk_film import (
 )
 
 router = APIRouter(prefix='/films', tags=['films'])
+
+
+def _collection_progress_response(
+    dto: CollectionSummaryDTO,
+) -> UserCollectionProgressResponse | None:
+    if dto.viewer_progress is None:
+        return None
+    return UserCollectionProgressResponse(
+        rated_count=dto.viewer_progress.rated_count,
+        total_count=dto.viewer_progress.total_count,
+        completed_at=dto.viewer_progress.completed_at,
+    )
+
+
+def _collection_summary_response(dto: CollectionSummaryDTO) -> CollectionSummaryResponse:
+    return CollectionSummaryResponse(
+        slug=dto.slug,
+        kind=dto.kind,
+        title=dto.title,
+        description=dto.description,
+        season_year=dto.season_year,
+        film_count=dto.film_count,
+        content_updated_at=dto.content_updated_at,
+        viewer_progress=_collection_progress_response(dto),
+        is_pinned=dto.is_pinned,
+    )
 
 
 async def _film_response(db: AsyncSession, film, viewer_id) -> FilmResponse:
@@ -119,6 +152,26 @@ async def list_film_community_cards(
         ],
         next_cursor=page.next_cursor,
     )
+
+
+@router.get(
+    '/{film_id}/collections',
+    response_model=CollectionListResponse,
+    summary='Активные коллекции, в которых есть фильм',
+)
+async def list_film_collections(
+    film_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CollectionListResponse:
+    film = await GetFilmByIdService(db).execute(film_id)
+    if film is None:
+        raise HTTPException(status_code=404, detail='film not found')
+    items = await ListFilmCollectionsService.build(db).execute(
+        film_id,
+        viewer_user_id=viewer.id,
+    )
+    return CollectionListResponse(items=[_collection_summary_response(item) for item in items])
 
 
 @router.get(
