@@ -674,7 +674,12 @@ async def test_create_film_backed_upgrade_triggers_ensure_film_cast(
             provider=CatalogProvider.kinopoisk,
             external_id=str(film.kinopoisk_id),
             is_planned=True,
+            display_title=film.title,
             rating=0,
+            company=CardCompany.alone.value,
+            mood_before=CardMoodBefore.relax.value,
+            mood_after=CardMoodAfter.enjoyed.value,
+            watch_note='',
         )
         session.add(planned)
         await session.commit()
@@ -710,12 +715,20 @@ async def test_create_film_backed_cast_failure_does_not_block_card(
 
             raise KinopoiskProviderTransport.KinopoiskProviderTransportError
 
-    def build_with_failing_transport(session: AsyncSession) -> EnsureFilmCastService:
-        return EnsureFilmCastService.build(session, transport=FailingTransport())  # type: ignore[arg-type]
+    def fake_build(
+        session: AsyncSession,
+        *,
+        transport: object | None = None,
+    ) -> EnsureFilmCastService:
+        _ = transport
+        return EnsureFilmCastService(
+            _session=session,
+            _kp_transport=FailingTransport(),  # type: ignore[arg-type]
+        )
 
     with (
         patch.object(ResolveKinopoiskFilmService, 'sync_metadata_for_film', AsyncMock()),
-        patch.object(EnsureFilmCastService, 'build', side_effect=build_with_failing_transport),
+        patch.object(EnsureFilmCastService, 'build', side_effect=fake_build),
     ):
         async with session_factory() as session:
             await ensure_default_category(session, user.id)
