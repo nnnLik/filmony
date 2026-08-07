@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.database import get_session_factory
 from models.film import Film
 from models.film_actor import FilmActor
 from models.person import Person
@@ -29,12 +30,14 @@ class FakeKinopoiskStaffTransport:
 
 
 @pytest.mark.asyncio
-async def test_ensure_film_cast_persists_top_actors(prepare_db: AsyncSession) -> None:
-    session = prepare_db
-    film = Film(kinopoisk_id=301, title='Matrix', year=1999, poster_url=None, genres=[])
-    session.add(film)
-    await session.commit()
-    await session.refresh(film)
+async def test_ensure_film_cast_persists_top_actors(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=301, title='Matrix', year=1999, poster_url=None, genres=[])
+        session.add(film)
+        await session.commit()
+        await session.refresh(film)
+        film_id = film.id
 
     transport = FakeKinopoiskStaffTransport(
         staff=(
@@ -56,10 +59,12 @@ async def test_ensure_film_cast_persists_top_actors(prepare_db: AsyncSession) ->
         ),
     )
 
-    await EnsureFilmCastService.build(session, transport=transport).execute(film.id)
+    async with session_factory() as session:
+        await EnsureFilmCastService.build(session, transport=transport).execute(film_id)
 
-    persons = (await session.execute(select(Person))).scalars().all()
-    film_actors = (await session.execute(select(FilmActor))).scalars().all()
+    async with session_factory() as session:
+        persons = (await session.execute(select(Person))).scalars().all()
+        film_actors = (await session.execute(select(FilmActor))).scalars().all()
     assert len(persons) == 1
     assert persons[0].kinopoisk_id == 733
     assert persons[0].name == 'Леонардо ДиКаприо'
@@ -69,12 +74,14 @@ async def test_ensure_film_cast_persists_top_actors(prepare_db: AsyncSession) ->
 
 
 @pytest.mark.asyncio
-async def test_ensure_film_cast_is_idempotent(prepare_db: AsyncSession) -> None:
-    session = prepare_db
-    film = Film(kinopoisk_id=302, title='Film', year=2000, poster_url=None, genres=[])
-    session.add(film)
-    await session.commit()
-    await session.refresh(film)
+async def test_ensure_film_cast_is_idempotent(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=302, title='Film', year=2000, poster_url=None, genres=[])
+        session.add(film)
+        await session.commit()
+        await session.refresh(film)
+        film_id = film.id
 
     transport = FakeKinopoiskStaffTransport(
         staff=(
@@ -87,25 +94,35 @@ async def test_ensure_film_cast_is_idempotent(prepare_db: AsyncSession) -> None:
             ),
         ),
     )
-    service = EnsureFilmCastService.build(session, transport=transport)
-    await service.execute(film.id)
-    await service.execute(film.id)
+
+    async with session_factory() as session:
+        service = EnsureFilmCastService.build(session, transport=transport)
+        await service.execute(film_id)
+    async with session_factory() as session:
+        service = EnsureFilmCastService.build(session, transport=transport)
+        await service.execute(film_id)
 
     assert transport.calls == [302]
-    count = (await session.execute(select(FilmActor))).scalars().all()
+    async with session_factory() as session:
+        count = (await session.execute(select(FilmActor))).scalars().all()
     assert len(count) == 1
 
 
 @pytest.mark.asyncio
-async def test_ensure_film_cast_swallows_kp_errors(prepare_db: AsyncSession) -> None:
-    session = prepare_db
-    film = Film(kinopoisk_id=303, title='Film', year=2000, poster_url=None, genres=[])
-    session.add(film)
-    await session.commit()
-    await session.refresh(film)
+async def test_ensure_film_cast_swallows_kp_errors(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=303, title='Film', year=2000, poster_url=None, genres=[])
+        session.add(film)
+        await session.commit()
+        await session.refresh(film)
+        film_id = film.id
 
     transport = FakeKinopoiskStaffTransport(should_fail=True)
 
-    await EnsureFilmCastService.build(session, transport=transport).execute(film.id)
+    async with session_factory() as session:
+        await EnsureFilmCastService.build(session, transport=transport).execute(film_id)
 
-    assert (await session.execute(select(FilmActor))).scalars().all() == []
+    async with session_factory() as session:
+        rows = (await session.execute(select(FilmActor))).scalars().all()
+    assert rows == []

@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from conf import settings
 from core.database import get_session_factory
+from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.film_actor import FilmActor
 from models.person import Person
@@ -69,7 +70,12 @@ async def _seed_actor_film(
                 user_id=user_id,
                 film_id=film.id,
                 category_id=category_id,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
                 rating=rating,
+                company='alone',
+                mood_before='relax',
+                mood_after='enjoyed',
                 is_planned=False,
             ),
         )
