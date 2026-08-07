@@ -36,10 +36,14 @@ async def test_resolve_saves_imdb_and_calls_tmdb_sync() -> None:
     mock_tmdb = MagicMock()
     mock_tmdb.execute = AsyncMock(side_effect=capture_sync)
 
+    mock_transport = MagicMock()
+    mock_transport.get_staff_by_film_id = AsyncMock(return_value=())
+
     with patch('services.kinopoisk.resolve_kinopoisk_film.KinopoiskClient') as mock_client_cls:
         mock_client_cls.return_value.get_film = AsyncMock(return_value=payload)
         service = ResolveKinopoiskFilmService(session)
         service._tmdb_sync = mock_tmdb
+        service._kp_transport = mock_transport
         film = await service.execute('https://www.kinopoisk.ru/film/301/')
 
     assert film.imdb_id == 'tt0133093'
