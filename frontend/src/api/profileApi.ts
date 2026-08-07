@@ -46,6 +46,8 @@ export type GetUserCardsParams = {
   completedOn?: string | null
   /** Kinopoisk staff id основного режиссёра фильма. */
   directorKinopoiskId?: number | null
+  /** Kinopoisk staff id актёра из cast. */
+  actorKinopoiskId?: number | null
   /** Стабильный ключ франшизы фильма, напр. `kp_franchise:301`. */
   franchiseKey?: string | null
   /** Slug жанра (Film.genres). */
@@ -172,6 +174,9 @@ export async function getUserCards(userId: string, params: GetUserCardsParams): 
   }
   if (params.directorKinopoiskId != null && params.directorKinopoiskId >= 1) {
     q.set('director_kinopoisk_id', String(params.directorKinopoiskId))
+  }
+  if (params.actorKinopoiskId != null && params.actorKinopoiskId >= 1) {
+    q.set('actor_kinopoisk_id', String(params.actorKinopoiskId))
   }
   if (params.franchiseKey != null && params.franchiseKey.trim() !== '') {
     q.set('franchise_key', params.franchiseKey.trim())

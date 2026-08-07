@@ -20,6 +20,7 @@ export const RATED_CARDS_FILTER_PARAM_KEYS = [
   'categoryId',
   'completedOn',
   'directorKinopoiskId',
+  'actorKinopoiskId',
   'franchiseKey',
   'genre',
 ] as const
@@ -41,6 +42,8 @@ export type RatedCardsListQuery = {
   completedOn: string
   /** Kinopoisk staff id режиссёра; пустая строка = все. */
   directorKinopoiskId: string
+  /** Kinopoisk staff id актёра; пустая строка = все. */
+  actorKinopoiskId: string
   /** Стабильный ключ франшизы, напр. `kp_franchise:301`; пустая строка = все. */
   franchiseKey: string
   /** Slug жанра (Film.genres); пустая строка = все. */
@@ -60,6 +63,7 @@ export const DEFAULT_RATED_CARDS_QUERY: RatedCardsListQuery = {
   categoryId: '',
   completedOn: '',
   directorKinopoiskId: '',
+  actorKinopoiskId: '',
   franchiseKey: '',
   genre: '',
 }
@@ -78,6 +82,7 @@ export function isDefaultRatedCardsQuery(q: RatedCardsListQuery): boolean {
     q.categoryId.trim() === '' &&
     q.completedOn.trim() === '' &&
     q.directorKinopoiskId.trim() === '' &&
+    q.actorKinopoiskId.trim() === '' &&
     q.franchiseKey.trim() === '' &&
     q.genre.trim() === ''
   )
@@ -97,6 +102,7 @@ export function ratedCardsQueryKey(q: RatedCardsListQuery): string {
     shelf: q.categoryId.trim(),
     completed: q.completedOn.trim(),
     dir: q.directorKinopoiskId.trim(),
+    actor: q.actorKinopoiskId.trim(),
     franchise: q.franchiseKey.trim(),
     genre: q.genre.trim(),
   })
@@ -189,6 +195,10 @@ export function ratedCardsQueryToSearchParams(query: RatedCardsListQuery): URLSe
   if (directorKinopoiskId !== '') {
     params.set('directorKinopoiskId', directorKinopoiskId)
   }
+  const actorKinopoiskId = query.actorKinopoiskId.trim()
+  if (actorKinopoiskId !== '') {
+    params.set('actorKinopoiskId', actorKinopoiskId)
+  }
   const franchiseKey = query.franchiseKey.trim()
   if (franchiseKey !== '') {
     params.set('franchiseKey', franchiseKey)
@@ -215,6 +225,7 @@ export function ratedCardsQueryFromSearchParams(searchParams: URLSearchParams): 
     categoryId: searchParams.get('categoryId') ?? '',
     completedOn: searchParams.get('completedOn') ?? '',
     directorKinopoiskId: searchParams.get('directorKinopoiskId') ?? '',
+    actorKinopoiskId: searchParams.get('actorKinopoiskId') ?? '',
     franchiseKey: searchParams.get('franchiseKey') ?? '',
     genre: searchParams.get('genre') ?? '',
   }
@@ -248,6 +259,10 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
   const dirNum = dirRaw === '' ? null : Number(dirRaw)
   const directorKinopoiskId =
     dirNum != null && Number.isInteger(dirNum) && dirNum >= 1 ? dirNum : null
+  const actorRaw = q.actorKinopoiskId.trim()
+  const actorNum = actorRaw === '' ? null : Number(actorRaw)
+  const actorKinopoiskId =
+    actorNum != null && Number.isInteger(actorNum) && actorNum >= 1 ? actorNum : null
   const franchiseKey = q.franchiseKey.trim() === '' ? null : q.franchiseKey.trim()
   const genre = q.genre.trim() === '' ? null : q.genre.trim()
 
@@ -264,6 +279,7 @@ export function ratedCardsToListParams(q: RatedCardsListQuery): Omit<GetUserCard
     categoryId,
     completedOn: q.completedOn.trim() === '' ? null : q.completedOn.trim(),
     directorKinopoiskId,
+    actorKinopoiskId,
     franchiseKey,
     genre,
   }

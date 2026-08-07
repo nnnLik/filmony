@@ -13,6 +13,7 @@ export function marathonDrillToRatedQuery(
     return {
       ...current,
       directorKinopoiskId,
+      actorKinopoiskId: '',
       franchiseKey: '',
       filmTitle: '',
     }
@@ -23,6 +24,7 @@ export function marathonDrillToRatedQuery(
       ...current,
       franchiseKey: marathon.key.trim(),
       directorKinopoiskId: '',
+      actorKinopoiskId: '',
       filmTitle: '',
     }
   }
@@ -36,6 +38,7 @@ export function marathonDrillToRatedQuery(
 export function isMarathonDrillQuery(next: RatedCardsListQuery): boolean {
   return (
     next.directorKinopoiskId.trim() !== '' ||
+    next.actorKinopoiskId.trim() !== '' ||
     next.franchiseKey.trim() !== '' ||
     (next.filmTitle.trim() !== '' && next.filmTitle !== DEFAULT_RATED_CARDS_QUERY.filmTitle)
   )

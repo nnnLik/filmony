@@ -32,6 +32,7 @@ import {
   type RatedCardsListQuery,
   isDefaultRatedCardsQuery,
 } from '../../lib/ratedCardsListQuery'
+import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQuery'
 import {
   readCachedUserMovieCardTagStats,
   writeCachedUserMovieCardTagStats,
@@ -104,7 +105,14 @@ export function ProfileRatedCardsFilters({
   const fetchDirectorsEnabled =
     profileUserId !== '' && (filtersOpen || cardsQuery.directorKinopoiskId.trim() !== '')
 
+  const fetchActorsEnabled =
+    profileUserId !== '' && (filtersOpen || cardsQuery.actorKinopoiskId.trim() !== '')
+
   const fetchGenresEnabled = filtersOpen || cardsQuery.genre.trim() !== ''
+
+  const statsQuery = useUserMovieCardStatsQuery(profileUserId, null, {
+    enabled: fetchActorsEnabled,
+  })
 
   const directorsQuery = useQuery<UserRatedDirectorsResponse>({
     queryKey: userRatedDirectorsQueryKey(profileUserId),
@@ -156,6 +164,10 @@ export function ProfileRatedCardsFilters({
     () => directorsQuery.data?.items ?? [],
     [directorsQuery.data?.items],
   )
+  const actorItems = useMemo(
+    () => statsQuery.data?.actor_distribution ?? [],
+    [statsQuery.data?.actor_distribution],
+  )
   const genreItems = useMemo(() => genresQuery.data?.items ?? [], [genresQuery.data?.items])
   const shelvesErr: string | null =
     enableCategoryFilter && filtersOpen && shelvesQuery.isError
@@ -202,6 +214,15 @@ export function ProfileRatedCardsFilters({
     return match?.name ?? null
   }, [cardsQuery.directorKinopoiskId, directorItems])
 
+  const activeActorName = useMemo(() => {
+    const id = cardsQuery.actorKinopoiskId.trim()
+    if (id === '') {
+      return null
+    }
+    const match = actorItems.find((row) => String(row.kinopoisk_id) === id)
+    return match?.name ?? null
+  }, [cardsQuery.actorKinopoiskId, actorItems])
+
   const activeGenreName = useMemo(() => {
     const slug = cardsQuery.genre.trim()
     if (slug === '') {
@@ -218,6 +239,11 @@ export function ProfileRatedCardsFilters({
     } else if (cardsQuery.directorKinopoiskId.trim() !== '') {
       parts.push('режиссёр')
     }
+    if (activeActorName != null) {
+      parts.push(`актёр: ${activeActorName}`)
+    } else if (cardsQuery.actorKinopoiskId.trim() !== '') {
+      parts.push('актёр')
+    }
     if (activeGenreName != null) {
       parts.push(`жанр: ${activeGenreName}`)
     } else if (cardsQuery.genre.trim() !== '') {
@@ -232,8 +258,10 @@ export function ProfileRatedCardsFilters({
     return parts.length > 0 ? parts.join(' · ') : null
   }, [
     activeDirectorName,
+    activeActorName,
     activeGenreName,
     cardsQuery.directorKinopoiskId,
+    cardsQuery.actorKinopoiskId,
     cardsQuery.franchiseKey,
     cardsQuery.genre,
     cardsQuery.filmTitle,
@@ -379,6 +407,7 @@ export function ProfileRatedCardsFilters({
                 onChange({
                   ...cardsQuery,
                   directorKinopoiskId: e.currentTarget.value,
+                  actorKinopoiskId: e.currentTarget.value !== '' ? '' : cardsQuery.actorKinopoiskId,
                   franchiseKey: e.currentTarget.value !== '' ? '' : cardsQuery.franchiseKey,
                   genre: e.currentTarget.value !== '' ? '' : cardsQuery.genre,
                 })
@@ -401,6 +430,35 @@ export function ProfileRatedCardsFilters({
           </label>
 
           <label className="block text-xs font-medium text-(--tgui--hint_color)">
+            Актёр
+            <select
+              className={`${SELECT_CLASS} mt-1`}
+              value={cardsQuery.actorKinopoiskId}
+              onChange={(e) =>
+                onChange({
+                  ...cardsQuery,
+                  actorKinopoiskId: e.currentTarget.value,
+                  directorKinopoiskId: e.currentTarget.value !== '' ? '' : cardsQuery.directorKinopoiskId,
+                  franchiseKey: e.currentTarget.value !== '' ? '' : cardsQuery.franchiseKey,
+                  genre: e.currentTarget.value !== '' ? '' : cardsQuery.genre,
+                })
+              }
+              aria-label="Фильтр: актёр"
+            >
+              <option value="">Все актёры</option>
+              {actorItems.map((row) => (
+                <option key={row.kinopoisk_id} value={String(row.kinopoisk_id)}>
+                  {row.name}
+                  {row.count > 1 ? ` · ${row.count}` : ''}
+                </option>
+              ))}
+            </select>
+            {statsQuery.isFetching && actorItems.length === 0 ? (
+              <p className="mt-1 text-xs text-(--tgui--hint_color)">Загрузка актёров…</p>
+            ) : null}
+          </label>
+
+          <label className="block text-xs font-medium text-(--tgui--hint_color)">
             Жанр
             <select
               className={`${SELECT_CLASS} mt-1`}
@@ -410,6 +468,7 @@ export function ProfileRatedCardsFilters({
                   ...cardsQuery,
                   genre: e.currentTarget.value,
                   directorKinopoiskId: e.currentTarget.value !== '' ? '' : cardsQuery.directorKinopoiskId,
+                  actorKinopoiskId: e.currentTarget.value !== '' ? '' : cardsQuery.actorKinopoiskId,
                   franchiseKey: e.currentTarget.value !== '' ? '' : cardsQuery.franchiseKey,
                 })
               }

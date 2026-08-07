@@ -190,6 +190,17 @@ function deriveInsights(
             : undefined,
       })
     }
+    if (snap.top_actor_name != null && snap.top_actor_name !== '') {
+      items.push({
+        key: 'top_actor',
+        label: 'Любимый актёр',
+        value: snap.top_actor_name,
+        hint:
+          snap.top_actor_count != null && snap.top_actor_count > 0
+            ? `${snap.top_actor_count} ${snap.top_actor_count === 1 ? 'фильм' : snap.top_actor_count < 5 ? 'фильма' : 'фильмов'}`
+            : undefined,
+      })
+    }
     if (snap.top_franchise_label != null && snap.top_franchise_label !== '') {
       items.push({
         key: 'top_franchise',
@@ -435,6 +446,18 @@ export function ProfileStatsPanel({
       }))
   }, [stats?.director_distribution])
 
+  const actorDonutSegments = useMemo((): DonutSegmentInput[] => {
+    const rows = stats?.actor_distribution ?? []
+    return rows
+      .filter((item) => item.count > 0)
+      .map((item, idx) => ({
+        label: item.name,
+        count: item.count,
+        value: String(item.kinopoisk_id),
+        color: DIRECTOR_DONUT_COLORS[idx % DIRECTOR_DONUT_COLORS.length] ?? '#5de1d4',
+      }))
+  }, [stats?.actor_distribution])
+
   const franchiseDonutSegments = useMemo((): DonutSegmentInput[] => {
     const rows = stats?.franchise_distribution ?? []
     return rows
@@ -496,12 +519,16 @@ export function ProfileStatsPanel({
     const total = stats != null ? String(stats.total_movies) : '0'
     const avg = stats != null ? formatRating(stats.average_rating) : '0'
     const uniqueDirectors = stats?.insights?.unique_directors_count ?? 0
+    const uniqueActors = stats?.insights?.unique_actors_count ?? 0
     const items = [
       { label: 'Карточек', value: total },
       { label: 'Средний балл', value: avg },
     ]
     if (uniqueDirectors > 0) {
       items.push({ label: 'Режиссёров', value: String(uniqueDirectors) })
+    }
+    if (uniqueActors > 0) {
+      items.push({ label: 'Актёров', value: String(uniqueActors) })
     }
     return items
   }, [stats])
@@ -561,6 +588,20 @@ export function ProfileStatsPanel({
       ...cardsQuery,
       genre: trimmed,
       directorKinopoiskId: '',
+      actorKinopoiskId: '',
+      franchiseKey: '',
+    })
+    onDrillToRatedCards?.()
+  }
+
+  const handleActorDistributionDrill = (kinopoiskIdValue: string) => {
+    const id = Number(kinopoiskIdValue)
+    if (!Number.isInteger(id) || id < 1) return
+    onCardsQueryChange({
+      ...cardsQuery,
+      actorKinopoiskId: String(id),
+      genre: '',
+      directorKinopoiskId: '',
       franchiseKey: '',
     })
     onDrillToRatedCards?.()
@@ -572,6 +613,7 @@ export function ProfileStatsPanel({
     onCardsQueryChange({
       ...cardsQuery,
       directorKinopoiskId: String(id),
+      actorKinopoiskId: '',
       genre: '',
       franchiseKey: '',
     })
@@ -586,6 +628,7 @@ export function ProfileStatsPanel({
       franchiseKey: trimmed,
       genre: '',
       directorKinopoiskId: '',
+      actorKinopoiskId: '',
     })
     onDrillToRatedCards?.()
   }
@@ -819,6 +862,41 @@ export function ProfileStatsPanel({
                 </p>
                 <TabEmptyState
                   fallback="Оцените фильм с режиссёром — мы построим распределение автоматически."
+                  userId={userId}
+                  action={{ label: 'Добавить карточку', href: '/cards/new' }}
+                  className="py-4"
+                />
+              </div>
+            )}
+          </ProfileStatsSectionCard>
+
+          <ProfileStatsSectionCard title="По актёрам">
+            {actorDonutSegments.length > 0 ? (
+              <div className="space-y-3">
+                <StatsDonutChart
+                  segments={actorDonutSegments}
+                  legendCollapsedTopN={8}
+                  onSegmentClick={handleActorDistributionDrill}
+                  activeValue={
+                    cardsQuery.actorKinopoiskId === '' ? undefined : cardsQuery.actorKinopoiskId
+                  }
+                />
+                {stats?.insights?.top_actor_kinopoisk_id != null ? (
+                  <Link
+                    to={`/actors/${stats.insights.top_actor_kinopoisk_id}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
+                    className="block text-center text-sm text-(--tgui--link_color) no-underline"
+                  >
+                    Страница топ-актёра →
+                  </Link>
+                ) : null}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-(--tgui--hint_color)">
+                  Актёры появятся после синхронизации cast для ваших оценённых фильмов.
+                </p>
+                <TabEmptyState
+                  fallback="Оцените фильм — мы подтянем основной cast с Кинопоиска."
                   userId={userId}
                   action={{ label: 'Добавить карточку', href: '/cards/new' }}
                   className="py-4"
