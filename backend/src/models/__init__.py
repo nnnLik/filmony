@@ -9,9 +9,11 @@ from .collection_film import CollectionFilm
 from .feed_post import FeedPost
 from .feed_post_comment import FeedPostComment
 from .film import Film
+from .film_actor import FilmActor
 from .film_award_badge import FilmAwardBadge, FilmAwardBadgeKind
 from .game import Game
 from .monthly_recap_nudge_state import MonthlyRecapNudgeState
+from .person import Person
 from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .subscribed_activity_digest_state import SubscribedActivityDigestState
@@ -50,10 +52,12 @@ __all__ = (
     'FeedPost',
     'FeedPostComment',
     'Film',
+    'FilmActor',
     'FilmAwardBadge',
     'FilmAwardBadgeKind',
     'Game',
     'MonthlyRecapNudgeState',
+    'Person',
     'ReactionTargetKind',
     'ReactionType',
     'SubscribedActivityDigestState',
