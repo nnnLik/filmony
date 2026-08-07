@@ -3,7 +3,6 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from conf import settings
 from models.film import Film
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from services.gamification.enrich_film_gamification_metadata import _first_director
@@ -59,7 +58,7 @@ class ResolveKinopoiskFilmService:
         return film
 
     async def sync_metadata_for_film(self, film: Film) -> None:
-        """Sync TMDB + optional KP director metadata onto an existing Film row."""
+        """Sync TMDB metadata and Kinopoisk primary director id onto an existing Film row."""
         await self._sync_metadata(film)
 
     async def _sync_metadata(self, film: Film) -> None:
@@ -69,7 +68,8 @@ class ResolveKinopoiskFilmService:
             imdb_id=film.imdb_id,
             allow_kp_imdb_lookup=False,
         )
-        if settings.kinopoisk.enrich_director_id and film.primary_director_kinopoisk_id is None:
+        # DirectorChip / director pages need Kinopoisk staff id; TMDB only fills name + tmdb_id.
+        if film.primary_director_kinopoisk_id is None:
             staff = await self._kp_transport.get_staff_by_film_id(film.kinopoisk_id)
             director = _first_director(staff)
             if director is not None:
