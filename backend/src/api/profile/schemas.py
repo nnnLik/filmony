@@ -336,10 +336,14 @@ class ProfileInsightsResponse(BaseModel):
     top_director_kinopoisk_id: int | None = None
     top_director_name: str | None = None
     top_director_count: int = 0
+    top_actor_kinopoisk_id: int | None = None
+    top_actor_name: str | None = None
+    top_actor_count: int = 0
     top_franchise_key: str | None = None
     top_franchise_label: str | None = None
     top_franchise_count: int = 0
     unique_directors_count: int = 0
+    unique_actors_count: int = 0
 
     model_config = ConfigDict(extra='forbid')
 
@@ -396,6 +400,15 @@ class DirectorDistributionItemResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class ActorDistributionItemResponse(BaseModel):
+    kinopoisk_id: int
+    name: str
+    poster_url: str | None = None
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class FranchiseDistributionItemResponse(BaseModel):
     franchise_key: str
     label: str
@@ -434,6 +447,7 @@ class UserCardStatsApiResponse(BaseModel):
     category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
     genre_distribution: list[GenreDistributionItemResponse] = Field(default_factory=list)
     director_distribution: list[DirectorDistributionItemResponse] = Field(default_factory=list)
+    actor_distribution: list[ActorDistributionItemResponse] = Field(default_factory=list)
     franchise_distribution: list[FranchiseDistributionItemResponse] = Field(default_factory=list)
     top_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
     worst_movies: list[ProfileStatsMovieItemResponse] = Field(default_factory=list)
@@ -658,10 +672,14 @@ def build_user_card_stats_response(
             top_director_kinopoisk_id=stats.insights.top_director_kinopoisk_id,
             top_director_name=stats.insights.top_director_name,
             top_director_count=stats.insights.top_director_count,
+            top_actor_kinopoisk_id=stats.insights.top_actor_kinopoisk_id,
+            top_actor_name=stats.insights.top_actor_name,
+            top_actor_count=stats.insights.top_actor_count,
             top_franchise_key=stats.insights.top_franchise_key,
             top_franchise_label=stats.insights.top_franchise_label,
             top_franchise_count=stats.insights.top_franchise_count,
             unique_directors_count=stats.insights.unique_directors_count,
+            unique_actors_count=stats.insights.unique_actors_count,
         ),
         watch_with_distribution=[
             ValueDistributionItemResponse(value=item.value, count=item.count)
@@ -690,6 +708,15 @@ def build_user_card_stats_response(
                 count=item.count,
             )
             for item in stats.director_distribution
+        ],
+        actor_distribution=[
+            ActorDistributionItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                name=item.name,
+                poster_url=item.poster_url,
+                count=item.count,
+            )
+            for item in stats.actor_distribution
         ],
         franchise_distribution=[
             FranchiseDistributionItemResponse(

@@ -469,6 +469,13 @@ export type DirectorDistributionItem = {
   count: number
 }
 
+export type ActorDistributionItem = {
+  kinopoisk_id: number
+  name: string
+  poster_url?: string | null
+  count: number
+}
+
 export type FranchiseDistributionItem = {
   franchise_key: string
   label: string
@@ -525,10 +532,14 @@ export type ProfileInsightsSnapshot = {
   top_director_kinopoisk_id?: number | null
   top_director_name?: string | null
   top_director_count?: number
+  top_actor_kinopoisk_id?: number | null
+  top_actor_name?: string | null
+  top_actor_count?: number
   top_franchise_key?: string | null
   top_franchise_label?: string | null
   top_franchise_count?: number
   unique_directors_count?: number
+  unique_actors_count?: number
 }
 
 /** Breakdown of weighted taste match signals (v2). */
@@ -567,6 +578,7 @@ export type UserMovieCardStats = {
   category_distribution: CategoryDistributionItem[]
   genre_distribution?: GenreDistributionItem[]
   director_distribution?: DirectorDistributionItem[]
+  actor_distribution?: ActorDistributionItem[]
   franchise_distribution?: FranchiseDistributionItem[]
   popular_tags: TagDistributionItem[]
   watch_with_distribution: ValueDistributionItem[]

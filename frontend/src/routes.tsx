@@ -36,6 +36,10 @@ const FilmDetailPage = lazy(async () => {
   const m = await import('./pages/FilmDetailPage')
   return { default: m.FilmDetailPage }
 })
+const ActorDetailPage = lazy(async () => {
+  const m = await import('./pages/ActorDetailPage')
+  return { default: m.ActorDetailPage }
+})
 const DirectorDetailPage = lazy(async () => {
   const m = await import('./pages/DirectorDetailPage')
   return { default: m.DirectorDetailPage }
@@ -133,6 +137,7 @@ export function AppRoutes() {
         <Route path="/films/:filmId" element={<FilmDetailPage />} />
         <Route path="/directors" element={<DirectorsIndexPage />} />
         <Route path="/directors/:kinopoiskId" element={<DirectorDetailPage />} />
+        <Route path="/actors/:kinopoiskId" element={<ActorDetailPage />} />
         <Route path="/franchises/:franchiseKey" element={<FranchiseDetailPage />} />
         <Route path="/genres" element={<GenresIndexPage />} />
         <Route path="/genres/:slug" element={<GenreDetailPage />} />

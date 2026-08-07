@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from api.achievements.routes import router as achievements_router
+from api.actors.routes import router as actors_router
 from api.auth.routes import router as auth_router
 from api.auth.schemas import UserResponse
 from api.cards.routes import router as cards_router
@@ -54,6 +55,7 @@ router.include_router(me_streak_router)
 router.include_router(controversy_router)
 router.include_router(gamification_router)
 router.include_router(directors_router)
+router.include_router(actors_router)
 router.include_router(franchises_router)
 router.include_router(genres_router)
 router.include_router(collections_router)

@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-07T232200Z-actor-cast-profile-stats-closeout.md`
 - `2026-08-07T212500Z-profile-streak-stats-legend-ux-closeout.md`
 - `2026-08-04T111000Z-backend-test-unit-integration-split-closeout.md`
 - `2026-08-04T123000Z-frontend-refactor-ux-polish-closeout.md`

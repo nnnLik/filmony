@@ -12,7 +12,9 @@ from sqlalchemy.sql import Select as SASelect
 from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from models.film_actor import FilmActor
 from models.game import Game
+from models.person import Person
 from models.user_card import UserCard
 from models.user_card_category import DEFAULT_USER_CARD_CATEGORY_NAME, UserCardCategory
 from services.cards.card_catalog_release_fields import universal_release_year_date
@@ -211,6 +213,7 @@ class ListUserCardsService:
         category_id: int | None = None,
         completed_on: dt.date | None = None,
         director_kinopoisk_id: int | None = None,
+        actor_kinopoisk_id: int | None = None,
         franchise_key: str | None = None,
         genre: str | None = None,
     ) -> UserCardListPage:
@@ -248,6 +251,7 @@ class ListUserCardsService:
                 category_id=category_id,
                 completed_on=completed_on,
                 director_kinopoisk_id=director_kinopoisk_id,
+                actor_kinopoisk_id=actor_kinopoisk_id,
                 franchise_key=franchise_key,
                 genre_label=genre_label,
             )
@@ -266,6 +270,7 @@ class ListUserCardsService:
             category_id=category_id,
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
+            actor_kinopoisk_id=actor_kinopoisk_id,
             franchise_key=franchise_key,
             genre_label=genre_label,
         )
@@ -284,6 +289,7 @@ class ListUserCardsService:
         category_id: int | None,
         completed_on: dt.date | None,
         director_kinopoisk_id: int | None,
+        actor_kinopoisk_id: int | None,
         franchise_key: str | None,
         genre_label: str | None,
     ) -> SASelect[tuple[UserCard, Film | None, Game | None]]:
@@ -323,6 +329,17 @@ class ListUserCardsService:
             query = query.where(func.date(completion) == completed_on)
         if director_kinopoisk_id is not None:
             query = query.where(Film.primary_director_kinopoisk_id == director_kinopoisk_id)
+        if actor_kinopoisk_id is not None:
+            query = query.where(
+                exists(
+                    select(FilmActor.id)
+                    .join(Person, Person.id == FilmActor.person_id)
+                    .where(
+                        FilmActor.film_id == Film.id,
+                        Person.kinopoisk_id == actor_kinopoisk_id,
+                    ),
+                ),
+            )
         if franchise_key is not None:
             query = query.where(Film.franchise_key == franchise_key)
         if genre_label is not None:
@@ -349,6 +366,7 @@ class ListUserCardsService:
         category_id: int | None,
         completed_on: dt.date | None,
         director_kinopoisk_id: int | None,
+        actor_kinopoisk_id: int | None,
         franchise_key: str | None,
         genre_label: str | None,
     ) -> UserCardListPage:
@@ -372,6 +390,7 @@ class ListUserCardsService:
             category_id=category_id,
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
+            actor_kinopoisk_id=actor_kinopoisk_id,
             franchise_key=franchise_key,
             genre_label=genre_label,
         )
@@ -452,6 +471,7 @@ class ListUserCardsService:
         category_id: int | None,
         completed_on: dt.date | None,
         director_kinopoisk_id: int | None,
+        actor_kinopoisk_id: int | None,
         franchise_key: str | None,
         genre_label: str | None,
     ) -> UserCardListPage:
@@ -480,6 +500,7 @@ class ListUserCardsService:
             category_id=category_id,
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
+            actor_kinopoisk_id=actor_kinopoisk_id,
             franchise_key=franchise_key,
             genre_label=genre_label,
         )

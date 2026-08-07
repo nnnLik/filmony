@@ -16,6 +16,7 @@ from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
+from services.cast.ensure_film_cast import EnsureFilmCastService
 from services.collections.meaningful_rated_card import is_meaningful_rated_card
 from services.collections.refresh_progress_for_film import RefreshProgressForFilmService
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
@@ -254,6 +255,12 @@ class CreateUserCardService:
             card.film_id,
         )
 
+    async def _ensure_film_cast_if_meaningful(self, card: UserCard) -> None:
+        if not is_meaningful_rated_card(card):
+            return
+        assert card.film_id is not None
+        await EnsureFilmCastService.build(self._session).execute(card.film_id)
+
     async def execute(self, user_id: UUID, payload: CreateUserCardInput) -> UserCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
@@ -455,6 +462,7 @@ class CreateUserCardService:
                 task.delay(str(session_id))
 
         await self._refresh_collection_progress_if_meaningful(user_id, entity)
+        await self._ensure_film_cast_if_meaningful(entity)
         return entity
 
     async def _create_film_backed(
@@ -550,6 +558,7 @@ class CreateUserCardService:
         await self._session.commit()
         await self._session.refresh(entity)
         await self._refresh_collection_progress_if_meaningful(user_id, entity)
+        await self._ensure_film_cast_if_meaningful(entity)
         return entity
 
     async def _create_catalog_backed(
@@ -663,6 +672,7 @@ class CreateUserCardService:
         await self._session.commit()
         await self._session.refresh(entity)
         await self._refresh_collection_progress_if_meaningful(user_id, entity)
+        await self._ensure_film_cast_if_meaningful(entity)
         return entity
 
     async def _create_youtube(

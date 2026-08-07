@@ -8,6 +8,7 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_session_factory
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
@@ -30,6 +31,7 @@ from services.cards.create_user_card import (
     _normalize_tags,
     _validate_create_subject_modes,
 )
+from services.cast.ensure_film_cast import EnsureFilmCastService
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 from tests.support.user_card_category import ensure_default_category
 
@@ -632,3 +634,112 @@ async def test_create_youtube_card_with_custom_tags(async_client: AsyncClient) -
             ),
         )
         assert card.external_id == 'tagged12345'
+
+
+@pytest.mark.asyncio
+async def test_create_film_backed_triggers_ensure_film_cast(async_client: AsyncClient) -> None:
+    user = await _create_user(telegram_user_id=892030)
+    film = await _create_film(kinopoisk_id=892030)
+    session_factory = get_session_factory()
+    cast_mock = AsyncMock()
+    with patch.object(EnsureFilmCastService, 'execute', cast_mock):
+        async with session_factory() as session:
+            await ensure_default_category(session, user.id)
+            svc = CreateUserCardService(session)
+            card = await svc.execute(
+                user.id,
+                _base_payload(
+                    film_id=film.id,
+                    kinopoisk_id=film.kinopoisk_id,
+                    genres=film.genres or [],
+                ),
+            )
+    cast_mock.assert_awaited_once_with(film.id)
+    assert card.film_id == film.id
+
+
+@pytest.mark.asyncio
+async def test_create_film_backed_upgrade_triggers_ensure_film_cast(
+    async_client: AsyncClient,
+) -> None:
+    user = await _create_user(telegram_user_id=892031)
+    film = await _create_film(kinopoisk_id=892031)
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        category_id = await ensure_default_category(session, user.id)
+        planned = UserCard(
+            user_id=user.id,
+            film_id=film.id,
+            category_id=category_id,
+            provider=CatalogProvider.kinopoisk,
+            external_id=str(film.kinopoisk_id),
+            is_planned=True,
+            display_title=film.title,
+            rating=0,
+            company=CardCompany.alone.value,
+            mood_before=CardMoodBefore.relax.value,
+            mood_after=CardMoodAfter.enjoyed.value,
+            watch_note='',
+        )
+        session.add(planned)
+        await session.commit()
+
+    cast_mock = AsyncMock()
+    with patch.object(EnsureFilmCastService, 'execute', cast_mock):
+        async with session_factory() as session:
+            await ensure_default_category(session, user.id)
+            svc = CreateUserCardService(session)
+            upgraded = await svc.execute(
+                user.id,
+                _base_payload(
+                    film_id=film.id,
+                    kinopoisk_id=film.kinopoisk_id,
+                    genres=film.genres or [],
+                ),
+            )
+    cast_mock.assert_awaited_once_with(film.id)
+    assert upgraded.is_planned is False
+
+
+@pytest.mark.asyncio
+async def test_create_film_backed_cast_failure_does_not_block_card(
+    async_client: AsyncClient,
+) -> None:
+    user = await _create_user(telegram_user_id=892032)
+    film = await _create_film(kinopoisk_id=892032)
+    session_factory = get_session_factory()
+
+    class FailingTransport:
+        async def get_staff_by_film_id(self, _kinopoisk_id: int) -> tuple[object, ...]:
+            from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
+
+            raise KinopoiskProviderTransport.KinopoiskProviderTransportError
+
+    def fake_build(
+        session: AsyncSession,
+        *,
+        transport: object | None = None,
+    ) -> EnsureFilmCastService:
+        _ = transport
+        return EnsureFilmCastService(
+            _session=session,
+            _kp_transport=FailingTransport(),  # type: ignore[arg-type]
+        )
+
+    with (
+        patch.object(ResolveKinopoiskFilmService, 'sync_metadata_for_film', AsyncMock()),
+        patch.object(EnsureFilmCastService, 'build', side_effect=fake_build),
+    ):
+        async with session_factory() as session:
+            await ensure_default_category(session, user.id)
+            svc = CreateUserCardService(session)
+            card = await svc.execute(
+                user.id,
+                _base_payload(
+                    film_id=film.id,
+                    kinopoisk_id=film.kinopoisk_id,
+                    genres=film.genres or [],
+                ),
+            )
+    assert card.film_id == film.id
+    assert card.is_planned is False
