@@ -85,7 +85,7 @@ class AuthJwtSettings(BaseSettings):
 class KinopoiskSettings(BaseSettings):
     api_key: str = Field(..., alias='KINOPOISK_API_KEY')
     base_url: str = Field(..., alias='KINOPOISK_API_BASE_URL')
-    enrich_director_id: bool = Field(False, alias='ENRICH_KP_DIRECTOR_ID')
+    enrich_director_id: bool = Field(True, alias='ENRICH_KP_DIRECTOR_ID')
 
 
 class TmdbSettings(BaseSettings):
