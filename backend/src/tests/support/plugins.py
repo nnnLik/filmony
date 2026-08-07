@@ -10,6 +10,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from core.database import dispose_engine
+from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from services.feed.global_feed_head_broker import reset_global_feed_head_broker_for_tests
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
 from tests.support import db_setup
@@ -53,6 +54,18 @@ def _noop_film_metadata_sync_on_card_create() -> None:
         ResolveKinopoiskFilmService,
         'sync_metadata_for_film',
         new_callable=AsyncMock,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _noop_kinopoisk_staff_lookup() -> None:
+    """Resolve paths fetch director staff; tests must not call live Kinopoisk."""
+    with patch.object(
+        KinopoiskProviderTransport,
+        'get_staff_by_film_id',
+        new_callable=AsyncMock,
+        return_value=(),
     ):
         yield
 
