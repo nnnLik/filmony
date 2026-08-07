@@ -119,7 +119,7 @@ async def test_backfill_dry_run_does_not_persist_cast(prepare_db: None) -> None:
 
     execute_mock = AsyncMock()
     with patch.object(EnsureFilmCastService, 'execute', execute_mock):
-        await _run(dry_run=True, sleep_s=0, limit=None, batch_size=10)
+        await _run(dry_run=True, sleep_s=0, limit=None, concurrency=10)
 
     execute_mock.assert_not_awaited()
     async with session_factory() as check_session:
@@ -159,6 +159,6 @@ async def test_backfill_runs_ensure_for_candidates(prepare_db: None) -> None:
     execute_mock = AsyncMock()
     with patch.object(EnsureFilmCastService, 'build') as build_mock:
         build_mock.return_value.execute = execute_mock
-        await _run(dry_run=False, sleep_s=0, limit=None, batch_size=10)
+        await _run(dry_run=False, sleep_s=0, limit=None, concurrency=10)
 
     execute_mock.assert_awaited_once_with(film_id)

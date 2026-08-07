@@ -3,7 +3,7 @@
   docker compose exec -w /opt/app backend \\
     python src/manage_backfill_film_cast.py [--dry-run] [--limit N]
 
-Options: --dry-run, --limit N, --sleep SEC (default 0.15), --batch-size (default 50)
+Options: --dry-run, --limit N, --sleep SEC (default 0.15), --concurrency N (default 5)
 """
 
 from __future__ import annotations
@@ -23,9 +23,13 @@ from services.directors.get_director_summary import _rated_card_filters
 
 _log = logging.getLogger(__name__)
 
+_QUIET_HTTP_LOGGERS = ('httpx', 'httpcore', 'hpack')
+
 
 def _configure_script_logging() -> None:
     logging.basicConfig(level=logging.INFO, format='%(message)s')
+    for name in _QUIET_HTTP_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def _films_without_cast_query(limit: int | None):
@@ -56,10 +60,14 @@ async def _run(
     dry_run: bool,
     sleep_s: float,
     limit: int | None,
-    batch_size: int,
+    concurrency: int,
 ) -> None:
     _configure_script_logging()
     factory = get_session_factory()
+    progress_lock = asyncio.Lock()
+    semaphore = asyncio.Semaphore(max(1, concurrency))
+    processed = errors = 0
+
     async with factory() as session:
         film_ids: list[int] = list(
             (await session.execute(_films_without_cast_query(limit))).scalars().all()
@@ -68,29 +76,50 @@ async def _run(
     total = len(film_ids)
     _log.info('=== Film cast backfill ===')
     _log.info('Candidates: %s', total)
+    _log.info('Mode: dry_run=%s | concurrency=%s | sleep=%s', dry_run, concurrency, sleep_s)
     if total == 0:
         _log.info('Nothing to do.')
         return
 
-    processed = errors = 0
-    for start in range(0, total, batch_size):
-        batch = film_ids[start : start + batch_size]
-        for film_id in batch:
-            if dry_run:
-                processed += 1
-                _log.info('[%s/%s] film_id=%s — DRY-RUN', processed, total, film_id)
-                continue
+    async def _process_film(film_id: int) -> None:
+        nonlocal processed, errors
+        async with semaphore:
             try:
-                async with factory() as session:
-                    await EnsureFilmCastService.build(session).execute(film_id)
-                processed += 1
-                _log.info('[%s/%s] film_id=%s — OK', processed, total, film_id)
+                if dry_run:
+                    async with progress_lock:
+                        processed += 1
+                        current = processed
+                    _log.info('[%s/%s] film_id=%s — DRY-RUN', current, total, film_id)
+                else:
+                    async with factory() as session:
+                        await EnsureFilmCastService.build(session).execute(film_id)
+                    async with progress_lock:
+                        processed += 1
+                        current = processed
+                    _log.info('[%s/%s] film_id=%s — OK', current, total, film_id)
             except Exception:
-                errors += 1
-                processed += 1
-                _log.exception('[%s/%s] film_id=%s — ERROR', processed, total, film_id)
+                async with progress_lock:
+                    processed += 1
+                    current = processed
+                    errors += 1
+                _log.exception('[%s/%s] film_id=%s — ERROR', current, total, film_id)
+
             if sleep_s > 0:
                 await asyncio.sleep(sleep_s)
+
+            async with progress_lock:
+                checkpoint = processed
+                err = errors
+            if checkpoint % 25 == 0 or checkpoint == total:
+                _log.info(
+                    '--- checkpoint: %s/%s | errors=%s | remaining %s ---',
+                    checkpoint,
+                    total,
+                    err,
+                    max(total - checkpoint, 0),
+                )
+
+    await asyncio.gather(*[_process_film(film_id) for film_id in film_ids])
 
     _log.info('Done: processed=%s errors=%s', processed, errors)
 
@@ -100,14 +129,14 @@ def main() -> None:
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--limit', type=int, default=None)
     parser.add_argument('--sleep', type=float, default=0.15)
-    parser.add_argument('--batch-size', type=int, default=50)
+    parser.add_argument('--concurrency', type=int, default=5)
     args = parser.parse_args()
     asyncio.run(
         _run(
             dry_run=args.dry_run,
-            sleep_s=args.sleep,
+            sleep_s=max(0.0, args.sleep),
             limit=args.limit,
-            batch_size=max(1, args.batch_size),
+            concurrency=max(1, args.concurrency),
         ),
     )
 

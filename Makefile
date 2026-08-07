@@ -9,7 +9,7 @@ RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
 RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
 RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata diagnose-film-tmdb-metadata seed-letterboxd-top-500 seed-oscars seed-collections seed-achievements sync-film-award-badges
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata backfill-film-cast diagnose-film-tmdb-metadata seed-letterboxd-top-500 seed-oscars seed-collections seed-achievements sync-film-award-badges
 
 start: build up
 
@@ -105,6 +105,14 @@ backfill-film-tmdb-metadata:
 	SLE=$${SLEEP:+--sleep $$SLEEP}; \
 	$(AEXEC_NO_TTY) $(APP) python src/manage_backfill_film_tmdb_metadata.py \
 	  $$DRY $$FRC $$FOG $$LIM $$KP_IMDB $$SLE $(ARGS)
+
+backfill-film-cast:
+	@DRY=$${DRY_RUN:+--dry-run}; \
+	LIM=$${LIMIT:+--limit $$LIMIT}; \
+	SLE=$${SLEEP:+--sleep $$SLEEP}; \
+	CON=$${CONCURRENCY:+--concurrency $$CONCURRENCY}; \
+	$(AEXEC_NO_TTY) $(APP) python src/manage_backfill_film_cast.py \
+	  $$DRY $$LIM $$SLE $$CON $(ARGS)
 
 diagnose-film-tmdb-metadata:
 	$(AEXEC_NO_TTY) $(APP) python src/manage_diagnose_film_tmdb_metadata.py $(ARGS)
