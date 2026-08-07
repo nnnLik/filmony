@@ -219,6 +219,11 @@ async def list_user_cards(
         ge=1,
         description='Фильтр по Kinopoisk ID режиссёра (primary_director_kinopoisk_id фильма)',
     ),
+    actor_kinopoisk_id: int | None = Query(
+        default=None,
+        ge=1,
+        description='Фильтр по Kinopoisk ID актёра (film_actor.person)',
+    ),
     franchise_key: str | None = Query(
         default=None,
         max_length=64,
@@ -257,6 +262,7 @@ async def list_user_cards(
             category_id=category_id,
             completed_on=completed_on,
             director_kinopoisk_id=director_kinopoisk_id,
+            actor_kinopoisk_id=actor_kinopoisk_id,
             franchise_key=franchise_key,
             genre=genre,
         )

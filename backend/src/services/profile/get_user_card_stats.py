@@ -11,8 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.card_tag import CardTag
 from models.film import Film
+from models.film_actor import FilmActor
+from models.person import Person
 from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
+from services.directors.get_director_summary import _rated_card_filters
 from services.franchises.franchise_label import resolve_franchise_label
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
@@ -59,10 +62,14 @@ class ProfileInsights:
     top_director_kinopoisk_id: int | None
     top_director_name: str | None
     top_director_count: int
+    top_actor_kinopoisk_id: int | None
+    top_actor_name: str | None
+    top_actor_count: int
     top_franchise_key: str | None
     top_franchise_label: str | None
     top_franchise_count: int
     unique_directors_count: int
+    unique_actors_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +109,14 @@ class DirectorDistributionItem:
 
 
 @dataclass(frozen=True, slots=True)
+class ActorDistributionItem:
+    kinopoisk_id: int
+    name: str
+    poster_url: str | None
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class FranchiseDistributionItem:
     franchise_key: str
     label: str
@@ -117,6 +132,7 @@ class UserCardStats:
     rated_year_distribution: list[YearDistributionItem]
     genre_distribution: list[GenreDistributionItem]
     director_distribution: list[DirectorDistributionItem]
+    actor_distribution: list[ActorDistributionItem]
     franchise_distribution: list[FranchiseDistributionItem]
     popular_tags: list[TagDistributionItem]
     tag_taste: list[TagTasteItem]
@@ -283,6 +299,32 @@ class GetUserCardStatsService:
                 key=lambda item: (-item[1][1], item[1][0]),
             )
         ]
+        actor_rows = (
+            await self._session.execute(
+                select(
+                    Person.kinopoisk_id,
+                    Person.name,
+                    Person.poster_url,
+                    func.count(UserCard.id),
+                )
+                .select_from(UserCard)
+                .join(Film, Film.id == UserCard.film_id)
+                .join(FilmActor, FilmActor.film_id == Film.id)
+                .join(Person, Person.id == FilmActor.person_id)
+                .where(UserCard.user_id == user_id, *_rated_card_filters())
+                .group_by(Person.kinopoisk_id, Person.name, Person.poster_url)
+                .order_by(desc(func.count(UserCard.id)), Person.name, Person.kinopoisk_id)
+            )
+        ).all()
+        actor_distribution = [
+            ActorDistributionItem(
+                kinopoisk_id=int(kinopoisk_id),
+                name=str(name),
+                poster_url=poster_url,
+                count=int(count),
+            )
+            for kinopoisk_id, name, poster_url, count in actor_rows
+        ]
         franchise_distribution = [
             FranchiseDistributionItem(
                 franchise_key=franchise_key,
@@ -372,6 +414,7 @@ class GetUserCardStatsService:
         dominant_mood_after = mood_after_distribution[0].value if mood_after_distribution else None
         top_tag = tag_taste[0].tag if tag_taste else None
         top_director = director_distribution[0] if director_distribution else None
+        top_actor = actor_distribution[0] if actor_distribution else None
         top_franchise = franchise_distribution[0] if franchise_distribution else None
         insights = ProfileInsights(
             activity_total_180d=activity_total_180d,
@@ -381,10 +424,14 @@ class GetUserCardStatsService:
             top_director_kinopoisk_id=top_director.kinopoisk_id if top_director else None,
             top_director_name=top_director.name if top_director else None,
             top_director_count=top_director.count if top_director else 0,
+            top_actor_kinopoisk_id=top_actor.kinopoisk_id if top_actor else None,
+            top_actor_name=top_actor.name if top_actor else None,
+            top_actor_count=top_actor.count if top_actor else 0,
             top_franchise_key=top_franchise.franchise_key if top_franchise else None,
             top_franchise_label=top_franchise.label if top_franchise else None,
             top_franchise_count=top_franchise.count if top_franchise else 0,
             unique_directors_count=len(director_distribution),
+            unique_actors_count=len(actor_distribution),
         )
 
         return UserCardStats(
@@ -395,6 +442,7 @@ class GetUserCardStatsService:
             rated_year_distribution=rated_year_distribution,
             genre_distribution=genre_distribution,
             director_distribution=director_distribution,
+            actor_distribution=actor_distribution,
             franchise_distribution=franchise_distribution,
             popular_tags=popular_tags,
             tag_taste=tag_taste,
