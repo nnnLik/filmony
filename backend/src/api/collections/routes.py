@@ -15,6 +15,7 @@ from api.collections.schemas import (
     ProfilePinnedCollectionsResponse,
     UserCollectionProgressResponse,
 )
+from api.films.schemas import FilmAwardBadgeResponse
 from core.database import get_db
 from deps.auth import CurrentUser, OptionalUser
 from models.collection import CollectionKind
@@ -118,6 +119,13 @@ async def list_collection_films(
                 poster_url=item.poster_url,
                 viewer_has_rated=item.viewer_has_rated,
                 viewer_card_id=item.viewer_card_id,
+                award_badges=[
+                    FilmAwardBadgeResponse(
+                        kind=badge.kind.value,
+                        ceremony_year=badge.ceremony_year,
+                    )
+                    for badge in item.award_badges
+                ],
             )
             for item in page.items
         ],

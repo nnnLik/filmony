@@ -4,6 +4,7 @@ import datetime as dt
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from api.films.schemas import FilmAwardBadgeResponse
 from models.collection import CollectionKind
 
 
@@ -42,6 +43,7 @@ class CollectionFilmItemResponse(BaseModel):
     poster_url: str | None = None
     viewer_has_rated: bool | None = None
     viewer_card_id: int | None = None
+    award_badges: list[FilmAwardBadgeResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
 

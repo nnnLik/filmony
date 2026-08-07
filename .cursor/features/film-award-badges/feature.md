@@ -29,7 +29,7 @@ Persist Oscar award badges as a **first-class entity attached to `Film`** and su
 - Curated Oscar dataset (static seed file or versioned JSON in repo) mapped to `Film` via `Film.imdb_id`; unmatched rows logged/skipped.
 - Application services: seed/load dataset, sync/upsert badges idempotently, list badges for a film.
 - Celery task(s) to re-sync badges after ceremony updates (winners marked post-ceremony); schedule documented in task module docstring; **host crontab external** — same pattern as `tasks/monthly_recap.py` and `docs/features/celery-redis-workers.md` (no Celery Beat in repo).
-- API: include `award_badges` (or equivalent) on `FilmResponse` and any film-summary DTOs used by catalog/community list endpoints in scope.
+- API: include `award_badges` (or equivalent) on `FilmResponse`, collection film list items, and any film-summary DTOs used by catalog/community list endpoints in scope.
 - Frontend: reusable badge component (icon + year) on film surfaces — at minimum `FilmDetailPage` header/meta and catalog rated-film row; compact variant for dense lists.
 - Backend pytest (unit + integration) and frontend lint/build for touched files.
 
@@ -61,7 +61,7 @@ Persist Oscar award badges as a **first-class entity attached to `Film`** and su
 | FR-4 | Map curated dataset entries to `Film` by `imdb_id`; skip or log when no matching film exists. |
 | FR-5 | Expose badges on film read API(s) as ordered list (e.g. ceremony year desc, winners before nominees for same year if both ever apply). |
 | FR-6 | Celery task `sync_film_award_badges` (name TBD in implementation) runs batch sync; module docstring documents suggested crontab (e.g. annually after Oscars + optional manual trigger). |
-| FR-7 | Frontend renders icon + year for each badge; accessible label (e.g. “Oscar Best Picture winner, 2020”). |
+| FR-7 | Frontend styles the film **release year** with cup + border when a badge exists; **`ceremony_year` is not shown as the primary year** (only in tooltip/`aria-label`, e.g. “Оскар — лучший фильм (победитель), 2023 (церемония 2024)”). Film detail shows all badges; compact surfaces (feed, catalog, movie card, collection row) use `primaryFilmAwardBadge` only. |
 | FR-8 | Management/seed path for initial load and dataset version bumps (script or service callable from Celery task). |
 
 ## Acceptance criteria
@@ -71,8 +71,8 @@ Persist Oscar award badges as a **first-class entity attached to `Film`** and su
 - [ ] `SyncFilmAwardBadgesService` (or equivalent) upserts badges from dataset; idempotent re-run; metrics/logging for unmatched `imdb_id`.
 - [ ] Celery task registered via `register_tasks` pattern; docstring lists external schedule (e.g. `minute=0 hour=6 day_of_month=1 month_of_year=3` post-ceremony + on-demand); registered in `celery_app._register_all_tasks`.
 - [ ] `FilmResponse` (and scoped list DTOs) include `award_badges: list[FilmAwardBadgeResponse]`.
-- [ ] `FilmAwardBadge` UI component on `FilmDetailPage` and catalog film row (and other in-scope film cards if they consume `FilmResponse`).
-- [ ] Visual: grey cup + year for nominee; gold cup + year for winner — not text-only.
+- [ ] `OscarReleaseYearLabel` on `FilmDetailPage`, catalog film row, feed card, movie card detail, and collection film row (when `award_badges` present).
+- [ ] Visual: grey cup + **release year** for nominee; gold cup + **release year** for winner — ceremony year in tooltip/a11y only, not as a separate pill.
 - [ ] Multiple badges per film across years displayed correctly.
 - [ ] Badges are independent of Collection entities; no Collection FK on badge model.
 - [ ] No achievement/profile-pin side effects from badge sync in v1.

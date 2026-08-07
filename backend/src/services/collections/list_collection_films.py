@@ -10,8 +10,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.collection import Collection
 from models.collection_film import CollectionFilm
 from models.film import Film
+from models.film_award_badge import FilmAwardBadgeKind
 from models.user_card import UserCard
 from services.collections.meaningful_rated_card import meaningful_rated_card_criteria
+from services.film_award_badges.list_film_award_badges import (
+    FilmAwardBadgeDTO,
+    ListFilmAwardBadgesService,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CollectionFilmBadgeDTO:
+    kind: FilmAwardBadgeKind
+    ceremony_year: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +33,7 @@ class CollectionFilmItemDTO:
     poster_url: str | None
     viewer_has_rated: bool | None
     viewer_card_id: int | None
+    award_badges: list[CollectionFilmBadgeDTO]
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,6 +152,13 @@ class ListCollectionFilmsService:
                 rated_film_ids.add(fid)
                 card_by_film[fid] = int(card_id)
 
+        badge_rows_by_film: dict[int, list[FilmAwardBadgeDTO]] = {}
+        if visible:
+            film_ids = [int(film.id) for _, film in visible]
+            badge_rows_by_film = await ListFilmAwardBadgesService.build(
+                self._session,
+            ).execute_many(film_ids)
+
         items: list[CollectionFilmItemDTO] = []
         for _cf, film in visible:
             film_id = int(film.id)
@@ -148,6 +167,10 @@ class ListCollectionFilmsService:
             if viewer_user_id is not None:
                 viewer_has_rated = film_id in rated_film_ids
                 viewer_card_id = card_by_film.get(film_id)
+            award_badges = [
+                CollectionFilmBadgeDTO(kind=row.kind, ceremony_year=row.ceremony_year)
+                for row in badge_rows_by_film.get(film_id, [])
+            ]
             items.append(
                 CollectionFilmItemDTO(
                     film_id=film_id,
@@ -156,6 +179,7 @@ class ListCollectionFilmsService:
                     poster_url=film.poster_url,
                     viewer_has_rated=viewer_has_rated,
                     viewer_card_id=viewer_card_id,
+                    award_badges=award_badges,
                 ),
             )
 

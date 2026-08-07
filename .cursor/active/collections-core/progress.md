@@ -33,6 +33,13 @@
 - **Runbook:** `.cursor/active/collections-core/PROD_SEED.md`
 - **Local DB:** intentionally NOT seeded in this session (no migrate, no seed exec)
 
+## 2026-08-08T021500Z — Catalog sub-tabs: Letterboxd / Оскары
+
+- **Scope:** global `/collections` index only (profile pinned tab unchanged)
+- **Files:** `frontend/src/lib/collectionsCatalogSource.ts`, `frontend/src/components/collections/CollectionsSourceTabs.tsx`, `frontend/src/pages/CollectionsIndexPage.tsx`, `frontend/src/lib/__tests__/collectionsCatalogSource.test.ts`
+- **Behavior:** `SegmentedControl` in `PageHeader`; Letterboxd → `GET /api/collections?kind=evergreen`, Оскары → `?kind=seasonal`
+- **Verification:** `cd frontend && npm run lint && npm run build`; `vitest run src/lib/__tests__/collectionsCatalogSource.test.ts`
+
 ## 2026-08-07T011500Z — Slice 1: progress services + card hooks
 
 - **Services:** `services/collections/meaningful_rated_card.py`, `refresh_user_collection_progress.py`, `refresh_progress_for_film.py`, `complete_collection.py`, `__init__.py`

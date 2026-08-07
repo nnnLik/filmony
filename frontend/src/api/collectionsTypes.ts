@@ -1,3 +1,5 @@
+import type { FilmAwardBadge } from './profileTypes'
+
 export type CollectionKind = 'evergreen' | 'seasonal'
 
 export type UserCollectionProgress = {
@@ -29,6 +31,7 @@ export type CollectionFilmItem = {
   poster_url: string | null
   viewer_has_rated: boolean | null
   viewer_card_id: number | null
+  award_badges?: FilmAwardBadge[]
 }
 
 export type CollectionFilmsPage = {

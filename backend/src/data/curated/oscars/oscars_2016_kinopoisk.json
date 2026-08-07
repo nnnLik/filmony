@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Spotlight",
+    "year": 2015,
+    "imdb_id": "tt1895587",
+    "kinopoisk_id": 834394,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 2,
+    "name": "The Big Short",
+    "year": 2015,
+    "imdb_id": "tt1596363",
+    "kinopoisk_id": 501333,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 3,
+    "name": "Bridge of Spies",
+    "year": 2015,
+    "imdb_id": "tt2379713",
+    "kinopoisk_id": 678552,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 4,
+    "name": "Brooklyn",
+    "year": 2015,
+    "imdb_id": "tt2381111",
+    "kinopoisk_id": 678550,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 5,
+    "name": "Mad Max: Fury Road",
+    "year": 2015,
+    "imdb_id": "tt1392190",
+    "kinopoisk_id": 453406,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 6,
+    "name": "The Martian",
+    "year": 2015,
+    "imdb_id": "tt3659388",
+    "kinopoisk_id": 841700,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 7,
+    "name": "The Revenant",
+    "year": 2015,
+    "imdb_id": "tt1663200",
+    "kinopoisk_id": 522941,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2016
+  },
+  {
+    "sort_order": 8,
+    "name": "Room",
+    "year": 2015,
+    "imdb_id": "tt3170832",
+    "kinopoisk_id": 798068,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2016
+  }
+]

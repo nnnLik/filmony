@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "The Lord of the Rings: The Return of the King",
+    "year": 2003,
+    "imdb_id": "tt0167260",
+    "kinopoisk_id": 3498,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2004
+  },
+  {
+    "sort_order": 2,
+    "name": "Lost in Translation",
+    "year": 2003,
+    "imdb_id": "tt0335266",
+    "kinopoisk_id": 5930,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2004
+  },
+  {
+    "sort_order": 3,
+    "name": "Master and Commander: The Far Side of the World",
+    "year": 2003,
+    "imdb_id": "tt0311118",
+    "kinopoisk_id": 145546,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2004
+  },
+  {
+    "sort_order": 4,
+    "name": "Mystic River",
+    "year": 2003,
+    "imdb_id": "tt0327056",
+    "kinopoisk_id": 3730,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2004
+  },
+  {
+    "sort_order": 5,
+    "name": "Seabiscuit",
+    "year": 2003,
+    "imdb_id": "tt0329576",
+    "kinopoisk_id": 2976,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2004
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Gladiator",
+    "year": 2000,
+    "imdb_id": "tt0172495",
+    "kinopoisk_id": 474,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2001
+  },
+  {
+    "sort_order": 2,
+    "name": "Chocolat",
+    "year": 2000,
+    "imdb_id": "tt0241303",
+    "kinopoisk_id": 636,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2001
+  },
+  {
+    "sort_order": 3,
+    "name": "Crouching Tiger, Hidden Dragon",
+    "year": 2000,
+    "imdb_id": "tt0190332",
+    "kinopoisk_id": 378,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2001
+  },
+  {
+    "sort_order": 4,
+    "name": "Erin Brockovich",
+    "year": 2000,
+    "imdb_id": "tt0195685",
+    "kinopoisk_id": 661,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2001
+  },
+  {
+    "sort_order": 5,
+    "name": "Traffic",
+    "year": 2000,
+    "imdb_id": "tt0181865",
+    "kinopoisk_id": 499,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2001
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Moonlight",
+    "year": 2016,
+    "imdb_id": "tt4975722",
+    "kinopoisk_id": 939981,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 2,
+    "name": "Arrival",
+    "year": 2016,
+    "imdb_id": "tt2543166",
+    "kinopoisk_id": 718811,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 3,
+    "name": "Fences",
+    "year": 2016,
+    "imdb_id": "tt2671706",
+    "kinopoisk_id": 735160,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 4,
+    "name": "Hacksaw Ridge",
+    "year": 2016,
+    "imdb_id": "tt2119532",
+    "kinopoisk_id": 649917,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 5,
+    "name": "Hell or High Water",
+    "year": 2016,
+    "imdb_id": "tt2582782",
+    "kinopoisk_id": 726794,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 6,
+    "name": "Hidden Figures",
+    "year": 2016,
+    "imdb_id": "tt4846340",
+    "kinopoisk_id": 966036,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 7,
+    "name": "La La Land",
+    "year": 2016,
+    "imdb_id": "tt3783958",
+    "kinopoisk_id": 841081,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 8,
+    "name": "Lion",
+    "year": 2016,
+    "imdb_id": "tt3741834",
+    "kinopoisk_id": 864138,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  },
+  {
+    "sort_order": 9,
+    "name": "Manchester by the Sea",
+    "year": 2016,
+    "imdb_id": "tt4034228",
+    "kinopoisk_id": 884376,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2017
+  }
+]

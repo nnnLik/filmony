@@ -2,6 +2,8 @@ import { CircleCheck } from 'lucide-react'
 import { Link } from 'react-router'
 
 import type { CollectionFilmItem } from '../../api/collectionsTypes'
+import { OscarReleaseYearLabel } from '../films/OscarReleaseYearLabel'
+import { primaryFilmAwardBadge, releaseYearLabel } from '../../lib/filmAwardBadgeDisplay'
 import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 
 function posterSrc(url: string | null): string | undefined {
@@ -23,6 +25,7 @@ export function CollectionFilmRow({ film }: CollectionFilmRowProps) {
   const hasRatedState = film.viewer_has_rated != null
   const rated = film.viewer_has_rated === true
   const poster = posterSrc(film.poster_url)
+  const oscarBadge = primaryFilmAwardBadge(film.award_badges)
 
   return (
     <li>
@@ -50,7 +53,14 @@ export function CollectionFilmRow({ film }: CollectionFilmRowProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-medium text-(--tgui--text_color)">{film.title}</p>
-          <p className="mt-0.5 text-xs text-(--tgui--hint_color)">{film.year ?? '—'}</p>
+          <div className="mt-0.5">
+            <OscarReleaseYearLabel
+              label={releaseYearLabel(film.year)}
+              badge={oscarBadge}
+              releaseYear={film.year}
+              variant="compact"
+            />
+          </div>
           {hasRatedState ? (
             <p className="mt-1 text-xs text-(--tgui--hint_color)">
               {rated ? 'Оценён' : 'Ещё не оценён'}

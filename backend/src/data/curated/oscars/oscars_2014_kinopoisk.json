@@ -1,0 +1,92 @@
+[
+  {
+    "sort_order": 1,
+    "name": "12 Years a Slave",
+    "year": 2013,
+    "imdb_id": "tt2024544",
+    "kinopoisk_id": 606646,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 2,
+    "name": "American Hustle",
+    "year": 2013,
+    "imdb_id": "tt1800241",
+    "kinopoisk_id": 635177,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 3,
+    "name": "Captain Phillips",
+    "year": 2013,
+    "imdb_id": "tt1535109",
+    "kinopoisk_id": 484438,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 4,
+    "name": "Dallas Buyers Club",
+    "year": 2013,
+    "imdb_id": "tt0790636",
+    "kinopoisk_id": 260162,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 5,
+    "name": "Gravity",
+    "year": 2013,
+    "imdb_id": "tt2331141",
+    "kinopoisk_id": 468466,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 6,
+    "name": "Her",
+    "year": 2013,
+    "imdb_id": "tt1798709",
+    "kinopoisk_id": 577488,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 7,
+    "name": "Nebraska",
+    "year": 2013,
+    "imdb_id": "tt1821542",
+    "kinopoisk_id": 595558,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 8,
+    "name": "Philomena",
+    "year": 2013,
+    "imdb_id": "tt2261338",
+    "kinopoisk_id": 710432,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2014
+  },
+  {
+    "sort_order": 9,
+    "name": "The Wolf of Wall Street",
+    "year": 2013,
+    "imdb_id": "tt0993846",
+    "kinopoisk_id": 462682,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2014
+  }
+]

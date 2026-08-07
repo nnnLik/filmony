@@ -1,0 +1,102 @@
+[
+  {
+    "sort_order": 1,
+    "name": "The Hurt Locker",
+    "year": 2009,
+    "imdb_id": "tt0887912",
+    "kinopoisk_id": 281040,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 2,
+    "name": "Avatar",
+    "year": 2009,
+    "imdb_id": "tt0499549",
+    "kinopoisk_id": 251733,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 3,
+    "name": "The Blind Side",
+    "year": 2009,
+    "imdb_id": "tt0878804",
+    "kinopoisk_id": 450213,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 4,
+    "name": "District 9",
+    "year": 2009,
+    "imdb_id": "tt1136608",
+    "kinopoisk_id": 397494,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 5,
+    "name": "An Education",
+    "year": 2009,
+    "imdb_id": "tt1174732",
+    "kinopoisk_id": 521991,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 6,
+    "name": "Inglourious Basterds",
+    "year": 2009,
+    "imdb_id": "tt0361748",
+    "kinopoisk_id": 9691,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 7,
+    "name": "Precious",
+    "year": 2009,
+    "imdb_id": "tt0929632",
+    "kinopoisk_id": 397952,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 8,
+    "name": "A Serious Man",
+    "year": 2009,
+    "imdb_id": "tt1305826",
+    "kinopoisk_id": 602284,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 9,
+    "name": "Up",
+    "year": 2009,
+    "imdb_id": "tt1049413",
+    "kinopoisk_id": 325381,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  },
+  {
+    "sort_order": 10,
+    "name": "Up in the Air",
+    "year": 2009,
+    "imdb_id": "tt1193138",
+    "kinopoisk_id": 464130,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2010
+  }
+]

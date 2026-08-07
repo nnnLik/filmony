@@ -53,7 +53,8 @@ _log = logging.getLogger(__name__)
 _COLLECTION_SLUG = 'letterboxd-top-500'
 _COLLECTION_TITLE = 'Letterboxd Top 500'
 _COLLECTION_DESCRIPTION = (
-    'Топ-500 фильмов по рейтингу Letterboxd — кураторская коллекция для отслеживания прогресса.'
+    'Пятьсот лучших фильмов по версии Letterboxd — классика, культ и вечные споры. '
+    'Отмечайте, сколько уже в копилке.'
 )
 _MANIFEST_PATH = Path(__file__).resolve().parent / 'data/curated/letterboxd_top_500_kinopoisk.json'
 

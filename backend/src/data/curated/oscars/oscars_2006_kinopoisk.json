@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Crash",
+    "year": 2005,
+    "imdb_id": "tt0375679",
+    "kinopoisk_id": 61297,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2006
+  },
+  {
+    "sort_order": 2,
+    "name": "Brokeback Mountain",
+    "year": 2005,
+    "imdb_id": "tt0388795",
+    "kinopoisk_id": 77647,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2006
+  },
+  {
+    "sort_order": 3,
+    "name": "Capote",
+    "year": 2005,
+    "imdb_id": "tt0379725",
+    "kinopoisk_id": 48422,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2006
+  },
+  {
+    "sort_order": 4,
+    "name": "Good Night, and Good Luck.",
+    "year": 2005,
+    "imdb_id": "tt0453562",
+    "kinopoisk_id": 102260,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2006
+  },
+  {
+    "sort_order": 5,
+    "name": "Munich",
+    "year": 2005,
+    "imdb_id": "tt0408306",
+    "kinopoisk_id": 81287,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2006
+  }
+]

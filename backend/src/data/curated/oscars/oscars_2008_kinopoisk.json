@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "No Country for Old Men",
+    "year": 2007,
+    "imdb_id": "tt0477348",
+    "kinopoisk_id": 195434,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2008
+  },
+  {
+    "sort_order": 2,
+    "name": "Atonement",
+    "year": 2007,
+    "imdb_id": "tt0783233",
+    "kinopoisk_id": 255611,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2008
+  },
+  {
+    "sort_order": 3,
+    "name": "Juno",
+    "year": 2007,
+    "imdb_id": "tt0467406",
+    "kinopoisk_id": 197488,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2008
+  },
+  {
+    "sort_order": 4,
+    "name": "Michael Clayton",
+    "year": 2007,
+    "imdb_id": "tt0465538",
+    "kinopoisk_id": 104945,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2008
+  },
+  {
+    "sort_order": 5,
+    "name": "There Will Be Blood",
+    "year": 2007,
+    "imdb_id": "tt0469494",
+    "kinopoisk_id": 196604,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2008
+  }
+]

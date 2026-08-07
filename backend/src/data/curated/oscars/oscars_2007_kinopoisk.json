@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "The Departed",
+    "year": 2006,
+    "imdb_id": "tt0407887",
+    "kinopoisk_id": 81314,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2007
+  },
+  {
+    "sort_order": 2,
+    "name": "Babel",
+    "year": 2006,
+    "imdb_id": "tt0449466",
+    "kinopoisk_id": 150693,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2007
+  },
+  {
+    "sort_order": 3,
+    "name": "Letters from Iwo Jima",
+    "year": 2006,
+    "imdb_id": "tt0498380",
+    "kinopoisk_id": 252260,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2007
+  },
+  {
+    "sort_order": 4,
+    "name": "Little Miss Sunshine",
+    "year": 2006,
+    "imdb_id": "tt0449059",
+    "kinopoisk_id": 164089,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2007
+  },
+  {
+    "sort_order": 5,
+    "name": "The Queen",
+    "year": 2006,
+    "imdb_id": "tt0436697",
+    "kinopoisk_id": 321578,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2007
+  }
+]

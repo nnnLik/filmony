@@ -1,0 +1,102 @@
+[
+  {
+    "sort_order": 1,
+    "name": "The King's Speech",
+    "year": 2010,
+    "imdb_id": "tt1504320",
+    "kinopoisk_id": 485311,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 2,
+    "name": "Black Swan",
+    "year": 2010,
+    "imdb_id": "tt0947798",
+    "kinopoisk_id": 278273,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 3,
+    "name": "The Fighter",
+    "year": 2010,
+    "imdb_id": "tt0964517",
+    "kinopoisk_id": 279580,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 4,
+    "name": "Inception",
+    "year": 2010,
+    "imdb_id": "tt1375666",
+    "kinopoisk_id": 447301,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 5,
+    "name": "The Kids Are All Right",
+    "year": 2010,
+    "imdb_id": "tt0842926",
+    "kinopoisk_id": 261376,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 6,
+    "name": "127 Hours",
+    "year": 2010,
+    "imdb_id": "tt1542344",
+    "kinopoisk_id": 484878,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 7,
+    "name": "The Social Network",
+    "year": 2010,
+    "imdb_id": "tt1285016",
+    "kinopoisk_id": 427198,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 8,
+    "name": "Toy Story 3",
+    "year": 2010,
+    "imdb_id": "tt0435761",
+    "kinopoisk_id": 258328,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 9,
+    "name": "True Grit",
+    "year": 2010,
+    "imdb_id": "tt1403865",
+    "kinopoisk_id": 462553,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  },
+  {
+    "sort_order": 10,
+    "name": "Winter's Bone",
+    "year": 2010,
+    "imdb_id": "tt1399683",
+    "kinopoisk_id": 455627,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2011
+  }
+]

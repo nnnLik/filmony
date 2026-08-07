@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
-import { CopyPlus, Link2, Share2, Trophy } from 'lucide-react'
+import { CopyPlus, Link2, Share2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
@@ -85,6 +85,7 @@ import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
+import { OscarReleaseYearLabel } from '../components/films/OscarReleaseYearLabel'
 import { primaryFilmAwardBadge } from '../lib/filmAwardBadgeDisplay'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import { FilmCollectionsStrip } from '../components/collections/FilmCollectionsStrip'
@@ -1016,31 +1017,12 @@ function MovieCardDetailLoadedBody({
                           />
                         </>
                       ) : null}
-                      {oscarBadge != null ? (
-                        <span
-                          className={`inline-flex shrink-0 items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
-                            oscarBadge.kind === 'oscar_best_picture_winner'
-                              ? 'border-[color-mix(in_srgb,#eab308_45%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,#eab308_16%,var(--tgui--secondary_bg_color))] text-[#facc15]'
-                              : 'border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) text-(--tgui--hint_color)'
-                          }`}
-                          title={
-                            oscarBadge.kind === 'oscar_best_picture_winner'
-                              ? `Оскар — лучший фильм (победитель), ${oscarBadge.ceremony_year}`
-                              : `Оскар — лучший фильм (номинант), ${oscarBadge.ceremony_year}`
-                          }
-                          aria-label={
-                            oscarBadge.kind === 'oscar_best_picture_winner'
-                              ? `Оскар ${oscarBadge.ceremony_year}, победитель`
-                              : `Оскар ${oscarBadge.ceremony_year}, номинация`
-                          }
-                        >
-                          <Trophy className="block size-3 shrink-0" aria-hidden />
-                          {oscarBadge.ceremony_year}
-                        </span>
-                      ) : null}
-                      <span className="text-xs font-medium tabular-nums text-(--tgui--hint_color) sm:text-sm">
-                        {movieCardReleasePrimaryLabel(card)}
-                      </span>
+                      <OscarReleaseYearLabel
+                        label={movieCardReleasePrimaryLabel(card)}
+                        badge={oscarBadge}
+                        releaseYear={card.release_year ?? card.film_year}
+                        variant="inline"
+                      />
                       <CardCategoryChip category={card.category} />
                       {card.film_primary_director_kinopoisk_id != null &&
                       card.film_primary_director_name != null &&

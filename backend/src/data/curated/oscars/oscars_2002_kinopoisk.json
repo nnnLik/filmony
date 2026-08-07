@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "A Beautiful Mind",
+    "year": 2001,
+    "imdb_id": "tt0268978",
+    "kinopoisk_id": 530,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2002
+  },
+  {
+    "sort_order": 2,
+    "name": "Gosford Park",
+    "year": 2001,
+    "imdb_id": "tt0280707",
+    "kinopoisk_id": 683,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2002
+  },
+  {
+    "sort_order": 3,
+    "name": "In the Bedroom",
+    "year": 2001,
+    "imdb_id": "tt0247425",
+    "kinopoisk_id": 711,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2002
+  },
+  {
+    "sort_order": 4,
+    "name": "The Lord of the Rings: The Fellowship of the Ring",
+    "year": 2001,
+    "imdb_id": "tt0120737",
+    "kinopoisk_id": 328,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2002
+  },
+  {
+    "sort_order": 5,
+    "name": "Moulin Rouge!",
+    "year": 2001,
+    "imdb_id": "tt0203009",
+    "kinopoisk_id": 558,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2002
+  }
+]

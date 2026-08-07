@@ -1,5 +1,5 @@
 import { Avatar, Title } from '@telegram-apps/telegram-ui'
-import { Music, Trophy } from 'lucide-react'
+import { Music } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, type MouseEventHandler } from 'react'
 import { Link, useNavigate } from 'react-router'
 
@@ -35,6 +35,7 @@ import { FranchiseChip } from '../films/FranchiseChip'
 import { CardCategoryChip } from '../cards/CardCategoryChip'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { ContrarianBadge } from '../gamification/ContrarianBadge'
+import { OscarReleaseYearLabel } from '../films/OscarReleaseYearLabel'
 import { primaryFilmAwardBadge } from '../../lib/filmAwardBadgeDisplay'
 import { FeedRatingRing } from './FeedRatingRing'
 import {
@@ -343,7 +344,15 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               >
                 {primaryTitle}
                 {releaseSuffix != null ? (
-                  <span className="font-normal text-white/72"> · {releaseSuffix}</span>
+                  <span className="font-normal text-white/72">
+                    {' · '}
+                    <OscarReleaseYearLabel
+                      label={releaseSuffix}
+                      badge={oscarBadge}
+                      releaseYear={card.release_year ?? card.film_year}
+                      variant="overlay"
+                    />
+                  </span>
                 ) : null}
               </Title>
             </div>
@@ -416,28 +425,6 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               viewerId={viewerUserId}
             />
             <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={card.user_id} />
-            {oscarBadge != null ? (
-              <span
-                className={`inline-flex shrink-0 items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
-                  oscarBadge.kind === 'oscar_best_picture_winner'
-                    ? 'border-[color-mix(in_srgb,#eab308_45%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,#eab308_16%,var(--tgui--secondary_bg_color))] text-[#facc15]'
-                    : 'border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) text-(--tgui--hint_color)'
-                }`}
-                title={
-                  oscarBadge.kind === 'oscar_best_picture_winner'
-                    ? `Оскар — лучший фильм (победитель), ${oscarBadge.ceremony_year}`
-                    : `Оскар — лучший фильм (номинант), ${oscarBadge.ceremony_year}`
-                }
-                aria-label={
-                  oscarBadge.kind === 'oscar_best_picture_winner'
-                    ? `Оскар ${oscarBadge.ceremony_year}, победитель`
-                    : `Оскар ${oscarBadge.ceremony_year}, номинация`
-                }
-              >
-                <Trophy className="block size-3 shrink-0" aria-hidden />
-                {oscarBadge.ceremony_year}
-              </span>
-            ) : null}
             {card.film_primary_director_kinopoisk_id != null &&
             card.film_primary_director_name != null &&
             card.film_primary_director_name.trim() !== '' ? (

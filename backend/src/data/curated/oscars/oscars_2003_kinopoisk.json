@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Chicago",
+    "year": 2002,
+    "imdb_id": "tt0299658",
+    "kinopoisk_id": 634,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2003
+  },
+  {
+    "sort_order": 2,
+    "name": "Gangs of New York",
+    "year": 2002,
+    "imdb_id": "tt0217505",
+    "kinopoisk_id": 678,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2003
+  },
+  {
+    "sort_order": 3,
+    "name": "The Hours",
+    "year": 2002,
+    "imdb_id": "tt0274558",
+    "kinopoisk_id": 702,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2003
+  },
+  {
+    "sort_order": 4,
+    "name": "The Lord of the Rings: The Two Towers",
+    "year": 2002,
+    "imdb_id": "tt0167261",
+    "kinopoisk_id": 312,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2003
+  },
+  {
+    "sort_order": 5,
+    "name": "The Pianist",
+    "year": 2002,
+    "imdb_id": "tt0253474",
+    "kinopoisk_id": 355,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2003
+  }
+]

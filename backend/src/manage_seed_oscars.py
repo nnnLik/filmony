@@ -103,13 +103,15 @@ def _collection_slug(year: int) -> str:
 
 
 def _collection_title(year: int) -> str:
-    return f'Оскар {year}'
+    film_year = year - 1
+    return f'Оскар за {film_year}'
 
 
 def _collection_description(year: int) -> str:
+    film_year = year - 1
     return (
-        f'Номинанты на «Оскар» {year} года (Best Picture) — '
-        f'сезонная коллекция для отслеживания прогресса.'
+        f'Главные претенденты на лучший фильм среди картин {film_year}-го. '
+        f'Церемония {year}-го — смотрите и отмечайте, кого уже оценили.'
     )
 
 

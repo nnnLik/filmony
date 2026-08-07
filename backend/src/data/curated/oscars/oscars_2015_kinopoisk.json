@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Birdman",
+    "year": 2014,
+    "imdb_id": "tt2562232",
+    "kinopoisk_id": 722827,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 2,
+    "name": "American Sniper",
+    "year": 2014,
+    "imdb_id": "tt2179136",
+    "kinopoisk_id": 683919,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 3,
+    "name": "Boyhood",
+    "year": 2014,
+    "imdb_id": "tt1065073",
+    "kinopoisk_id": 391729,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 4,
+    "name": "The Grand Budapest Hotel",
+    "year": 2014,
+    "imdb_id": "tt2278388",
+    "kinopoisk_id": 683999,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 5,
+    "name": "The Imitation Game",
+    "year": 2014,
+    "imdb_id": "tt2084970",
+    "kinopoisk_id": 635772,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 6,
+    "name": "Selma",
+    "year": 2014,
+    "imdb_id": "tt1020072",
+    "kinopoisk_id": 464607,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 7,
+    "name": "The Theory of Everything",
+    "year": 2014,
+    "imdb_id": "tt2980516",
+    "kinopoisk_id": 770973,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2015
+  },
+  {
+    "sort_order": 8,
+    "name": "Whiplash",
+    "year": 2014,
+    "imdb_id": "tt2582802",
+    "kinopoisk_id": 725190,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2015
+  }
+]

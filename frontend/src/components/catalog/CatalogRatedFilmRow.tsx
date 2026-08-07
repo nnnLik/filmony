@@ -1,9 +1,10 @@
 import { Link } from 'react-router'
 
 import { formatRating } from '../feed/feedCardUtils'
-import { FilmAwardBadgeStrip } from '../films/FilmAwardBadgeStrip'
+import { OscarReleaseYearLabel } from '../films/OscarReleaseYearLabel'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { formatRatingsCount } from '../../lib/formatRuPlural'
+import { primaryFilmAwardBadge, releaseYearLabel } from '../../lib/filmAwardBadgeDisplay'
 import type { FilmAwardBadge } from '../../api/profileTypes'
 
 export type CatalogRatedFilm = {
@@ -22,6 +23,8 @@ type CatalogRatedFilmRowProps = {
 }
 
 export function CatalogRatedFilmRow({ film }: CatalogRatedFilmRowProps) {
+  const oscarBadge = primaryFilmAwardBadge(film.award_badges)
+
   return (
     <li>
       <Link
@@ -42,10 +45,12 @@ export function CatalogRatedFilmRow({ film }: CatalogRatedFilmRowProps) {
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-medium text-(--tgui--text_color)">{film.title}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            <p className="text-xs text-(--tgui--hint_color)">{film.year ?? '—'}</p>
-            {film.award_badges != null && film.award_badges.length > 0 ? (
-              <FilmAwardBadgeStrip badges={film.award_badges} compact />
-            ) : null}
+            <OscarReleaseYearLabel
+              label={releaseYearLabel(film.year)}
+              badge={oscarBadge}
+              releaseYear={film.year}
+              variant="compact"
+            />
           </div>
           <FilmGenreChips genres={film.genres} maxVisible={2} className="mt-1.5" />
           <p className="mt-1 text-xs tabular-nums text-(--tgui--hint_color)">

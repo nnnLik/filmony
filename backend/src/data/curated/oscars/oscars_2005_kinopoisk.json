@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Million Dollar Baby",
+    "year": 2004,
+    "imdb_id": "tt0405159",
+    "kinopoisk_id": 81297,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2005
+  },
+  {
+    "sort_order": 2,
+    "name": "The Aviator",
+    "year": 2004,
+    "imdb_id": "tt0338751",
+    "kinopoisk_id": 6374,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2005
+  },
+  {
+    "sort_order": 3,
+    "name": "Finding Neverland",
+    "year": 2004,
+    "imdb_id": "tt0308644",
+    "kinopoisk_id": 4511,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2005
+  },
+  {
+    "sort_order": 4,
+    "name": "Ray",
+    "year": 2004,
+    "imdb_id": "tt0350258",
+    "kinopoisk_id": 5319,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2005
+  },
+  {
+    "sort_order": 5,
+    "name": "Sideways",
+    "year": 2004,
+    "imdb_id": "tt0377412",
+    "kinopoisk_id": 61274,
+    "match_method": "keyword",
+    "is_winner": false,
+    "ceremony_year": 2005
+  }
+]

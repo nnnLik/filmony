@@ -14,6 +14,7 @@ from models.catalog_item import CatalogItem, CatalogProvider
 from models.collection import Collection, CollectionKind
 from models.collection_film import CollectionFilm
 from models.film import Film
+from models.film_award_badge import FilmAwardBadge, FilmAwardBadgeKind
 from models.user import User
 from models.user_card import UserCard
 from services.collections.pin_collection import MAX_COLLECTION_PINS
@@ -198,6 +199,36 @@ async def test_collection_films_pagination_and_viewer_has_rated(
     body2 = page2.json()
     assert len(body2['items']) == 1
     assert body2['next_cursor'] is None
+
+
+@pytest.mark.asyncio
+async def test_collection_films_include_award_badges(async_client: AsyncClient) -> None:
+    suffix = uuid4().int % 1_000_000
+    slug = f'test-films-badges-{suffix}'
+    film = await _create_film(kinopoisk_id=3_500_000 + suffix, title='Oscar Film')
+    await _create_collection_with_films(slug=slug, film_ids=[int(film.id)])
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            FilmAwardBadge(
+                film_id=int(film.id),
+                kind=FilmAwardBadgeKind.oscar_best_picture_winner.value,
+                ceremony_year=2024,
+            ),
+        )
+        await session.commit()
+
+    response = await async_client.get(f'/api/collections/{slug}/films')
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body['items']) == 1
+    assert body['items'][0]['award_badges'] == [
+        {
+            'kind': 'oscar_best_picture_winner',
+            'ceremony_year': 2024,
+        },
+    ]
 
 
 @pytest.mark.asyncio

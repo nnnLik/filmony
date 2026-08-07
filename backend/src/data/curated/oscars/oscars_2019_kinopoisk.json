@@ -1,0 +1,82 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Green Book",
+    "year": 2018,
+    "imdb_id": "tt6966692",
+    "kinopoisk_id": 1108577,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 2,
+    "name": "Black Panther",
+    "year": 2018,
+    "imdb_id": "tt1825683",
+    "kinopoisk_id": 623250,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 3,
+    "name": "BlacKkKlansman",
+    "year": 2018,
+    "imdb_id": "tt7349662",
+    "kinopoisk_id": 1093170,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 4,
+    "name": "Bohemian Rhapsody",
+    "year": 2018,
+    "imdb_id": "tt1727824",
+    "kinopoisk_id": 568289,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 5,
+    "name": "The Favourite",
+    "year": 2018,
+    "imdb_id": "tt5083738",
+    "kinopoisk_id": 938644,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 6,
+    "name": "Roma",
+    "year": 2018,
+    "imdb_id": "tt6155172",
+    "kinopoisk_id": 1008486,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 7,
+    "name": "A Star Is Born",
+    "year": 2018,
+    "imdb_id": "tt1517451",
+    "kinopoisk_id": 474935,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  },
+  {
+    "sort_order": 8,
+    "name": "Vice",
+    "year": 2018,
+    "imdb_id": "tt6266538",
+    "kinopoisk_id": 1044045,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2019
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "sort_order": 1,
+    "name": "Slumdog Millionaire",
+    "year": 2008,
+    "imdb_id": "tt1010048",
+    "kinopoisk_id": 413362,
+    "match_method": "imdbId",
+    "is_winner": true,
+    "ceremony_year": 2009
+  },
+  {
+    "sort_order": 2,
+    "name": "The Curious Case of Benjamin Button",
+    "year": 2008,
+    "imdb_id": "tt0421715",
+    "kinopoisk_id": 81555,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2009
+  },
+  {
+    "sort_order": 3,
+    "name": "Frost/Nixon",
+    "year": 2008,
+    "imdb_id": "tt0371257",
+    "kinopoisk_id": 61293,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2009
+  },
+  {
+    "sort_order": 4,
+    "name": "Milk",
+    "year": 2008,
+    "imdb_id": "tt1013753",
+    "kinopoisk_id": 395773,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2009
+  },
+  {
+    "sort_order": 5,
+    "name": "The Reader",
+    "year": 2008,
+    "imdb_id": "tt0976051",
+    "kinopoisk_id": 325439,
+    "match_method": "imdbId",
+    "is_winner": false,
+    "ceremony_year": 2009
+  }
+]
