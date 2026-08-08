@@ -30,6 +30,8 @@ def test_celery_app_registers_telegram_engagement_tasks() -> None:
     assert 'tasks.telegram_engagement.notify_followers_new_feed_post' in celery_app.app.tasks
     assert 'tasks.telegram_engagement.send_subscribed_activity_digests' in celery_app.app.tasks
     assert 'tasks.monthly_recap.send_monthly_recap_nudges' in celery_app.app.tasks
+    assert 'tasks.personal_digest.send_weekly_personal_digests' in celery_app.app.tasks
+    assert 'tasks.personal_digest.send_monthly_personal_digests' in celery_app.app.tasks
     assert 'tasks.film_award_badges.sync_film_award_badges' in celery_app.app.tasks
     assert 'tasks.achievement_rarity.recalculate_achievement_rarity' in celery_app.app.tasks
 
