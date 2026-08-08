@@ -66,6 +66,18 @@ def telegram_mini_app_recap_url(*, year: int, month: int) -> str | None:
     return f'{base}?startapp=mr{year}-{month}'
 
 
+def telegram_mini_app_weekly_digest_url(*, period_key: str) -> str | None:
+    """Deep link into weekly digest screen (handled by start_param ``wd{period_key}``)."""
+    raw = settings.telegram.bot_username
+    if raw is None:
+        return None
+    name = raw.strip().lstrip('@')
+    if not name:
+        return None
+    base = f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
+    return f'{base}?startapp=wd{period_key}'
+
+
 def html_card_deep_link_block(card_id: int, *, link_text: str | None = None) -> str:
     url = telegram_mini_app_card_url(card_id)
     if url is None:
@@ -109,6 +121,19 @@ def html_recap_deep_link_block(*, year: int, month: int, link_text: str | None =
         return '📱 Откройте приложение Filmony из Telegram'
     esc_url = html.escape(url, quote=True)
     label = html.escape(link_text or 'Посмотреть итоги месяца')
+    return f'🔗 <a href="{esc_url}">{label}</a>'
+
+
+def html_weekly_digest_deep_link_block(
+    *,
+    period_key: str,
+    link_text: str | None = None,
+) -> str:
+    url = telegram_mini_app_weekly_digest_url(period_key=period_key)
+    if url is None:
+        return '📱 Откройте приложение Filmony из Telegram'
+    esc_url = html.escape(url, quote=True)
+    label = html.escape(link_text or 'Открыть сводку недели')
     return f'🔗 <a href="{esc_url}">{label}</a>'
 
 

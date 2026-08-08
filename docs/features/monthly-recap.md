@@ -1,21 +1,33 @@
 # Monthly Recap
 
-Monthly in-app summary of rated-card activity plus a Telegram nudge on the 1st of each month.
+Monthly in-app summary of rated-card activity. Telegram delivery has moved to the **personal digest** pipeline.
+
+See also: [Personal digest redesign](personal-digest-redesign.md) and the design spec at `docs/superpowers/specs/2026-08-08-personal-digest-redesign-design.md`.
 
 ## API
+
+Legacy recap routes (still supported):
 
 - `GET /api/me/recap/{year}/{month}` — auth required, own recap only (UTC month boundaries).
 - `GET /api/me/recap/latest` — previous complete calendar month.
 
-Response includes: `total_rated`, `average_rating`, `top_films`, `new_stamps`, `marathons_unlocked`, `peak_activity_date`, `genre_of_month`.
+Preferred monthly digest routes (same payload shape, richer fields):
+
+- `GET /api/me/digest/month/{year}/{month}`
+- `GET /api/me/digest/month/latest` — alias of recap latest
+
+Response includes overview stats, people, taste breakdowns, gamification unlocks, collection deltas, achievements, streak, and `fun_facts`.
 
 ## Telegram
 
-Celery task `tasks.monthly_recap.send_monthly_recap_nudges` (documented beat: 1st day 10:00 UTC). Short HTML message + deep link `startapp=mr{year}-{month}`.
+**Deprecated:** `tasks.monthly_recap.send_monthly_recap_nudges`
 
-Idempotency: `monthly_recap_nudge_state (user_id, year, month)`.
+**Current:** `tasks.personal_digest.send_monthly_personal_digests` (prod cron: 1st day 10:00 UTC). Short HTML teaser + deep link `startapp=md{year}-{month}`.
+
+Idempotency: `personal_digest_delivery_state (user_id, period, period_key)`.
 
 ## Frontend
 
-- Route: `/me/recap/:year/:month` and `/me/recap/latest`
+- Legacy: `/me/recap/:year/:month` and `/me/recap/latest` (`MonthlyRecapPage.tsx`)
+- Digest: `/me/digest/month/:year/:month` and `/me/digest/month/latest`
 - Profile banner when latest month has ratings; dismiss via `localStorage` key `recap_dismissed_{y}_{m}`.

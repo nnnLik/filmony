@@ -7,7 +7,12 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
+from core.database import get_session_factory
+from models.film import Film
+from models.film_actor import FilmActor
+from models.person import Person
 from services.profile.build_monthly_recap import previous_complete_month
 from tests.integration.api.test_profile_routes import _login, _seed_movie_card
 
@@ -70,6 +75,79 @@ async def test_get_my_monthly_recap_happy_path(async_client: AsyncClient) -> Non
     assert len(body['director_breakdown']) >= 1
     assert body['director_breakdown'][0]['label'] == 'Дени Вильнёв'
     assert body['director_breakdown'][0]['count'] == 2
+
+
+@pytest.mark.asyncio
+async def test_get_my_monthly_recap_extended_fields_with_actor(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=54006)
+    user_id = UUID(str(me['id']))
+    completed_at = datetime(2026, 7, 18, 12, 0, tzinfo=UTC)
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5400601,
+        title='Actor Film',
+        year=2023,
+        rating=9.5,
+        company='friends',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=completed_at,
+        genres=['драма'],
+        countries=['США'],
+        primary_director_kinopoisk_id=302,
+        primary_director_name='Кристофер Нолан',
+    )
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = (
+            await session.execute(select(Film).where(Film.kinopoisk_id == 5400601))
+        ).scalar_one()
+        person = Person(kinopoisk_id=54006, name='Леонардо ДиКаприо', poster_url=None)
+        session.add(person)
+        await session.flush()
+        session.add(FilmActor(film_id=film.id, person_id=person.id, billing_order=1))
+        await session.commit()
+
+    await _login(async_client, telegram_user_id=54006)
+    r = await async_client.get('/api/me/recap/2026/7')
+    assert r.status_code == 200
+    body = r.json()
+    assert body['top_actor_name'] == 'Леонардо ДиКаприо'
+    assert body['top_actor_count'] == 1
+    assert body['top_actor_kinopoisk_id'] == 54006
+    assert len(body['actor_breakdown']) == 1
+    assert body['dominant_mood_after'] == 'enjoyed'
+    assert body['dominant_company'] == 'friends'
+    assert body['streak_best_in_period'] == 1
+    assert body['fun_facts'] == []
+
+
+@pytest.mark.asyncio
+async def test_get_my_monthly_digest_aliases_recap(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=54007)
+    user_id = UUID(str(me['id']))
+    completed_at = datetime(2026, 7, 12, 12, 0, tzinfo=UTC)
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5400701,
+        title='Digest alias film',
+        year=2022,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=completed_at,
+    )
+
+    await _login(async_client, telegram_user_id=54007)
+    recap = await async_client.get('/api/me/recap/2026/7')
+    digest = await async_client.get('/api/me/digest/month/2026/7')
+    assert recap.status_code == 200
+    assert digest.status_code == 200
+    assert recap.json() == digest.json()
 
 
 @pytest.mark.asyncio

@@ -108,6 +108,10 @@ const MonthlyRecapPage = lazy(async () => {
   const m = await import('./pages/MonthlyRecapPage')
   return { default: m.MonthlyRecapPage }
 })
+const WeeklyDigestPage = lazy(async () => {
+  const m = await import('./pages/WeeklyDigestPage')
+  return { default: m.WeeklyDigestPage }
+})
 const CollectionDetailPage = lazy(async () => {
   const m = await import('./pages/CollectionDetailPage')
   return { default: m.CollectionDetailPage }
@@ -154,6 +158,10 @@ export function AppRoutes() {
         <Route path="/taste-quiz/stats" element={<TasteQuizStatsPage />} />
         <Route path="/me/recap/:year/:month" element={<MonthlyRecapPage />} />
         <Route path="/me/recap/latest" element={<MonthlyRecapPage />} />
+        <Route path="/me/digest/month/:year/:month" element={<MonthlyRecapPage />} />
+        <Route path="/me/digest/month/latest" element={<MonthlyRecapPage />} />
+        <Route path="/me/digest/week/:periodKey" element={<WeeklyDigestPage />} />
+        <Route path="/me/digest/week/latest" element={<WeeklyDigestPage />} />
       </Routes>
     </Suspense>
   )

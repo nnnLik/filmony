@@ -14,6 +14,7 @@ from .film_award_badge import FilmAwardBadge, FilmAwardBadgeKind
 from .game import Game
 from .monthly_recap_nudge_state import MonthlyRecapNudgeState
 from .person import Person
+from .personal_digest_delivery_state import PersonalDigestDeliveryState
 from .reaction_target_kind import ReactionTargetKind
 from .reaction_type import ReactionType
 from .subscribed_activity_digest_state import SubscribedActivityDigestState
@@ -58,6 +59,7 @@ __all__ = (
     'Game',
     'MonthlyRecapNudgeState',
     'Person',
+    'PersonalDigestDeliveryState',
     'ReactionTargetKind',
     'ReactionType',
     'SubscribedActivityDigestState',

@@ -1,0 +1,26 @@
+# Action log fragment
+
+- **Timestamp:** 2026-08-08T00:10:00Z
+- **Feature slug:** personal-digest-redesign
+- **Action type:** closeout
+- **Summary:** Full personal digest pipeline: monthly aggregation + Telegram, weekly digest with friends block, fun facts engine, API/FE pages, delivery state idempotency. Legacy monthly recap nudge deprecated.
+- **Files:**
+  - `backend/src/models/personal_digest_delivery_state.py`
+  - `backend/src/migrations/versions/t5u6v7w8x901_personal_digest_delivery_state.py`
+  - `backend/src/services/personal_digest/**`
+  - `backend/src/services/profile/build_monthly_recap.py`
+  - `backend/src/tasks/personal_digest.py`
+  - `backend/src/api/profile/me_routes.py`
+  - `backend/src/api/profile/schemas.py`
+  - `backend/src/services/telegram/mini_app_link.py`
+  - `backend/src/tests/unit/services/personal_digest/**`
+  - `backend/src/tests/integration/services/personal_digest/**`
+  - `frontend/src/pages/MonthlyRecapPage.tsx`
+  - `frontend/src/pages/WeeklyDigestPage.tsx`
+  - `frontend/src/routes.tsx`
+  - `docs/features/personal-digest-redesign.md`
+- **Verification:**
+  - `make backend-test-one target=src/tests/unit/services/personal_digest/` — 22 passed
+  - `make backend-test-one target=src/tests/integration/services/personal_digest/` — 4 passed
+  - `make backend-test-one target=src/tests/integration/api/test_monthly_recap_routes.py` — 8 passed
+  - `cd frontend && npm run lint && npm run build` — OK

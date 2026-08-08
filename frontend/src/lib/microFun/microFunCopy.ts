@@ -8,6 +8,8 @@ export type MicroFunPoolKey =
   | 'feed_scroll_depth_secret'
   | 'extreme_rating_low'
   | 'extreme_rating_high'
+  | 'digest_weekly'
+  | 'digest_monthly'
 
 export const MICRO_FUN_POOLS: Record<MicroFunPoolKey, readonly string[]> = {
   feed_empty: [
@@ -84,6 +86,22 @@ export const MICRO_FUN_POOLS: Record<MicroFunPoolKey, readonly string[]> = {
     'Pepe: «Шедевр или ты просто добрый?»',
     '10 — Pepe уже ставит это в избранное.',
     'Идеал по твоей шкале. Pepe не спорит.',
+  ],
+  digest_weekly: [
+    'Неделя как неделя — только с оценками',
+    'Pepe одобряет этот ритм просмотров',
+    'Семь дней — семь поводов открыть Filmony',
+    'Маленький отрезок, большая статистика',
+    'Неделя прошла, popcorn statistics остались',
+    'Три фильма за неделю — уже социальная жизнь',
+  ],
+  digest_monthly: [
+    'Месяц как месяц — только с оценками',
+    'Pepe подводит итоги: не всё так плохо',
+    'Календарь перевернулся — статистика осталась',
+    'Тридцать дней пролетели, оценки остались',
+    'Месячный отчёт готов. Pepe кивает',
+    'Итоги месяца: цифры не врут',
   ],
 }
 

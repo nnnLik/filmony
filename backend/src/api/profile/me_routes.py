@@ -17,6 +17,7 @@ from api.profile.schemas import (
     MyUserCardCategoryResponse,
     MyUserCardTagStatItem,
     MyUserCardTagStatsResponse,
+    PersonalDigestResponse,
     PlannedUserCardResponse,
     ProfileUpdateRequest,
     UserCardsExportCsvResponse,
@@ -27,6 +28,7 @@ from api.profile.schemas import (
     WatchlistOverlapListResponse,
     build_monthly_recap_response,
     build_my_profile_response,
+    build_personal_digest_response,
     build_watchlist_entry_item_response,
     build_watchlist_overlap_list_response,
 )
@@ -36,6 +38,7 @@ from deps.auth import CurrentUser
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from services.cards.get_planned_user_card import GetPlannedUserCardService
+from services.personal_digest.build_personal_digest import BuildPersonalDigestService
 from services.profile.build_monthly_recap import (
     BuildMonthlyRecapService,
     previous_complete_month,
@@ -450,6 +453,94 @@ async def get_my_latest_monthly_recap(
     summary='Monthly recap for a specific calendar month (UTC)',
 )
 async def get_my_monthly_recap(
+    year: int,
+    month: int,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MonthlyRecapResponse:
+    if year < 2000 or year > 2100:
+        raise HTTPException(status_code=422, detail='invalid year')
+    try:
+        recap = await BuildMonthlyRecapService.build(db).execute(
+            user.id,
+            year=year,
+            month=month,
+        )
+    except BuildMonthlyRecapService.InvalidMonth:
+        raise HTTPException(status_code=422, detail='invalid month') from None
+    except BuildMonthlyRecapService.RecapNotFound:
+        raise HTTPException(status_code=404, detail='recap not found') from None
+    return build_monthly_recap_response(recap)
+
+
+@router.get(
+    '/digest/week/latest',
+    response_model=PersonalDigestResponse,
+    summary='Weekly digest for the latest complete ISO week',
+)
+async def get_my_latest_weekly_digest(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PersonalDigestResponse:
+    try:
+        digest = await BuildPersonalDigestService.build(db).execute(user.id, period='week')
+    except BuildPersonalDigestService.DigestNotFound:
+        raise HTTPException(status_code=404, detail='digest not found') from None
+    return build_personal_digest_response(digest)
+
+
+@router.get(
+    '/digest/week/{period_key}',
+    response_model=PersonalDigestResponse,
+    summary='Weekly digest for a specific ISO week (e.g. 2026-W19)',
+)
+async def get_my_weekly_digest(
+    period_key: str,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PersonalDigestResponse:
+    try:
+        digest = await BuildPersonalDigestService.build(db).execute(
+            user.id,
+            period='week',
+            period_key=period_key,
+        )
+    except ValueError:
+        raise HTTPException(status_code=422, detail='invalid period key') from None
+    except BuildPersonalDigestService.DigestNotFound:
+        raise HTTPException(status_code=404, detail='digest not found') from None
+    return build_personal_digest_response(digest)
+
+
+@router.get(
+    '/digest/month/latest',
+    response_model=MonthlyRecapResponse,
+    summary='Monthly digest for the latest complete calendar month',
+)
+async def get_my_latest_monthly_digest(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MonthlyRecapResponse:
+    year, month = previous_complete_month()
+    try:
+        recap = await BuildMonthlyRecapService.build(db).execute(
+            user.id,
+            year=year,
+            month=month,
+        )
+    except BuildMonthlyRecapService.InvalidMonth:
+        raise HTTPException(status_code=422, detail='invalid month') from None
+    except BuildMonthlyRecapService.RecapNotFound:
+        raise HTTPException(status_code=404, detail='recap not found') from None
+    return build_monthly_recap_response(recap)
+
+
+@router.get(
+    '/digest/month/{year}/{month}',
+    response_model=MonthlyRecapResponse,
+    summary='Monthly digest for a specific calendar month (UTC)',
+)
+async def get_my_monthly_digest(
     year: int,
     month: int,
     user: CurrentUser,

@@ -115,9 +115,24 @@ export function parseMiniAppRecapStartParam(startParam: string): { year: number;
   return { year, month }
 }
 
-export function buildMiniAppRecapDeepLink(year: number, month: number, botUsername: string): string {
+/** Parses Telegram mini-app start_param for weekly digest deeplinks (`wd{period_key}`). */
+export function parseMiniAppWeeklyDigestStartParam(startParam: string): string | null {
+  const sp = startParam.trim()
+  const match = /^wd(\d{4})-w(\d{2})$/i.exec(sp)
+  if (match == null || match[1] == null || match[2] == null) {
+    return null
+  }
+  const year = Number(match[1])
+  const week = Number(match[2])
+  if (!Number.isInteger(year) || !Number.isInteger(week) || week < 1 || week > 53) {
+    return null
+  }
+  return `${year}-W${String(week).padStart(2, '0')}`
+}
+
+export function buildMiniAppWeeklyDigestDeepLink(periodKey: string, botUsername: string): string {
   const bot = botUsername.trim().replace(/^@/, '')
-  return `https://t.me/${bot}/app?startapp=mr${year}-${month}`
+  return `https://t.me/${bot}/app?startapp=wd${periodKey}`
 }
 
 export const HANDLED_START_PARAM_KEY_PREFIX = 'filmony.handled_start_param.'
@@ -168,6 +183,11 @@ export function resolveStartParamToPath(startParam: string): StartParamRouteTarg
   const recapTarget = parseMiniAppRecapStartParam(sp)
   if (recapTarget != null) {
     return { path: `/me/recap/${recapTarget.year}/${recapTarget.month}` }
+  }
+
+  const weeklyDigestKey = parseMiniAppWeeklyDigestStartParam(sp)
+  if (weeklyDigestKey != null) {
+    return { path: `/me/digest/week/${weeklyDigestKey}` }
   }
 
   const tasteQuizToken = parseMiniAppTasteQuizStartParam(sp)

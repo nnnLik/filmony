@@ -836,6 +836,30 @@ class MonthlyRecapFranchiseItemResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class MonthlyRecapActorItemResponse(BaseModel):
+    kinopoisk_id: int
+    label: str
+    count: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapCollectionDeltaItemResponse(BaseModel):
+    collection_slug: str
+    title: str
+    films_rated_in_period: int
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class MonthlyRecapAchievementItemResponse(BaseModel):
+    slug: str
+    title: str
+    rarity_percent: float | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class MonthlyRecapResponse(BaseModel):
     year: int
     month: int
@@ -859,6 +883,19 @@ class MonthlyRecapResponse(BaseModel):
     decade_breakdown: list[MonthlyRecapDecadeItemResponse] = Field(default_factory=list)
     director_breakdown: list[MonthlyRecapDirectorItemResponse] = Field(default_factory=list)
     franchise_breakdown: list[MonthlyRecapFranchiseItemResponse] = Field(default_factory=list)
+    top_actor_kinopoisk_id: int | None = None
+    top_actor_name: str | None = None
+    top_actor_count: int = 0
+    actor_breakdown: list[MonthlyRecapActorItemResponse] = Field(default_factory=list)
+    collection_deltas: list[MonthlyRecapCollectionDeltaItemResponse] = Field(default_factory=list)
+    achievements_unlocked: list[MonthlyRecapAchievementItemResponse] = Field(default_factory=list)
+    streak_current: int = 0
+    streak_best_in_period: int = 0
+    vs_previous_total_rated: int | None = None
+    vs_previous_average_rating: float | None = None
+    dominant_mood_after: str | None = None
+    dominant_company: str | None = None
+    fun_facts: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -938,4 +975,266 @@ def build_monthly_recap_response(recap) -> MonthlyRecapResponse:
             )
             for item in recap.franchise_breakdown
         ],
+        top_actor_kinopoisk_id=recap.top_actor_kinopoisk_id,
+        top_actor_name=recap.top_actor_name,
+        top_actor_count=recap.top_actor_count,
+        actor_breakdown=[
+            MonthlyRecapActorItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                label=item.label,
+                count=item.count,
+            )
+            for item in recap.actor_breakdown
+        ],
+        collection_deltas=[
+            MonthlyRecapCollectionDeltaItemResponse(
+                collection_slug=item.collection_slug,
+                title=item.title,
+                films_rated_in_period=item.films_rated_in_period,
+            )
+            for item in recap.collection_deltas
+        ],
+        achievements_unlocked=[
+            MonthlyRecapAchievementItemResponse(
+                slug=item.slug,
+                title=item.title,
+                rarity_percent=item.rarity_percent,
+            )
+            for item in recap.achievements_unlocked
+        ],
+        streak_current=recap.streak_current,
+        streak_best_in_period=recap.streak_best_in_period,
+        vs_previous_total_rated=recap.vs_previous_total_rated,
+        vs_previous_average_rating=recap.vs_previous_average_rating,
+        dominant_mood_after=recap.dominant_mood_after,
+        dominant_company=recap.dominant_company,
+        fun_facts=list(recap.fun_facts),
+    )
+
+
+class FriendDigestLineResponse(BaseModel):
+    author_user_id: UUID
+    author_display: str
+    profile_slug: str | None = None
+    line_text: str
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class FriendsDigestSectionResponse(BaseModel):
+    telegram_lines: list[FriendDigestLineResponse] = Field(default_factory=list)
+    in_app_items: list[FriendDigestLineResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class ControversyInsightResponse(BaseModel):
+    film_title: str
+    friend_display: str
+    spread: float
+    anchor_film_id: int | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class PersonalDigestResponse(BaseModel):
+    period: str
+    period_key: str
+    period_label: str
+    year: int | None = None
+    month: int | None = None
+    month_label: str | None = None
+    total_rated: int
+    average_rating: float
+    top_films: list[MonthlyRecapTopFilmResponse] = Field(default_factory=list)
+    all_films: list[MonthlyRecapTopFilmResponse] = Field(default_factory=list)
+    new_stamps: list[MonthlyRecapStampResponse] = Field(default_factory=list)
+    marathons_unlocked: list[MonthlyRecapMarathonResponse] = Field(default_factory=list)
+    peak_activity_date: date | None = None
+    peak_activity_count: int = 0
+    genre_of_month: str | None = None
+    genre_of_month_count: int = 0
+    top_director_name: str | None = None
+    top_director_count: int = 0
+    top_director_kinopoisk_id: int | None = None
+    top_country: str | None = None
+    top_country_count: int = 0
+    new_countries_count: int = 0
+    genre_breakdown: list[MonthlyRecapDistributionItemResponse] = Field(default_factory=list)
+    decade_breakdown: list[MonthlyRecapDecadeItemResponse] = Field(default_factory=list)
+    director_breakdown: list[MonthlyRecapDirectorItemResponse] = Field(default_factory=list)
+    franchise_breakdown: list[MonthlyRecapFranchiseItemResponse] = Field(default_factory=list)
+    top_actor_kinopoisk_id: int | None = None
+    top_actor_name: str | None = None
+    top_actor_count: int = 0
+    actor_breakdown: list[MonthlyRecapActorItemResponse] = Field(default_factory=list)
+    collection_deltas: list[MonthlyRecapCollectionDeltaItemResponse] = Field(default_factory=list)
+    achievements_unlocked: list[MonthlyRecapAchievementItemResponse] = Field(default_factory=list)
+    streak_current: int = 0
+    streak_best_in_period: int = 0
+    vs_previous_total_rated: int | None = None
+    vs_previous_average_rating: float | None = None
+    dominant_mood_after: str | None = None
+    dominant_company: str | None = None
+    fun_facts: list[str] = Field(default_factory=list)
+    friends: FriendsDigestSectionResponse | None = None
+    controversy: ControversyInsightResponse | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+def build_personal_digest_response(digest) -> PersonalDigestResponse:
+    from services.personal_digest.build_personal_digest import PersonalDigestDTO
+
+    assert isinstance(digest, PersonalDigestDTO)
+    friends_response: FriendsDigestSectionResponse | None = None
+    if digest.friends is not None:
+        friends_response = FriendsDigestSectionResponse(
+            telegram_lines=[
+                FriendDigestLineResponse(
+                    author_user_id=item.author_user_id,
+                    author_display=item.author_display,
+                    profile_slug=item.profile_slug,
+                    line_text=item.line_text,
+                )
+                for item in digest.friends.telegram_lines
+            ],
+            in_app_items=[
+                FriendDigestLineResponse(
+                    author_user_id=item.author_user_id,
+                    author_display=item.author_display,
+                    profile_slug=item.profile_slug,
+                    line_text=item.line_text,
+                )
+                for item in digest.friends.in_app_items
+            ],
+        )
+    controversy_response: ControversyInsightResponse | None = None
+    if digest.controversy is not None:
+        controversy_response = ControversyInsightResponse(
+            film_title=digest.controversy.film_title,
+            friend_display=digest.controversy.friend_display,
+            spread=digest.controversy.spread,
+            anchor_film_id=digest.controversy.anchor_film_id,
+        )
+    return PersonalDigestResponse(
+        period=digest.period,
+        period_key=digest.period_key,
+        period_label=digest.period_label,
+        year=digest.year,
+        month=digest.month,
+        month_label=digest.period_label if digest.period == 'month' else None,
+        total_rated=digest.total_rated,
+        average_rating=digest.average_rating,
+        top_films=[
+            MonthlyRecapTopFilmResponse(
+                card_id=item.card_id,
+                film_id=item.film_id,
+                title=item.title,
+                poster_url=item.poster_url,
+                rating=item.rating,
+            )
+            for item in digest.top_films
+        ],
+        all_films=[
+            MonthlyRecapTopFilmResponse(
+                card_id=item.card_id,
+                film_id=item.film_id,
+                title=item.title,
+                poster_url=item.poster_url,
+                rating=item.rating,
+            )
+            for item in digest.all_films
+        ],
+        new_stamps=[
+            MonthlyRecapStampResponse(
+                stamp_id=item.stamp_id,
+                title=item.title,
+                unlocked_at=item.unlocked_at,
+            )
+            for item in digest.new_stamps
+        ],
+        marathons_unlocked=[
+            MonthlyRecapMarathonResponse(
+                kind=item.kind,
+                key=item.key,
+                label=item.label,
+                unlocked_at=item.unlocked_at,
+            )
+            for item in digest.marathons_unlocked
+        ],
+        peak_activity_date=digest.peak_activity_date,
+        peak_activity_count=digest.peak_activity_count,
+        genre_of_month=digest.genre_of_month,
+        genre_of_month_count=digest.genre_of_month_count,
+        top_director_name=digest.top_director_name,
+        top_director_count=digest.top_director_count,
+        top_director_kinopoisk_id=digest.top_director_kinopoisk_id,
+        top_country=digest.top_country,
+        top_country_count=digest.top_country_count,
+        new_countries_count=digest.new_countries_count,
+        genre_breakdown=[
+            MonthlyRecapDistributionItemResponse(label=item.label, count=item.count)
+            for item in digest.genre_breakdown
+        ],
+        decade_breakdown=[
+            MonthlyRecapDecadeItemResponse(
+                decade_start=item.decade_start,
+                label=item.label,
+                count=item.count,
+            )
+            for item in digest.decade_breakdown
+        ],
+        director_breakdown=[
+            MonthlyRecapDirectorItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                label=item.label,
+                count=item.count,
+            )
+            for item in digest.director_breakdown
+        ],
+        franchise_breakdown=[
+            MonthlyRecapFranchiseItemResponse(
+                franchise_key=item.franchise_key,
+                label=item.label,
+                count=item.count,
+            )
+            for item in digest.franchise_breakdown
+        ],
+        top_actor_kinopoisk_id=digest.top_actor_kinopoisk_id,
+        top_actor_name=digest.top_actor_name,
+        top_actor_count=digest.top_actor_count,
+        actor_breakdown=[
+            MonthlyRecapActorItemResponse(
+                kinopoisk_id=item.kinopoisk_id,
+                label=item.label,
+                count=item.count,
+            )
+            for item in digest.actor_breakdown
+        ],
+        collection_deltas=[
+            MonthlyRecapCollectionDeltaItemResponse(
+                collection_slug=item.collection_slug,
+                title=item.title,
+                films_rated_in_period=item.films_rated_in_period,
+            )
+            for item in digest.collection_deltas
+        ],
+        achievements_unlocked=[
+            MonthlyRecapAchievementItemResponse(
+                slug=item.slug,
+                title=item.title,
+                rarity_percent=item.rarity_percent,
+            )
+            for item in digest.achievements_unlocked
+        ],
+        streak_current=digest.streak_current,
+        streak_best_in_period=digest.streak_best_in_period,
+        vs_previous_total_rated=digest.vs_previous_total_rated,
+        vs_previous_average_rating=digest.vs_previous_average_rating,
+        dominant_mood_after=digest.dominant_mood_after,
+        dominant_company=digest.dominant_company,
+        fun_facts=list(digest.fun_facts),
+        friends=friends_response,
+        controversy=controversy_response,
     )

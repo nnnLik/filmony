@@ -46,6 +46,16 @@ def test_recap_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+def test_weekly_digest_deep_link(monkeypatch: pytest.MonkeyPatch) -> None:
+    from services.telegram.mini_app_link import telegram_mini_app_weekly_digest_url
+
+    monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
+    assert (
+        telegram_mini_app_weekly_digest_url(period_key='2026-W19')
+        == 'https://t.me/mybot/app?startapp=wd2026-W19'
+    )
+
+
 def test_resolve_controversy_deeplink_prefers_film(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings.telegram, 'bot_username', 'mybot')
     url = resolve_controversy_deeplink_url(anchor_film_id=3, link_card_id=9)

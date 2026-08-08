@@ -62,4 +62,14 @@ describe('resolveStartParamToPath', () => {
     })
     expect(resolveStartParamToPath('mr2024-13')).toBeNull()
   })
+
+  it('resolves weekly digest deeplinks', () => {
+    expect(resolveStartParamToPath('wd2026-W19')).toEqual({
+      path: '/me/digest/week/2026-W19',
+    })
+    expect(resolveStartParamToPath('wd2026-w19')).toEqual({
+      path: '/me/digest/week/2026-W19',
+    })
+    expect(resolveStartParamToPath('wd2026-W99')).toBeNull()
+  })
 })

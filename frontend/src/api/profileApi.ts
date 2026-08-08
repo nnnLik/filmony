@@ -14,6 +14,7 @@ import type {
   SubscriptionListType,
   UserMovieCardStats,
   MonthlyRecap,
+  PersonalDigest,
   WatchlistEntryItem,
   WatchlistEntryPage,
   WatchlistMembership,
@@ -427,5 +428,15 @@ export async function getMyLatestMonthlyRecap(): Promise<MonthlyRecap> {
 export async function getMyMonthlyRecap(year: number, month: number): Promise<MonthlyRecap> {
   return apiJson<MonthlyRecap>(
     `/api/me/recap/${encodeURIComponent(String(year))}/${encodeURIComponent(String(month))}`,
+  )
+}
+
+export async function getMyLatestWeeklyDigest(): Promise<PersonalDigest> {
+  return apiJson<PersonalDigest>('/api/me/digest/week/latest')
+}
+
+export async function getMyWeeklyDigest(periodKey: string): Promise<PersonalDigest> {
+  return apiJson<PersonalDigest>(
+    `/api/me/digest/week/${encodeURIComponent(periodKey)}`,
   )
 }

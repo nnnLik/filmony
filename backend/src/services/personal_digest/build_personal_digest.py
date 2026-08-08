@@ -1,9 +1,11 @@
+"""Build personal digest DTO for weekly and monthly periods."""
+
 from __future__ import annotations
 
 import datetime as dt
 from collections import Counter
 from dataclasses import dataclass
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID
 
 from sqlalchemy import desc, func, select
@@ -17,221 +19,225 @@ from models.film_actor import FilmActor
 from models.person import Person
 from models.user_achievement import UserAchievement
 from models.user_card import UserCard
+from services.controversy.compute_weekly_controversy import ComputeWeeklyControversyService
+from services.controversy.constants import MIN_SPREAD_FOR_TELEGRAM_DIGEST
 from services.franchises.franchise_label import resolve_franchise_label
 from services.gamification.compute_marathon_achievements import ComputeMarathonAchievementsService
 from services.gamification.compute_passport_stamps import ComputePassportStampsService
+from services.personal_digest.build_personal_digest_friends_section import (
+    BuildPersonalDigestFriendsSectionService,
+    FriendsDigestSection,
+)
+from services.personal_digest.build_personal_digest_fun_facts import (
+    BuildPersonalDigestFunFactsService,
+    build_digest_context_for_week,
+)
+from services.personal_digest.week_bounds import (
+    format_week_period_label,
+    parse_iso_week_period_key,
+    previous_complete_iso_week,
+    week_bounds_for_iso_week,
+)
+from services.profile.build_monthly_recap import (
+    BuildMonthlyRecapService,
+    MonthlyRecap,
+    MonthlyRecapAchievementItem,
+    MonthlyRecapActorItem,
+    MonthlyRecapCollectionDeltaItem,
+    MonthlyRecapDecadeItem,
+    MonthlyRecapDirectorItem,
+    MonthlyRecapDistributionItem,
+    MonthlyRecapFilmItem,
+    MonthlyRecapFranchiseItem,
+    MonthlyRecapMarathonItem,
+    MonthlyRecapStampItem,
+    _completion_timestamp,
+    _max_consecutive_days_in_window,
+    _month_bounds,
+    month_period_key,
+    previous_complete_month,
+)
 from services.streaks.batch_user_rating_streaks import BatchUserRatingStreaksService
 
-_RU_MONTHS = (
-    '',
-    'январь',
-    'февраль',
-    'март',
-    'апрель',
-    'май',
-    'июнь',
-    'июль',
-    'август',
-    'сентябрь',
-    'октябрь',
-    'ноябрь',
-    'декабрь',
-)
 
-
-def _completion_timestamp():
-    return func.coalesce(UserCard.completed_at, UserCard.created_at)
-
-
-def _month_bounds(year: int, month: int) -> tuple[dt.datetime, dt.datetime]:
-    start = dt.datetime(year, month, 1, tzinfo=dt.UTC)
-    if month == 12:
-        end = dt.datetime(year + 1, 1, 1, tzinfo=dt.UTC)
-    else:
-        end = dt.datetime(year, month + 1, 1, tzinfo=dt.UTC)
-    return start, end
-
-
-def previous_complete_month(
-    *,
-    now: dt.datetime | None = None,
-) -> tuple[int, int]:
-    """Returns the calendar month immediately before ``now`` (UTC)."""
-    if now is None:
-        now = dt.datetime.now(tz=dt.UTC)
-    first_of_current = dt.datetime(now.year, now.month, 1, tzinfo=dt.UTC)
-    last_month_end = first_of_current - dt.timedelta(days=1)
-    return last_month_end.year, last_month_end.month
-
-
-def month_period_key(*, year: int, month: int) -> str:
-    return f'{year}-{month:02d}'
-
-
-def _previous_calendar_month(year: int, month: int) -> tuple[int, int]:
-    if month == 1:
-        return year - 1, 12
-    return year, month - 1
-
-
-def _max_consecutive_days_in_window(
-    active_days: set[dt.date],
-    *,
-    window_start: dt.date,
-    window_end_exclusive: dt.date,
-) -> int:
-    days_in_window = sorted(
-        day for day in active_days if window_start <= day < window_end_exclusive
-    )
-    if not days_in_window:
-        return 0
-    best = 1
-    current = 1
-    for index in range(1, len(days_in_window)):
-        if days_in_window[index] == days_in_window[index - 1] + dt.timedelta(days=1):
-            current += 1
-            best = max(best, current)
-        else:
-            current = 1
-    return best
+@dataclass(frozen=True, slots=True)
+class ControversyInsight:
+    film_title: str
+    friend_display: str
+    spread: float
+    anchor_film_id: int | None
 
 
 @dataclass(frozen=True, slots=True)
-class MonthlyRecapFilmItem:
-    card_id: int
-    film_id: int | None
-    catalog_item_id: int | None
-    title: str
-    poster_url: str | None
-    rating: float
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapStampItem:
-    stamp_id: str
-    title: str
-    unlocked_at: dt.datetime
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapMarathonItem:
-    kind: str
-    key: str
-    label: str
-    unlocked_at: dt.datetime
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapDistributionItem:
-    label: str
-    count: int
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapDecadeItem:
-    decade_start: int
-    label: str
-    count: int
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapDirectorItem:
-    kinopoisk_id: int
-    label: str
-    count: int
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapFranchiseItem:
-    franchise_key: str
-    label: str
-    count: int
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapActorItem:
-    kinopoisk_id: int
-    label: str
-    count: int
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapCollectionDeltaItem:
-    collection_slug: str
-    title: str
-    films_rated_in_period: int
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecapAchievementItem:
-    slug: str
-    title: str
-    rarity_percent: float | None
-
-
-@dataclass(frozen=True, slots=True)
-class MonthlyRecap:
+class PersonalDigestDTO:
     user_id: UUID
-    year: int
-    month: int
-    month_label: str
+    period: Literal['week', 'month']
+    period_key: str
+    period_label: str
+    window_start: dt.datetime
+    window_end: dt.datetime
     total_rated: int
     average_rating: float
+    vs_previous_total_rated: int | None
+    vs_previous_average_rating: float | None
     top_films: list[MonthlyRecapFilmItem]
-    new_stamps: list[MonthlyRecapStampItem]
-    marathons_unlocked: list[MonthlyRecapMarathonItem]
-    peak_activity_date: dt.date | None
-    peak_activity_count: int
-    genre_of_month: str | None
-    genre_of_month_count: int
+    all_films: list[MonthlyRecapFilmItem]
     top_director_name: str | None
     top_director_count: int
     top_director_kinopoisk_id: int | None
-    top_country: str | None
-    top_country_count: int
-    new_countries_count: int
-    genre_breakdown: list[MonthlyRecapDistributionItem]
-    decade_breakdown: list[MonthlyRecapDecadeItem]
-    director_breakdown: list[MonthlyRecapDirectorItem]
-    franchise_breakdown: list[MonthlyRecapFranchiseItem]
     top_actor_kinopoisk_id: int | None
     top_actor_name: str | None
     top_actor_count: int
+    director_breakdown: list[MonthlyRecapDirectorItem]
     actor_breakdown: list[MonthlyRecapActorItem]
-    collection_deltas: list[MonthlyRecapCollectionDeltaItem]
-    achievements_unlocked: list[MonthlyRecapAchievementItem]
-    streak_current: int
-    streak_best_in_period: int
-    vs_previous_total_rated: int | None
-    vs_previous_average_rating: float | None
+    genre_breakdown: list[MonthlyRecapDistributionItem]
+    decade_breakdown: list[MonthlyRecapDecadeItem]
+    top_country: str | None
+    top_country_count: int
+    new_countries_count: int
+    franchise_breakdown: list[MonthlyRecapFranchiseItem]
     dominant_mood_after: str | None
     dominant_company: str | None
+    new_stamps: list[MonthlyRecapStampItem]
+    marathons_unlocked: list[MonthlyRecapMarathonItem]
+    achievements_unlocked: list[MonthlyRecapAchievementItem]
+    collection_deltas: list[MonthlyRecapCollectionDeltaItem]
+    peak_activity_date: dt.date | None
+    peak_activity_count: int
+    streak_current: int
+    streak_best_in_period: int
+    friends: FriendsDigestSection | None
     fun_facts: list[str]
+    controversy: ControversyInsight | None
+    year: int | None = None
+    month: int | None = None
+    genre_of_month: str | None = None
+    genre_of_month_count: int = 0
 
 
 @dataclass
-class BuildMonthlyRecapService:
-    """Aggregates a user's rated-card activity and gamification unlocks for one UTC calendar month."""
+class BuildPersonalDigestService:
+    """Orchestrates personal digest data for weekly or monthly periods."""
 
     _session: AsyncSession
+    _monthly_recap_svc: BuildMonthlyRecapService
+    _friends_svc: BuildPersonalDigestFriendsSectionService
 
-    class InvalidMonth(Exception):
+    class InvalidPeriod(Exception):
         pass
 
-    class RecapNotFound(Exception):
+    class DigestNotFound(Exception):
         pass
 
     @classmethod
     def build(cls, session: AsyncSession) -> Self:
-        return cls(_session=session)
+        return cls(
+            _session=session,
+            _monthly_recap_svc=BuildMonthlyRecapService.build(session),
+            _friends_svc=BuildPersonalDigestFriendsSectionService.build(session),
+        )
 
-    async def execute(self, user_id: UUID, *, year: int, month: int) -> MonthlyRecap:
-        if month < 1 or month > 12:
-            raise self.InvalidMonth
-        if year < 2000 or year > 2100:
-            raise self.InvalidMonth
+    async def execute(
+        self,
+        user_id: UUID,
+        *,
+        period: Literal['week', 'month'],
+        period_key: str | None = None,
+        year: int | None = None,
+        month: int | None = None,
+    ) -> PersonalDigestDTO:
+        if period == 'month':
+            if year is not None and month is not None:
+                resolved_key = month_period_key(year=year, month=month)
+            elif period_key is not None:
+                resolved_key = period_key
+                year_str, month_str = period_key.split('-', maxsplit=1)
+                year, month = int(year_str), int(month_str)
+            else:
+                year, month = previous_complete_month()
+                resolved_key = month_period_key(year=year, month=month)
+            try:
+                recap = await self._monthly_recap_svc.execute(user_id, year=year, month=month)
+            except BuildMonthlyRecapService.RecapNotFound:
+                raise self.DigestNotFound from None
+            digest = self._from_monthly_recap(recap, period_key=resolved_key)
+            return digest
 
-        month_start, month_end = _month_bounds(year, month)
+        if period != 'week':
+            raise self.InvalidPeriod
+
+        if period_key is not None:
+            iso_year, iso_week = parse_iso_week_period_key(period_key)
+            resolved_key = period_key
+        else:
+            resolved_key, iso_year, iso_week = previous_complete_iso_week()
+        window_start, window_end = week_bounds_for_iso_week(
+            iso_year=iso_year,
+            iso_week=iso_week,
+        )
+        return await self._build_week_digest(
+            user_id=user_id,
+            period_key=resolved_key,
+            window_start=window_start,
+            window_end=window_end,
+        )
+
+    def _from_monthly_recap(self, recap: MonthlyRecap, *, period_key: str) -> PersonalDigestDTO:
+        month_start, month_end = _month_bounds(recap.year, recap.month)
+        return PersonalDigestDTO(
+            user_id=recap.user_id,
+            period='month',
+            period_key=period_key,
+            period_label=recap.month_label,
+            window_start=month_start,
+            window_end=month_end,
+            total_rated=recap.total_rated,
+            average_rating=recap.average_rating,
+            vs_previous_total_rated=recap.vs_previous_total_rated,
+            vs_previous_average_rating=recap.vs_previous_average_rating,
+            top_films=list(recap.top_films),
+            all_films=list(recap.top_films),
+            top_director_name=recap.top_director_name,
+            top_director_count=recap.top_director_count,
+            top_director_kinopoisk_id=recap.top_director_kinopoisk_id,
+            top_actor_kinopoisk_id=recap.top_actor_kinopoisk_id,
+            top_actor_name=recap.top_actor_name,
+            top_actor_count=recap.top_actor_count,
+            director_breakdown=list(recap.director_breakdown),
+            actor_breakdown=list(recap.actor_breakdown),
+            genre_breakdown=list(recap.genre_breakdown),
+            decade_breakdown=list(recap.decade_breakdown),
+            top_country=recap.top_country,
+            top_country_count=recap.top_country_count,
+            new_countries_count=recap.new_countries_count,
+            franchise_breakdown=list(recap.franchise_breakdown),
+            dominant_mood_after=recap.dominant_mood_after,
+            dominant_company=recap.dominant_company,
+            new_stamps=list(recap.new_stamps),
+            marathons_unlocked=list(recap.marathons_unlocked),
+            achievements_unlocked=list(recap.achievements_unlocked),
+            collection_deltas=list(recap.collection_deltas),
+            peak_activity_date=recap.peak_activity_date,
+            peak_activity_count=recap.peak_activity_count,
+            streak_current=recap.streak_current,
+            streak_best_in_period=recap.streak_best_in_period,
+            friends=None,
+            fun_facts=list(recap.fun_facts),
+            controversy=None,
+            year=recap.year,
+            month=recap.month,
+            genre_of_month=recap.genre_of_month,
+            genre_of_month_count=recap.genre_of_month_count,
+        )
+
+    async def _build_week_digest(
+        self,
+        *,
+        user_id: UUID,
+        period_key: str,
+        window_start: dt.datetime,
+        window_end: dt.datetime,
+    ) -> PersonalDigestDTO:
         rows = (
             await self._session.execute(
                 select(
@@ -257,14 +263,14 @@ class BuildMonthlyRecapService:
                 .where(
                     UserCard.user_id == user_id,
                     UserCard.is_planned.is_(False),
-                    _completion_timestamp() >= month_start,
-                    _completion_timestamp() < month_end,
+                    _completion_timestamp() >= window_start,
+                    _completion_timestamp() < window_end,
                 )
             )
         ).all()
 
         if not rows:
-            raise self.RecapNotFound
+            raise self.DigestNotFound
 
         films: list[MonthlyRecapFilmItem] = []
         rating_sum = 0.0
@@ -276,7 +282,7 @@ class BuildMonthlyRecapService:
         decade_counter: Counter[int] = Counter()
         mood_after_counter: Counter[str] = Counter()
         company_counter: Counter[str] = Counter()
-        month_countries: set[str] = set()
+        week_countries: set[str] = set()
 
         for row in rows:
             rating_value = float(row.rating)
@@ -329,7 +335,7 @@ class BuildMonthlyRecapService:
                     if isinstance(country, str) and country.strip():
                         label = country.strip()
                         country_counter[label] += 1
-                        month_countries.add(label)
+                        week_countries.add(label)
 
             if row.year is not None:
                 decade_start = (int(row.year) // 10) * 10
@@ -346,7 +352,8 @@ class BuildMonthlyRecapService:
 
         total_rated = len(films)
         average_rating = round(rating_sum / total_rated, 1) if total_rated else 0.0
-        top_films = sorted(films, key=lambda item: (-item.rating, -item.card_id))[:3]
+        sorted_films = sorted(films, key=lambda item: (-item.rating, -item.card_id))
+        top_films = sorted_films[:3]
 
         peak_activity_date: dt.date | None = None
         peak_activity_count = 0
@@ -372,10 +379,10 @@ class BuildMonthlyRecapService:
         if country_counter:
             top_country, top_country_count = country_counter.most_common(1)[0]
 
-        new_countries_count = await self._count_new_countries_in_month(
+        new_countries_count = await self._count_new_countries_before_window(
             user_id=user_id,
-            month_start=month_start,
-            month_countries=month_countries,
+            window_start=window_start,
+            window_countries=week_countries,
         )
 
         genre_breakdown = [
@@ -388,24 +395,17 @@ class BuildMonthlyRecapService:
                 label=f'{decade_start}-е',
                 count=count,
             )
-            for decade_start, count in sorted(
-                decade_counter.items(),
-                key=lambda item: item[0],
-            )
+            for decade_start, count in sorted(decade_counter.items(), key=lambda item: item[0])
         ]
         director_breakdown = [
-            MonthlyRecapDirectorItem(
-                kinopoisk_id=kinopoisk_id,
-                label=name,
-                count=count,
-            )
+            MonthlyRecapDirectorItem(kinopoisk_id=kinopoisk_id, label=name, count=count)
             for kinopoisk_id, (name, count) in sorted(
                 director_counter.items(),
                 key=lambda item: (-item[1][1], item[1][0]),
-            )[:5]
+            )[:3]
         ]
         franchise_breakdown: list[MonthlyRecapFranchiseItem] = []
-        for franchise_key, count in franchise_counter.most_common(5):
+        for franchise_key, count in franchise_counter.most_common(3):
             franchise_breakdown.append(
                 MonthlyRecapFranchiseItem(
                     franchise_key=franchise_key,
@@ -414,21 +414,11 @@ class BuildMonthlyRecapService:
                 )
             )
 
-        new_stamps = await self._stamps_unlocked_in_window(
-            user_id=user_id,
-            window_start=month_start,
-            window_end=month_end,
-        )
-        marathons_unlocked = await self._marathons_unlocked_in_window(
-            user_id=user_id,
-            window_start=month_start,
-            window_end=month_end,
-        )
-
         actor_breakdown = await self._actor_breakdown_in_window(
             user_id=user_id,
-            window_start=month_start,
-            window_end=month_end,
+            window_start=window_start,
+            window_end=window_end,
+            limit=3,
         )
         top_actor_kinopoisk_id: int | None = None
         top_actor_name: str | None = None
@@ -439,18 +429,28 @@ class BuildMonthlyRecapService:
             top_actor_name = top_item.label
             top_actor_count = top_item.count
 
+        new_stamps = await self._stamps_unlocked_in_window(
+            user_id=user_id,
+            window_start=window_start,
+            window_end=window_end,
+        )
+        marathons_unlocked = await self._marathons_unlocked_in_window(
+            user_id=user_id,
+            window_start=window_start,
+            window_end=window_end,
+        )
         collection_deltas = await self._collection_deltas_in_window(
             user_id=user_id,
-            window_start=month_start,
-            window_end=month_end,
+            window_start=window_start,
+            window_end=window_end,
         )
         achievements_unlocked = await self._achievements_unlocked_in_window(
             user_id=user_id,
-            window_start=month_start,
-            window_end=month_end,
+            window_start=window_start,
+            window_end=window_end,
         )
 
-        window_end_date = month_end.date()
+        window_end_date = window_end.date()
         streak_map = await BatchUserRatingStreaksService.build(self._session).execute(
             [user_id],
             today_utc=window_end_date - dt.timedelta(days=1),
@@ -458,17 +458,15 @@ class BuildMonthlyRecapService:
         streak_current = streak_map[user_id].current if user_id in streak_map else 0
         streak_best_in_period = _max_consecutive_days_in_window(
             set(activity_by_day.keys()),
-            window_start=month_start.date(),
+            window_start=window_start.date(),
             window_end_exclusive=window_end_date,
         )
 
-        prev_year, prev_month = _previous_calendar_month(year, month)
-        vs_previous_total_rated, vs_previous_average_rating = await self._vs_previous_month(
+        vs_previous_total_rated, vs_previous_average_rating = await self._vs_previous_week(
             user_id=user_id,
+            window_start=window_start,
             total_rated=total_rated,
             average_rating=average_rating,
-            prev_year=prev_year,
-            prev_month=prev_month,
         )
 
         dominant_mood_after: str | None = None
@@ -478,21 +476,28 @@ class BuildMonthlyRecapService:
         if company_counter:
             dominant_company = company_counter.most_common(1)[0][0]
 
-        month_label = f'{_RU_MONTHS[month].capitalize()} {year}'
+        friends = await self._friends_svc.execute(
+            recipient_user_id=user_id,
+            window_start=window_start,
+            window_end=window_end,
+        )
+        controversy = await self._controversy_insight(
+            user_id=user_id,
+            window_end=window_end,
+        )
+
+        period_label = format_week_period_label(
+            window_start=window_start,
+            window_end_exclusive=window_end,
+        )
 
         collection_totals = await self._collection_film_totals_by_slug(
             [item.collection_slug for item in collection_deltas]
         )
-        from services.personal_digest.build_personal_digest_fun_facts import (
-            BuildPersonalDigestFunFactsService,
-            build_digest_context_for_month,
-        )
-
         fun_facts = BuildPersonalDigestFunFactsService.build().execute(
-            build_digest_context_for_month(
+            build_digest_context_for_week(
                 user_id=user_id,
-                year=year,
-                month=month,
+                period_key=period_key,
                 total_rated=total_rated,
                 ratings=tuple(film.rating for film in films),
                 genre_breakdown=genre_breakdown,
@@ -505,43 +510,48 @@ class BuildMonthlyRecapService:
             )
         )
 
-        return MonthlyRecap(
+        return PersonalDigestDTO(
             user_id=user_id,
-            year=year,
-            month=month,
-            month_label=month_label,
+            period='week',
+            period_key=period_key,
+            period_label=period_label,
+            window_start=window_start,
+            window_end=window_end,
             total_rated=total_rated,
             average_rating=average_rating,
+            vs_previous_total_rated=vs_previous_total_rated,
+            vs_previous_average_rating=vs_previous_average_rating,
             top_films=top_films,
-            new_stamps=new_stamps,
-            marathons_unlocked=marathons_unlocked,
-            peak_activity_date=peak_activity_date,
-            peak_activity_count=peak_activity_count,
-            genre_of_month=genre_of_month,
-            genre_of_month_count=genre_of_month_count,
+            all_films=sorted_films,
             top_director_name=top_director_name,
             top_director_count=top_director_count,
             top_director_kinopoisk_id=top_director_kinopoisk_id,
-            top_country=top_country,
-            top_country_count=top_country_count,
-            new_countries_count=new_countries_count,
-            genre_breakdown=genre_breakdown,
-            decade_breakdown=decade_breakdown,
-            director_breakdown=director_breakdown,
-            franchise_breakdown=franchise_breakdown,
             top_actor_kinopoisk_id=top_actor_kinopoisk_id,
             top_actor_name=top_actor_name,
             top_actor_count=top_actor_count,
+            director_breakdown=director_breakdown,
             actor_breakdown=actor_breakdown,
-            collection_deltas=collection_deltas,
-            achievements_unlocked=achievements_unlocked,
-            streak_current=streak_current,
-            streak_best_in_period=streak_best_in_period,
-            vs_previous_total_rated=vs_previous_total_rated,
-            vs_previous_average_rating=vs_previous_average_rating,
+            genre_breakdown=genre_breakdown,
+            decade_breakdown=decade_breakdown,
+            top_country=top_country,
+            top_country_count=top_country_count,
+            new_countries_count=new_countries_count,
+            franchise_breakdown=franchise_breakdown,
             dominant_mood_after=dominant_mood_after,
             dominant_company=dominant_company,
+            new_stamps=new_stamps,
+            marathons_unlocked=marathons_unlocked,
+            achievements_unlocked=achievements_unlocked,
+            collection_deltas=collection_deltas,
+            peak_activity_date=peak_activity_date,
+            peak_activity_count=peak_activity_count,
+            streak_current=streak_current,
+            streak_best_in_period=streak_best_in_period,
+            friends=friends,
             fun_facts=fun_facts,
+            controversy=controversy,
+            genre_of_month=genre_of_month,
+            genre_of_month_count=genre_of_month_count,
         )
 
     async def _collection_film_totals_by_slug(self, slugs: list[str]) -> dict[str, int]:
@@ -558,16 +568,15 @@ class BuildMonthlyRecapService:
         ).all()
         return {str(slug): int(count) for slug, count in rows}
 
-    async def _count_new_countries_in_month(
+    async def _count_new_countries_before_window(
         self,
         *,
         user_id: UUID,
-        month_start: dt.datetime,
-        month_countries: set[str],
+        window_start: dt.datetime,
+        window_countries: set[str],
     ) -> int:
-        if not month_countries:
+        if not window_countries:
             return 0
-
         prior_rows = (
             await self._session.execute(
                 select(Film.countries)
@@ -575,11 +584,10 @@ class BuildMonthlyRecapService:
                 .where(
                     UserCard.user_id == user_id,
                     UserCard.is_planned.is_(False),
-                    _completion_timestamp() < month_start,
+                    _completion_timestamp() < window_start,
                 )
             )
         ).all()
-
         prior_countries: set[str] = set()
         for (countries,) in prior_rows:
             if not countries:
@@ -587,31 +595,75 @@ class BuildMonthlyRecapService:
             for country in countries:
                 if isinstance(country, str) and country.strip():
                     prior_countries.add(country.strip())
+        return len(window_countries - prior_countries)
 
-        return len(month_countries - prior_countries)
-
-    async def find_latest_recap_month(self, user_id: UUID) -> tuple[int, int] | None:
+    async def _vs_previous_week(
+        self,
+        *,
+        user_id: UUID,
+        window_start: dt.datetime,
+        total_rated: int,
+        average_rating: float,
+    ) -> tuple[int | None, float | None]:
+        prev_start = window_start - dt.timedelta(days=7)
+        prev_end = window_start
         row = (
             await self._session.execute(
                 select(
-                    func.extract('year', _completion_timestamp()).label('y'),
-                    func.extract('month', _completion_timestamp()).label('m'),
+                    func.count(UserCard.id),
+                    func.avg(UserCard.rating),
+                ).where(
+                    UserCard.user_id == user_id,
+                    UserCard.is_planned.is_(False),
+                    _completion_timestamp() >= prev_start,
+                    _completion_timestamp() < prev_end,
                 )
+            )
+        ).one()
+        prev_total = int(row[0] or 0)
+        if prev_total == 0:
+            return None, None
+        prev_avg = round(float(row[1]), 1)
+        return total_rated - prev_total, round(average_rating - prev_avg, 1)
+
+    async def _actor_breakdown_in_window(
+        self,
+        *,
+        user_id: UUID,
+        window_start: dt.datetime,
+        window_end: dt.datetime,
+        limit: int,
+    ) -> list[MonthlyRecapActorItem]:
+        rows = (
+            await self._session.execute(
+                select(
+                    Person.kinopoisk_id,
+                    Person.name,
+                    func.count(UserCard.id),
+                )
+                .select_from(UserCard)
+                .join(Film, Film.id == UserCard.film_id)
+                .join(FilmActor, FilmActor.film_id == Film.id)
+                .join(Person, Person.id == FilmActor.person_id)
                 .where(
                     UserCard.user_id == user_id,
                     UserCard.is_planned.is_(False),
+                    _completion_timestamp() >= window_start,
+                    _completion_timestamp() < window_end,
                 )
-                .group_by('y', 'm')
-                .order_by(
-                    func.extract('year', _completion_timestamp()).desc(),
-                    func.extract('month', _completion_timestamp()).desc(),
-                )
-                .limit(1)
+                .group_by(Person.kinopoisk_id, Person.name)
+                .order_by(desc(func.count(UserCard.id)), Person.name, Person.kinopoisk_id)
+                .limit(limit)
             )
-        ).first()
-        if row is None:
-            return None
-        return int(row.y), int(row.m)
+        ).all()
+        return [
+            MonthlyRecapActorItem(
+                kinopoisk_id=int(kinopoisk_id),
+                label=str(name),
+                count=int(count),
+            )
+            for kinopoisk_id, name, count in rows
+        ]
 
     async def _stamps_unlocked_in_window(
         self,
@@ -666,44 +718,6 @@ class BuildMonthlyRecapService:
         items.sort(key=lambda item: item.unlocked_at)
         return items
 
-    async def _actor_breakdown_in_window(
-        self,
-        *,
-        user_id: UUID,
-        window_start: dt.datetime,
-        window_end: dt.datetime,
-    ) -> list[MonthlyRecapActorItem]:
-        rows = (
-            await self._session.execute(
-                select(
-                    Person.kinopoisk_id,
-                    Person.name,
-                    func.count(UserCard.id),
-                )
-                .select_from(UserCard)
-                .join(Film, Film.id == UserCard.film_id)
-                .join(FilmActor, FilmActor.film_id == Film.id)
-                .join(Person, Person.id == FilmActor.person_id)
-                .where(
-                    UserCard.user_id == user_id,
-                    UserCard.is_planned.is_(False),
-                    _completion_timestamp() >= window_start,
-                    _completion_timestamp() < window_end,
-                )
-                .group_by(Person.kinopoisk_id, Person.name)
-                .order_by(desc(func.count(UserCard.id)), Person.name, Person.kinopoisk_id)
-                .limit(5)
-            )
-        ).all()
-        return [
-            MonthlyRecapActorItem(
-                kinopoisk_id=int(kinopoisk_id),
-                label=str(name),
-                count=int(count),
-            )
-            for kinopoisk_id, name, count in rows
-        ]
-
     async def _collection_deltas_in_window(
         self,
         *,
@@ -750,13 +764,7 @@ class BuildMonthlyRecapService:
     ) -> list[MonthlyRecapAchievementItem]:
         rows = (
             await self._session.execute(
-                select(
-                    Achievement.slug,
-                    Achievement.title,
-                    Achievement.rarity_percent,
-                    UserAchievement.unlocked_at,
-                )
-                .select_from(UserAchievement)
+                select(Achievement.slug, Achievement.title, UserAchievement.unlocked_at)
                 .join(Achievement, Achievement.id == UserAchievement.achievement_id)
                 .where(
                     UserAchievement.user_id == user_id,
@@ -770,36 +778,34 @@ class BuildMonthlyRecapService:
             MonthlyRecapAchievementItem(
                 slug=str(slug),
                 title=str(title),
-                rarity_percent=float(rarity_percent) if rarity_percent is not None else None,
+                rarity_percent=None,
             )
-            for slug, title, rarity_percent, _unlocked_at in rows
+            for slug, title, _ in rows
         ]
 
-    async def _vs_previous_month(
+    async def _controversy_insight(
         self,
         *,
         user_id: UUID,
-        total_rated: int,
-        average_rating: float,
-        prev_year: int,
-        prev_month: int,
-    ) -> tuple[int | None, float | None]:
-        prev_start, prev_end = _month_bounds(prev_year, prev_month)
-        prev_row = (
-            await self._session.execute(
-                select(
-                    func.count(UserCard.id),
-                    func.avg(UserCard.rating),
-                ).where(
-                    UserCard.user_id == user_id,
-                    UserCard.is_planned.is_(False),
-                    _completion_timestamp() >= prev_start,
-                    _completion_timestamp() < prev_end,
-                )
-            )
-        ).one()
-        prev_total = int(prev_row[0] or 0)
-        if prev_total == 0:
-            return None, None
-        prev_avg = round(float(prev_row[1] or 0.0), 1)
-        return total_rated - prev_total, round(average_rating - prev_avg, 1)
+        window_end: dt.datetime,
+    ) -> ControversyInsight | None:
+        bundle = await ComputeWeeklyControversyService.build(self._session).execute(
+            viewer_user_id=user_id,
+            now=window_end - dt.timedelta(seconds=1),
+        )
+        if bundle is None:
+            return None
+        primary = bundle.primary
+        if primary.spread < MIN_SPREAD_FOR_TELEGRAM_DIGEST:
+            return None
+        friend_display = 'другом'
+        if primary.polar_low is not None:
+            friend_display = primary.polar_low.author_display
+        elif primary.polar_high is not None:
+            friend_display = primary.polar_high.author_display
+        return ControversyInsight(
+            film_title=primary.title,
+            friend_display=friend_display,
+            spread=primary.spread,
+            anchor_film_id=primary.anchor_film_id,
+        )

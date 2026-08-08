@@ -634,6 +634,24 @@ export type MonthlyRecapDirectorItem = {
   count: number
 }
 
+export type MonthlyRecapActorItem = {
+  kinopoisk_id: number
+  label: string
+  count: number
+}
+
+export type MonthlyRecapCollectionDeltaItem = {
+  collection_slug: string
+  title: string
+  films_rated_in_period: number
+}
+
+export type MonthlyRecapAchievementItem = {
+  slug: string
+  title: string
+  rarity_percent: number | null
+}
+
 export type MonthlyRecapFranchiseItem = {
   franchise_key: string
   label: string
@@ -663,4 +681,45 @@ export type MonthlyRecap = {
   decade_breakdown?: MonthlyRecapDecadeItem[]
   director_breakdown?: MonthlyRecapDirectorItem[]
   franchise_breakdown?: MonthlyRecapFranchiseItem[]
+  top_actor_kinopoisk_id?: number | null
+  top_actor_name?: string | null
+  top_actor_count?: number
+  actor_breakdown?: MonthlyRecapActorItem[]
+  collection_deltas?: MonthlyRecapCollectionDeltaItem[]
+  achievements_unlocked?: MonthlyRecapAchievementItem[]
+  streak_current?: number
+  streak_best_in_period?: number
+  vs_previous_total_rated?: number | null
+  vs_previous_average_rating?: number | null
+  dominant_mood_after?: CardMoodAfter | null
+  dominant_company?: CardCompany | null
+  fun_facts?: string[]
+}
+
+export type FriendDigestLine = {
+  author_user_id: string
+  author_display: string
+  profile_slug: string | null
+  line_text: string
+}
+
+export type FriendsDigestSection = {
+  telegram_lines: FriendDigestLine[]
+  in_app_items: FriendDigestLine[]
+}
+
+export type ControversyInsight = {
+  film_title: string
+  friend_display: string
+  spread: number
+  anchor_film_id: number | null
+}
+
+export type PersonalDigest = MonthlyRecap & {
+  period: 'week' | 'month'
+  period_key: string
+  period_label: string
+  all_films?: MonthlyRecapTopFilm[]
+  friends?: FriendsDigestSection | null
+  controversy?: ControversyInsight | null
 }

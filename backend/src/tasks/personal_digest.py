@@ -6,20 +6,25 @@ Beat schedule (host crontab on prod — see docs/engineering/prod-cron-filmony.m
     send_monthly_personal_digests:  1st day 10:00 UTC
 
 Implementation: docs/superpowers/specs/2026-08-08-personal-digest-redesign-design.md
-Phase 0 registers tasks + batch entrypoints; full BuildPersonalDigestService in Phase 1–2.
 """
 
 from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import datetime as dt
 import logging
 
 from celery import Celery
 
-logger = logging.getLogger(__name__)
+from services.personal_digest.send_personal_digest_telegram import (
+    run_monthly_personal_digest_for_recipient_safe,
+    run_weekly_personal_digest_for_recipient_safe,
+)
+from services.personal_digest.week_bounds import previous_complete_iso_week
+from services.profile.build_monthly_recap import previous_complete_month
 
-_SPEC = 'docs/superpowers/specs/2026-08-08-personal-digest-redesign-design.md'
+logger = logging.getLogger(__name__)
 
 
 def _run_async_isolated(coro) -> None:
@@ -32,17 +37,58 @@ def _run_async_isolated(coro) -> None:
 
 
 async def _send_weekly_personal_digests_batch_async() -> None:
-    logger.info(
-        'personal_digest weekly batch: stub (Phase 1–2 pending) — see %s',
-        _SPEC,
+    from core.database import disposable_async_session
+    from services.personal_digest.list_due_personal_digest_recipients import (
+        ListDuePersonalDigestRecipientIdsService,
     )
+
+    period_key, _, _ = previous_complete_iso_week()
+    async with disposable_async_session() as session:
+        recipient_ids = await ListDuePersonalDigestRecipientIdsService.build(session).execute(
+            period='week',
+            period_key=period_key,
+        )
+
+    for recipient_id in recipient_ids:
+        try:
+            await run_weekly_personal_digest_for_recipient_safe(
+                recipient_user_id=recipient_id,
+                period_key=period_key,
+            )
+        except Exception:
+            logger.exception(
+                'weekly personal digest batch failed recipient=%s',
+                recipient_id,
+            )
 
 
 async def _send_monthly_personal_digests_batch_async() -> None:
-    logger.info(
-        'personal_digest monthly batch: stub (Phase 1 pending) — see %s',
-        _SPEC,
+    from core.database import disposable_async_session
+    from services.personal_digest.list_due_personal_digest_recipients import (
+        ListDuePersonalDigestRecipientIdsService,
     )
+
+    now = dt.datetime.now(tz=dt.UTC)
+    year, month = previous_complete_month(now=now)
+    async with disposable_async_session() as session:
+        recipient_ids = await ListDuePersonalDigestRecipientIdsService.build(session).execute(
+            period='month',
+            year=year,
+            month=month,
+        )
+
+    for recipient_id in recipient_ids:
+        try:
+            await run_monthly_personal_digest_for_recipient_safe(
+                recipient_user_id=recipient_id,
+                year=year,
+                month=month,
+            )
+        except Exception:
+            logger.exception(
+                'monthly personal digest batch failed recipient=%s',
+                recipient_id,
+            )
 
 
 def register_tasks(app: Celery) -> None:

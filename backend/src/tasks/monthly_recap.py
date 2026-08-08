@@ -1,5 +1,9 @@
 """Celery tasks: monthly recap Telegram nudges.
 
+.. deprecated::
+    Use ``tasks.personal_digest.send_monthly_personal_digests`` instead.
+    This module remains for backward-compatible Celery registration only.
+
 Beat schedule (document only — configure externally):
     send_monthly_recap_nudges: 1st day of month 10:00 UTC (crontab minute=0 hour=10 day_of_month=1)
 """
