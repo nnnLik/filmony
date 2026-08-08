@@ -83,3 +83,9 @@
 
 - Working tree relocated from `collections-core/data/` → `collections-core/collections/` (`<slug>/intermediate/`, `_tools/`, per-list full JSON).
 - Updated pipeline docs: skill, command, rule, reference, `collections/README.md` (run env: host `uv run` + `vars/.env.development.local`; Docker service `backend` for seed/backfill).
+
+## 2026-08-08 — Prod seed horror_250 + samurai_100
+- Dry-run OK then apply: horror linked=250 (created=182 reused=68), samurai linked=100 (created=78 reused=22), errors=0
+- seed achievements rows=31
+- collection progress backfill includes letterboxd-horror-250 and letterboxd-samurai-100
+- Note: cast/gamification backfills only touched rated UserCard films (scope limitation)
