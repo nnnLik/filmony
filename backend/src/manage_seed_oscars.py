@@ -4,7 +4,7 @@ Source manifests (git-tracked):
   ``src/data/curated/oscars/oscars_{2020..2026}_kinopoisk.json``
 
 Original mapping pipeline (not run in prod):
-  ``.cursor/active/collections-core/data/oscars/map_oscar_kp.py``
+  ``.cursor/active/collections-core/collections/oscars/map_oscar_kp.py``
 
 ``is_winner`` is preserved in JSON for future badge work; ``CollectionFilm`` has no
 winner column yet — winner info is not written to the DB.

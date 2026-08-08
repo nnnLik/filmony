@@ -1,0 +1,902 @@
+[
+  {
+    "rank": 1,
+    "letterboxd_name": "Harakiri",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/harakiri/",
+    "imdb_id": "tt0056058",
+    "kinopoisk_id": 103148,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 2,
+    "letterboxd_name": "Seven Samurai",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/seven-samurai/",
+    "imdb_id": "tt0047478",
+    "kinopoisk_id": 332,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 3,
+    "letterboxd_name": "Ran",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/ran/",
+    "imdb_id": "tt0089881",
+    "kinopoisk_id": 400,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 4,
+    "letterboxd_name": "Samurai Rebellion",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-rebellion/",
+    "imdb_id": "tt0061847",
+    "kinopoisk_id": 63237,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 5,
+    "letterboxd_name": "Yojimbo",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/yojimbo/",
+    "imdb_id": "tt0055630",
+    "kinopoisk_id": 445,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 6,
+    "letterboxd_name": "Throne of Blood",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/throne-of-blood/",
+    "imdb_id": "tt0050613",
+    "kinopoisk_id": 8386,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 7,
+    "letterboxd_name": "Kwaidan",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/kwaidan/",
+    "imdb_id": "tt0058279",
+    "kinopoisk_id": 63539,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 8,
+    "letterboxd_name": "Demons",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/demons-1971/",
+    "imdb_id": "tt0165473",
+    "kinopoisk_id": 159921,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 9,
+    "letterboxd_name": "Kagemusha",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/kagemusha/",
+    "imdb_id": "tt0080979",
+    "kinopoisk_id": 7330,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 10,
+    "letterboxd_name": "Rashomon",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/rashomon/",
+    "imdb_id": "tt0042876",
+    "kinopoisk_id": 388,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 11,
+    "letterboxd_name": "The Hidden Fortress",
+    "year": 1958,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden-fortress/",
+    "imdb_id": "tt0051808",
+    "kinopoisk_id": 8191,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 12,
+    "letterboxd_name": "Sanjuro",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/sanjuro/",
+    "imdb_id": "tt0056443",
+    "kinopoisk_id": 63734,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 13,
+    "letterboxd_name": "The Sword of Doom",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sword-of-doom/",
+    "imdb_id": "tt0060277",
+    "kinopoisk_id": 80770,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 14,
+    "letterboxd_name": "The Twilight Samurai",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/the-twilight-samurai/",
+    "imdb_id": "tt0351817",
+    "kinopoisk_id": 63735,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 15,
+    "letterboxd_name": "Lady Snowblood",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/lady-snowblood/",
+    "imdb_id": "tt0158714",
+    "kinopoisk_id": 94157,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 16,
+    "letterboxd_name": "Lone Wolf and Cub: Baby Cart at the River Styx",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-at-the-river-styx/",
+    "imdb_id": "tt0068816",
+    "kinopoisk_id": 79529,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 17,
+    "letterboxd_name": "Tange Sazen and the Pot Worth a Million Ryo",
+    "year": 1935,
+    "letterboxd_uri": "https://letterboxd.com/film/tange-sazen-and-the-pot-worth-a-million-ryo/",
+    "imdb_id": "tt0027076",
+    "kinopoisk_id": 143885,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 18,
+    "letterboxd_name": "Goyokin",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/goyokin/",
+    "imdb_id": "tt0064387",
+    "kinopoisk_id": 99909,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 19,
+    "letterboxd_name": "Kubo and the Two Strings",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/kubo-and-the-two-strings/",
+    "imdb_id": "tt4302938",
+    "kinopoisk_id": 882290,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 20,
+    "letterboxd_name": "Humanity and Paper Balloons",
+    "year": 1937,
+    "letterboxd_uri": "https://letterboxd.com/film/humanity-and-paper-balloons/",
+    "imdb_id": "tt0029314",
+    "kinopoisk_id": 143864,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 21,
+    "letterboxd_name": "Three Outlaw Samurai",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/three-outlaw-samurai/",
+    "imdb_id": "tt0058652",
+    "kinopoisk_id": 119345,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 22,
+    "letterboxd_name": "Sword of the Stranger",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/sword-of-the-stranger/",
+    "imdb_id": "tt1121794",
+    "kinopoisk_id": 398549,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 23,
+    "letterboxd_name": "13 Assassins",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/13-assassins/",
+    "imdb_id": "tt1436045",
+    "kinopoisk_id": 466582,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 24,
+    "letterboxd_name": "The Hidden Blade",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden-blade/",
+    "imdb_id": "tt0442286",
+    "kinopoisk_id": 105655,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 25,
+    "letterboxd_name": "Love and Honor",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/love-and-honor/",
+    "imdb_id": "tt0483578",
+    "kinopoisk_id": 208044,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 26,
+    "letterboxd_name": "The Tale of Zatoichi",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tale-of-zatoichi/",
+    "imdb_id": "tt0056714",
+    "kinopoisk_id": 144162,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 27,
+    "letterboxd_name": "Bushido: The Cruel Code of the Samurai",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/bushido-the-cruel-code-of-the-samurai/",
+    "imdb_id": "tt0055816",
+    "kinopoisk_id": 7778,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 28,
+    "letterboxd_name": "Tenchu!",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/tenchu/",
+    "imdb_id": "tt0200710",
+    "kinopoisk_id": 199523,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 29,
+    "letterboxd_name": "Ninja Scroll",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/ninja-scroll/",
+    "imdb_id": "tt0107692",
+    "kinopoisk_id": 8233,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 30,
+    "letterboxd_name": "Revenge",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/revenge-1964/",
+    "imdb_id": "tt0185842",
+    "kinopoisk_id": 457294,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 31,
+    "letterboxd_name": "The 47 Ronin",
+    "year": 1941,
+    "letterboxd_uri": "https://letterboxd.com/film/the-47-ronin/",
+    "imdb_id": "tt0033654",
+    "kinopoisk_id": 123055,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 32,
+    "letterboxd_name": "Samurai Assassin",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-assassin/",
+    "imdb_id": "tt0059673",
+    "kinopoisk_id": 80777,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 33,
+    "letterboxd_name": "After the Rain",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/after-the-rain/",
+    "imdb_id": "tt0181960",
+    "kinopoisk_id": 139278,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 34,
+    "letterboxd_name": "Lone Wolf and Cub: Sword of Vengeance",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-sword-of-vengeance/",
+    "imdb_id": "tt0068815",
+    "kinopoisk_id": 55506,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 35,
+    "letterboxd_name": "The Last Samurai",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/the-last-samurai/",
+    "imdb_id": "tt0325710",
+    "kinopoisk_id": 6764,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 36,
+    "letterboxd_name": "Bloody Spear at Mount Fuji",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/bloody-spear-at-mount-fuji/",
+    "imdb_id": "tt0047937",
+    "kinopoisk_id": 156741,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 37,
+    "letterboxd_name": "Kill!",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/kill-1968/",
+    "imdb_id": "tt0063186",
+    "kinopoisk_id": 172693,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 38,
+    "letterboxd_name": "Samurai III: Duel at Ganryu Island",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-iii-duel-at-ganryu-island/",
+    "imdb_id": "tt0049710",
+    "kinopoisk_id": 79831,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 39,
+    "letterboxd_name": "Sword of the Beast",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/sword-of-the-beast/",
+    "imdb_id": "tt0200768",
+    "kinopoisk_id": 138688,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 40,
+    "letterboxd_name": "Lone Wolf and Cub: Baby Cart in Peril",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-in-peril/",
+    "imdb_id": "tt0143348",
+    "kinopoisk_id": 79534,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 41,
+    "letterboxd_name": "Zatoichi and the Chest of Gold",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-and-the-chest-of-gold/",
+    "imdb_id": "tt0130377",
+    "kinopoisk_id": 156719,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 42,
+    "letterboxd_name": "13 Assassins",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/13-assassins-1963/",
+    "imdb_id": "tt0057212",
+    "kinopoisk_id": 144223,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 43,
+    "letterboxd_name": "The Third Shadow Warrior",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-third-shadow-warrior/",
+    "imdb_id": "tt0200559",
+    "kinopoisk_id": 143946,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 44,
+    "letterboxd_name": "Zatoichi Goes to the Fire Festival",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-goes-to-the-fire-festival/",
+    "imdb_id": "tt0164982",
+    "kinopoisk_id": 199520,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 45,
+    "letterboxd_name": "Lone Wolf and Cub: Baby Cart to Hades",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-to-hades/",
+    "imdb_id": "tt0068817",
+    "kinopoisk_id": 79530,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 46,
+    "letterboxd_name": "Hara-Kiri: Death of a Samurai",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/hara-kiri-death-of-a-samurai/",
+    "imdb_id": "tt1728196",
+    "kinopoisk_id": 568324,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 47,
+    "letterboxd_name": "Fight, Zatoichi, Fight",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/fight-zatoichi-fight/",
+    "imdb_id": "tt0123334",
+    "kinopoisk_id": 230261,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 48,
+    "letterboxd_name": "The Betrayal",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-betrayal/",
+    "imdb_id": "tt0123028",
+    "kinopoisk_id": 273368,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 49,
+    "letterboxd_name": "Lone Wolf and Cub: Baby Cart in the Land of Demons",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-in-the-land-of-demons/",
+    "imdb_id": "tt0143428",
+    "kinopoisk_id": 79535,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 50,
+    "letterboxd_name": "Taira Clan Saga",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/taira-clan-saga/",
+    "imdb_id": "tt0048610",
+    "kinopoisk_id": 100014,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 51,
+    "letterboxd_name": "Rurouni Kenshin Part III: The Legend Ends",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-part-iii-the-legend-ends/",
+    "imdb_id": "tt3029556",
+    "kinopoisk_id": 779398,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 52,
+    "letterboxd_name": "Unforgiven",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/unforgiven-2013/",
+    "imdb_id": "tt2347134",
+    "kinopoisk_id": 702937,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 53,
+    "letterboxd_name": "Assassination",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/assassination-1964/",
+    "imdb_id": "tt0164347",
+    "kinopoisk_id": 138704,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 54,
+    "letterboxd_name": "Ghost Story of Yotsuya",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/ghost-story-of-yotsuya/",
+    "imdb_id": "tt0155278",
+    "kinopoisk_id": 64337,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 55,
+    "letterboxd_name": "Sword Devil",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/sword-devil/",
+    "imdb_id": "tt0200769",
+    "kinopoisk_id": 164786,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 56,
+    "letterboxd_name": "Zatoichi",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi/",
+    "imdb_id": "tt0363226",
+    "kinopoisk_id": 51078,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 57,
+    "letterboxd_name": "Samurai II: Duel at Ichijoji Temple",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-ii-duel-at-ichijoji-temple/",
+    "imdb_id": "tt0048579",
+    "kinopoisk_id": 79830,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 58,
+    "letterboxd_name": "Gate of Hell",
+    "year": 1953,
+    "letterboxd_uri": "https://letterboxd.com/film/gate-of-hell/",
+    "imdb_id": "tt0045935",
+    "kinopoisk_id": 7726,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 59,
+    "letterboxd_name": "When the Last Sword Is Drawn",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/when-the-last-sword-is-drawn/",
+    "imdb_id": "tt0359692",
+    "kinopoisk_id": 60756,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 60,
+    "letterboxd_name": "Lone Wolf and Cub: White Heaven in Hell",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-white-heaven-in-hell/",
+    "imdb_id": "tt0071695",
+    "kinopoisk_id": 79536,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 61,
+    "letterboxd_name": "Samurai I: Musashi Miyamoto",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-i-musashi-miyamoto/",
+    "imdb_id": "tt0047444",
+    "kinopoisk_id": 11189,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 62,
+    "letterboxd_name": "Samurai Wolf",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-wolf/",
+    "imdb_id": "tt0199680",
+    "kinopoisk_id": 362634,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 63,
+    "letterboxd_name": "Rurouni Kenshin: The Beginning",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-the-beginning/",
+    "imdb_id": "tt11991748",
+    "kinopoisk_id": 1253993,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 64,
+    "letterboxd_name": "Chûshingura",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/chushingura-1962/",
+    "imdb_id": "tt0055850",
+    "kinopoisk_id": 100049,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 65,
+    "letterboxd_name": "The Last Samurai",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-last-samurai-1974/",
+    "imdb_id": "tt0123129",
+    "kinopoisk_id": 273357,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 66,
+    "letterboxd_name": "Rurouni Kenshin Part II: Kyoto Inferno",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-part-ii-kyoto-inferno/",
+    "imdb_id": "tt3029558",
+    "kinopoisk_id": 779397,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 67,
+    "letterboxd_name": "Zatoichi and the Fugitives",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-and-the-fugitives/",
+    "imdb_id": "tt0063835",
+    "kinopoisk_id": 79555,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 68,
+    "letterboxd_name": "New Tale of Zatoichi",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/new-tale-of-zatoichi/",
+    "imdb_id": "tt0057503",
+    "kinopoisk_id": 143970,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 69,
+    "letterboxd_name": "Eleven Samurai",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/eleven-samurai/",
+    "imdb_id": "tt0123127",
+    "kinopoisk_id": 273369,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 70,
+    "letterboxd_name": "Taboo",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/taboo-1999/",
+    "imdb_id": "tt0213682",
+    "kinopoisk_id": 55118,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 71,
+    "letterboxd_name": "Rurouni Kenshin: The Final",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-the-final/",
+    "imdb_id": "tt11809034",
+    "kinopoisk_id": 1253992,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 72,
+    "letterboxd_name": "Bohachi Bushido: Code of the Forgotten Eight",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/bohachi-bushido-code-of-the-forgotten-eight/",
+    "imdb_id": "tt0142773",
+    "kinopoisk_id": 373169,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 73,
+    "letterboxd_name": "Hunter in the Dark",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/hunter-in-the-dark/",
+    "imdb_id": "tt0079317",
+    "kinopoisk_id": 77482,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 74,
+    "letterboxd_name": "Zatoichi Challenged",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-challenged/",
+    "imdb_id": "tt0063834",
+    "kinopoisk_id": 79554,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 75,
+    "letterboxd_name": "Destiny's Son",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/destinys-son/",
+    "imdb_id": "tt0056144",
+    "kinopoisk_id": 144689,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 76,
+    "letterboxd_name": "Zatoichi's Pilgrimage",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-pilgrimage/",
+    "imdb_id": "tt0199905",
+    "kinopoisk_id": 143990,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 77,
+    "letterboxd_name": "Shogun's Samurai",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/shoguns-samurai/",
+    "imdb_id": "tt0078513",
+    "kinopoisk_id": 55444,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 78,
+    "letterboxd_name": "Zatoichi's Vengeance",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-vengeance/",
+    "imdb_id": "tt0143012",
+    "kinopoisk_id": 230263,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 79,
+    "letterboxd_name": "Gonza the Spearman",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/gonza-the-spearman/",
+    "imdb_id": "tt0091136",
+    "kinopoisk_id": 164841,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 80,
+    "letterboxd_name": "Zatoichi's Flashing Sword",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-flashing-sword/",
+    "imdb_id": "tt0191664",
+    "kinopoisk_id": 156733,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 81,
+    "letterboxd_name": "Miyamoto Musashi IV: The Duel at Ichijo-ji Temple",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/miyamoto-musashi-iv-the-duel-at-ichijo-ji/",
+    "imdb_id": "tt0198554",
+    "kinopoisk_id": 267927,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 82,
+    "letterboxd_name": "The Fall of Ako Castle",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fall-of-ako-castle/",
+    "imdb_id": "tt0077135",
+    "kinopoisk_id": 55446,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 83,
+    "letterboxd_name": "Samurai Spy",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-spy/",
+    "imdb_id": "tt0059303",
+    "kinopoisk_id": 267971,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 84,
+    "letterboxd_name": "Zatoichi's Cane Sword",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-cane-sword/",
+    "imdb_id": "tt0186725",
+    "kinopoisk_id": 156715,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 85,
+    "letterboxd_name": "The Great Killing",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/the-great-killing/",
+    "imdb_id": "tt0186939",
+    "kinopoisk_id": 144222,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 86,
+    "letterboxd_name": "Zatoichi's Revenge",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-revenge/",
+    "imdb_id": "tt0123335",
+    "kinopoisk_id": 156732,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 87,
+    "letterboxd_name": "Zatoichi Meets the One-Armed Swordsman",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-meets-the-one-armed-swordsman/",
+    "imdb_id": "tt0066602",
+    "kinopoisk_id": 230264,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 88,
+    "letterboxd_name": "Zatoichi the Fugitive",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-the-fugitive/",
+    "imdb_id": "tt0057715",
+    "kinopoisk_id": 144687,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 89,
+    "letterboxd_name": "The Tale of Zatoichi Continues",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tale-of-zatoichi-continues/",
+    "imdb_id": "tt0200309",
+    "kinopoisk_id": 144688,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 90,
+    "letterboxd_name": "Zatoichi the Outlaw",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-the-outlaw/",
+    "imdb_id": "tt0062518",
+    "kinopoisk_id": 79556,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 91,
+    "letterboxd_name": "Killing",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/killing/",
+    "imdb_id": "tt7117352",
+    "kinopoisk_id": 1074855,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 92,
+    "letterboxd_name": "Zatoichi and the Chess Expert",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-and-the-chess-expert/",
+    "imdb_id": "tt0059942",
+    "kinopoisk_id": 99800,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 93,
+    "letterboxd_name": "Samurai Fiction",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-fiction/",
+    "imdb_id": "tt0170544",
+    "kinopoisk_id": 79531,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 94,
+    "letterboxd_name": "Orochi",
+    "year": 1925,
+    "letterboxd_uri": "https://letterboxd.com/film/orochi-1925/",
+    "imdb_id": "tt0016185",
+    "kinopoisk_id": 154692,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 95,
+    "letterboxd_name": "Rurouni Kenshin Part I: Origins",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-part-i-origins/",
+    "imdb_id": "tt1979319",
+    "kinopoisk_id": 601685,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 96,
+    "letterboxd_name": "Miyamoto Musashi",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/miyamoto-musashi-1961/",
+    "imdb_id": "tt0055188",
+    "kinopoisk_id": 143979,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 97,
+    "letterboxd_name": "Samurai Saga",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-saga/",
+    "imdb_id": "tt0052579",
+    "kinopoisk_id": 172782,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 98,
+    "letterboxd_name": "Miyamoto Musashi: Showdown at Hannyazaka Heights",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/miyamoto-musashi-showdown-at-hannyazaka-heights/",
+    "imdb_id": "tt0176801",
+    "kinopoisk_id": 410188,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 99,
+    "letterboxd_name": "The Assassination of Ryoma",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-assassination-of-ryoma/",
+    "imdb_id": "tt0186835",
+    "kinopoisk_id": 123096,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 100,
+    "letterboxd_name": "Samaritan Zatoichi",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/samaritan-zatoichi/",
+    "imdb_id": "tt0164983",
+    "kinopoisk_id": 65488,
+    "match_method": "imdbId"
+  }
+]

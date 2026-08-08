@@ -1,0 +1,2252 @@
+[
+  {
+    "rank": 1,
+    "letterboxd_name": "Perfect Blue",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/perfect-blue/",
+    "imdb_id": "tt0156887",
+    "kinopoisk_id": 91829,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 2,
+    "letterboxd_name": "The Thing",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/the-thing/",
+    "imdb_id": "tt0084787",
+    "kinopoisk_id": 8366,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 3,
+    "letterboxd_name": "Twin Peaks: Fire Walk with Me",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/twin-peaks-fire-walk-with-me/",
+    "imdb_id": "tt0105665",
+    "kinopoisk_id": 4392,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 4,
+    "letterboxd_name": "The Silence of the Lambs",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/the-silence-of-the-lambs/",
+    "imdb_id": "tt0102926",
+    "kinopoisk_id": 345,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 5,
+    "letterboxd_name": "Psycho",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/psycho/",
+    "imdb_id": "tt0054215",
+    "kinopoisk_id": 344,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 6,
+    "letterboxd_name": "The Cremator",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cremator/",
+    "imdb_id": "tt0063633",
+    "kinopoisk_id": 179307,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 7,
+    "letterboxd_name": "Cure",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/cure/",
+    "imdb_id": "tt0123948",
+    "kinopoisk_id": 60832,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 8,
+    "letterboxd_name": "The Night of the Hunter",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/the-night-of-the-hunter/",
+    "imdb_id": "tt0048424",
+    "kinopoisk_id": 453,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 9,
+    "letterboxd_name": "Alien",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/alien/",
+    "imdb_id": "tt0078748",
+    "kinopoisk_id": 386,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 10,
+    "letterboxd_name": "The Devils",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils/",
+    "imdb_id": "tt0066993",
+    "kinopoisk_id": 17527,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 11,
+    "letterboxd_name": "Kwaidan",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/kwaidan/",
+    "imdb_id": "tt0058279",
+    "kinopoisk_id": 63539,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 12,
+    "letterboxd_name": "Demons",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/demons-1971/",
+    "imdb_id": "tt0165473",
+    "kinopoisk_id": 159921,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 13,
+    "letterboxd_name": "The Shining",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/the-shining/",
+    "imdb_id": "tt0081505",
+    "kinopoisk_id": 409,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 14,
+    "letterboxd_name": "Rosemary's Baby",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/rosemarys-baby/",
+    "imdb_id": "tt0063522",
+    "kinopoisk_id": 8425,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 15,
+    "letterboxd_name": "What Ever Happened to Baby Jane?",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/what-ever-happened-to-baby-jane/",
+    "imdb_id": "tt0056687",
+    "kinopoisk_id": 8432,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 16,
+    "letterboxd_name": "Coraline",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/coraline/",
+    "imdb_id": "tt0327597",
+    "kinopoisk_id": 49166,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 17,
+    "letterboxd_name": "Diabolique",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/diabolique-1955/",
+    "imdb_id": "tt0046911",
+    "kinopoisk_id": 8342,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 18,
+    "letterboxd_name": "Vampire Hunter D: Bloodlust",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/vampire-hunter-d-bloodlust/",
+    "imdb_id": "tt0216651",
+    "kinopoisk_id": 8236,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 19,
+    "letterboxd_name": "Black Swan",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/black-swan/",
+    "imdb_id": "tt0947798",
+    "kinopoisk_id": 278273,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 20,
+    "letterboxd_name": "Phantom of the Paradise",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/phantom-of-the-paradise/",
+    "imdb_id": "tt0071994",
+    "kinopoisk_id": 15781,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 21,
+    "letterboxd_name": "Seconds",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/seconds/",
+    "imdb_id": "tt0060955",
+    "kinopoisk_id": 8352,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 22,
+    "letterboxd_name": "The Wolf House",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wolf-house/",
+    "imdb_id": "tt8173728",
+    "kinopoisk_id": 1123415,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 23,
+    "letterboxd_name": "Get Out",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/get-out-2017/",
+    "imdb_id": "tt5052448",
+    "kinopoisk_id": 944708,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 24,
+    "letterboxd_name": "Faust",
+    "year": 1926,
+    "letterboxd_uri": "https://letterboxd.com/film/faust-1926/",
+    "imdb_id": "tt0016847",
+    "kinopoisk_id": 72556,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 25,
+    "letterboxd_name": "What We Do in the Shadows",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/what-we-do-in-the-shadows/",
+    "imdb_id": "tt3416742",
+    "kinopoisk_id": 818981,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 26,
+    "letterboxd_name": "The Innocents",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/the-innocents/",
+    "imdb_id": "tt0055018",
+    "kinopoisk_id": 8428,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 27,
+    "letterboxd_name": "Aliens",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/aliens/",
+    "imdb_id": "tt0090605",
+    "kinopoisk_id": 406,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 28,
+    "letterboxd_name": "The Sixth Sense",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sixth-sense/",
+    "imdb_id": "tt0167404",
+    "kinopoisk_id": 395,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 29,
+    "letterboxd_name": "Sinners",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/sinners-2025/",
+    "imdb_id": "tt31193180",
+    "kinopoisk_id": 5499518,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 30,
+    "letterboxd_name": "Obsession",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/obsession-2025/",
+    "imdb_id": "tt37287335",
+    "kinopoisk_id": 10355286,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 31,
+    "letterboxd_name": "Godzilla Minus One",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla-minus-one/",
+    "imdb_id": "tt23289160",
+    "kinopoisk_id": 5354707,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 32,
+    "letterboxd_name": "Godzilla",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla/",
+    "imdb_id": "tt0047034",
+    "kinopoisk_id": 63873,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 33,
+    "letterboxd_name": "The Phantom Carriage",
+    "year": 1921,
+    "letterboxd_uri": "https://letterboxd.com/film/the-phantom-carriage/",
+    "imdb_id": "tt0012364",
+    "kinopoisk_id": 79487,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 34,
+    "letterboxd_name": "Kuroneko",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/kuroneko/",
+    "imdb_id": "tt0122136",
+    "kinopoisk_id": 63836,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 35,
+    "letterboxd_name": "Onibaba",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/onibaba/",
+    "imdb_id": "tt0058430",
+    "kinopoisk_id": 83056,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 36,
+    "letterboxd_name": "One Cut of the Dead",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/one-cut-of-the-dead/",
+    "imdb_id": "tt7914416",
+    "kinopoisk_id": 1123456,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 37,
+    "letterboxd_name": "The Cabinet of Dr. Caligari",
+    "year": 1920,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cabinet-of-dr-caligari-1920/",
+    "imdb_id": "tt0010323",
+    "kinopoisk_id": 8418,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 38,
+    "letterboxd_name": "The Rocky Horror Picture Show",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/the-rocky-horror-picture-show/",
+    "imdb_id": "tt0073629",
+    "kinopoisk_id": 8138,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 39,
+    "letterboxd_name": "I Saw the Devil",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/i-saw-the-devil/",
+    "imdb_id": "tt1588170",
+    "kinopoisk_id": 497027,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 40,
+    "letterboxd_name": "Manichitrathazhu",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/manichitrathazhu/",
+    "imdb_id": "tt0214915",
+    "kinopoisk_id": 96852,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 41,
+    "letterboxd_name": "Possession",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/possession/",
+    "imdb_id": "tt0082933",
+    "kinopoisk_id": 22697,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 42,
+    "letterboxd_name": "Santa Sangre",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/santa-sangre/",
+    "imdb_id": "tt0098253",
+    "kinopoisk_id": 89584,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 43,
+    "letterboxd_name": "Let the Right One In",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/let-the-right-one-in/",
+    "imdb_id": "tt1139797",
+    "kinopoisk_id": 411761,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 44,
+    "letterboxd_name": "Peeping Tom",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/peeping-tom/",
+    "imdb_id": "tt0054167",
+    "kinopoisk_id": 8434,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 45,
+    "letterboxd_name": "Scream",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/scream/",
+    "imdb_id": "tt0117571",
+    "kinopoisk_id": 1807,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 46,
+    "letterboxd_name": "Hour of the Wolf",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/hour-of-the-wolf/",
+    "imdb_id": "tt0063759",
+    "kinopoisk_id": 15178,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 47,
+    "letterboxd_name": "The Vanishing",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/the-vanishing/",
+    "imdb_id": "tt0096163",
+    "kinopoisk_id": 8346,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 48,
+    "letterboxd_name": "The Lighthouse",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lighthouse-2019/",
+    "imdb_id": "tt7984734",
+    "kinopoisk_id": 1114927,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 49,
+    "letterboxd_name": "The Fly",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fly-1986/",
+    "imdb_id": "tt0091064",
+    "kinopoisk_id": 8877,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 50,
+    "letterboxd_name": "Alice",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/alice-1988/",
+    "imdb_id": "tt0095715",
+    "kinopoisk_id": 373186,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 51,
+    "letterboxd_name": "Misery",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/misery/",
+    "imdb_id": "tt0100157",
+    "kinopoisk_id": 1574,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 52,
+    "letterboxd_name": "Train to Busan",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/train-to-busan/",
+    "imdb_id": "tt5700672",
+    "kinopoisk_id": 977288,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 53,
+    "letterboxd_name": "Evil Dead II",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/evil-dead-ii/",
+    "imdb_id": "tt0092991",
+    "kinopoisk_id": 2918,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 54,
+    "letterboxd_name": "House",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/house/",
+    "imdb_id": "tt0076162",
+    "kinopoisk_id": 96137,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 55,
+    "letterboxd_name": "The Wailing",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wailing/",
+    "imdb_id": "tt5215952",
+    "kinopoisk_id": 944958,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 56,
+    "letterboxd_name": "The Wicker Man",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wicker-man/",
+    "imdb_id": "tt0070917",
+    "kinopoisk_id": 5678,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 57,
+    "letterboxd_name": "The Hourglass Sanatorium",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hourglass-sanatorium/",
+    "imdb_id": "tt0070628",
+    "kinopoisk_id": 168149,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 58,
+    "letterboxd_name": "Beauty and the Beast",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/beauty-and-the-beast-1978/",
+    "imdb_id": "tt0078054",
+    "kinopoisk_id": 233023,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 59,
+    "letterboxd_name": "Bride of Frankenstein",
+    "year": 1935,
+    "letterboxd_uri": "https://letterboxd.com/film/bride-of-frankenstein/",
+    "imdb_id": "tt0026138",
+    "kinopoisk_id": 8359,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 60,
+    "letterboxd_name": "Dawn of the Dead",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/dawn-of-the-dead/",
+    "imdb_id": "tt0077402",
+    "kinopoisk_id": 8371,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 61,
+    "letterboxd_name": "The Exorcist",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-exorcist/",
+    "imdb_id": "tt0070047",
+    "kinopoisk_id": 491,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 62,
+    "letterboxd_name": "Braindead",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/braindead-1992/",
+    "imdb_id": "tt0103873",
+    "kinopoisk_id": 5916,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 63,
+    "letterboxd_name": "Invasion of the Body Snatchers",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/invasion-of-the-body-snatchers-1978/",
+    "imdb_id": "tt0077745",
+    "kinopoisk_id": 6257,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 64,
+    "letterboxd_name": "Mother Joan of the Angels",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/mother-joan-of-the-angels/",
+    "imdb_id": "tt0055153",
+    "kinopoisk_id": 140181,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 65,
+    "letterboxd_name": "Night of the Living Dead",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/night-of-the-living-dead/",
+    "imdb_id": "tt0063350",
+    "kinopoisk_id": 8370,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 66,
+    "letterboxd_name": "Shaun of the Dead",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/shaun-of-the-dead/",
+    "imdb_id": "tt0365748",
+    "kinopoisk_id": 64021,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 67,
+    "letterboxd_name": "Freaks",
+    "year": 1932,
+    "letterboxd_uri": "https://letterboxd.com/film/freaks/",
+    "imdb_id": "tt0022913",
+    "kinopoisk_id": 8430,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 68,
+    "letterboxd_name": "Teenage Sex and Death at Camp Miasma",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/teenage-sex-and-death-at-camp-miasma/",
+    "imdb_id": "tt35298123",
+    "kinopoisk_id": 8527291,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 69,
+    "letterboxd_name": "Thesis",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/thesis/",
+    "imdb_id": "tt0117883",
+    "kinopoisk_id": 18050,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 70,
+    "letterboxd_name": "Wait Until Dark",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/wait-until-dark/",
+    "imdb_id": "tt0062467",
+    "kinopoisk_id": 8426,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 71,
+    "letterboxd_name": "Suspiria",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/suspiria/",
+    "imdb_id": "tt0076786",
+    "kinopoisk_id": 22581,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 72,
+    "letterboxd_name": "Hereditary",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/hereditary/",
+    "imdb_id": "tt7784604",
+    "kinopoisk_id": 1112132,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 73,
+    "letterboxd_name": "Eyes Without a Face",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/eyes-without-a-face/",
+    "imdb_id": "tt0053459",
+    "kinopoisk_id": 84955,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 74,
+    "letterboxd_name": "Deep Red",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/deep-red/",
+    "imdb_id": "tt0073582",
+    "kinopoisk_id": 139048,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 75,
+    "letterboxd_name": "Jaws",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/jaws/",
+    "imdb_id": "tt0073195",
+    "kinopoisk_id": 396,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 76,
+    "letterboxd_name": "The Skeleton of Mrs. Morales",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/the-skeleton-of-mrs-morales/",
+    "imdb_id": "tt0052784",
+    "kinopoisk_id": 155108,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 77,
+    "letterboxd_name": "Repulsion",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/repulsion/",
+    "imdb_id": "tt0059646",
+    "kinopoisk_id": 8427,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 78,
+    "letterboxd_name": "Little Shop of Horrors",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/little-shop-of-horrors/",
+    "imdb_id": "tt0091419",
+    "kinopoisk_id": 1680,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 79,
+    "letterboxd_name": "Funny Games",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/funny-games/",
+    "imdb_id": "tt0119167",
+    "kinopoisk_id": 79544,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 80,
+    "letterboxd_name": "Humanist Vampire Seeking Consenting Suicidal Person",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/humanist-vampire-seeking-consenting-suicidal-person/",
+    "imdb_id": "tt24216998",
+    "kinopoisk_id": 5365821,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 81,
+    "letterboxd_name": "The Man Who Laughs",
+    "year": 1928,
+    "letterboxd_uri": "https://letterboxd.com/film/the-man-who-laughs/",
+    "imdb_id": "tt0019130",
+    "kinopoisk_id": 79486,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 82,
+    "letterboxd_name": "Inland Empire",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/inland-empire/",
+    "imdb_id": "tt0460829",
+    "kinopoisk_id": 104987,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 83,
+    "letterboxd_name": "Scooby-Doo on Zombie Island",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/scooby-doo-on-zombie-island/",
+    "imdb_id": "tt0166792",
+    "kinopoisk_id": 229307,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 84,
+    "letterboxd_name": "Angel Dust",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/angel-dust/",
+    "imdb_id": "tt0109733",
+    "kinopoisk_id": 53070,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 85,
+    "letterboxd_name": "Shin Godzilla",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/shin-godzilla/",
+    "imdb_id": "tt4262980",
+    "kinopoisk_id": 888051,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 86,
+    "letterboxd_name": "Witchhammer",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/witchhammer/",
+    "imdb_id": "tt0064546",
+    "kinopoisk_id": 101333,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 87,
+    "letterboxd_name": "The Invisible Man",
+    "year": 1933,
+    "letterboxd_uri": "https://letterboxd.com/film/the-invisible-man/",
+    "imdb_id": "tt0024184",
+    "kinopoisk_id": 8364,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 88,
+    "letterboxd_name": "Kotoko",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/kotoko/",
+    "imdb_id": "tt1842532",
+    "kinopoisk_id": 582774,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 89,
+    "letterboxd_name": "Jacob's Ladder",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/jacobs-ladder/",
+    "imdb_id": "tt0099871",
+    "kinopoisk_id": 7355,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 90,
+    "letterboxd_name": "Videodrome",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/videodrome/",
+    "imdb_id": "tt0086541",
+    "kinopoisk_id": 462256,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 91,
+    "letterboxd_name": "The Incredible Shrinking Man",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/the-incredible-shrinking-man/",
+    "imdb_id": "tt0050539",
+    "kinopoisk_id": 8368,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 92,
+    "letterboxd_name": "Helter Skelter",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/helter-skelter-2012/",
+    "imdb_id": "tt2147319",
+    "kinopoisk_id": 662551,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 93,
+    "letterboxd_name": "Manhunter",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/manhunter/",
+    "imdb_id": "tt0091474",
+    "kinopoisk_id": 3596,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 94,
+    "letterboxd_name": "The Tenant",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tenant/",
+    "imdb_id": "tt0074811",
+    "kinopoisk_id": 11619,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 95,
+    "letterboxd_name": "Tetsuo: The Iron Man",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/tetsuo-the-iron-man/",
+    "imdb_id": "tt0096251",
+    "kinopoisk_id": 55181,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 96,
+    "letterboxd_name": "Godzilla vs. Destoroyah",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla-vs-destoroyah/",
+    "imdb_id": "tt0113187",
+    "kinopoisk_id": 60737,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 97,
+    "letterboxd_name": "Dead Ringers",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-ringers/",
+    "imdb_id": "tt0094964",
+    "kinopoisk_id": 23539,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 98,
+    "letterboxd_name": "Morgiana",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/morgiana/",
+    "imdb_id": "tt0124012",
+    "kinopoisk_id": 101230,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 99,
+    "letterboxd_name": "The Happiness of the Katakuris",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-happiness-of-the-katakuris/",
+    "imdb_id": "tt0304262",
+    "kinopoisk_id": 60685,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 100,
+    "letterboxd_name": "The Third Part of the Night",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-third-part-of-the-night/",
+    "imdb_id": "tt0067885",
+    "kinopoisk_id": 177881,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 101,
+    "letterboxd_name": "Carrie",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/carrie-1976/",
+    "imdb_id": "tt0074285",
+    "kinopoisk_id": 7459,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 102,
+    "letterboxd_name": "Dead Talents Society",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-talents-society/",
+    "imdb_id": "tt17079606",
+    "kinopoisk_id": 4987040,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 103,
+    "letterboxd_name": "The Devil",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devil-1972/",
+    "imdb_id": "tt0095012",
+    "kinopoisk_id": 252056,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 104,
+    "letterboxd_name": "Bramayugam",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/bramayugam/",
+    "imdb_id": "tt27431598",
+    "kinopoisk_id": 5463466,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 105,
+    "letterboxd_name": "The Snow Woman",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/the-snow-woman/",
+    "imdb_id": "tt0063171",
+    "kinopoisk_id": 273362,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 106,
+    "letterboxd_name": "Invasion of the Body Snatchers",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/invasion-of-the-body-snatchers/",
+    "imdb_id": "tt0049366",
+    "kinopoisk_id": 1047518,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 107,
+    "letterboxd_name": "An American Werewolf in London",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/an-american-werewolf-in-london/",
+    "imdb_id": "tt0082010",
+    "kinopoisk_id": 8854,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 108,
+    "letterboxd_name": "Frankenstein",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/frankenstein-2025/",
+    "imdb_id": "tt1312221",
+    "kinopoisk_id": 464475,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 109,
+    "letterboxd_name": "The Devil's Backbone",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils-backbone/",
+    "imdb_id": "tt0256009",
+    "kinopoisk_id": 662,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 110,
+    "letterboxd_name": "Gamera 3: Revenge of Iris",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/gamera-3-revenge-of-iris/",
+    "imdb_id": "tt0184503",
+    "kinopoisk_id": 55486,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 111,
+    "letterboxd_name": "Black Christmas",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/black-christmas/",
+    "imdb_id": "tt0071222",
+    "kinopoisk_id": 29836,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 112,
+    "letterboxd_name": "The Unknown",
+    "year": 1927,
+    "letterboxd_uri": "https://letterboxd.com/film/the-unknown/",
+    "imdb_id": "tt0018528",
+    "kinopoisk_id": 27272,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 113,
+    "letterboxd_name": "28 Years Later: The Bone Temple",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/28-years-later-the-bone-temple/",
+    "imdb_id": "tt32141377",
+    "kinopoisk_id": 6745035,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 114,
+    "letterboxd_name": "King Kong",
+    "year": 1933,
+    "letterboxd_uri": "https://letterboxd.com/film/king-kong/",
+    "imdb_id": "tt0024216",
+    "kinopoisk_id": 534,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 115,
+    "letterboxd_name": "Nosferatu",
+    "year": 1922,
+    "letterboxd_uri": "https://letterboxd.com/film/nosferatu/",
+    "imdb_id": "tt0013442",
+    "kinopoisk_id": 521,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 116,
+    "letterboxd_name": "The Witch",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/the-witch-2015/",
+    "imdb_id": "tt4263482",
+    "kinopoisk_id": 865302,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 117,
+    "letterboxd_name": "Eraserhead",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/eraserhead/",
+    "imdb_id": "tt0074486",
+    "kinopoisk_id": 15780,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 118,
+    "letterboxd_name": "November",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/november-2017/",
+    "imdb_id": "tt6164502",
+    "kinopoisk_id": 1009352,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 119,
+    "letterboxd_name": "Nosferatu the Vampyre",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/nosferatu-the-vampyre/",
+    "imdb_id": "tt0079641",
+    "kinopoisk_id": 22872,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 120,
+    "letterboxd_name": "Taste of Fear",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/taste-of-fear/",
+    "imdb_id": "tt0055505",
+    "kinopoisk_id": 5735,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 121,
+    "letterboxd_name": "In the Mouth of Madness",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/in-the-mouth-of-madness/",
+    "imdb_id": "tt0113409",
+    "kinopoisk_id": 4935,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 122,
+    "letterboxd_name": "A Chinese Ghost Story",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/a-chinese-ghost-story/",
+    "imdb_id": "tt0093978",
+    "kinopoisk_id": 36996,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 123,
+    "letterboxd_name": "A Girl Walks Home Alone at Night",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/a-girl-walks-home-alone-at-night/",
+    "imdb_id": "tt2326554",
+    "kinopoisk_id": 696145,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 124,
+    "letterboxd_name": "The Return of the Living Dead",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/the-return-of-the-living-dead/",
+    "imdb_id": "tt0089907",
+    "kinopoisk_id": 17159,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 125,
+    "letterboxd_name": "Mad God",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/mad-god/",
+    "imdb_id": "tt15090124",
+    "kinopoisk_id": 4519647,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 126,
+    "letterboxd_name": "Audition",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/audition/",
+    "imdb_id": "tt0235198",
+    "kinopoisk_id": 41833,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 127,
+    "letterboxd_name": "Thirst",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/thirst-2009/",
+    "imdb_id": "tt0762073",
+    "kinopoisk_id": 264350,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 128,
+    "letterboxd_name": "The Others",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-others/",
+    "imdb_id": "tt0230600",
+    "kinopoisk_id": 494,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 129,
+    "letterboxd_name": "A Page of Madness",
+    "year": 1926,
+    "letterboxd_uri": "https://letterboxd.com/film/a-page-of-madness/",
+    "imdb_id": "tt0017048",
+    "kinopoisk_id": 175192,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 130,
+    "letterboxd_name": "The Skin I Live In",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/the-skin-i-live-in/",
+    "imdb_id": "tt1189073",
+    "kinopoisk_id": 462737,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 131,
+    "letterboxd_name": "Rapture",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/rapture-1979/",
+    "imdb_id": "tt0078797",
+    "kinopoisk_id": 16985,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 132,
+    "letterboxd_name": "Night of the Demon",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/night-of-the-demon/",
+    "imdb_id": "tt0050766",
+    "kinopoisk_id": 8439,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 133,
+    "letterboxd_name": "The Boxer's Omen",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/the-boxers-omen/",
+    "imdb_id": "tt0085951",
+    "kinopoisk_id": 154525,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 134,
+    "letterboxd_name": "The Hunchback of Notre Dame",
+    "year": 1939,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hunchback-of-notre-dame-1939/",
+    "imdb_id": "tt0031455",
+    "kinopoisk_id": 8429,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 135,
+    "letterboxd_name": "Carnival of Souls",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/carnival-of-souls/",
+    "imdb_id": "tt0055830",
+    "kinopoisk_id": 226228,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 136,
+    "letterboxd_name": "The Texas Chain Saw Massacre",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-texas-chain-saw-massacre/",
+    "imdb_id": "tt0072271",
+    "kinopoisk_id": 16015,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 137,
+    "letterboxd_name": "The Haunting",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-haunting/",
+    "imdb_id": "tt0057129",
+    "kinopoisk_id": 8433,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 138,
+    "letterboxd_name": "Don't Look Now",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/dont-look-now/",
+    "imdb_id": "tt0069995",
+    "kinopoisk_id": 6268,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 139,
+    "letterboxd_name": "Elvira: Mistress of the Dark",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/elvira-mistress-of-the-dark/",
+    "imdb_id": "tt0095088",
+    "kinopoisk_id": 34186,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 140,
+    "letterboxd_name": "Day of the Dead",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/day-of-the-dead/",
+    "imdb_id": "tt0088993",
+    "kinopoisk_id": 9917,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 141,
+    "letterboxd_name": "Frankenstein",
+    "year": 1931,
+    "letterboxd_uri": "https://letterboxd.com/film/frankenstein-1931/",
+    "imdb_id": "tt0021884",
+    "kinopoisk_id": 8360,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 142,
+    "letterboxd_name": "Clearcut",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/clearcut/",
+    "imdb_id": "tt0101592",
+    "kinopoisk_id": 15659,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 143,
+    "letterboxd_name": "Death Becomes Her",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/death-becomes-her/",
+    "imdb_id": "tt0104070",
+    "kinopoisk_id": 1889,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 144,
+    "letterboxd_name": "Re-Animator",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/re-animator/",
+    "imdb_id": "tt0089885",
+    "kinopoisk_id": 55945,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 145,
+    "letterboxd_name": "Vampyr",
+    "year": 1932,
+    "letterboxd_uri": "https://letterboxd.com/film/vampyr/",
+    "imdb_id": "tt0023649",
+    "kinopoisk_id": 63700,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 146,
+    "letterboxd_name": "Bones and All",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/bones-and-all/",
+    "imdb_id": "tt10168670",
+    "kinopoisk_id": 4422719,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 147,
+    "letterboxd_name": "The Host",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/the-host/",
+    "imdb_id": "tt0468492",
+    "kinopoisk_id": 250278,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 148,
+    "letterboxd_name": "Halloween",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/halloween-1978/",
+    "imdb_id": "tt0077651",
+    "kinopoisk_id": 8435,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 149,
+    "letterboxd_name": "Climax",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/climax-2018/",
+    "imdb_id": "tt8359848",
+    "kinopoisk_id": 1118214,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 150,
+    "letterboxd_name": "Dr. Jekyll and Mr. Hyde",
+    "year": 1931,
+    "letterboxd_uri": "https://letterboxd.com/film/dr-jekyll-and-mr-hyde-1931/",
+    "imdb_id": "tt0022835",
+    "kinopoisk_id": 38897,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 151,
+    "letterboxd_name": "The Stepford Wives",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/the-stepford-wives/",
+    "imdb_id": "tt0073747",
+    "kinopoisk_id": 1780,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 152,
+    "letterboxd_name": "American Psycho",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/american-psycho/",
+    "imdb_id": "tt0144084",
+    "kinopoisk_id": 588,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 153,
+    "letterboxd_name": "Dead of Night",
+    "year": 1945,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-of-night/",
+    "imdb_id": "tt0037635",
+    "kinopoisk_id": 8347,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 154,
+    "letterboxd_name": "Leviticus",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/leviticus-2026/",
+    "imdb_id": "tt39143902",
+    "kinopoisk_id": 11127891,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 155,
+    "letterboxd_name": "Who Can Kill a Child?",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/who-can-kill-a-child/",
+    "imdb_id": "tt0075462",
+    "kinopoisk_id": 114770,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 156,
+    "letterboxd_name": "Guilty of Romance",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/guilty-of-romance/",
+    "imdb_id": "tt1743724",
+    "kinopoisk_id": 582773,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 157,
+    "letterboxd_name": "Images",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/images/",
+    "imdb_id": "tt0068732",
+    "kinopoisk_id": 20069,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 158,
+    "letterboxd_name": "The Phantom of the Opera",
+    "year": 1925,
+    "letterboxd_uri": "https://letterboxd.com/film/the-phantom-of-the-opera/",
+    "imdb_id": "tt0016220",
+    "kinopoisk_id": 8437,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 159,
+    "letterboxd_name": "Little Otik",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/little-otik/",
+    "imdb_id": "tt0228687",
+    "kinopoisk_id": 49978,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 160,
+    "letterboxd_name": "Tenebre",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/tenebre/",
+    "imdb_id": "tt0084777",
+    "kinopoisk_id": 37691,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 161,
+    "letterboxd_name": "Midsommar",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/midsommar/",
+    "imdb_id": "tt8772262",
+    "kinopoisk_id": 1178137,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 162,
+    "letterboxd_name": "The Birds",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-birds/",
+    "imdb_id": "tt0056869",
+    "kinopoisk_id": 559,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 163,
+    "letterboxd_name": "Bram Stoker's Dracula",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/bram-stokers-dracula/",
+    "imdb_id": "tt0103874",
+    "kinopoisk_id": 1727,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 164,
+    "letterboxd_name": "The Demon",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-demon-1963/",
+    "imdb_id": "tt0167886",
+    "kinopoisk_id": 92124,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 165,
+    "letterboxd_name": "The Substance",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/the-substance/",
+    "imdb_id": "tt17526714",
+    "kinopoisk_id": 4860213,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 166,
+    "letterboxd_name": "Retribution",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/retribution/",
+    "imdb_id": "tt0843302",
+    "kinopoisk_id": 261064,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 167,
+    "letterboxd_name": "Dante's Inferno",
+    "year": 1911,
+    "letterboxd_uri": "https://letterboxd.com/film/dantes-inferno-1911/",
+    "imdb_id": "tt0002130",
+    "kinopoisk_id": 243509,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 168,
+    "letterboxd_name": "Blood and Black Lace",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/blood-and-black-lace/",
+    "imdb_id": "tt0058567",
+    "kinopoisk_id": 94861,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 169,
+    "letterboxd_name": "Suspiria",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/suspiria-2018/",
+    "imdb_id": "tt1034415",
+    "kinopoisk_id": 423063,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 170,
+    "letterboxd_name": "28 Days Later",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/28-days-later/",
+    "imdb_id": "tt0289043",
+    "kinopoisk_id": 577,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 171,
+    "letterboxd_name": "Cemetery Man",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/cemetery-man/",
+    "imdb_id": "tt0109592",
+    "kinopoisk_id": 23465,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 172,
+    "letterboxd_name": "Hush... Hush, Sweet Charlotte",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/hush-hush-sweet-charlotte/",
+    "imdb_id": "tt0058213",
+    "kinopoisk_id": 13361,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 173,
+    "letterboxd_name": "Sick of Myself",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/sick-of-myself/",
+    "imdb_id": "tt18816518",
+    "kinopoisk_id": 4918304,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 174,
+    "letterboxd_name": "The Seventh Curse",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-seventh-curse/",
+    "imdb_id": "tt0092273",
+    "kinopoisk_id": 5382,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 175,
+    "letterboxd_name": "A Nightmare on Elm Street",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/a-nightmare-on-elm-street/",
+    "imdb_id": "tt0087800",
+    "kinopoisk_id": 5198,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 176,
+    "letterboxd_name": "The Fall of the House of Usher",
+    "year": 1928,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fall-of-the-house-of-usher/",
+    "imdb_id": "tt0018770",
+    "kinopoisk_id": 83057,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 177,
+    "letterboxd_name": "Gamera 2: Attack of Legion",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/gamera-2-attack-of-legion/",
+    "imdb_id": "tt0116390",
+    "kinopoisk_id": 60801,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 178,
+    "letterboxd_name": "Martin",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/martin/",
+    "imdb_id": "tt0077914",
+    "kinopoisk_id": 95904,
+    "match_method": "keyword"
+  },
+  {
+    "rank": 179,
+    "letterboxd_name": "A Tale of Two Sisters",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/a-tale-of-two-sisters/",
+    "imdb_id": "tt0365376",
+    "kinopoisk_id": 65922,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 180,
+    "letterboxd_name": "Army of Darkness",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/army-of-darkness/",
+    "imdb_id": "tt0106308",
+    "kinopoisk_id": 2909,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 181,
+    "letterboxd_name": "Tales from the Hood",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/tales-from-the-hood/",
+    "imdb_id": "tt0114609",
+    "kinopoisk_id": 4808,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 182,
+    "letterboxd_name": "The Bird with the Crystal Plumage",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/the-bird-with-the-crystal-plumage/",
+    "imdb_id": "tt0065143",
+    "kinopoisk_id": 38234,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 183,
+    "letterboxd_name": "Pearl",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/pearl-2022/",
+    "imdb_id": "tt18925334",
+    "kinopoisk_id": 4902649,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 184,
+    "letterboxd_name": "Godzilla, Mothra and King Ghidorah: Giant Monsters All-Out Attack",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla-mothra-and-king-ghidorah-giant-monsters-all-out-attack/",
+    "imdb_id": "tt0279112",
+    "kinopoisk_id": 41888,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 185,
+    "letterboxd_name": "Frenzy",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/frenzy/",
+    "imdb_id": "tt0068611",
+    "kinopoisk_id": 9112,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 186,
+    "letterboxd_name": "Angst",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/angst/",
+    "imdb_id": "tt0165623",
+    "kinopoisk_id": 219472,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 187,
+    "letterboxd_name": "Altered States",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/altered-states/",
+    "imdb_id": "tt0080360",
+    "kinopoisk_id": 1827,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 188,
+    "letterboxd_name": "Pulse",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/pulse-2001/",
+    "imdb_id": "tt0286751",
+    "kinopoisk_id": 77800,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 189,
+    "letterboxd_name": "Blind Beast",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/blind-beast/",
+    "imdb_id": "tt0140384",
+    "kinopoisk_id": 123070,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 190,
+    "letterboxd_name": "Cold Fish",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/cold-fish/",
+    "imdb_id": "tt1632547",
+    "kinopoisk_id": 512363,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 191,
+    "letterboxd_name": "White Dog",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/white-dog/",
+    "imdb_id": "tt0084899",
+    "kinopoisk_id": 12520,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 192,
+    "letterboxd_name": "Ghost Story of Yotsuya",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/ghost-story-of-yotsuya/",
+    "imdb_id": "tt0155278",
+    "kinopoisk_id": 64337,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 193,
+    "letterboxd_name": "Strange Circus",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/strange-circus/",
+    "imdb_id": "tt0492784",
+    "kinopoisk_id": 257899,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 194,
+    "letterboxd_name": "The Bad Seed",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/the-bad-seed/",
+    "imdb_id": "tt0048977",
+    "kinopoisk_id": 80026,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 195,
+    "letterboxd_name": "The Golem: How He Came Into the World",
+    "year": 1920,
+    "letterboxd_uri": "https://letterboxd.com/film/the-golem-how-he-came-into-the-world/",
+    "imdb_id": "tt0011237",
+    "kinopoisk_id": 74791,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 196,
+    "letterboxd_name": "Tumbbad",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/tumbbad/",
+    "imdb_id": "tt8239946",
+    "kinopoisk_id": 1124521,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 197,
+    "letterboxd_name": "[REC]",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/rec/",
+    "imdb_id": "tt1038988",
+    "kinopoisk_id": 325598,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 198,
+    "letterboxd_name": "Poison for the Fairies",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/poison-for-the-fairies/",
+    "imdb_id": "tt0135033",
+    "kinopoisk_id": 55411,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 199,
+    "letterboxd_name": "The Day of the Beast",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/the-day-of-the-beast/",
+    "imdb_id": "tt0112922",
+    "kinopoisk_id": 36135,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 200,
+    "letterboxd_name": "Encounters of the Spooky Kind",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/encounters-of-the-spooky-kind/",
+    "imdb_id": "tt0080827",
+    "kinopoisk_id": 37164,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 201,
+    "letterboxd_name": "I Walked with a Zombie",
+    "year": 1943,
+    "letterboxd_uri": "https://letterboxd.com/film/i-walked-with-a-zombie/",
+    "imdb_id": "tt0036027",
+    "kinopoisk_id": 79983,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 202,
+    "letterboxd_name": "Saw",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/saw/",
+    "imdb_id": "tt0387564",
+    "kinopoisk_id": 64187,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 203,
+    "letterboxd_name": "Bring Her Back",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/bring-her-back/",
+    "imdb_id": "tt32246771",
+    "kinopoisk_id": 7239312,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 204,
+    "letterboxd_name": "The Lost Boys",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lost-boys/",
+    "imdb_id": "tt0093437",
+    "kinopoisk_id": 4756,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 205,
+    "letterboxd_name": "Gozu",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/gozu/",
+    "imdb_id": "tt0361668",
+    "kinopoisk_id": 64575,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 206,
+    "letterboxd_name": "Island of Lost Souls",
+    "year": 1932,
+    "letterboxd_uri": "https://letterboxd.com/film/island-of-lost-souls/",
+    "imdb_id": "tt0024188",
+    "kinopoisk_id": 8657,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 207,
+    "letterboxd_name": "Gemini",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/gemini/",
+    "imdb_id": "tt0210302",
+    "kinopoisk_id": 141145,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 208,
+    "letterboxd_name": "Tucker and Dale vs. Evil",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/tucker-and-dale-vs-evil/",
+    "imdb_id": "tt1465522",
+    "kinopoisk_id": 485261,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 209,
+    "letterboxd_name": "Black Sunday",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/black-sunday-1960/",
+    "imdb_id": "tt0054067",
+    "kinopoisk_id": 93477,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 210,
+    "letterboxd_name": "Angel Heart",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/angel-heart/",
+    "imdb_id": "tt0092563",
+    "kinopoisk_id": 7471,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 211,
+    "letterboxd_name": "Raw",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/raw-2016/",
+    "imdb_id": "tt4954522",
+    "kinopoisk_id": 932063,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 212,
+    "letterboxd_name": "Don't Torture a Duckling",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/dont-torture-a-duckling/",
+    "imdb_id": "tt0069019",
+    "kinopoisk_id": 102819,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 213,
+    "letterboxd_name": "Cat People",
+    "year": 1942,
+    "letterboxd_uri": "https://letterboxd.com/film/cat-people/",
+    "imdb_id": "tt0034587",
+    "kinopoisk_id": 178552,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 214,
+    "letterboxd_name": "The Vourdalak",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/the-vourdalak/",
+    "imdb_id": "tt28313478",
+    "kinopoisk_id": 5378059,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 215,
+    "letterboxd_name": "You Won't Be Alone",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/you-wont-be-alone/",
+    "imdb_id": "tt8296030",
+    "kinopoisk_id": 2001101,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 216,
+    "letterboxd_name": "Nope",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/nope/",
+    "imdb_id": "tt10954984",
+    "kinopoisk_id": 1447137,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 217,
+    "letterboxd_name": "Mr. Vampire",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/mr-vampire/",
+    "imdb_id": "tt0089371",
+    "kinopoisk_id": 39786,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 218,
+    "letterboxd_name": "Candyman",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/candyman/",
+    "imdb_id": "tt0103919",
+    "kinopoisk_id": 15859,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 219,
+    "letterboxd_name": "Ravenous",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/ravenous/",
+    "imdb_id": "tt0129332",
+    "kinopoisk_id": 8907,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 220,
+    "letterboxd_name": "The Abominable Dr. Phibes",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-abominable-dr-phibes/",
+    "imdb_id": "tt0066740",
+    "kinopoisk_id": 19125,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 221,
+    "letterboxd_name": "Anguish",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/anguish/",
+    "imdb_id": "tt0090644",
+    "kinopoisk_id": 58796,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 222,
+    "letterboxd_name": "Nosferatu",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/nosferatu-2024/",
+    "imdb_id": "tt5040012",
+    "kinopoisk_id": 1048253,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 223,
+    "letterboxd_name": "Ginger Snaps",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/ginger-snaps/",
+    "imdb_id": "tt0210070",
+    "kinopoisk_id": 680,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 224,
+    "letterboxd_name": "Singapore Sling",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/singapore-sling/",
+    "imdb_id": "tt0100623",
+    "kinopoisk_id": 388337,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 225,
+    "letterboxd_name": "The Devil's Advocate",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils-advocate/",
+    "imdb_id": "tt0118971",
+    "kinopoisk_id": 3797,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 226,
+    "letterboxd_name": "Bedevilled",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/bedevilled/",
+    "imdb_id": "tt1646959",
+    "kinopoisk_id": 520081,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 227,
+    "letterboxd_name": "Opera",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/opera/",
+    "imdb_id": "tt0093677",
+    "kinopoisk_id": 32355,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 228,
+    "letterboxd_name": "The Orphanage",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/the-orphanage/",
+    "imdb_id": "tt0464141",
+    "kinopoisk_id": 119975,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 229,
+    "letterboxd_name": "May",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/may/",
+    "imdb_id": "tt0303361",
+    "kinopoisk_id": 2007,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 230,
+    "letterboxd_name": "The Ugly Stepsister",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/the-ugly-stepsister/",
+    "imdb_id": "tt29344903",
+    "kinopoisk_id": 7229988,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 231,
+    "letterboxd_name": "Ganja & Hess",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/ganja-hess/",
+    "imdb_id": "tt0068619",
+    "kinopoisk_id": 107653,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 232,
+    "letterboxd_name": "Theatre of Blood",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/theatre-of-blood/",
+    "imdb_id": "tt0070791",
+    "kinopoisk_id": 19122,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 233,
+    "letterboxd_name": "In a Glass Cage",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/in-a-glass-cage/",
+    "imdb_id": "tt0090197",
+    "kinopoisk_id": 220174,
+    "match_method": "keyword_ru"
+  },
+  {
+    "rank": 234,
+    "letterboxd_name": "Celia",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/celia/",
+    "imdb_id": "tt0094849",
+    "kinopoisk_id": 52371,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 235,
+    "letterboxd_name": "Gremlins",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/gremlins/",
+    "imdb_id": "tt0087363",
+    "kinopoisk_id": 7114,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 236,
+    "letterboxd_name": "Black Sabbath",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/black-sabbath/",
+    "imdb_id": "tt0057603",
+    "kinopoisk_id": 32152,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 237,
+    "letterboxd_name": "The Conjuring",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/the-conjuring/",
+    "imdb_id": "tt1457767",
+    "kinopoisk_id": 468994,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 238,
+    "letterboxd_name": "A Quiet Place",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/a-quiet-place-2018/",
+    "imdb_id": "tt6644200",
+    "kinopoisk_id": 1044906,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 239,
+    "letterboxd_name": "The Spiral Staircase",
+    "year": 1946,
+    "letterboxd_uri": "https://letterboxd.com/film/the-spiral-staircase/",
+    "imdb_id": "tt0038975",
+    "kinopoisk_id": 17883,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 240,
+    "letterboxd_name": "The Masque of the Red Death",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/the-masque-of-the-red-death/",
+    "imdb_id": "tt0058333",
+    "kinopoisk_id": 19134,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 241,
+    "letterboxd_name": "Chandramukhi",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/chandramukhi/",
+    "imdb_id": "tt0449869",
+    "kinopoisk_id": 210055,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 242,
+    "letterboxd_name": "The Hidden",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden/",
+    "imdb_id": "tt0093185",
+    "kinopoisk_id": 5195,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 243,
+    "letterboxd_name": "Mad Love",
+    "year": 1935,
+    "letterboxd_uri": "https://letterboxd.com/film/mad-love/",
+    "imdb_id": "tt0026663",
+    "kinopoisk_id": 13006,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 244,
+    "letterboxd_name": "Pizza",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/pizza-2012/",
+    "imdb_id": "tt2585562",
+    "kinopoisk_id": 729727,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 245,
+    "letterboxd_name": "Dressed to Kill",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/dressed-to-kill-1980/",
+    "imdb_id": "tt0080661",
+    "kinopoisk_id": 19300,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 246,
+    "letterboxd_name": "The Hitcher",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hitcher/",
+    "imdb_id": "tt0091209",
+    "kinopoisk_id": 20368,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 247,
+    "letterboxd_name": "Us",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/us-2019/",
+    "imdb_id": "tt6857112",
+    "kinopoisk_id": 1122138,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 248,
+    "letterboxd_name": "The Evil Dead",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/the-evil-dead/",
+    "imdb_id": "tt0083907",
+    "kinopoisk_id": 2894,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 249,
+    "letterboxd_name": "Empire of Passion",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/empire-of-passion/",
+    "imdb_id": "tt0077132",
+    "kinopoisk_id": 65511,
+    "match_method": "imdbId"
+  },
+  {
+    "rank": 250,
+    "letterboxd_name": "Phenomena",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/phenomena/",
+    "imdb_id": "tt0087909",
+    "kinopoisk_id": 665008,
+    "match_method": "keyword"
+  }
+]

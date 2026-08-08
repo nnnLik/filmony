@@ -1,0 +1,68 @@
+[
+  {
+    "imdb_id": "tt0060277",
+    "letterboxd_name": "The Sword of Doom",
+    "year": 1966,
+    "queries": ["Меч судьбы", "Daibosatsu tôge", "Daibosatsu toge", "大菩薩峠"]
+  },
+  {
+    "imdb_id": "tt0049710",
+    "letterboxd_name": "Samurai III: Duel at Ganryu Island",
+    "year": 1956,
+    "queries": [
+      "Самурай 3",
+      "Miyamoto Musashi kanketsuhen",
+      "Мусаси Миямото III",
+      "Samurai III",
+      "Дуэль на острове Ганрю"
+    ]
+  },
+  {
+    "imdb_id": "tt0155278",
+    "letterboxd_name": "Ghost Story of Yotsuya",
+    "year": 1959,
+    "queries": [
+      "История о призраках Ёцуя",
+      "Tôkaidô Yotsuya kaidan",
+      "Tokaido Yotsuya kaidan",
+      "東海道四谷怪談"
+    ]
+  },
+  {
+    "imdb_id": "tt0048579",
+    "letterboxd_name": "Samurai II: Duel at Ichijoji Temple",
+    "year": 1955,
+    "queries": [
+      "Самурай 2",
+      "Zoku Miyamoto Musashi",
+      "Мусаси Миямото II",
+      "Miyamoto Musashi II",
+      "Samurai II",
+      "Дуэль в храме Итидзёдзи"
+    ]
+  },
+  {
+    "imdb_id": "tt11991748",
+    "letterboxd_name": "Rurouni Kenshin: The Beginning",
+    "year": 2021,
+    "queries": ["Бродяга Кэнсин: Начало", "Rurouni Kenshin: The Beginning"]
+  },
+  {
+    "imdb_id": "tt11809034",
+    "letterboxd_name": "Rurouni Kenshin: The Final",
+    "year": 2021,
+    "queries": ["Бродяга Кэнсин: Финал", "Rurouni Kenshin: The Final"]
+  },
+  {
+    "imdb_id": "tt0091136",
+    "letterboxd_name": "Gonza the Spearman",
+    "year": 1986,
+    "queries": ["Яри но Гонза", "Yari no Gonza", "Копьеносец Гонза"]
+  },
+  {
+    "imdb_id": "tt0186835",
+    "letterboxd_name": "The Assassination of Ryoma",
+    "year": 1974,
+    "queries": ["Убийство Рёмы", "Hitokiri", "Ryoma Ansatsu", "竜馬暗殺"]
+  }
+]

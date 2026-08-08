@@ -1,0 +1,1502 @@
+[
+  {
+    "rank": 1,
+    "name": "Perfect Blue",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/perfect-blue/"
+  },
+  {
+    "rank": 2,
+    "name": "The Thing",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/the-thing/"
+  },
+  {
+    "rank": 3,
+    "name": "Twin Peaks: Fire Walk with Me",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/twin-peaks-fire-walk-with-me/"
+  },
+  {
+    "rank": 4,
+    "name": "The Silence of the Lambs",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/the-silence-of-the-lambs/"
+  },
+  {
+    "rank": 5,
+    "name": "Psycho",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/psycho/"
+  },
+  {
+    "rank": 6,
+    "name": "The Cremator",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cremator/"
+  },
+  {
+    "rank": 7,
+    "name": "Cure",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/cure/"
+  },
+  {
+    "rank": 8,
+    "name": "The Night of the Hunter",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/the-night-of-the-hunter/"
+  },
+  {
+    "rank": 9,
+    "name": "Alien",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/alien/"
+  },
+  {
+    "rank": 10,
+    "name": "The Devils",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils/"
+  },
+  {
+    "rank": 11,
+    "name": "Kwaidan",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/kwaidan/"
+  },
+  {
+    "rank": 12,
+    "name": "Demons",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/demons-1971/"
+  },
+  {
+    "rank": 13,
+    "name": "The Shining",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/the-shining/"
+  },
+  {
+    "rank": 14,
+    "name": "Rosemary's Baby",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/rosemarys-baby/"
+  },
+  {
+    "rank": 15,
+    "name": "What Ever Happened to Baby Jane?",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/what-ever-happened-to-baby-jane/"
+  },
+  {
+    "rank": 16,
+    "name": "Coraline",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/coraline/"
+  },
+  {
+    "rank": 17,
+    "name": "Diabolique",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/diabolique-1955/"
+  },
+  {
+    "rank": 18,
+    "name": "Vampire Hunter D: Bloodlust",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/vampire-hunter-d-bloodlust/"
+  },
+  {
+    "rank": 19,
+    "name": "Black Swan",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/black-swan/"
+  },
+  {
+    "rank": 20,
+    "name": "Phantom of the Paradise",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/phantom-of-the-paradise/"
+  },
+  {
+    "rank": 21,
+    "name": "Seconds",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/seconds/"
+  },
+  {
+    "rank": 22,
+    "name": "The Wolf House",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wolf-house/"
+  },
+  {
+    "rank": 23,
+    "name": "Get Out",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/get-out-2017/"
+  },
+  {
+    "rank": 24,
+    "name": "Faust",
+    "year": 1926,
+    "letterboxd_uri": "https://letterboxd.com/film/faust-1926/"
+  },
+  {
+    "rank": 25,
+    "name": "What We Do in the Shadows",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/what-we-do-in-the-shadows/"
+  },
+  {
+    "rank": 26,
+    "name": "The Innocents",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/the-innocents/"
+  },
+  {
+    "rank": 27,
+    "name": "Aliens",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/aliens/"
+  },
+  {
+    "rank": 28,
+    "name": "The Sixth Sense",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sixth-sense/"
+  },
+  {
+    "rank": 29,
+    "name": "Sinners",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/sinners-2025/"
+  },
+  {
+    "rank": 30,
+    "name": "Obsession",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/obsession-2025/"
+  },
+  {
+    "rank": 31,
+    "name": "Godzilla Minus One",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla-minus-one/"
+  },
+  {
+    "rank": 32,
+    "name": "Godzilla",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla/"
+  },
+  {
+    "rank": 33,
+    "name": "The Phantom Carriage",
+    "year": 1921,
+    "letterboxd_uri": "https://letterboxd.com/film/the-phantom-carriage/"
+  },
+  {
+    "rank": 34,
+    "name": "Kuroneko",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/kuroneko/"
+  },
+  {
+    "rank": 35,
+    "name": "Onibaba",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/onibaba/"
+  },
+  {
+    "rank": 36,
+    "name": "One Cut of the Dead",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/one-cut-of-the-dead/"
+  },
+  {
+    "rank": 37,
+    "name": "The Cabinet of Dr. Caligari",
+    "year": 1920,
+    "letterboxd_uri": "https://letterboxd.com/film/the-cabinet-of-dr-caligari-1920/"
+  },
+  {
+    "rank": 38,
+    "name": "The Rocky Horror Picture Show",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/the-rocky-horror-picture-show/"
+  },
+  {
+    "rank": 39,
+    "name": "I Saw the Devil",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/i-saw-the-devil/"
+  },
+  {
+    "rank": 40,
+    "name": "Manichitrathazhu",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/manichitrathazhu/"
+  },
+  {
+    "rank": 41,
+    "name": "Possession",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/possession/"
+  },
+  {
+    "rank": 42,
+    "name": "Santa Sangre",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/santa-sangre/"
+  },
+  {
+    "rank": 43,
+    "name": "Let the Right One In",
+    "year": 2008,
+    "letterboxd_uri": "https://letterboxd.com/film/let-the-right-one-in/"
+  },
+  {
+    "rank": 44,
+    "name": "Peeping Tom",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/peeping-tom/"
+  },
+  {
+    "rank": 45,
+    "name": "Scream",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/scream/"
+  },
+  {
+    "rank": 46,
+    "name": "Hour of the Wolf",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/hour-of-the-wolf/"
+  },
+  {
+    "rank": 47,
+    "name": "The Vanishing",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/the-vanishing/"
+  },
+  {
+    "rank": 48,
+    "name": "The Lighthouse",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lighthouse-2019/"
+  },
+  {
+    "rank": 49,
+    "name": "The Fly",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fly-1986/"
+  },
+  {
+    "rank": 50,
+    "name": "Alice",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/alice-1988/"
+  },
+  {
+    "rank": 51,
+    "name": "Misery",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/misery/"
+  },
+  {
+    "rank": 52,
+    "name": "Train to Busan",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/train-to-busan/"
+  },
+  {
+    "rank": 53,
+    "name": "Evil Dead II",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/evil-dead-ii/"
+  },
+  {
+    "rank": 54,
+    "name": "House",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/house/"
+  },
+  {
+    "rank": 55,
+    "name": "The Wailing",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wailing/"
+  },
+  {
+    "rank": 56,
+    "name": "The Wicker Man",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-wicker-man/"
+  },
+  {
+    "rank": 57,
+    "name": "The Hourglass Sanatorium",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hourglass-sanatorium/"
+  },
+  {
+    "rank": 58,
+    "name": "Beauty and the Beast",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/beauty-and-the-beast-1978/"
+  },
+  {
+    "rank": 59,
+    "name": "Bride of Frankenstein",
+    "year": 1935,
+    "letterboxd_uri": "https://letterboxd.com/film/bride-of-frankenstein/"
+  },
+  {
+    "rank": 60,
+    "name": "Dawn of the Dead",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/dawn-of-the-dead/"
+  },
+  {
+    "rank": 61,
+    "name": "The Exorcist",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/the-exorcist/"
+  },
+  {
+    "rank": 62,
+    "name": "Braindead",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/braindead-1992/"
+  },
+  {
+    "rank": 63,
+    "name": "Invasion of the Body Snatchers",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/invasion-of-the-body-snatchers-1978/"
+  },
+  {
+    "rank": 64,
+    "name": "Mother Joan of the Angels",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/mother-joan-of-the-angels/"
+  },
+  {
+    "rank": 65,
+    "name": "Night of the Living Dead",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/night-of-the-living-dead/"
+  },
+  {
+    "rank": 66,
+    "name": "Shaun of the Dead",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/shaun-of-the-dead/"
+  },
+  {
+    "rank": 67,
+    "name": "Freaks",
+    "year": 1932,
+    "letterboxd_uri": "https://letterboxd.com/film/freaks/"
+  },
+  {
+    "rank": 68,
+    "name": "Teenage Sex and Death at Camp Miasma",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/teenage-sex-and-death-at-camp-miasma/"
+  },
+  {
+    "rank": 69,
+    "name": "Thesis",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/thesis/"
+  },
+  {
+    "rank": 70,
+    "name": "Wait Until Dark",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/wait-until-dark/"
+  },
+  {
+    "rank": 71,
+    "name": "Suspiria",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/suspiria/"
+  },
+  {
+    "rank": 72,
+    "name": "Hereditary",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/hereditary/"
+  },
+  {
+    "rank": 73,
+    "name": "Eyes Without a Face",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/eyes-without-a-face/"
+  },
+  {
+    "rank": 74,
+    "name": "Deep Red",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/deep-red/"
+  },
+  {
+    "rank": 75,
+    "name": "Jaws",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/jaws/"
+  },
+  {
+    "rank": 76,
+    "name": "The Skeleton of Mrs. Morales",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/the-skeleton-of-mrs-morales/"
+  },
+  {
+    "rank": 77,
+    "name": "Repulsion",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/repulsion/"
+  },
+  {
+    "rank": 78,
+    "name": "Little Shop of Horrors",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/little-shop-of-horrors/"
+  },
+  {
+    "rank": 79,
+    "name": "Funny Games",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/funny-games/"
+  },
+  {
+    "rank": 80,
+    "name": "Humanist Vampire Seeking Consenting Suicidal Person",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/humanist-vampire-seeking-consenting-suicidal-person/"
+  },
+  {
+    "rank": 81,
+    "name": "The Man Who Laughs",
+    "year": 1928,
+    "letterboxd_uri": "https://letterboxd.com/film/the-man-who-laughs/"
+  },
+  {
+    "rank": 82,
+    "name": "Inland Empire",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/inland-empire/"
+  },
+  {
+    "rank": 83,
+    "name": "Scooby-Doo on Zombie Island",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/scooby-doo-on-zombie-island/"
+  },
+  {
+    "rank": 84,
+    "name": "Angel Dust",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/angel-dust/"
+  },
+  {
+    "rank": 85,
+    "name": "Shin Godzilla",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/shin-godzilla/"
+  },
+  {
+    "rank": 86,
+    "name": "Witchhammer",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/witchhammer/"
+  },
+  {
+    "rank": 87,
+    "name": "The Invisible Man",
+    "year": 1933,
+    "letterboxd_uri": "https://letterboxd.com/film/the-invisible-man/"
+  },
+  {
+    "rank": 88,
+    "name": "Kotoko",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/kotoko/"
+  },
+  {
+    "rank": 89,
+    "name": "Jacob's Ladder",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/jacobs-ladder/"
+  },
+  {
+    "rank": 90,
+    "name": "Videodrome",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/videodrome/"
+  },
+  {
+    "rank": 91,
+    "name": "The Incredible Shrinking Man",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/the-incredible-shrinking-man/"
+  },
+  {
+    "rank": 92,
+    "name": "Helter Skelter",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/helter-skelter-2012/"
+  },
+  {
+    "rank": 93,
+    "name": "Manhunter",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/manhunter/"
+  },
+  {
+    "rank": 94,
+    "name": "The Tenant",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tenant/"
+  },
+  {
+    "rank": 95,
+    "name": "Tetsuo: The Iron Man",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/tetsuo-the-iron-man/"
+  },
+  {
+    "rank": 96,
+    "name": "Godzilla vs. Destoroyah",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla-vs-destoroyah/"
+  },
+  {
+    "rank": 97,
+    "name": "Dead Ringers",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-ringers/"
+  },
+  {
+    "rank": 98,
+    "name": "Morgiana",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/morgiana/"
+  },
+  {
+    "rank": 99,
+    "name": "The Happiness of the Katakuris",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-happiness-of-the-katakuris/"
+  },
+  {
+    "rank": 100,
+    "name": "The Third Part of the Night",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-third-part-of-the-night/"
+  },
+  {
+    "rank": 101,
+    "name": "Carrie",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/carrie-1976/"
+  },
+  {
+    "rank": 102,
+    "name": "Dead Talents Society",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-talents-society/"
+  },
+  {
+    "rank": 103,
+    "name": "The Devil",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devil-1972/"
+  },
+  {
+    "rank": 104,
+    "name": "Bramayugam",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/bramayugam/"
+  },
+  {
+    "rank": 105,
+    "name": "The Snow Woman",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/the-snow-woman/"
+  },
+  {
+    "rank": 106,
+    "name": "Invasion of the Body Snatchers",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/invasion-of-the-body-snatchers/"
+  },
+  {
+    "rank": 107,
+    "name": "An American Werewolf in London",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/an-american-werewolf-in-london/"
+  },
+  {
+    "rank": 108,
+    "name": "Frankenstein",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/frankenstein-2025/"
+  },
+  {
+    "rank": 109,
+    "name": "The Devil's Backbone",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils-backbone/"
+  },
+  {
+    "rank": 110,
+    "name": "Gamera 3: Revenge of Iris",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/gamera-3-revenge-of-iris/"
+  },
+  {
+    "rank": 111,
+    "name": "Black Christmas",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/black-christmas/"
+  },
+  {
+    "rank": 112,
+    "name": "The Unknown",
+    "year": 1927,
+    "letterboxd_uri": "https://letterboxd.com/film/the-unknown/"
+  },
+  {
+    "rank": 113,
+    "name": "28 Years Later: The Bone Temple",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/28-years-later-the-bone-temple/"
+  },
+  {
+    "rank": 114,
+    "name": "King Kong",
+    "year": 1933,
+    "letterboxd_uri": "https://letterboxd.com/film/king-kong/"
+  },
+  {
+    "rank": 115,
+    "name": "Nosferatu",
+    "year": 1922,
+    "letterboxd_uri": "https://letterboxd.com/film/nosferatu/"
+  },
+  {
+    "rank": 116,
+    "name": "The Witch",
+    "year": 2015,
+    "letterboxd_uri": "https://letterboxd.com/film/the-witch-2015/"
+  },
+  {
+    "rank": 117,
+    "name": "Eraserhead",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/eraserhead/"
+  },
+  {
+    "rank": 118,
+    "name": "November",
+    "year": 2017,
+    "letterboxd_uri": "https://letterboxd.com/film/november-2017/"
+  },
+  {
+    "rank": 119,
+    "name": "Nosferatu the Vampyre",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/nosferatu-the-vampyre/"
+  },
+  {
+    "rank": 120,
+    "name": "Taste of Fear",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/taste-of-fear/"
+  },
+  {
+    "rank": 121,
+    "name": "In the Mouth of Madness",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/in-the-mouth-of-madness/"
+  },
+  {
+    "rank": 122,
+    "name": "A Chinese Ghost Story",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/a-chinese-ghost-story/"
+  },
+  {
+    "rank": 123,
+    "name": "A Girl Walks Home Alone at Night",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/a-girl-walks-home-alone-at-night/"
+  },
+  {
+    "rank": 124,
+    "name": "The Return of the Living Dead",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/the-return-of-the-living-dead/"
+  },
+  {
+    "rank": 125,
+    "name": "Mad God",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/mad-god/"
+  },
+  {
+    "rank": 126,
+    "name": "Audition",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/audition/"
+  },
+  {
+    "rank": 127,
+    "name": "Thirst",
+    "year": 2009,
+    "letterboxd_uri": "https://letterboxd.com/film/thirst-2009/"
+  },
+  {
+    "rank": 128,
+    "name": "The Others",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/the-others/"
+  },
+  {
+    "rank": 129,
+    "name": "A Page of Madness",
+    "year": 1926,
+    "letterboxd_uri": "https://letterboxd.com/film/a-page-of-madness/"
+  },
+  {
+    "rank": 130,
+    "name": "The Skin I Live In",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/the-skin-i-live-in/"
+  },
+  {
+    "rank": 131,
+    "name": "Rapture",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/rapture-1979/"
+  },
+  {
+    "rank": 132,
+    "name": "Night of the Demon",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/night-of-the-demon/"
+  },
+  {
+    "rank": 133,
+    "name": "The Boxer's Omen",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/the-boxers-omen/"
+  },
+  {
+    "rank": 134,
+    "name": "The Hunchback of Notre Dame",
+    "year": 1939,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hunchback-of-notre-dame-1939/"
+  },
+  {
+    "rank": 135,
+    "name": "Carnival of Souls",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/carnival-of-souls/"
+  },
+  {
+    "rank": 136,
+    "name": "The Texas Chain Saw Massacre",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-texas-chain-saw-massacre/"
+  },
+  {
+    "rank": 137,
+    "name": "The Haunting",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-haunting/"
+  },
+  {
+    "rank": 138,
+    "name": "Don't Look Now",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/dont-look-now/"
+  },
+  {
+    "rank": 139,
+    "name": "Elvira: Mistress of the Dark",
+    "year": 1988,
+    "letterboxd_uri": "https://letterboxd.com/film/elvira-mistress-of-the-dark/"
+  },
+  {
+    "rank": 140,
+    "name": "Day of the Dead",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/day-of-the-dead/"
+  },
+  {
+    "rank": 141,
+    "name": "Frankenstein",
+    "year": 1931,
+    "letterboxd_uri": "https://letterboxd.com/film/frankenstein-1931/"
+  },
+  {
+    "rank": 142,
+    "name": "Clearcut",
+    "year": 1991,
+    "letterboxd_uri": "https://letterboxd.com/film/clearcut/"
+  },
+  {
+    "rank": 143,
+    "name": "Death Becomes Her",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/death-becomes-her/"
+  },
+  {
+    "rank": 144,
+    "name": "Re-Animator",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/re-animator/"
+  },
+  {
+    "rank": 145,
+    "name": "Vampyr",
+    "year": 1932,
+    "letterboxd_uri": "https://letterboxd.com/film/vampyr/"
+  },
+  {
+    "rank": 146,
+    "name": "Bones and All",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/bones-and-all/"
+  },
+  {
+    "rank": 147,
+    "name": "The Host",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/the-host/"
+  },
+  {
+    "rank": 148,
+    "name": "Halloween",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/halloween-1978/"
+  },
+  {
+    "rank": 149,
+    "name": "Climax",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/climax-2018/"
+  },
+  {
+    "rank": 150,
+    "name": "Dr. Jekyll and Mr. Hyde",
+    "year": 1931,
+    "letterboxd_uri": "https://letterboxd.com/film/dr-jekyll-and-mr-hyde-1931/"
+  },
+  {
+    "rank": 151,
+    "name": "The Stepford Wives",
+    "year": 1975,
+    "letterboxd_uri": "https://letterboxd.com/film/the-stepford-wives/"
+  },
+  {
+    "rank": 152,
+    "name": "American Psycho",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/american-psycho/"
+  },
+  {
+    "rank": 153,
+    "name": "Dead of Night",
+    "year": 1945,
+    "letterboxd_uri": "https://letterboxd.com/film/dead-of-night/"
+  },
+  {
+    "rank": 154,
+    "name": "Leviticus",
+    "year": 2026,
+    "letterboxd_uri": "https://letterboxd.com/film/leviticus-2026/"
+  },
+  {
+    "rank": 155,
+    "name": "Who Can Kill a Child?",
+    "year": 1976,
+    "letterboxd_uri": "https://letterboxd.com/film/who-can-kill-a-child/"
+  },
+  {
+    "rank": 156,
+    "name": "Guilty of Romance",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/guilty-of-romance/"
+  },
+  {
+    "rank": 157,
+    "name": "Images",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/images/"
+  },
+  {
+    "rank": 158,
+    "name": "The Phantom of the Opera",
+    "year": 1925,
+    "letterboxd_uri": "https://letterboxd.com/film/the-phantom-of-the-opera/"
+  },
+  {
+    "rank": 159,
+    "name": "Little Otik",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/little-otik/"
+  },
+  {
+    "rank": 160,
+    "name": "Tenebre",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/tenebre/"
+  },
+  {
+    "rank": 161,
+    "name": "Midsommar",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/midsommar/"
+  },
+  {
+    "rank": 162,
+    "name": "The Birds",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-birds/"
+  },
+  {
+    "rank": 163,
+    "name": "Bram Stoker's Dracula",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/bram-stokers-dracula/"
+  },
+  {
+    "rank": 164,
+    "name": "The Demon",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-demon-1963/"
+  },
+  {
+    "rank": 165,
+    "name": "The Substance",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/the-substance/"
+  },
+  {
+    "rank": 166,
+    "name": "Retribution",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/retribution/"
+  },
+  {
+    "rank": 167,
+    "name": "Dante's Inferno",
+    "year": 1911,
+    "letterboxd_uri": "https://letterboxd.com/film/dantes-inferno-1911/"
+  },
+  {
+    "rank": 168,
+    "name": "Blood and Black Lace",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/blood-and-black-lace/"
+  },
+  {
+    "rank": 169,
+    "name": "Suspiria",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/suspiria-2018/"
+  },
+  {
+    "rank": 170,
+    "name": "28 Days Later",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/28-days-later/"
+  },
+  {
+    "rank": 171,
+    "name": "Cemetery Man",
+    "year": 1994,
+    "letterboxd_uri": "https://letterboxd.com/film/cemetery-man/"
+  },
+  {
+    "rank": 172,
+    "name": "Hush... Hush, Sweet Charlotte",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/hush-hush-sweet-charlotte/"
+  },
+  {
+    "rank": 173,
+    "name": "Sick of Myself",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/sick-of-myself/"
+  },
+  {
+    "rank": 174,
+    "name": "The Seventh Curse",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-seventh-curse/"
+  },
+  {
+    "rank": 175,
+    "name": "A Nightmare on Elm Street",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/a-nightmare-on-elm-street/"
+  },
+  {
+    "rank": 176,
+    "name": "The Fall of the House of Usher",
+    "year": 1928,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fall-of-the-house-of-usher/"
+  },
+  {
+    "rank": 177,
+    "name": "Gamera 2: Attack of Legion",
+    "year": 1996,
+    "letterboxd_uri": "https://letterboxd.com/film/gamera-2-attack-of-legion/"
+  },
+  {
+    "rank": 178,
+    "name": "Martin",
+    "year": 1977,
+    "letterboxd_uri": "https://letterboxd.com/film/martin/"
+  },
+  {
+    "rank": 179,
+    "name": "A Tale of Two Sisters",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/a-tale-of-two-sisters/"
+  },
+  {
+    "rank": 180,
+    "name": "Army of Darkness",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/army-of-darkness/"
+  },
+  {
+    "rank": 181,
+    "name": "Tales from the Hood",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/tales-from-the-hood/"
+  },
+  {
+    "rank": 182,
+    "name": "The Bird with the Crystal Plumage",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/the-bird-with-the-crystal-plumage/"
+  },
+  {
+    "rank": 183,
+    "name": "Pearl",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/pearl-2022/"
+  },
+  {
+    "rank": 184,
+    "name": "Godzilla, Mothra and King Ghidorah: Giant Monsters All-Out Attack",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/godzilla-mothra-and-king-ghidorah-giant-monsters-all-out-attack/"
+  },
+  {
+    "rank": 185,
+    "name": "Frenzy",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/frenzy/"
+  },
+  {
+    "rank": 186,
+    "name": "Angst",
+    "year": 1983,
+    "letterboxd_uri": "https://letterboxd.com/film/angst/"
+  },
+  {
+    "rank": 187,
+    "name": "Altered States",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/altered-states/"
+  },
+  {
+    "rank": 188,
+    "name": "Pulse",
+    "year": 2001,
+    "letterboxd_uri": "https://letterboxd.com/film/pulse-2001/"
+  },
+  {
+    "rank": 189,
+    "name": "Blind Beast",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/blind-beast/"
+  },
+  {
+    "rank": 190,
+    "name": "Cold Fish",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/cold-fish/"
+  },
+  {
+    "rank": 191,
+    "name": "White Dog",
+    "year": 1982,
+    "letterboxd_uri": "https://letterboxd.com/film/white-dog/"
+  },
+  {
+    "rank": 192,
+    "name": "Ghost Story of Yotsuya",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/ghost-story-of-yotsuya/"
+  },
+  {
+    "rank": 193,
+    "name": "Strange Circus",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/strange-circus/"
+  },
+  {
+    "rank": 194,
+    "name": "The Bad Seed",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/the-bad-seed/"
+  },
+  {
+    "rank": 195,
+    "name": "The Golem: How He Came Into the World",
+    "year": 1920,
+    "letterboxd_uri": "https://letterboxd.com/film/the-golem-how-he-came-into-the-world/"
+  },
+  {
+    "rank": 196,
+    "name": "Tumbbad",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/tumbbad/"
+  },
+  {
+    "rank": 197,
+    "name": "[REC]",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/rec/"
+  },
+  {
+    "rank": 198,
+    "name": "Poison for the Fairies",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/poison-for-the-fairies/"
+  },
+  {
+    "rank": 199,
+    "name": "The Day of the Beast",
+    "year": 1995,
+    "letterboxd_uri": "https://letterboxd.com/film/the-day-of-the-beast/"
+  },
+  {
+    "rank": 200,
+    "name": "Encounters of the Spooky Kind",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/encounters-of-the-spooky-kind/"
+  },
+  {
+    "rank": 201,
+    "name": "I Walked with a Zombie",
+    "year": 1943,
+    "letterboxd_uri": "https://letterboxd.com/film/i-walked-with-a-zombie/"
+  },
+  {
+    "rank": 202,
+    "name": "Saw",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/saw/"
+  },
+  {
+    "rank": 203,
+    "name": "Bring Her Back",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/bring-her-back/"
+  },
+  {
+    "rank": 204,
+    "name": "The Lost Boys",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/the-lost-boys/"
+  },
+  {
+    "rank": 205,
+    "name": "Gozu",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/gozu/"
+  },
+  {
+    "rank": 206,
+    "name": "Island of Lost Souls",
+    "year": 1932,
+    "letterboxd_uri": "https://letterboxd.com/film/island-of-lost-souls/"
+  },
+  {
+    "rank": 207,
+    "name": "Gemini",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/gemini/"
+  },
+  {
+    "rank": 208,
+    "name": "Tucker and Dale vs. Evil",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/tucker-and-dale-vs-evil/"
+  },
+  {
+    "rank": 209,
+    "name": "Black Sunday",
+    "year": 1960,
+    "letterboxd_uri": "https://letterboxd.com/film/black-sunday-1960/"
+  },
+  {
+    "rank": 210,
+    "name": "Angel Heart",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/angel-heart/"
+  },
+  {
+    "rank": 211,
+    "name": "Raw",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/raw-2016/"
+  },
+  {
+    "rank": 212,
+    "name": "Don't Torture a Duckling",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/dont-torture-a-duckling/"
+  },
+  {
+    "rank": 213,
+    "name": "Cat People",
+    "year": 1942,
+    "letterboxd_uri": "https://letterboxd.com/film/cat-people/"
+  },
+  {
+    "rank": 214,
+    "name": "The Vourdalak",
+    "year": 2023,
+    "letterboxd_uri": "https://letterboxd.com/film/the-vourdalak/"
+  },
+  {
+    "rank": 215,
+    "name": "You Won't Be Alone",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/you-wont-be-alone/"
+  },
+  {
+    "rank": 216,
+    "name": "Nope",
+    "year": 2022,
+    "letterboxd_uri": "https://letterboxd.com/film/nope/"
+  },
+  {
+    "rank": 217,
+    "name": "Mr. Vampire",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/mr-vampire/"
+  },
+  {
+    "rank": 218,
+    "name": "Candyman",
+    "year": 1992,
+    "letterboxd_uri": "https://letterboxd.com/film/candyman/"
+  },
+  {
+    "rank": 219,
+    "name": "Ravenous",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/ravenous/"
+  },
+  {
+    "rank": 220,
+    "name": "The Abominable Dr. Phibes",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/the-abominable-dr-phibes/"
+  },
+  {
+    "rank": 221,
+    "name": "Anguish",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/anguish/"
+  },
+  {
+    "rank": 222,
+    "name": "Nosferatu",
+    "year": 2024,
+    "letterboxd_uri": "https://letterboxd.com/film/nosferatu-2024/"
+  },
+  {
+    "rank": 223,
+    "name": "Ginger Snaps",
+    "year": 2000,
+    "letterboxd_uri": "https://letterboxd.com/film/ginger-snaps/"
+  },
+  {
+    "rank": 224,
+    "name": "Singapore Sling",
+    "year": 1990,
+    "letterboxd_uri": "https://letterboxd.com/film/singapore-sling/"
+  },
+  {
+    "rank": 225,
+    "name": "The Devil's Advocate",
+    "year": 1997,
+    "letterboxd_uri": "https://letterboxd.com/film/the-devils-advocate/"
+  },
+  {
+    "rank": 226,
+    "name": "Bedevilled",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/bedevilled/"
+  },
+  {
+    "rank": 227,
+    "name": "Opera",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/opera/"
+  },
+  {
+    "rank": 228,
+    "name": "The Orphanage",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/the-orphanage/"
+  },
+  {
+    "rank": 229,
+    "name": "May",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/may/"
+  },
+  {
+    "rank": 230,
+    "name": "The Ugly Stepsister",
+    "year": 2025,
+    "letterboxd_uri": "https://letterboxd.com/film/the-ugly-stepsister/"
+  },
+  {
+    "rank": 231,
+    "name": "Ganja & Hess",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/ganja-hess/"
+  },
+  {
+    "rank": 232,
+    "name": "Theatre of Blood",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/theatre-of-blood/"
+  },
+  {
+    "rank": 233,
+    "name": "In a Glass Cage",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/in-a-glass-cage/"
+  },
+  {
+    "rank": 234,
+    "name": "Celia",
+    "year": 1989,
+    "letterboxd_uri": "https://letterboxd.com/film/celia/"
+  },
+  {
+    "rank": 235,
+    "name": "Gremlins",
+    "year": 1984,
+    "letterboxd_uri": "https://letterboxd.com/film/gremlins/"
+  },
+  {
+    "rank": 236,
+    "name": "Black Sabbath",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/black-sabbath/"
+  },
+  {
+    "rank": 237,
+    "name": "The Conjuring",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/the-conjuring/"
+  },
+  {
+    "rank": 238,
+    "name": "A Quiet Place",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/a-quiet-place-2018/"
+  },
+  {
+    "rank": 239,
+    "name": "The Spiral Staircase",
+    "year": 1946,
+    "letterboxd_uri": "https://letterboxd.com/film/the-spiral-staircase/"
+  },
+  {
+    "rank": 240,
+    "name": "The Masque of the Red Death",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/the-masque-of-the-red-death/"
+  },
+  {
+    "rank": 241,
+    "name": "Chandramukhi",
+    "year": 2005,
+    "letterboxd_uri": "https://letterboxd.com/film/chandramukhi/"
+  },
+  {
+    "rank": 242,
+    "name": "The Hidden",
+    "year": 1987,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden/"
+  },
+  {
+    "rank": 243,
+    "name": "Mad Love",
+    "year": 1935,
+    "letterboxd_uri": "https://letterboxd.com/film/mad-love/"
+  },
+  {
+    "rank": 244,
+    "name": "Pizza",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/pizza-2012/"
+  },
+  {
+    "rank": 245,
+    "name": "Dressed to Kill",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/dressed-to-kill-1980/"
+  },
+  {
+    "rank": 246,
+    "name": "The Hitcher",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hitcher/"
+  },
+  {
+    "rank": 247,
+    "name": "Us",
+    "year": 2019,
+    "letterboxd_uri": "https://letterboxd.com/film/us-2019/"
+  },
+  {
+    "rank": 248,
+    "name": "The Evil Dead",
+    "year": 1981,
+    "letterboxd_uri": "https://letterboxd.com/film/the-evil-dead/"
+  },
+  {
+    "rank": 249,
+    "name": "Empire of Passion",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/empire-of-passion/"
+  },
+  {
+    "rank": 250,
+    "name": "Phenomena",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/phenomena/"
+  }
+]

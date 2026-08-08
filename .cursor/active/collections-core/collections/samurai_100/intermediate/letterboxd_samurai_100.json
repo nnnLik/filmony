@@ -1,0 +1,602 @@
+[
+  {
+    "rank": 1,
+    "name": "Harakiri",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/harakiri/"
+  },
+  {
+    "rank": 2,
+    "name": "Seven Samurai",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/seven-samurai/"
+  },
+  {
+    "rank": 3,
+    "name": "Ran",
+    "year": 1985,
+    "letterboxd_uri": "https://letterboxd.com/film/ran/"
+  },
+  {
+    "rank": 4,
+    "name": "Samurai Rebellion",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-rebellion/"
+  },
+  {
+    "rank": 5,
+    "name": "Yojimbo",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/yojimbo/"
+  },
+  {
+    "rank": 6,
+    "name": "Throne of Blood",
+    "year": 1957,
+    "letterboxd_uri": "https://letterboxd.com/film/throne-of-blood/"
+  },
+  {
+    "rank": 7,
+    "name": "Kwaidan",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/kwaidan/"
+  },
+  {
+    "rank": 8,
+    "name": "Demons",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/demons-1971/"
+  },
+  {
+    "rank": 9,
+    "name": "Kagemusha",
+    "year": 1980,
+    "letterboxd_uri": "https://letterboxd.com/film/kagemusha/"
+  },
+  {
+    "rank": 10,
+    "name": "Rashomon",
+    "year": 1950,
+    "letterboxd_uri": "https://letterboxd.com/film/rashomon/"
+  },
+  {
+    "rank": 11,
+    "name": "The Hidden Fortress",
+    "year": 1958,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden-fortress/"
+  },
+  {
+    "rank": 12,
+    "name": "Sanjuro",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/sanjuro/"
+  },
+  {
+    "rank": 13,
+    "name": "The Sword of Doom",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-sword-of-doom/"
+  },
+  {
+    "rank": 14,
+    "name": "The Twilight Samurai",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/the-twilight-samurai/"
+  },
+  {
+    "rank": 15,
+    "name": "Lady Snowblood",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/lady-snowblood/"
+  },
+  {
+    "rank": 16,
+    "name": "Lone Wolf and Cub: Baby Cart at the River Styx",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-at-the-river-styx/"
+  },
+  {
+    "rank": 17,
+    "name": "Tange Sazen and the Pot Worth a Million Ryo",
+    "year": 1935,
+    "letterboxd_uri": "https://letterboxd.com/film/tange-sazen-and-the-pot-worth-a-million-ryo/"
+  },
+  {
+    "rank": 18,
+    "name": "Goyokin",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/goyokin/"
+  },
+  {
+    "rank": 19,
+    "name": "Kubo and the Two Strings",
+    "year": 2016,
+    "letterboxd_uri": "https://letterboxd.com/film/kubo-and-the-two-strings/"
+  },
+  {
+    "rank": 20,
+    "name": "Humanity and Paper Balloons",
+    "year": 1937,
+    "letterboxd_uri": "https://letterboxd.com/film/humanity-and-paper-balloons/"
+  },
+  {
+    "rank": 21,
+    "name": "Three Outlaw Samurai",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/three-outlaw-samurai/"
+  },
+  {
+    "rank": 22,
+    "name": "Sword of the Stranger",
+    "year": 2007,
+    "letterboxd_uri": "https://letterboxd.com/film/sword-of-the-stranger/"
+  },
+  {
+    "rank": 23,
+    "name": "13 Assassins",
+    "year": 2010,
+    "letterboxd_uri": "https://letterboxd.com/film/13-assassins/"
+  },
+  {
+    "rank": 24,
+    "name": "The Hidden Blade",
+    "year": 2004,
+    "letterboxd_uri": "https://letterboxd.com/film/the-hidden-blade/"
+  },
+  {
+    "rank": 25,
+    "name": "Love and Honor",
+    "year": 2006,
+    "letterboxd_uri": "https://letterboxd.com/film/love-and-honor/"
+  },
+  {
+    "rank": 26,
+    "name": "The Tale of Zatoichi",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tale-of-zatoichi/"
+  },
+  {
+    "rank": 27,
+    "name": "Bushido: The Cruel Code of the Samurai",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/bushido-the-cruel-code-of-the-samurai/"
+  },
+  {
+    "rank": 28,
+    "name": "Tenchu!",
+    "year": 1969,
+    "letterboxd_uri": "https://letterboxd.com/film/tenchu/"
+  },
+  {
+    "rank": 29,
+    "name": "Ninja Scroll",
+    "year": 1993,
+    "letterboxd_uri": "https://letterboxd.com/film/ninja-scroll/"
+  },
+  {
+    "rank": 30,
+    "name": "Revenge",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/revenge-1964/"
+  },
+  {
+    "rank": 31,
+    "name": "The 47 Ronin",
+    "year": 1941,
+    "letterboxd_uri": "https://letterboxd.com/film/the-47-ronin/"
+  },
+  {
+    "rank": 32,
+    "name": "Samurai Assassin",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-assassin/"
+  },
+  {
+    "rank": 33,
+    "name": "After the Rain",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/after-the-rain/"
+  },
+  {
+    "rank": 34,
+    "name": "Lone Wolf and Cub: Sword of Vengeance",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-sword-of-vengeance/"
+  },
+  {
+    "rank": 35,
+    "name": "The Last Samurai",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/the-last-samurai/"
+  },
+  {
+    "rank": 36,
+    "name": "Bloody Spear at Mount Fuji",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/bloody-spear-at-mount-fuji/"
+  },
+  {
+    "rank": 37,
+    "name": "Kill!",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/kill-1968/"
+  },
+  {
+    "rank": 38,
+    "name": "Samurai III: Duel at Ganryu Island",
+    "year": 1956,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-iii-duel-at-ganryu-island/"
+  },
+  {
+    "rank": 39,
+    "name": "Sword of the Beast",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/sword-of-the-beast/"
+  },
+  {
+    "rank": 40,
+    "name": "Lone Wolf and Cub: Baby Cart in Peril",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-in-peril/"
+  },
+  {
+    "rank": 41,
+    "name": "Zatoichi and the Chest of Gold",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-and-the-chest-of-gold/"
+  },
+  {
+    "rank": 42,
+    "name": "13 Assassins",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/13-assassins-1963/"
+  },
+  {
+    "rank": 43,
+    "name": "The Third Shadow Warrior",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/the-third-shadow-warrior/"
+  },
+  {
+    "rank": 44,
+    "name": "Zatoichi Goes to the Fire Festival",
+    "year": 1970,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-goes-to-the-fire-festival/"
+  },
+  {
+    "rank": 45,
+    "name": "Lone Wolf and Cub: Baby Cart to Hades",
+    "year": 1972,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-to-hades/"
+  },
+  {
+    "rank": 46,
+    "name": "Hara-Kiri: Death of a Samurai",
+    "year": 2011,
+    "letterboxd_uri": "https://letterboxd.com/film/hara-kiri-death-of-a-samurai/"
+  },
+  {
+    "rank": 47,
+    "name": "Fight, Zatoichi, Fight",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/fight-zatoichi-fight/"
+  },
+  {
+    "rank": 48,
+    "name": "The Betrayal",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/the-betrayal/"
+  },
+  {
+    "rank": 49,
+    "name": "Lone Wolf and Cub: Baby Cart in the Land of Demons",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-baby-cart-in-the-land-of-demons/"
+  },
+  {
+    "rank": 50,
+    "name": "Taira Clan Saga",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/taira-clan-saga/"
+  },
+  {
+    "rank": 51,
+    "name": "Rurouni Kenshin Part III: The Legend Ends",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-part-iii-the-legend-ends/"
+  },
+  {
+    "rank": 52,
+    "name": "Unforgiven",
+    "year": 2013,
+    "letterboxd_uri": "https://letterboxd.com/film/unforgiven-2013/"
+  },
+  {
+    "rank": 53,
+    "name": "Assassination",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/assassination-1964/"
+  },
+  {
+    "rank": 54,
+    "name": "Ghost Story of Yotsuya",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/ghost-story-of-yotsuya/"
+  },
+  {
+    "rank": 55,
+    "name": "Sword Devil",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/sword-devil/"
+  },
+  {
+    "rank": 56,
+    "name": "Zatoichi",
+    "year": 2003,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi/"
+  },
+  {
+    "rank": 57,
+    "name": "Samurai II: Duel at Ichijoji Temple",
+    "year": 1955,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-ii-duel-at-ichijoji-temple/"
+  },
+  {
+    "rank": 58,
+    "name": "Gate of Hell",
+    "year": 1953,
+    "letterboxd_uri": "https://letterboxd.com/film/gate-of-hell/"
+  },
+  {
+    "rank": 59,
+    "name": "When the Last Sword Is Drawn",
+    "year": 2002,
+    "letterboxd_uri": "https://letterboxd.com/film/when-the-last-sword-is-drawn/"
+  },
+  {
+    "rank": 60,
+    "name": "Lone Wolf and Cub: White Heaven in Hell",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/lone-wolf-and-cub-white-heaven-in-hell/"
+  },
+  {
+    "rank": 61,
+    "name": "Samurai I: Musashi Miyamoto",
+    "year": 1954,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-i-musashi-miyamoto/"
+  },
+  {
+    "rank": 62,
+    "name": "Samurai Wolf",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-wolf/"
+  },
+  {
+    "rank": 63,
+    "name": "Rurouni Kenshin: The Beginning",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-the-beginning/"
+  },
+  {
+    "rank": 64,
+    "name": "Chûshingura",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/chushingura-1962/"
+  },
+  {
+    "rank": 65,
+    "name": "The Last Samurai",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-last-samurai-1974/"
+  },
+  {
+    "rank": 66,
+    "name": "Rurouni Kenshin Part II: Kyoto Inferno",
+    "year": 2014,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-part-ii-kyoto-inferno/"
+  },
+  {
+    "rank": 67,
+    "name": "Zatoichi and the Fugitives",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-and-the-fugitives/"
+  },
+  {
+    "rank": 68,
+    "name": "New Tale of Zatoichi",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/new-tale-of-zatoichi/"
+  },
+  {
+    "rank": 69,
+    "name": "Eleven Samurai",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/eleven-samurai/"
+  },
+  {
+    "rank": 70,
+    "name": "Taboo",
+    "year": 1999,
+    "letterboxd_uri": "https://letterboxd.com/film/taboo-1999/"
+  },
+  {
+    "rank": 71,
+    "name": "Rurouni Kenshin: The Final",
+    "year": 2021,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-the-final/"
+  },
+  {
+    "rank": 72,
+    "name": "Bohachi Bushido: Code of the Forgotten Eight",
+    "year": 1973,
+    "letterboxd_uri": "https://letterboxd.com/film/bohachi-bushido-code-of-the-forgotten-eight/"
+  },
+  {
+    "rank": 73,
+    "name": "Hunter in the Dark",
+    "year": 1979,
+    "letterboxd_uri": "https://letterboxd.com/film/hunter-in-the-dark/"
+  },
+  {
+    "rank": 74,
+    "name": "Zatoichi Challenged",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-challenged/"
+  },
+  {
+    "rank": 75,
+    "name": "Destiny's Son",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/destinys-son/"
+  },
+  {
+    "rank": 76,
+    "name": "Zatoichi's Pilgrimage",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-pilgrimage/"
+  },
+  {
+    "rank": 77,
+    "name": "Shogun's Samurai",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/shoguns-samurai/"
+  },
+  {
+    "rank": 78,
+    "name": "Zatoichi's Vengeance",
+    "year": 1966,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-vengeance/"
+  },
+  {
+    "rank": 79,
+    "name": "Gonza the Spearman",
+    "year": 1986,
+    "letterboxd_uri": "https://letterboxd.com/film/gonza-the-spearman/"
+  },
+  {
+    "rank": 80,
+    "name": "Zatoichi's Flashing Sword",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-flashing-sword/"
+  },
+  {
+    "rank": 81,
+    "name": "Miyamoto Musashi IV: The Duel at Ichijo-ji Temple",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/miyamoto-musashi-iv-the-duel-at-ichijo-ji/"
+  },
+  {
+    "rank": 82,
+    "name": "The Fall of Ako Castle",
+    "year": 1978,
+    "letterboxd_uri": "https://letterboxd.com/film/the-fall-of-ako-castle/"
+  },
+  {
+    "rank": 83,
+    "name": "Samurai Spy",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-spy/"
+  },
+  {
+    "rank": 84,
+    "name": "Zatoichi's Cane Sword",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-cane-sword/"
+  },
+  {
+    "rank": 85,
+    "name": "The Great Killing",
+    "year": 1964,
+    "letterboxd_uri": "https://letterboxd.com/film/the-great-killing/"
+  },
+  {
+    "rank": 86,
+    "name": "Zatoichi's Revenge",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichis-revenge/"
+  },
+  {
+    "rank": 87,
+    "name": "Zatoichi Meets the One-Armed Swordsman",
+    "year": 1971,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-meets-the-one-armed-swordsman/"
+  },
+  {
+    "rank": 88,
+    "name": "Zatoichi the Fugitive",
+    "year": 1963,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-the-fugitive/"
+  },
+  {
+    "rank": 89,
+    "name": "The Tale of Zatoichi Continues",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/the-tale-of-zatoichi-continues/"
+  },
+  {
+    "rank": 90,
+    "name": "Zatoichi the Outlaw",
+    "year": 1967,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-the-outlaw/"
+  },
+  {
+    "rank": 91,
+    "name": "Killing",
+    "year": 2018,
+    "letterboxd_uri": "https://letterboxd.com/film/killing/"
+  },
+  {
+    "rank": 92,
+    "name": "Zatoichi and the Chess Expert",
+    "year": 1965,
+    "letterboxd_uri": "https://letterboxd.com/film/zatoichi-and-the-chess-expert/"
+  },
+  {
+    "rank": 93,
+    "name": "Samurai Fiction",
+    "year": 1998,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-fiction/"
+  },
+  {
+    "rank": 94,
+    "name": "Orochi",
+    "year": 1925,
+    "letterboxd_uri": "https://letterboxd.com/film/orochi-1925/"
+  },
+  {
+    "rank": 95,
+    "name": "Rurouni Kenshin Part I: Origins",
+    "year": 2012,
+    "letterboxd_uri": "https://letterboxd.com/film/rurouni-kenshin-part-i-origins/"
+  },
+  {
+    "rank": 96,
+    "name": "Miyamoto Musashi",
+    "year": 1961,
+    "letterboxd_uri": "https://letterboxd.com/film/miyamoto-musashi-1961/"
+  },
+  {
+    "rank": 97,
+    "name": "Samurai Saga",
+    "year": 1959,
+    "letterboxd_uri": "https://letterboxd.com/film/samurai-saga/"
+  },
+  {
+    "rank": 98,
+    "name": "Miyamoto Musashi: Showdown at Hannyazaka Heights",
+    "year": 1962,
+    "letterboxd_uri": "https://letterboxd.com/film/miyamoto-musashi-showdown-at-hannyazaka-heights/"
+  },
+  {
+    "rank": 99,
+    "name": "The Assassination of Ryoma",
+    "year": 1974,
+    "letterboxd_uri": "https://letterboxd.com/film/the-assassination-of-ryoma/"
+  },
+  {
+    "rank": 100,
+    "name": "Samaritan Zatoichi",
+    "year": 1968,
+    "letterboxd_uri": "https://letterboxd.com/film/samaritan-zatoichi/"
+  }
+]

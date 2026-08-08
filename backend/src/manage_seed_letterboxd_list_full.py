@@ -1,32 +1,17 @@
-"""Seed the evergreen ``letterboxd-top-500`` collection from curated Kinopoisk mapping.
+"""Seed evergreen Letterboxd curated lists (MCU, one-million-watched) from embedded film rows.
 
-Source manifest (git-tracked):
-  ``src/data/curated/letterboxd_top_500_kinopoisk.json``
+Source manifests (git-tracked):
+  ``src/data/curated/letterboxd_mcu_kinopoisk_full.json``
+  ``src/data/curated/letterboxd_one_million_watched_kinopoisk_full.json``
 
-Original mapping pipeline (not run in prod):
-  ``.cursor/active/collections-core/collections/_tools/map_lb_kp.py`` +
-  ``.cursor/active/collections-core/collections/top_500/intermediate/letterboxd_top_500_kinopoisk.json``
-
-Production (from repo root; backend container must be running with ``DATABASE_URL`` +
-Kinopoisk credentials). Full runbook: ``.cursor/active/collections-core/PROD_SEED.md``.
-
-  # 1) migrate once
-  docker compose exec -w /opt/app filmony-backend alembic upgrade head
-
-  # 2) dry-run (recommended first)
-  DRY_RUN=1 make seed-letterboxd-top-500
-
-  # 3) apply seed (~500 films)
-  make seed-letterboxd-top-500
-
-  # optional: LIMIT=10 SLEEP=0.5 DRY_RUN=1 make seed-letterboxd-top-500
+Each manifest row includes a pre-resolved ``film`` dict — no Kinopoisk API calls.
 
 Direct CLI (inside container, ``-w /opt/app``):
 
-  python src/manage_seed_letterboxd_top_500.py [--dry-run] [--limit N] [--sleep 0.2]
+  python src/manage_seed_letterboxd_list_full.py [--list mcu|one_million_watched|all]
+      [--dry-run] [--limit N] [--manifest PATH]
 
 Idempotent: safe to re-run; upserts ``Collection`` / ``CollectionFilm`` only (no user progress).
-Bulk seed skips TMDB enrich to avoid ``ix_film_tmdb_id`` collisions; use backfill if needed.
 """
 
 from __future__ import annotations
@@ -46,17 +31,45 @@ from core.database import get_session_factory
 from models.collection import Collection, CollectionKind
 from models.collection_film import CollectionFilm
 from models.film import Film
-from services.kinopoisk.client import KinopoiskClient, KinopoiskClientError
 
 _log = logging.getLogger(__name__)
 
-_COLLECTION_SLUG = 'letterboxd-top-500'
-_COLLECTION_TITLE = 'Letterboxd Top 500'
-_COLLECTION_DESCRIPTION = (
-    'Пятьсот лучших фильмов по версии Letterboxd — классика, культ и вечные споры. '
-    'Отмечайте, сколько уже в копилке.'
-)
-_MANIFEST_PATH = Path(__file__).resolve().parent / 'data/curated/letterboxd_top_500_kinopoisk.json'
+_DATA_DIR = Path(__file__).resolve().parent / 'data/curated'
+
+LIST_CONFIGS: dict[str, dict[str, Any]] = {
+    'mcu': {
+        'slug': 'letterboxd-mcu',
+        'title': 'Киновселенная Marvel',
+        'description': (
+            'Все фильмы MCU в порядке выхода — смотрите и отмечайте, сколько уже в копилке.'
+        ),
+        'manifest': _DATA_DIR / 'letterboxd_mcu_kinopoisk_full.json',
+    },
+    'one_million_watched': {
+        'slug': 'letterboxd-one-million-watched',
+        'title': 'Letterboxd: миллион просмотров',
+        'description': (
+            'Фильмы, которые на Letterboxd посмотрели больше миллиона раз. Сколько уже оценили?'
+        ),
+        'manifest': _DATA_DIR / 'letterboxd_one_million_watched_kinopoisk_full.json',
+    },
+    'horror_250': {
+        'slug': 'letterboxd-horror-250',
+        'title': 'Letterboxd: топ-250 ужасов',
+        'description': (
+            'Официальный топ-250 фильмов ужасов Letterboxd (Official Top 250 Horror Films).'
+        ),
+        'manifest': _DATA_DIR / 'letterboxd_horror_250_kinopoisk_full.json',
+    },
+    'samurai_100': {
+        'slug': 'letterboxd-samurai-100',
+        'title': 'Letterboxd: 100 самурайских фильмов',
+        'description': (
+            'Официальный топ-100 самурайских фильмов Letterboxd (Official Top 100 Samurai Films).'
+        ),
+        'manifest': _DATA_DIR / 'letterboxd_samurai_100_kinopoisk_full.json',
+    },
+}
 
 _QUIET_HTTP_LOGGERS = ('httpx', 'httpcore', 'hpack')
 
@@ -68,6 +81,7 @@ class SeedRow:
     year: int | None
     kinopoisk_id: int
     imdb_id: str | None
+    film: dict[str, Any]
 
 
 @dataclass
@@ -76,7 +90,7 @@ class SeedSummary:
     reused_films: int = 0
     linked: int = 0
     updated_links: int = 0
-    skipped_todo: int = 0
+    skipped_invalid: int = 0
     errors: int = 0
 
 
@@ -86,55 +100,76 @@ def _configure_script_logging() -> None:
         logging.getLogger(name).setLevel(logging.WARNING)
 
 
-def _kinopoisk_film_url(kinopoisk_id: int) -> str:
-    return f'https://www.kinopoisk.ru/film/{kinopoisk_id}/'
-
-
 def _load_manifest(path: Path) -> tuple[list[SeedRow], int]:
     raw: list[dict[str, Any]] = json.loads(path.read_text(encoding='utf-8'))
-    skipped_todo = sum(1 for item in raw if item.get('kinopoisk_id') == 'TODO')
+    skipped_invalid = 0
     rows: list[SeedRow] = []
     for item in raw:
         kp = item.get('kinopoisk_id')
-        if kp == 'TODO' or kp is None:
+        film_data = item.get('film')
+        if not isinstance(kp, int) or not isinstance(film_data, dict):
+            skipped_invalid += 1
             continue
-        if not isinstance(kp, int):
-            raise TypeError(f'invalid kinopoisk_id for rank {item.get("rank")}: {kp!r}')
         imdb = item.get('imdb_id')
         rows.append(
             SeedRow(
                 rank=int(item['rank']),
-                letterboxd_name=str(item.get('letterboxd_name') or ''),
+                letterboxd_name=str(item.get('name') or item.get('letterboxd_name') or ''),
                 year=int(item['year']) if item.get('year') is not None else None,
                 kinopoisk_id=kp,
                 imdb_id=str(imdb) if imdb else None,
+                film=film_data,
             ),
         )
     rows.sort(key=lambda r: r.rank)
-    return rows, skipped_todo
+    return rows, skipped_invalid
+
+
+def _create_film_from_embedded(*, row: SeedRow) -> Film:
+    film_data = row.film
+    imdb_id = film_data.get('imdb_id') or row.imdb_id
+    year_raw = film_data.get('year')
+    year = int(year_raw) if year_raw is not None else row.year
+    genres = film_data.get('genres')
+    countries = film_data.get('countries')
+    return Film(
+        kinopoisk_id=int(film_data.get('kinopoisk_id', row.kinopoisk_id)),
+        title=str(film_data['title']),
+        year=year,
+        poster_url=film_data.get('poster_url'),
+        genres=list(genres) if isinstance(genres, list) else [],
+        countries=list(countries) if isinstance(countries, list) else [],
+        short_description=film_data.get('short_description'),
+        description=film_data.get('description'),
+        imdb_id=str(imdb_id) if imdb_id else None,
+    )
 
 
 async def _get_or_create_collection(
     session,
     *,
+    slug: str,
+    title: str,
+    description: str,
     content_updated_at: dt.datetime,
 ) -> Collection:
     existing = (
-        await session.execute(select(Collection).where(Collection.slug == _COLLECTION_SLUG))
+        await session.execute(select(Collection).where(Collection.slug == slug))
     ).scalar_one_or_none()
     if existing is not None:
-        existing.title = _COLLECTION_TITLE
-        existing.description = _COLLECTION_DESCRIPTION
+        existing.title = title
+        existing.description = description
         existing.kind = CollectionKind.evergreen
         existing.is_active = True
+        existing.season_year = None
         existing.content_updated_at = content_updated_at
         return existing
 
     collection = Collection(
-        slug=_COLLECTION_SLUG,
+        slug=slug,
         kind=CollectionKind.evergreen,
-        title=_COLLECTION_TITLE,
-        description=_COLLECTION_DESCRIPTION,
+        title=title,
+        description=description,
         season_year=None,
         is_active=True,
         film_count=0,
@@ -145,38 +180,13 @@ async def _get_or_create_collection(
     return collection
 
 
-async def _create_film_from_kinopoisk(
-    session,
-    *,
-    row: SeedRow,
-    client: KinopoiskClient,
-) -> Film:
-    payload = await client.get_film(row.kinopoisk_id)
-    imdb_id = payload.imdb_id or row.imdb_id
-    film = Film(
-        kinopoisk_id=payload.kinopoisk_id,
-        title=payload.title,
-        year=payload.year,
-        poster_url=payload.poster_url,
-        genres=payload.genres,
-        countries=payload.countries,
-        short_description=payload.short_description,
-        description=payload.description,
-        imdb_id=imdb_id,
-    )
-    session.add(film)
-    await session.flush()
-    return film
-
-
 async def _ensure_film(
     session,
     *,
     row: SeedRow,
-    kp_client: KinopoiskClient,
     dry_run: bool,
 ) -> tuple[Film | None, bool]:
-    """Return (film, created_via_kp_api)."""
+    """Return (film, created_from_embedded)."""
     existing = (
         await session.execute(select(Film).where(Film.kinopoisk_id == row.kinopoisk_id))
     ).scalar_one_or_none()
@@ -186,18 +196,9 @@ async def _ensure_film(
     if dry_run:
         return None, True
 
-    try:
-        film = await _create_film_from_kinopoisk(session, row=row, client=kp_client)
-    except KinopoiskClientError as exc:
-        _log.warning(
-            '[rank %s] kp=%s «%s» — Kinopoisk fetch failed: %s',
-            row.rank,
-            row.kinopoisk_id,
-            row.letterboxd_name,
-            exc,
-        )
-        return None, True
-
+    film = _create_film_from_embedded(row=row)
+    session.add(film)
+    await session.flush()
     return film, True
 
 
@@ -241,11 +242,14 @@ async def _upsert_collection_film(
     return 'inserted'
 
 
-async def _run(
+async def _run_list(
     *,
+    list_key: str,
+    slug: str,
+    title: str,
+    description: str,
     dry_run: bool,
     limit: int | None,
-    sleep_s: float,
     manifest_path: Path,
 ) -> SeedSummary:
     _configure_script_logging()
@@ -253,14 +257,15 @@ async def _run(
     summary = SeedSummary()
     content_updated_at = dt.datetime.now(dt.UTC)
 
-    all_rows, summary.skipped_todo = _load_manifest(manifest_path)
+    all_rows, summary.skipped_invalid = _load_manifest(manifest_path)
     rows = all_rows[:limit] if limit is not None else all_rows
     total = len(rows)
 
-    _log.info('=== Seed Letterboxd Top 500 ===')
+    _log.info('=== Seed Letterboxd list: %s ===', list_key)
+    _log.info('Collection slug: %s', slug)
     _log.info('Manifest: %s', manifest_path)
-    _log.info('Rows in manifest (resolved kp id): %s', len(all_rows))
-    _log.info('Skipped TODO rows: %s', summary.skipped_todo)
+    _log.info('Rows in manifest (resolved kp id + film): %s', len(all_rows))
+    _log.info('Skipped invalid rows: %s', summary.skipped_invalid)
     _log.info('Processing: %s', total)
     _log.info('Dry-run: %s', dry_run)
     if total == 0:
@@ -269,23 +274,21 @@ async def _run(
 
     if not dry_run:
         async with factory() as session:
-            await _get_or_create_collection(session, content_updated_at=content_updated_at)
+            await _get_or_create_collection(
+                session,
+                slug=slug,
+                title=title,
+                description=description,
+                content_updated_at=content_updated_at,
+            )
             await session.commit()
 
-    kp_client = KinopoiskClient()
-
     for index, row in enumerate(rows, start=1):
-        created_via_api = False
         try:
             async with factory() as session:
                 if dry_run:
-                    film, created_via_api = await _ensure_film(
-                        session,
-                        row=row,
-                        kp_client=kp_client,
-                        dry_run=True,
-                    )
-                    if created_via_api and film is None:
+                    film, created = await _ensure_film(session, row=row, dry_run=True)
+                    if created and film is None:
                         summary.created_films += 1
                     elif film is not None:
                         summary.reused_films += 1
@@ -294,20 +297,18 @@ async def _run(
 
                 collection = await _get_or_create_collection(
                     session,
+                    slug=slug,
+                    title=title,
+                    description=description,
                     content_updated_at=content_updated_at,
                 )
-                film, created_via_api = await _ensure_film(
-                    session,
-                    row=row,
-                    kp_client=kp_client,
-                    dry_run=False,
-                )
+                film, created = await _ensure_film(session, row=row, dry_run=False)
                 if film is None:
                     summary.errors += 1
                     await session.rollback()
                     continue
 
-                if created_via_api:
+                if created:
                     summary.created_films += 1
                 else:
                     summary.reused_films += 1
@@ -346,15 +347,10 @@ async def _run(
                 summary.errors,
             )
 
-        if created_via_api and not dry_run:
-            await asyncio.sleep(sleep_s)
-
     if not dry_run:
         async with factory() as session:
             collection = (
-                await session.execute(
-                    select(Collection).where(Collection.slug == _COLLECTION_SLUG),
-                )
+                await session.execute(select(Collection).where(Collection.slug == slug))
             ).scalar_one()
             film_count = int(
                 (
@@ -370,34 +366,63 @@ async def _run(
             await session.commit()
             _log.info('Collection film_count=%s', film_count)
 
-    _log.info('=== Done ===')
+    _log.info('=== Done: %s ===', list_key)
     _log.info('created_films=%s', summary.created_films)
     _log.info('reused_films=%s', summary.reused_films)
     _log.info('linked=%s', summary.linked)
     _log.info('updated_links=%s', summary.updated_links)
-    _log.info('skipped_todo=%s', summary.skipped_todo)
+    _log.info('skipped_invalid=%s', summary.skipped_invalid)
     _log.info('errors=%s', summary.errors)
     return summary
 
 
+async def _run(
+    *,
+    list_keys: list[str],
+    dry_run: bool,
+    limit: int | None,
+    manifest_override: Path | None,
+) -> None:
+    for list_key in list_keys:
+        config = LIST_CONFIGS[list_key]
+        manifest_path = manifest_override or config['manifest']
+        await _run_list(
+            list_key=list_key,
+            slug=str(config['slug']),
+            title=str(config['title']),
+            description=str(config['description']),
+            dry_run=dry_run,
+            limit=limit,
+            manifest_path=manifest_path,
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--list',
+        choices=['mcu', 'one_million_watched', 'horror_250', 'samurai_100', 'all'],
+        default='all',
+        help='which curated list to seed (default: all)',
+    )
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--limit', type=int, default=None)
-    parser.add_argument('--sleep', type=float, default=0.2, help='seconds between KP resolves')
     parser.add_argument(
         '--manifest',
         type=Path,
-        default=_MANIFEST_PATH,
-        help='path to letterboxd_top_500_kinopoisk.json',
+        default=None,
+        help='override manifest path for the selected list(s)',
     )
     args = parser.parse_args()
+
+    list_keys = list(LIST_CONFIGS.keys()) if args.list == 'all' else [args.list]
+
     asyncio.run(
         _run(
+            list_keys=list_keys,
             dry_run=args.dry_run,
             limit=args.limit,
-            sleep_s=max(0.0, args.sleep),
-            manifest_path=args.manifest,
+            manifest_override=args.manifest,
         ),
     )
 

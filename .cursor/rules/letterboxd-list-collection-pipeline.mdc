@@ -1,0 +1,64 @@
+---
+description: Letterboxd list → Kinopoisk full JSON → prod collection seed/backfill pipeline invariants
+globs: backend/src/manage_seed_letterboxd*.py,backend/src/manage_backfill_collection_progress.py,backend/src/data/curated/**/*.json,.cursor/active/collections-core/collections/**,.cursor/skills/letterboxd-list-to-collection/**
+alwaysApply: false
+---
+
+# Letterboxd list → collection pipeline
+
+Follow the skill [`.cursor/skills/letterboxd-list-to-collection/SKILL.md`](../skills/letterboxd-list-to-collection/SKILL.md) for step-by-step execution.
+
+## Stage order (do not skip or reorder)
+
+1. Scrape Letterboxd list → raw JSON + meta under `collections/<slug>/intermediate/` (verify counts).
+2. Map Kinopoisk ids — three tiers: (1) IMDb id → `films?imdbId=`, (2) EN keyword/year (`map_lb_kp.py`), (3) RU aliases via `--ru-aliases` → `keyword_ru`.
+3. Resolve all `TODO` kinopoisk ids or get explicit user acceptance of gaps.
+4. Build `collections/<slug>/letterboxd_<slug>_kinopoisk_full.json` (embedded `film` + `director` + `actors`; staff via `GET /v1/staff?filmId=`).
+5. Promote manifest to `backend/src/data/curated/`.
+6. Register `LIST_CONFIGS` in `manage_seed_letterboxd_list_full.py` (short key e.g. `horror_250`, DB slug `letterboxd-horror-250`).
+7. Prod dry-run seed → apply seed (user confirmed).
+8. `seed-achievements` (+ `sync-film-award-badges` when relevant).
+9. Backfill director/gamification metadata and cast (KP → DB).
+10. **Always** run `manage_backfill_collection_progress.py` after a new collection seed.
+
+## Artifact directories
+
+| Stage | Location |
+|-------|----------|
+| Working root | `.cursor/active/collections-core/collections/` |
+| Scrape / mapping / ru_aliases | `collections/<slug>/intermediate/` |
+| Working full manifest | `collections/<slug>/letterboxd_<slug>_kinopoisk_full.json` |
+| Git-tracked manifests | `backend/src/data/curated/letterboxd_<slug>_kinopoisk_full.json` |
+| Shared tools | `collections/_tools/{scrape_letterboxd_list,map_lb_kp,build_lb_kp_full}.py` |
+
+Legacy `collections-core/data/` is redirect-only — do not use as working root.
+
+## Run environment
+
+- **Pipeline tools (scrape/map/build):** host, from `backend/` with `uv run` + `vars/.env.development.local`. `.cursor/` is not mounted in Docker.
+- **Seed/backfill:** `docker compose exec -w /opt/app backend …` (service `backend`, container `filmony-backend`).
+- **Staff API:** `GET /v1/staff?filmId=` — not `/v2.2/films/{id}/staff` (400).
+
+## Idempotent seed
+
+- `manage_seed_letterboxd_list_full.py` creates films by `kinopoisk_id`, skips existing, upserts `Collection` + `CollectionFilm` sort order from rank.
+- Seed does **not** reset user collection progress — progress is refreshed only via `manage_backfill_collection_progress.py`.
+
+## Director / cast
+
+- Full manifest may embed `director` and `actors[]` from Kinopoisk staff API (`/v1/staff?filmId=`).
+- DB persistence for director/cast uses post-seed backfills: `backfill-film-gamification-metadata`, `backfill-film-cast`.
+- **Scope limitation:** those backfills currently target only films with rated UserCards — not all newly seeded films. Unrated seeded films may lack director/cast in the DB until rated or until a broader backfill / `FORCE` path is used. Full JSON still stores director/actors; collection progress backfill remains mandatory regardless.
+
+## Prod execution
+
+- SSH to homelab prod host (ask user for alias/credentials if unknown).
+- Run inside compose service **`backend`**, workdir `-w /opt/app`.
+- **Always dry-run before apply** (`--dry-run` or `DRY_RUN=1`); confirm with user before apply.
+- Prod runbook: `.cursor/active/collections-core/PROD_SEED.md`.
+
+## Safety
+
+- Do not force-push; do not mutate user ratings.
+- Fail closed on scrape count mismatch.
+- Pipeline on host (`uv run`); backend scripts in Docker (`backend` service).

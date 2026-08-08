@@ -1,0 +1,56 @@
+[
+  {
+    "imdb_id": "tt0063633",
+    "letterboxd_name": "The Cremator",
+    "year": 1969,
+    "queries": ["Сжигатель трупов", "Spalovač mrtvol"]
+  },
+  {
+    "imdb_id": "tt0216651",
+    "letterboxd_name": "Vampire Hunter D: Bloodlust",
+    "year": 2000,
+    "queries": ["Охотник на вампиров D: Кровожадность", "Vampire Hunter D: Bloodlust"]
+  },
+  {
+    "imdb_id": "tt0012364",
+    "letterboxd_name": "The Phantom Carriage",
+    "year": 1921,
+    "queries": ["Возница", "Körkarlen"]
+  },
+  {
+    "imdb_id": "tt0055153",
+    "letterboxd_name": "Mother Joan of the Angels",
+    "year": 1961,
+    "queries": ["Мать Иоанна от ангелов", "Matka Joanna od Aniołów"]
+  },
+  {
+    "imdb_id": "tt0064546",
+    "letterboxd_name": "Witchhammer",
+    "year": 1970,
+    "queries": ["Молот ведьм", "Kladivo na čarodějnice"]
+  },
+  {
+    "imdb_id": "tt0079641",
+    "letterboxd_name": "Nosferatu the Vampyre",
+    "year": 1979,
+    "queries": ["Носферату: призрак ночи", "Nosferatu: Phantom der Nacht"]
+  },
+  {
+    "imdb_id": "tt0109592",
+    "letterboxd_name": "Cemetery Man",
+    "year": 1994,
+    "queries": ["Кладбище для живых", "Dellamorte Dellamore"]
+  },
+  {
+    "imdb_id": "tt0155278",
+    "letterboxd_name": "Ghost Story of Yotsuya",
+    "year": 1959,
+    "queries": ["История о призраках Ёцуя", "Tôkaidô Yotsuya kaidan", "Tokaido Yotsuya kaidan"]
+  },
+  {
+    "imdb_id": "tt0090197",
+    "letterboxd_name": "In a Glass Cage",
+    "year": 1986,
+    "queries": ["В стеклянной клетке", "Tras el cristal"]
+  }
+]

@@ -78,3 +78,8 @@
 - **API:** `GET /api/films/{film_id}/collections` via `ListFilmCollectionsService`
 - **UI:** `FilmCollectionsStrip` under «Друзья оценили» on `MovieCardDetailPage` (horizontal scroll chips)
 - **Tests:** `backend/src/tests/integration/api/test_film_collections_routes.py` — pass (`make backend-test-one`)
+
+## 2026-08-08 — Pipeline artifacts moved to `collections/`
+
+- Working tree relocated from `collections-core/data/` → `collections-core/collections/` (`<slug>/intermediate/`, `_tools/`, per-list full JSON).
+- Updated pipeline docs: skill, command, rule, reference, `collections/README.md` (run env: host `uv run` + `vars/.env.development.local`; Docker service `backend` for seed/backfill).

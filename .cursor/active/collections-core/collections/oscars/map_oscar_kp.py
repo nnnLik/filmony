@@ -328,7 +328,7 @@ async def amain(args: argparse.Namespace) -> int:
 def parse_args() -> argparse.Namespace:
     here = Path(__file__).resolve().parent
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--data-dir", default=str(here))
+    p.add_argument("--data-dir", default=str(here / "intermediate"))
     p.add_argument("--year", type=int, help="Single ceremony year (default: all)")
     p.add_argument("--kp-concurrency", type=int, default=3)
     p.add_argument("--resume", action="store_true")

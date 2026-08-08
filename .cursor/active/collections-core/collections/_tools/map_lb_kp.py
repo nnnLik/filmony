@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Map Letterboxd Top 500 → Kinopoisk IDs via unofficial API (no DB).
+"""Map Letterboxd list JSON → Kinopoisk IDs via unofficial API (no DB).
 
 Strategy:
 1) Scrape IMDb id from each Letterboxd film page (async).
 2) Resolve via GET /api/v2.2/films?imdbId=tt…
-3) Fallback: GET /api/v2.2/films?keyword=…&yearFrom=&yearTo=
+3) Fallback: GET /api/v2.2/films?keyword=…&yearFrom=&yearTo= (EN title)
+4) Optional RU aliases (--ru-aliases): keyword search per alias query → match_method=keyword_ru
 
-Outputs (same directory as this script by default, or /tmp when --in-container):
-  letterboxd_top_500_kinopoisk.json
-  letterboxd_top_500_kinopoisk.txt
+Run from backend (httpx on PYTHONPATH):
+
+  cd backend && uv run python ../.cursor/active/collections-core/collections/_tools/map_lb_kp.py --help
+
+With --slug horror_250, defaults read/write under collections/<slug>/intermediate/.
 """
 from __future__ import annotations
 
@@ -24,6 +27,8 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+
+COLLECTIONS_ROOT = Path(__file__).resolve().parent.parent
 
 IMDB_RE = re.compile(r"imdb\.com/title/(tt\d+)", re.I)
 LB_UA = (
@@ -82,6 +87,55 @@ def accept_keyword_match(
     return sim >= 0.92
 
 
+def load_ru_aliases(path: Path | None) -> list[dict[str, Any]]:
+    if path is None:
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"Failed to load --ru-aliases {path}: {exc}", file=sys.stderr)
+        return []
+    if not isinstance(data, list):
+        print(f"--ru-aliases must be a JSON array: {path}", file=sys.stderr)
+        return []
+    return [row for row in data if isinstance(row, dict)]
+
+
+def find_ru_alias_queries(
+    aliases: list[dict[str, Any]],
+    *,
+    imdb_id: str | None,
+    letterboxd_name: str,
+    year: int | None,
+) -> list[str]:
+    name_fold = letterboxd_name.casefold()
+    for entry in aliases:
+        entry_imdb = entry.get("imdb_id")
+        if imdb_id and isinstance(entry_imdb, str) and entry_imdb == imdb_id:
+            return _alias_query_list(entry)
+        entry_name = entry.get("letterboxd_name")
+        if not isinstance(entry_name, str):
+            continue
+        if entry_name.casefold() != name_fold:
+            continue
+        entry_year = entry.get("year")
+        if year is not None and entry_year is not None:
+            try:
+                if int(entry_year) != year:
+                    continue
+            except (TypeError, ValueError):
+                pass
+        return _alias_query_list(entry)
+    return []
+
+
+def _alias_query_list(entry: dict[str, Any]) -> list[str]:
+    raw = entry.get("queries")
+    if not isinstance(raw, list):
+        return []
+    return [str(q).strip() for q in raw if isinstance(q, str) and str(q).strip()]
+
+
 class KinopoiskUnofficialClient:
     def __init__(self, base_url: str, api_key: str, semaphore: asyncio.Semaphore) -> None:
         self._base = base_url.rstrip("/")
@@ -96,9 +150,19 @@ class KinopoiskUnofficialClient:
     ) -> dict[str, Any]:
         url = f"{self._base}/v2.2/films"
         last: httpx.Response | None = None
+        transient_errors = (
+            httpx.ReadError,
+            httpx.ConnectError,
+            httpx.TimeoutException,
+            httpx.RemoteProtocolError,
+        )
         for attempt in range(30):
-            async with self._sem:
-                resp = await client.get(url, params=params, headers=self._headers)
+            try:
+                async with self._sem:
+                    resp = await client.get(url, params=params, headers=self._headers)
+            except transient_errors:
+                await asyncio.sleep(min(8.0, 0.5 * (attempt + 1)))
+                continue
             last = resp
             if resp.status_code == 429:
                 # Official swagger documents 5 rps; back off hard and keep trying.
@@ -125,11 +189,12 @@ class KinopoiskUnofficialClient:
         self,
         client: httpx.AsyncClient,
         *,
-        name: str,
+        keyword: str,
+        lb_name: str,
         year: int | None,
     ) -> int | None:
         params: dict[str, Any] = {
-            "keyword": name,
+            "keyword": keyword,
             "page": 1,
             "type": "FILM",
             "order": "NUM_VOTE",
@@ -145,7 +210,7 @@ class KinopoiskUnofficialClient:
             data = await self.films_by_filters(client, params=params)
             items = list(data.get("items") or [])
         for item in items:
-            if accept_keyword_match(lb_name=name, lb_year=year, item=item):
+            if accept_keyword_match(lb_name=lb_name, lb_year=year, item=item):
                 kid = item.get("kinopoiskId")
                 if kid is not None:
                     return int(kid)
@@ -177,23 +242,16 @@ async def fetch_imdb_from_letterboxd(
     return None
 
 
-async def map_one(
+async def resolve_kinopoisk_id(
     *,
     client: httpx.AsyncClient,
     kp: KinopoiskUnofficialClient,
-    lb_sem: asyncio.Semaphore,
-    entry: dict[str, Any],
-) -> dict[str, Any]:
-    rank = int(entry["rank"])
-    name = str(entry["name"])
-    year_raw = entry.get("year")
-    year = int(year_raw) if year_raw is not None else None
-    uri = str(entry.get("letterboxd_uri") or "")
-
-    imdb_id: str | None = None
-    if uri:
-        imdb_id = await fetch_imdb_from_letterboxd(client, lb_sem, uri)
-
+    rank: int,
+    name: str,
+    year: int | None,
+    imdb_id: str | None,
+    ru_aliases: list[dict[str, Any]],
+) -> tuple[int | None, str]:
     kid: int | None = None
     method = "TODO"
     if imdb_id:
@@ -206,11 +264,59 @@ async def map_one(
 
     if kid is None:
         try:
-            kid = await kp.by_keyword_year(client, name=name, year=year)
+            kid = await kp.by_keyword_year(client, keyword=name, lb_name=name, year=year)
             if kid is not None:
                 method = "keyword"
         except httpx.HTTPError as exc:
             print(f"KP keyword error rank={rank} {name!r}: {exc}", file=sys.stderr)
+
+    if kid is None and ru_aliases:
+        queries = find_ru_alias_queries(
+            ru_aliases,
+            imdb_id=imdb_id,
+            letterboxd_name=name,
+            year=year,
+        )
+        for query in queries:
+            try:
+                kid = await kp.by_keyword_year(client, keyword=query, lb_name=name, year=year)
+            except httpx.HTTPError as exc:
+                print(f"KP RU keyword error rank={rank} {query!r}: {exc}", file=sys.stderr)
+                continue
+            if kid is not None:
+                method = "keyword_ru"
+                break
+
+    return kid, method
+
+
+async def map_one(
+    *,
+    client: httpx.AsyncClient,
+    kp: KinopoiskUnofficialClient,
+    lb_sem: asyncio.Semaphore,
+    entry: dict[str, Any],
+    ru_aliases: list[dict[str, Any]],
+) -> dict[str, Any]:
+    rank = int(entry["rank"])
+    name = str(entry["name"])
+    year_raw = entry.get("year")
+    year = int(year_raw) if year_raw is not None else None
+    uri = str(entry.get("letterboxd_uri") or "")
+
+    imdb_id: str | None = None
+    if uri:
+        imdb_id = await fetch_imdb_from_letterboxd(client, lb_sem, uri)
+
+    kid, method = await resolve_kinopoisk_id(
+        client=client,
+        kp=kp,
+        rank=rank,
+        name=name,
+        year=year,
+        imdb_id=imdb_id,
+        ru_aliases=ru_aliases,
+    )
 
     return {
         "rank": rank,
@@ -225,6 +331,8 @@ async def map_one(
 
 def write_outputs(rows: list[dict[str, Any]], out_json: Path, out_txt: Path) -> None:
     rows_sorted = sorted(rows, key=lambda r: int(r["rank"]))
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_txt.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(json.dumps(rows_sorted, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     lines = []
     for row in rows_sorted:
@@ -263,6 +371,8 @@ async def amain(args: argparse.Namespace) -> int:
     if not api_key:
         print("KINOPOISK_API_KEY is empty", file=sys.stderr)
         return 2
+
+    ru_aliases = load_ru_aliases(Path(args.ru_aliases) if args.ru_aliases else None)
 
     entries = json.loads(in_path.read_text(encoding="utf-8"))
     if not isinstance(entries, list):
@@ -317,13 +427,15 @@ async def amain(args: argparse.Namespace) -> int:
                 year_raw = entry.get("year")
                 year = int(year_raw) if year_raw is not None else None
                 uri = str(entry.get("letterboxd_uri") or "")
-                kid = await kp.by_imdb_id(client, known_imdb)
-                method = "imdbId" if kid is not None else "TODO"
-                if kid is None:
-                    kid2 = await kp.by_keyword_year(client, name=name, year=year)
-                    if kid2 is not None:
-                        kid = kid2
-                        method = "keyword"
+                kid, method = await resolve_kinopoisk_id(
+                    client=client,
+                    kp=kp,
+                    rank=rank,
+                    name=name,
+                    year=year,
+                    imdb_id=known_imdb,
+                    ru_aliases=ru_aliases,
+                )
                 return {
                     "rank": rank,
                     "letterboxd_name": name,
@@ -333,7 +445,13 @@ async def amain(args: argparse.Namespace) -> int:
                     "kinopoisk_id": kid if kid is not None else "TODO",
                     "match_method": method,
                 }
-            return await map_one(client=client, kp=kp, lb_sem=lb_sem, entry=entry)
+            return await map_one(
+                client=client,
+                kp=kp,
+                lb_sem=lb_sem,
+                entry=entry,
+                ru_aliases=ru_aliases,
+            )
 
         tasks = [asyncio.create_task(_one(entry)) for entry in to_process]
         done = 0
@@ -356,10 +474,11 @@ async def amain(args: argparse.Namespace) -> int:
     todos = sum(1 for r in rows_sorted if r["kinopoisk_id"] == "TODO")
     by_imdb = sum(1 for r in rows_sorted if r.get("match_method") == "imdbId")
     by_kw = sum(1 for r in rows_sorted if r.get("match_method") == "keyword")
+    by_ru = sum(1 for r in rows_sorted if r.get("match_method") == "keyword_ru")
 
     print("\n=== SUMMARY ===")
     print(f"Total: {len(rows_sorted)}")
-    print(f"Matched: {matched} (imdbId={by_imdb}, keyword={by_kw})")
+    print(f"Matched: {matched} (imdbId={by_imdb}, keyword={by_kw}, keyword_ru={by_ru})")
     print(f"TODO: {todos}")
     print(f"JSON: {out_json}")
     print(f"TXT:  {out_txt}")
@@ -375,20 +494,49 @@ async def amain(args: argparse.Namespace) -> int:
     return 0
 
 
-def parse_args() -> argparse.Namespace:
+def _default_paths(slug: str | None) -> tuple[Path, Path, Path]:
     here = Path(__file__).resolve().parent
+    if slug:
+        intermediate = COLLECTIONS_ROOT / slug / "intermediate"
+        return (
+            intermediate / f"letterboxd_{slug}.json",
+            intermediate / f"letterboxd_{slug}_kinopoisk.json",
+            intermediate / f"letterboxd_{slug}_kinopoisk.txt",
+        )
+    return (
+        here / "letterboxd_top_500.json",
+        here / "letterboxd_top_500_kinopoisk.json",
+        here / "letterboxd_top_500_kinopoisk.txt",
+    )
+
+
+def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
+        "--slug",
+        default=None,
+        help="Collection slug; default I/O under collections/<slug>/intermediate/",
+    )
+    p.add_argument(
         "--input",
-        default=str(here / "letterboxd_top_500.json"),
+        default=None,
+        help="Letterboxd scrape JSON (default: letterboxd_<slug>.json in intermediate/)",
     )
     p.add_argument(
         "--output-json",
-        default=str(here / "letterboxd_top_500_kinopoisk.json"),
+        default=None,
+        help="Kinopoisk mapping JSON output (default: letterboxd_<slug>_kinopoisk.json)",
     )
     p.add_argument(
         "--output-txt",
-        default=str(here / "letterboxd_top_500_kinopoisk.txt"),
+        default=None,
+        help="Human-readable mapping TXT (default: letterboxd_<slug>_kinopoisk.txt)",
+    )
+    p.add_argument(
+        "--ru-aliases",
+        default=None,
+        metavar="PATH",
+        help="Optional JSON list of RU keyword aliases for tier-3 matching",
     )
     p.add_argument("--kp-concurrency", type=int, default=4)
     p.add_argument("--lb-concurrency", type=int, default=8)
@@ -399,7 +547,16 @@ def parse_args() -> argparse.Namespace:
         help="With --resume, reprocess only TODO rows",
     )
     p.add_argument("--force-todos", action="store_true", help="Reprocess everything")
-    return p.parse_args()
+    args = p.parse_args()
+
+    default_in, default_json, default_txt = _default_paths(args.slug)
+    if args.input is None:
+        args.input = str(default_in)
+    if args.output_json is None:
+        args.output_json = str(default_json)
+    if args.output_txt is None:
+        args.output_txt = str(default_txt)
+    return args
 
 
 if __name__ == "__main__":
