@@ -36,14 +36,10 @@
 
 **API:** `GET /api/me/weekly-controversy`
 
-**Telegram digest:**
-- Отправляется только при `spread ≥ 4.0` (`MIN_SPREAD_FOR_TELEGRAM_DIGEST`)
-- Rich HTML: вариативный intro, год тайтла, полюса (min/max + авторы), персонализация по оценке viewer, runner-up
-- Deeplink: `startapp=f{film_id}` → страница сообщества; для catalog-only — `startapp=c{card_id}`
-- Inline-кнопка «Открыть в Filmony» + HTML-ссылка в теле
-- Idempotency: `weekly_controversy_state.sent_at`; при низком spread — `skipped_low_spread`, без повторной отправки
-
-**Доставка:** Celery `send_weekly_controversy_digests` (расписание в деплое) + чип на community page: «Разброс X · N друзей».
+**Доставка:**
+- **In-app:** `GET /api/me/weekly-controversy` + чип на community page: «Разброс X · N друзей»
+- **Telegram:** блок «спорная карточка» внутри еженедельного personal digest (`tasks.personal_digest.send_weekly_personal_digests`), не отдельный cron
+- Таблица `weekly_controversy_state` сохраняется для persisted state и обогащения API
 
 ## D — Стрик оценок
 
@@ -65,7 +61,7 @@
 
 - `backend/src/tests/api/test_watchlist_overlaps_routes.py`
 - `backend/src/tests/services/test_watch_session_services.py`
-- `backend/src/tests/services/test_build_weekly_controversy_message.py`
+- `backend/src/tests/integration/api/test_weekly_controversy_routes.py`
 - `backend/src/tests/services/test_mini_app_link.py`
 - `backend/src/tests/api/test_streaks_routes.py`
 

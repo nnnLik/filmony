@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime as dt
-from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -21,10 +20,6 @@ from models.weekly_controversy_state import WeeklyControversyState
 from services.controversy.compute_weekly_controversy import ComputeWeeklyControversyService
 from services.controversy.get_current_week_controversy import GetCurrentWeekControversyService
 from services.controversy.week_bounds import week_start_for_datetime
-from services.telegram.send_weekly_controversy_digest import (
-    SendWeeklyControversyTelegramDigestService,
-    WeeklyControversyDeliveryOutcome,
-)
 from tests.auth.telegram_init_data import build_init_data
 from tests.support.user_card_category import ensure_default_category
 
@@ -270,116 +265,6 @@ async def test_compute_requires_three_distinct_raters(prepare_db: None) -> None:
             now=now,
         )
     assert result is None
-
-
-@pytest.mark.asyncio
-async def test_digest_is_idempotent_per_week(prepare_db: None) -> None:
-    recipient = await _seed_user(telegram_user_id=940501, profile_slug='wcd1')
-    author_a = await _seed_user(profile_slug='wcd2')
-    author_b = await _seed_user(profile_slug='wcd3')
-    author_c = await _seed_user(profile_slug='wcd4')
-    await _seed_follow(follower_id=recipient, following_id=author_a)
-    await _seed_follow(follower_id=recipient, following_id=author_b)
-    await _seed_follow(follower_id=recipient, following_id=author_c)
-
-    now = dt.datetime(2026, 7, 28, 10, 0, tzinfo=dt.UTC)
-    film_id = await _seed_film(kinopoisk_id=940501, title='Digest Film')
-    for author, rating in [(author_a, 3.0), (author_b, 6.0), (author_c, 9.0)]:
-        await _seed_rated_card(
-            user_id=author,
-            film_id=film_id,
-            rating=rating,
-            completed_at=now - dt.timedelta(days=1),
-            kinopoisk_id=940501,
-        )
-
-    session_factory = get_session_factory()
-    with patch(
-        'services.telegram.send_weekly_controversy_digest.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as deliver_mock:
-        async with session_factory() as session:
-            first = await SendWeeklyControversyTelegramDigestService.build(session).execute(
-                recipient_user_id=recipient,
-                now=now,
-            )
-        assert first.outcome == WeeklyControversyDeliveryOutcome.sent
-        deliver_mock.assert_awaited_once()
-        html_body = deliver_mock.await_args.args[1]
-        reply_markup = deliver_mock.await_args.kwargs.get('reply_markup')
-        assert '🎬' in html_body
-        assert 'startapp=f' in html_body
-        assert 'Посмотреть все мнения' in html_body
-        assert reply_markup is not None
-
-        async with session_factory() as session:
-            second = await SendWeeklyControversyTelegramDigestService.build(session).execute(
-                recipient_user_id=recipient,
-                now=now,
-            )
-        assert second.outcome == WeeklyControversyDeliveryOutcome.skipped_already_sent
-        deliver_mock.assert_awaited_once()
-
-    async with session_factory() as session:
-        row = (
-            await session.execute(
-                select(WeeklyControversyState).where(
-                    WeeklyControversyState.user_id == recipient,
-                    WeeklyControversyState.week_start == week_start_for_datetime(now),
-                )
-            )
-        ).scalar_one()
-        assert row.sent_at is not None
-        assert row.title == 'Digest Film'
-        assert row.spread == 6.0
-        assert row.link_card_id is not None
-
-
-@pytest.mark.asyncio
-async def test_digest_skips_low_spread_but_marks_sent(prepare_db: None) -> None:
-    recipient = await _seed_user(telegram_user_id=940701, profile_slug='wcl1')
-    author_a = await _seed_user(profile_slug='wcl2')
-    author_b = await _seed_user(profile_slug='wcl3')
-    author_c = await _seed_user(profile_slug='wcl4')
-    await _seed_follow(follower_id=recipient, following_id=author_a)
-    await _seed_follow(follower_id=recipient, following_id=author_b)
-    await _seed_follow(follower_id=recipient, following_id=author_c)
-
-    now = dt.datetime(2026, 7, 28, 11, 0, tzinfo=dt.UTC)
-    film_id = await _seed_film(kinopoisk_id=940701, title='Mild Film')
-    for author, rating in [(author_a, 6.0), (author_b, 7.0), (author_c, 9.0)]:
-        await _seed_rated_card(
-            user_id=author,
-            film_id=film_id,
-            rating=rating,
-            completed_at=now - dt.timedelta(days=1),
-            kinopoisk_id=940701,
-        )
-
-    session_factory = get_session_factory()
-    with patch(
-        'services.telegram.send_weekly_controversy_digest.deliver_engagement_html_message',
-        new_callable=AsyncMock,
-    ) as deliver_mock:
-        async with session_factory() as session:
-            result = await SendWeeklyControversyTelegramDigestService.build(session).execute(
-                recipient_user_id=recipient,
-                now=now,
-            )
-        assert result.outcome == WeeklyControversyDeliveryOutcome.skipped_low_spread
-        deliver_mock.assert_not_awaited()
-
-    async with session_factory() as session:
-        row = (
-            await session.execute(
-                select(WeeklyControversyState).where(
-                    WeeklyControversyState.user_id == recipient,
-                    WeeklyControversyState.week_start == week_start_for_datetime(now),
-                )
-            )
-        ).scalar_one()
-        assert row.sent_at is not None
-        assert row.spread == 3.0
 
 
 @pytest.mark.asyncio

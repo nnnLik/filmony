@@ -34,20 +34,16 @@ def freeze_gc_before_worker_fork(
 def _register_all_tasks(application: Celery) -> None:
     from tasks.achievement_rarity import register_tasks as register_achievement_rarity_tasks
     from tasks.film_award_badges import register_tasks as register_film_award_badges_tasks
-    from tasks.monthly_recap import register_tasks as register_monthly_recap_tasks
     from tasks.personal_digest import register_tasks as register_personal_digest_tasks
     from tasks.ping import register_tasks as register_ping_tasks
     from tasks.telegram_engagement import register_tasks as register_telegram_engagement_tasks
     from tasks.watch_session import register_tasks as register_watch_session_tasks
-    from tasks.weekly_controversy import register_tasks as register_weekly_controversy_tasks
 
     register_ping_tasks(application)
     register_achievement_rarity_tasks(application)
     register_film_award_badges_tasks(application)
-    register_monthly_recap_tasks(application)
     register_personal_digest_tasks(application)
     register_telegram_engagement_tasks(application)
-    register_weekly_controversy_tasks(application)
     register_watch_session_tasks(application)
 
 

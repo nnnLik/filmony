@@ -1,10 +1,10 @@
 # Engaging Digest Notifications
 
-Redesign of the 48-hour subscribed-activity Telegram digest copy. Cadence, Celery task, and candidate selection are unchanged; only message assembly is richer.
+Rich copy patterns for subscribed-activity digest items. The standalone 6-hour Telegram digest pipeline (`tasks.telegram_engagement.send_subscribed_activity_digests`) was removed; candidate collection and message templates are reused in the **weekly personal digest** friends block.
 
 ## Behavior
 
-When a digest is sent, the message builder:
+When friends-activity items are rendered in the weekly digest, the builder:
 
 1. Computes **window stats** from the scored candidate pool: card/post counts, active authors, average rating, top genres, 9+ count, favorites.
 2. Picks a **deterministic intro** (seed: recipient + window start) from variants:
@@ -21,24 +21,12 @@ When a digest is sent, the message builder:
 
 Sparse data falls back to the default intro and minimal item lines (no empty stat lines).
 
-## Key services
+## Key services (still in use)
 
-- `BuildSubscribedActivityDigestMessageService` — HTML assembly
-- `CollectSubscribedActivityDigestCandidatesService` — enriched metadata + tags
-- `SendSubscribedActivityTelegramDigestService` — delivery (unchanged cadence)
-
-## Tests
-
-- `backend/src/tests/services/telegram/test_build_subscribed_activity_digest_message.py`
-- `backend/src/tests/services/telegram/test_subscribed_activity_digest.py`
-
-Run in Docker:
-
-```bash
-make backend-test-one target=src/tests/services/telegram/test_build_subscribed_activity_digest_message.py
-make backend-test-one target=src/tests/services/telegram/test_subscribed_activity_digest.py
-```
+- `CollectSubscribedActivityDigestCandidatesService` — enriched metadata + tags (friends section input)
+- `BuildPersonalDigestFriendsSectionService` — weekly digest friends block assembly
 
 ## Related
 
-- Base digest feature: [subscribed-activity-telegram-digest.md](./subscribed-activity-telegram-digest.md)
+- Personal digest: [personal-digest-redesign.md](./personal-digest-redesign.md)
+- Base digest feature (historical): [subscribed-activity-telegram-digest.md](./subscribed-activity-telegram-digest.md)

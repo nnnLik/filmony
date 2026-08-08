@@ -20,9 +20,7 @@ Response includes overview stats, people, taste breakdowns, gamification unlocks
 
 ## Telegram
 
-**Deprecated:** `tasks.monthly_recap.send_monthly_recap_nudges`
-
-**Current:** `tasks.personal_digest.send_monthly_personal_digests` (prod cron: 1st day 10:00 UTC). Short HTML teaser + deep link `startapp=md{year}-{month}`.
+Monthly recap teasers are delivered via the **personal digest** pipeline: `tasks.personal_digest.send_monthly_personal_digests` (prod cron: 1st day 10:00 UTC). Short HTML teaser + deep link `startapp=md{year}-{month}`.
 
 Idempotency: `personal_digest_delivery_state (user_id, period, period_key)`.
 

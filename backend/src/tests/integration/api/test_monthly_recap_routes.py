@@ -121,7 +121,9 @@ async def test_get_my_monthly_recap_extended_fields_with_actor(async_client: Asy
     assert body['dominant_mood_after'] == 'enjoyed'
     assert body['dominant_company'] == 'friends'
     assert body['streak_best_in_period'] == 1
-    assert body['fun_facts'] == []
+    assert isinstance(body['fun_facts'], list)
+    assert len(body['fun_facts']) >= 1
+    assert any('драма' in fact for fact in body['fun_facts'])
 
 
 @pytest.mark.asyncio

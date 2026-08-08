@@ -43,7 +43,12 @@ Legacy monthly recap routes remain; monthly digest reuses recap aggregation with
 - `MonthlyRecapPage.tsx` — monthly recap/digest with fun facts section
 - Deep links: `wd{period_key}`, `md{year}-{month}` via `mini_app_link.py`
 
-## Deprecated
+## Legacy pipelines removed
 
-- `tasks.monthly_recap.send_monthly_recap_nudges` → use `tasks.personal_digest.send_monthly_personal_digests`
-- Prod crons for subscribed 6h digest and standalone weekly controversy (see spec §4.3)
+The following standalone Celery pipelines were removed after this redesign (code deleted; DB state tables kept where noted):
+
+- `tasks.monthly_recap.send_monthly_recap_nudges` → `tasks.personal_digest.send_monthly_personal_digests`
+- `tasks.telegram_engagement.send_subscribed_activity_digests` (6h subscribed-activity digest)
+- `tasks.weekly_controversy.send_weekly_controversy_digests` → controversy block in weekly personal digest
+
+Candidate collectors (`subscribed_activity_digest_candidates.py`, `ComputeWeeklyControversyService`) remain in use inside the weekly digest composer.
