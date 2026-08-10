@@ -72,14 +72,16 @@ Redis URL resolution order:
 The backend image installs `curl` in the `base` stage (`backend/Dockerfile`). Both `dev` and `prod` image stages define a `HEALTHCHECK` that runs:
 
 ```text
-curl -fsS http://127.0.0.1:8000/health/ready
+curl -fsS "http://127.0.0.1:${PORT:-8000}/health/ready"
 ```
+
+The probe uses the container `PORT` environment variable (production sets `PORT=6949` for Caddy; default `8000` in dev and settings).
 
 ### Docker Compose
 
 The `backend` service in `docker-compose.yml` and `docker-compose.prod.yml` uses the same curl-based probe:
 
-- `test`: `CMD curl -fsS http://127.0.0.1:8000/health/ready`
+- `test`: `CMD-SHELL curl -fsS "http://127.0.0.1:${PORT:-8000}/health/ready"`
 - `interval`: 30s
 - `timeout`: 5s
 - `retries`: 3

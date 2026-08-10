@@ -9,3 +9,4 @@
 - **2026-08-11T023500Z** — Closeout: `result.md`, `docs/features/backend-healthcheck.md`, HOT and action-log updated. Feature complete.
 - **2026-08-11** — Switched Docker healthcheck from Python `urllib` to `curl` in `backend/Dockerfile`, `docker-compose.yml`, and `docker-compose.prod.yml`.
 - **2026-08-11** — Added `celery-worker` healthcheck (`celery inspect ping`) to `docker-compose.yml` and `docker-compose.prod.yml`; documented in `docs/features/backend-healthcheck.md`.
+- **2026-08-11** — Fixed backend healthcheck to use `$${PORT:-8000}` (compose) / `$${PORT:-8000}` (Dockerfile CMD-SHELL) so production `PORT=6949` is probed correctly; celery-worker healthcheck unchanged.

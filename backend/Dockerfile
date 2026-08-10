@@ -31,7 +31,7 @@ COPY . ${APP_PATH}
 WORKDIR ${APP_PATH}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-	CMD curl -fsS http://127.0.0.1:8000/health/ready || exit 1
+	CMD-SHELL curl -fsS "http://127.0.0.1:$${PORT:-8000}/health/ready" || exit 1
 
 FROM builder AS prod
 
@@ -41,4 +41,4 @@ COPY . ${APP_PATH}
 WORKDIR ${APP_PATH}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-	CMD curl -fsS http://127.0.0.1:8000/health/ready || exit 1
+	CMD-SHELL curl -fsS "http://127.0.0.1:$${PORT:-8000}/health/ready" || exit 1
