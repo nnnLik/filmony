@@ -104,6 +104,7 @@ class GenreDistributionItem:
 class DirectorDistributionItem:
     kinopoisk_id: int
     name: str
+    poster_url: str | None
     count: int
 
 
@@ -200,6 +201,7 @@ class GetUserCardStatsService:
                     Film.genres,
                     Film.primary_director_kinopoisk_id,
                     Film.primary_director_name,
+                    Film.primary_director_poster_url,
                     Film.franchise_key,
                     UserCardCategory.id.label('shelf_category_id'),
                     UserCardCategory.name.label('shelf_category_name'),
@@ -224,7 +226,7 @@ class GetUserCardStatsService:
         category_counts: dict[int | None, int] = {}
         category_names: dict[int, str] = {}
         genre_counts: dict[str, int] = {}
-        director_counts: dict[int, tuple[str, int]] = {}
+        director_counts: dict[int, tuple[str, str | None, int]] = {}
         franchise_counts: dict[str, int] = {}
         movies: list[ProfileMovieStatsItem] = []
 
@@ -244,8 +246,18 @@ class GetUserCardStatsService:
                 director_name = (
                     str(row.primary_director_name or '').strip() or f'Режиссёр #{director_id}'
                 )
-                existing_name, existing_count = director_counts.get(director_id, (director_name, 0))
-                director_counts[director_id] = (existing_name or director_name, existing_count + 1)
+                existing_name, existing_poster, existing_count = director_counts.get(
+                    director_id,
+                    (director_name, None, 0),
+                )
+                poster_url = existing_poster
+                if poster_url is None and row.primary_director_poster_url:
+                    poster_url = str(row.primary_director_poster_url).strip() or None
+                director_counts[director_id] = (
+                    existing_name or director_name,
+                    poster_url,
+                    existing_count + 1,
+                )
             franchise_key = str(row.franchise_key or '').strip()
             if franchise_key != '':
                 franchise_counts[franchise_key] = franchise_counts.get(franchise_key, 0) + 1
@@ -292,10 +304,15 @@ class GetUserCardStatsService:
             for genre, count in sorted(genre_counts.items(), key=lambda item: (-item[1], item[0]))
         ]
         director_distribution = [
-            DirectorDistributionItem(kinopoisk_id=kinopoisk_id, name=name, count=count)
-            for kinopoisk_id, (name, count) in sorted(
+            DirectorDistributionItem(
+                kinopoisk_id=kinopoisk_id,
+                name=name,
+                poster_url=poster_url,
+                count=count,
+            )
+            for kinopoisk_id, (name, poster_url, count) in sorted(
                 director_counts.items(),
-                key=lambda item: (-item[1][1], item[1][0]),
+                key=lambda item: (-item[1][2], item[1][0]),
             )[:20]
         ]
         rated_cards = (

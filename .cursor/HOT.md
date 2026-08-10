@@ -1,34 +1,40 @@
 # HOT — Cursor session memory
-Updated: 2026-08-10T173000Z
+Updated: 2026-08-10T233500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
 ## in_progress
-1. `collections-core` — curated film collections with rated-only progress tracking
+1. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
+   - Feature: `.cursor/features/film-radarr-playback/feature.md`
+   - Active: `.cursor/active/film-radarr-playback/`
+   - Spec: `docs/superpowers/specs/2026-08-10-film-radarr-torrent-stack-design.md`
+2. `collections-core` — curated film collections with rated-only progress tracking
    - Feature: `.cursor/features/collections-core/feature.md`
    - Active: `.cursor/active/collections-core/`
-2. `film-award-badges` — Oscar nominee/winner badges on films (independent of collections)
+3. `film-award-badges` — Oscar nominee/winner badges on films (independent of collections)
    - Feature: `.cursor/features/film-award-badges/feature.md`
    - Active: `.cursor/active/film-award-badges/`
-3. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
+4. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
    - Feature: `.cursor/features/achievements-rarity-profile-pins/feature.md`
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `search-catalog-redesign` — closed 2026-08-10T173000Z
+1. `profile-stats-people-restructure` — closed 2026-08-10T233500Z
+   - Feature: `.cursor/features/profile-stats-people-restructure/feature.md`
+   - Active: `.cursor/active/profile-stats-people-restructure/`
+   - Docs: `docs/features/profile-stats-people-restructure.md`
+2. `film-hls-playback` — closed 2026-08-10T224800Z
+   - Feature: `.cursor/features/film-hls-playback/feature.md`
+   - Active: `.cursor/active/film-hls-playback/`
+   - Docs: `docs/features/film-hls-playback.md`
+3. `search-catalog-redesign` — closed 2026-08-10T173000Z
    - Feature: `.cursor/features/search-catalog-redesign/feature.md`
    - Active: `.cursor/active/search-catalog-redesign/`
    - Docs: `docs/features/search-catalog-redesign.md`
-2. `profile-directors-top20` — closed 2026-08-10T180000Z
-   - Feature: `.cursor/features/profile-directors-top20/feature.md`
-   - Active: `.cursor/active/profile-directors-top20/`
-   - Docs: `docs/features/profile-directors-top20.md`
-3. `profile-actors-top20` — closed 2026-08-10T134500Z
-   - Feature: `.cursor/features/profile-actors-top20/feature.md`
-   - Active: `.cursor/active/profile-actors-top20/`
-   - Docs: `docs/features/profile-actors-top20.md`
 
 ## evicted (queue for archive)
+- `profile-directors-top20` — evicted from recent_completed top-3 on 2026-08-10T233500Z (was #3)
+- `profile-actors-top20` — evicted from recent_completed top-3 on 2026-08-10T224800Z (was #3)
 - `standalone-web-telegram-login` — evicted from recent_completed top-3 on 2026-08-10T173000Z (was #3)
 - `film-cast-store-all` — evicted from recent_completed top-3 on 2026-08-10T180000Z (was #3)
 - `personal-digest-redesign` — evicted from recent_completed top-3 on 2026-08-10T134500Z (was #3)

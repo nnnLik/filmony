@@ -393,6 +393,7 @@ class GenreDistributionItemResponse(BaseModel):
 class DirectorDistributionItemResponse(BaseModel):
     kinopoisk_id: int
     name: str
+    poster_url: str | None = None
     count: int
 
     model_config = ConfigDict(extra='forbid')
@@ -701,6 +702,7 @@ def build_user_card_stats_response(
             DirectorDistributionItemResponse(
                 kinopoisk_id=item.kinopoisk_id,
                 name=item.name,
+                poster_url=item.poster_url,
                 count=item.count,
             )
             for item in stats.director_distribution

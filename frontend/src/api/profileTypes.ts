@@ -466,6 +466,7 @@ export type GenreDistributionItem = {
 export type DirectorDistributionItem = {
   kinopoisk_id: number
   name: string
+  poster_url?: string | null
   count: number
 }
 

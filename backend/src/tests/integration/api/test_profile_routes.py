@@ -41,6 +41,7 @@ async def _seed_movie_card(
     completed_at: datetime | None = None,
     primary_director_kinopoisk_id: int | None = None,
     primary_director_name: str | None = None,
+    primary_director_poster_url: str | None = None,
     franchise_key: str | None = None,
     genres: list[str] | None = None,
     countries: list[str] | None = None,
@@ -56,6 +57,7 @@ async def _seed_movie_card(
             countries=countries or [],
             primary_director_kinopoisk_id=primary_director_kinopoisk_id,
             primary_director_name=primary_director_name,
+            primary_director_poster_url=primary_director_poster_url,
             franchise_key=franchise_key,
         )
         session.add(film)
@@ -592,6 +594,7 @@ async def test_user_stats_director_and_franchise_distribution(
         tags=[],
         primary_director_kinopoisk_id=525,
         primary_director_name='Кристофер Нолан',
+        primary_director_poster_url='https://example.com/nolan.jpg',
         franchise_key=franchise_key,
     )
     for idx in range(2):
@@ -637,8 +640,18 @@ async def test_user_stats_director_and_franchise_distribution(
     body = r.json()
 
     assert body['director_distribution'] == [
-        {'kinopoisk_id': 525, 'name': 'Кристофер Нолан', 'count': 3},
-        {'kinopoisk_id': 594, 'name': 'Wes Anderson', 'count': 2},
+        {
+            'kinopoisk_id': 525,
+            'name': 'Кристофер Нолан',
+            'poster_url': 'https://example.com/nolan.jpg',
+            'count': 3,
+        },
+        {
+            'kinopoisk_id': 594,
+            'name': 'Wes Anderson',
+            'poster_url': None,
+            'count': 2,
+        },
     ]
     assert body['franchise_distribution'] == [
         {'franchise_key': franchise_key, 'label': 'Matrix', 'count': 2},
@@ -765,6 +778,7 @@ async def test_user_stats_director_distribution_capped_at_twenty(
     user_id = UUID(str(me['id']))
     top_director_kinopoisk_id = 5292001
     top_director_name = 'Top Director'
+    top_director_poster_url = 'https://example.com/top-director.jpg'
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -780,6 +794,7 @@ async def test_user_stats_director_distribution_capped_at_twenty(
                 countries=[],
                 primary_director_kinopoisk_id=top_director_kinopoisk_id,
                 primary_director_name=top_director_name,
+                primary_director_poster_url=top_director_poster_url,
             )
             session.add(film)
             await session.flush()
@@ -836,6 +851,7 @@ async def test_user_stats_director_distribution_capped_at_twenty(
     assert body['director_distribution'][0] == {
         'kinopoisk_id': top_director_kinopoisk_id,
         'name': top_director_name,
+        'poster_url': top_director_poster_url,
         'count': 25,
     }
 

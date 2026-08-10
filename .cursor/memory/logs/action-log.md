@@ -18,6 +18,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-10T233500Z-profile-stats-people-restructure-closeout.md`
+- `2026-08-10T224800Z-film-hls-playback-closeout.md`
 - `2026-08-10-search-catalog-redesign-closeout.md`
 - `2026-08-10-profile-directors-top20-closeout.md`
 - `2026-08-10-profile-actors-top20-closeout.md`
@@ -41,5 +43,3 @@
 - `2026-08-04T024100Z-director-catalog-pages-code.md`
 - `2026-08-04T011600Z-offline-feed-cache-code.md`
 - `2026-08-04T011600Z-catalog-community-page-code.md`
-- `2026-07-29T014500Z-social-depth-pack-controversy-enrich-stored-code.md`
-- `2026-07-29T014200Z-pet-project-micro-fun-code.md`

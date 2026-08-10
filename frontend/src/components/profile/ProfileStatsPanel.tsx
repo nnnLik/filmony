@@ -1,4 +1,4 @@
-import { Avatar, Button } from '@telegram-apps/telegram-ui'
+import { Avatar } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
@@ -6,10 +6,8 @@ import { Link } from 'react-router'
 import { ApiError, formatApiDetail } from '../../api/client'
 import { getUserCards, getUserPublicCardCategories } from '../../api/profileApi'
 import type {
-  ActorDistributionItem,
   CardCompany,
   CardMoodAfter,
-  DirectorDistributionItem,
   MovieCard,
   ProfileInsightItem,
   ProfileStatsMovieItem,
@@ -17,9 +15,9 @@ import type {
   TagDistributionItem,
   TagTasteItem,
   UserMovieCardStats,
-  ValueDistributionItem,
 } from '../../api/profileTypes'
 import { profileStatsMoviePrimaryTitle } from '../../lib/movieCardDisplay'
+import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 import { mergeShelfDistributionWithMetadata } from '../../lib/profileShelfDistribution'
 import {
   aggregateYearDistributionToDecades,
@@ -49,7 +47,7 @@ import {
   TagBubbleChart,
   TastePolarityChart,
 } from './ProfileStatsCharts'
-import { ProfileStatsMetricStrip, ProfileStatsSectionCard, ProfileStatsSummaryCard } from './ProfileStatsSummaryCard'
+import { ProfileStatsMetricStrip, ProfileStatsSectionCard } from './ProfileStatsSummaryCard'
 import { TasteQuizKnowledgeList } from '../tasteQuiz/TasteQuizKnowledgeList'
 import { TabEmptyState } from '../ui/TabEmptyState'
 import { listTasteQuizKnowledge } from '../../api/tasteQuizApi'
@@ -61,14 +59,13 @@ import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQue
 import { ProfilePassportPanel } from './gamification/ProfilePassportPanel'
 import { AchievementsPanel } from './AchievementsPanel'
 
-type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'collection' | 'achievements'
+type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'rewards'
 
 const BASE_STATS_SUB_TABS: { id: StatsSubTab; label: string }[] = [
   { id: 'overview', label: 'Обзор' },
   { id: 'taste', label: 'Вкус' },
   { id: 'social', label: 'Социальность' },
   { id: 'rankings', label: 'Рейтинги' },
-  { id: 'collection', label: 'Коллекция' },
 ]
 
 type ProfileStatsPanelProps = {
@@ -103,8 +100,6 @@ const MOOD_AFTER_LABELS: Record<string, string> = {
   wasted_time: 'Зря время',
 }
 
-const COLLAPSED_DISTRIBUTION_LIST_LIMIT = 10
-
 function personInitials(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean)
   if (parts.length >= 2) {
@@ -117,120 +112,64 @@ function distributionFilmsLabel(count: number): string {
   return `${count} ${count === 1 ? 'фильм' : count < 5 ? 'фильма' : 'фильмов'}`
 }
 
-function DirectorDistributionList({
-  directors,
-  userId,
-}: {
-  directors: DirectorDistributionItem[]
-  userId: string
-}) {
-  const [expanded, setExpanded] = useState(false)
-  const visible = directors.filter((director) => director.count > 0)
-  const canCollapse = visible.length > COLLAPSED_DISTRIBUTION_LIST_LIMIT
-  const displayed =
-    canCollapse && !expanded ? visible.slice(0, COLLAPSED_DISTRIBUTION_LIST_LIMIT) : visible
-  const hiddenCount = visible.length - COLLAPSED_DISTRIBUTION_LIST_LIMIT
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-2xl">
-      <ul className="divide-y divide-(--tgui--divider_color)">
-        {displayed.map((director) => {
-          const directorHref =
-            userId !== ''
-              ? `/directors/${director.kinopoisk_id}?userId=${encodeURIComponent(userId)}`
-              : `/directors/${director.kinopoisk_id}`
-          return (
-          <li key={director.kinopoisk_id}>
-            <Link
-              to={directorHref}
-              className="flex items-center gap-3 px-3 py-2.5 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color) sm:py-3"
-            >
-              <Avatar acronym={personInitials(director.name)} size={36} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-(--tgui--text_color)">{director.name}</p>
-                <p className="text-xs tabular-nums text-(--tgui--hint_color)">
-                  {distributionFilmsLabel(director.count)}
-                </p>
-              </div>
-              <span className="shrink-0 text-base font-semibold tabular-nums text-(--tgui--link_color) sm:text-lg">
-                {director.count}
-              </span>
-            </Link>
-          </li>
-          )
-        })}
-      </ul>
-      {canCollapse && !expanded ? (
-        <Button
-          className="rounded-none! border-t border-(--tgui--divider_color)"
-          mode="gray"
-          stretched
-          onClick={() => setExpanded(true)}
-        >
-          Показать ещё {hiddenCount}
-        </Button>
-      ) : null}
-    </div>
-  )
+type PersonDistributionStripItem = {
+  kinopoisk_id: number
+  name: string
+  count: number
+  poster_url?: string | null
 }
 
-function ActorDistributionList({
-  actors,
+function personPosterSrc(posterUrl: string | null | undefined): string | undefined {
+  const trimmed = posterUrl?.trim()
+  if (trimmed == null || trimmed === '') return undefined
+  return resolveApiMediaUrl(trimmed) ?? trimmed
+}
+
+function PersonDistributionStrip({
+  items,
   userId,
+  personKind,
 }: {
-  actors: ActorDistributionItem[]
+  items: PersonDistributionStripItem[]
   userId: string
+  personKind: 'directors' | 'actors'
 }) {
-  const [expanded, setExpanded] = useState(false)
-  const visible = actors.filter((actor) => actor.count > 0)
-  const canCollapse = visible.length > COLLAPSED_DISTRIBUTION_LIST_LIMIT
-  const displayed =
-    canCollapse && !expanded ? visible.slice(0, COLLAPSED_DISTRIBUTION_LIST_LIMIT) : visible
-  const hiddenCount = visible.length - COLLAPSED_DISTRIBUTION_LIST_LIMIT
+  const visible = items.filter((item) => item.count > 0)
+  if (visible.length === 0) return null
 
   return (
-    <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-2xl">
-      <ul className="divide-y divide-(--tgui--divider_color)">
-        {displayed.map((actor) => {
-          const actorHref =
-            userId !== ''
-              ? `/actors/${actor.kinopoisk_id}?userId=${encodeURIComponent(userId)}`
-              : `/actors/${actor.kinopoisk_id}`
-          return (
-            <li key={actor.kinopoisk_id}>
-              <Link
-                to={actorHref}
-                className="flex items-center gap-3 px-3 py-2.5 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color) sm:py-3"
-              >
-                <Avatar
-                  src={actor.poster_url ?? undefined}
-                  acronym={personInitials(actor.name)}
-                  size={36}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-(--tgui--text_color)">{actor.name}</p>
-                  <p className="text-xs tabular-nums text-(--tgui--hint_color)">
-                    {distributionFilmsLabel(actor.count)}
-                  </p>
-                </div>
-                <span className="shrink-0 text-base font-semibold tabular-nums text-(--tgui--link_color) sm:text-lg">
-                  {actor.count}
-                </span>
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
-      {canCollapse && !expanded ? (
-        <Button
-          className="rounded-none! border-t border-(--tgui--divider_color)"
-          mode="gray"
-          stretched
-          onClick={() => setExpanded(true)}
-        >
-          Показать ещё {hiddenCount}
-        </Button>
-      ) : null}
+    <div
+      className="-mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-px-2 px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      role="list"
+    >
+      {visible.map((item) => {
+        const href =
+          userId !== ''
+            ? `/${personKind}/${item.kinopoisk_id}?userId=${encodeURIComponent(userId)}`
+            : `/${personKind}/${item.kinopoisk_id}`
+        return (
+          <Link
+            key={item.kinopoisk_id}
+            to={href}
+            role="listitem"
+            className="group flex w-[4.75rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl px-1 py-1 no-underline text-(--tgui--text_color) transition-[background,transform] duration-200 ease-out active:scale-[0.98] hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_08%,transparent)]"
+          >
+            <div className="relative flex size-[52px] shrink-0 items-center justify-center rounded-full bg-(--tgui--bg_color) shadow-[0_0_0_1px_color-mix(in_srgb,var(--tgui--divider_color)_80%,transparent)] transition-shadow duration-200 group-hover:shadow-[0_0_0_2px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]">
+              <Avatar
+                size={48}
+                src={personPosterSrc(item.poster_url)}
+                acronym={personInitials(item.name)}
+              />
+            </div>
+            <span className="line-clamp-2 w-full text-center text-[11px] font-medium leading-tight">
+              {item.name}
+            </span>
+            <span className="line-clamp-2 w-full text-center text-[10px] leading-tight text-(--tgui--hint_color)">
+              {distributionFilmsLabel(item.count)}
+            </span>
+          </Link>
+        )
+      })}
     </div>
   )
 }
@@ -446,11 +385,11 @@ export function ProfileStatsPanel({
 }: ProfileStatsPanelProps) {
   const statsSubTabs = useMemo(() => {
     const tabs = [...BASE_STATS_SUB_TABS]
-    if (showAchievements) {
-      tabs.push({ id: 'achievements', label: 'Достижения' })
+    if (showAchievements || showPassportCollection) {
+      tabs.push({ id: 'rewards', label: 'Награды' })
     }
     return tabs
-  }, [showAchievements])
+  }, [showAchievements, showPassportCollection])
   const [statsSubTab, setStatsSubTab] = useState<StatsSubTab>('overview')
   const [activityShelfId, setActivityShelfId] = useState('')
   const [tasteQuizTeaserItems, setTasteQuizTeaserItems] = useState<TasteQuizKnowledgeItem[]>([])
@@ -646,42 +585,6 @@ export function ProfileStatsPanel({
       { label: 'Средний балл', value: avg },
     ]
   }, [stats])
-
-  const watchSummaryRows = useMemo(() => {
-    const raw: ValueDistributionItem[] = stats?.watch_with_distribution ?? []
-    const narrowed =
-      cardsQuery.company === '' ? raw : raw.filter((item) => item.value === cardsQuery.company)
-    return narrowed.map((item) => {
-      const v = item.value as CardCompany
-      return {
-        label: COMPANY_LABELS[item.value] ?? item.value,
-        value: String(item.count),
-        onActivate: () => {
-          const nextCompany: CardCompany | '' = cardsQuery.company === v ? '' : v
-          onCardsQueryChange({ ...cardsQuery, company: nextCompany })
-          onDrillToRatedCards?.()
-        },
-      }
-    })
-  }, [stats, cardsQuery, onCardsQueryChange, onDrillToRatedCards])
-
-  const moodSummaryRows = useMemo(() => {
-    const raw: ValueDistributionItem[] = stats?.mood_after_distribution ?? []
-    const narrowed =
-      cardsQuery.moodAfter === '' ? raw : raw.filter((item) => item.value === cardsQuery.moodAfter)
-    return narrowed.map((item) => {
-      const v = item.value as CardMoodAfter
-      return {
-        label: MOOD_AFTER_LABELS[item.value] ?? item.value,
-        value: String(item.count),
-        onActivate: () => {
-          const nextMood: CardMoodAfter | '' = cardsQuery.moodAfter === v ? '' : v
-          onCardsQueryChange({ ...cardsQuery, moodAfter: nextMood })
-          onDrillToRatedCards?.()
-        },
-      }
-    })
-  }, [stats, cardsQuery, onCardsQueryChange, onDrillToRatedCards])
 
   const handleDecadeDistributionDrill = (decadeStartValue: string) => {
     const decadeStart = Number(decadeStartValue)
@@ -926,9 +829,10 @@ export function ProfileStatsPanel({
           <ProfileStatsSectionCard title="По режиссёрам">
             {(stats.director_distribution ?? []).some((director) => director.count > 0) ? (
               <div className="space-y-3">
-                <DirectorDistributionList
-                  directors={stats.director_distribution ?? []}
+                <PersonDistributionStrip
+                  items={stats.director_distribution ?? []}
                   userId={userId}
+                  personKind="directors"
                 />
                 {stats.insights?.top_director_kinopoisk_id != null ? (
                   <Link
@@ -957,7 +861,11 @@ export function ProfileStatsPanel({
           <ProfileStatsSectionCard title="По актёрам">
             {(stats.actor_distribution ?? []).some((actor) => actor.count > 0) ? (
               <div className="space-y-3">
-                <ActorDistributionList actors={stats.actor_distribution ?? []} userId={userId} />
+                <PersonDistributionStrip
+                  items={stats.actor_distribution ?? []}
+                  userId={userId}
+                  personKind="actors"
+                />
                 {stats.insights?.top_actor_kinopoisk_id != null ? (
                   <Link
                     to={`/actors/${stats.insights.top_actor_kinopoisk_id}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
@@ -1060,26 +968,6 @@ export function ProfileStatsPanel({
             </div>
           </ProfileStatsSectionCard>
 
-          {watchSummaryRows.length > 0 ? (
-            <ProfileStatsSummaryCard title="С кем смотрите" rows={watchSummaryRows} />
-          ) : (
-            <ProfileStatsSectionCard title="С кем смотрите">
-              <p className="text-sm text-(--tgui--hint_color)">
-                {cardsQuery.company === '' ? 'Пока нет данных' : 'Нет совпадающего среза среди этого профиля.'}
-              </p>
-            </ProfileStatsSectionCard>
-          )}
-
-          {moodSummaryRows.length > 0 ? (
-            <ProfileStatsSummaryCard title="Эмоции после" rows={moodSummaryRows} />
-          ) : (
-            <ProfileStatsSectionCard title="Эмоции после">
-              <p className="text-sm text-(--tgui--hint_color)">
-                {cardsQuery.moodAfter === '' ? 'Пока нет данных' : 'Нет строки настроения, совпадающей с фильтром.'}
-              </p>
-            </ProfileStatsSectionCard>
-          )}
-
           <ProfileStatsSectionCard title="Похожие профили">
             <SocialTastePeers peers={tastePeers} />
           </ProfileStatsSectionCard>
@@ -1136,15 +1024,18 @@ export function ProfileStatsPanel({
         </>
       ) : null}
 
-      {statsSubTab === 'collection' && showPassportCollection ? (
-        <ProfilePassportPanel
-          userId={userId}
-          isOwnProfile={showTasteQuizTeaser}
-          onMarathonDrill={onMarathonDrill}
-        />
+      {statsSubTab === 'rewards' ? (
+        <>
+          {showPassportCollection ? (
+            <ProfilePassportPanel
+              userId={userId}
+              isOwnProfile={showTasteQuizTeaser}
+              onMarathonDrill={onMarathonDrill}
+            />
+          ) : null}
+          {showAchievements ? <AchievementsPanel /> : null}
+        </>
       ) : null}
-
-      {statsSubTab === 'achievements' && showAchievements ? <AchievementsPanel /> : null}
     </div>
   )
 }
