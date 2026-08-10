@@ -9,7 +9,10 @@ import pytest
 
 from services.watch_parties.helpers import expected_playback_ms
 from services.watch_parties.watch_party_member_positions import persist_member_position
-from services.watch_parties.watch_party_redis import batch_member_positions, reset_watch_party_redis_for_tests
+from services.watch_parties.watch_party_redis import (
+    batch_member_positions,
+    reset_watch_party_redis_for_tests,
+)
 
 
 @pytest.fixture(autouse=True)
