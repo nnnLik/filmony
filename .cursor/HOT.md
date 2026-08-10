@@ -19,16 +19,17 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Feature: `.cursor/features/standalone-web-telegram-login/feature.md`
    - Active: `.cursor/active/standalone-web-telegram-login/`
    - Docs: `docs/features/standalone-web-telegram-login.md`
-2. `personal-digest-redesign` — closed 2026-08-08T001000Z
+2. `film-cast-store-all` — closed 2026-08-10T113900Z
+   - Feature: `.cursor/features/film-cast-store-all/feature.md`
+   - Active: `.cursor/active/film-cast-store-all/`
+   - Docs: `docs/features/film-cast-store-all.md`
+3. `personal-digest-redesign` — closed 2026-08-08T001000Z
    - Feature: `.cursor/features/personal-digest-redesign/feature.md`
    - Active: `.cursor/active/personal-digest-redesign/`
    - Docs: `docs/features/personal-digest-redesign.md`
-3. `actor-cast-profile-stats` — closed 2026-08-07T232200Z
-   - Feature: `.cursor/features/actor-cast-profile-stats/feature.md`
-   - Active: `.cursor/active/actor-cast-profile-stats/`
-   - Docs: `docs/features/actor-cast-profile-stats.md`
 
 ## evicted (queue for archive)
+- `actor-cast-profile-stats` — evicted from recent_completed top-3 on 2026-08-10T120000Z (was #3)
 - `profile-streak-stats-legend-ux` — evicted from recent_completed top-3 on 2026-08-10T120000Z (was #3)
 - `backend-test-unit-integration-split` — evicted from recent_completed top-3 on 2026-08-08T001000Z (was #3)
 - `frontend-refactor-ux-polish` — evicted from recent_completed top-3 on 2026-08-07T232200Z (was #3)

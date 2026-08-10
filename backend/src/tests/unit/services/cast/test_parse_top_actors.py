@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from providers.kinopoisk.kinopoisk_staff_dto import KinopoiskStaffMemberDTO
-from services.cast.parse_top_actors import MAX_TOP_ACTORS, parse_top_actors
+from services.cast.parse_top_actors import parse_top_actors
 
 
 def _staff_member(
@@ -42,16 +42,18 @@ def test_parse_top_actors_filters_and_preserves_order() -> None:
     assert actors[2].kinopoisk_id == 5
 
 
-def test_parse_top_actors_limits_to_ten() -> None:
+def test_parse_top_actors_returns_all_named_actors_in_order() -> None:
     staff = tuple(
         _staff_member(i, profession_key='ACTOR', name_ru=f'Actor {i}') for i in range(1, 15)
     )
 
     actors = parse_top_actors(staff)
 
-    assert len(actors) == MAX_TOP_ACTORS
+    assert len(actors) == 14
     assert actors[0].kinopoisk_id == 1
-    assert actors[-1].kinopoisk_id == 10
+    assert actors[0].billing_order == 1
+    assert actors[-1].kinopoisk_id == 14
+    assert actors[-1].billing_order == 14
 
 
 def test_parse_top_actors_skips_actors_without_name() -> None:
