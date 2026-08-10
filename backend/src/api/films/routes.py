@@ -16,6 +16,7 @@ from api.films.schemas import (
     FilmCommunityAuthorResponse,
     FilmCommunityCardItemResponse,
     FilmCommunityCardsPageResponse,
+    FilmPlaybackResponse,
     FilmResolveRequest,
     FilmResponse,
 )
@@ -28,6 +29,7 @@ from services.collections.list_collections import CollectionSummaryDTO
 from services.collections.list_film_collections import ListFilmCollectionsService
 from services.films.get_film_by_id import GetFilmByIdService
 from services.films.list_film_community_cards import ListFilmCommunityCardsService
+from services.films.resolve_film_playback import FilmPlaybackDTO, ResolveFilmPlaybackService
 from services.franchises.franchise_label import resolve_franchise_label
 from services.kinopoisk.resolve_kinopoisk_film import (
     KinopoiskClientError,
@@ -36,6 +38,17 @@ from services.kinopoisk.resolve_kinopoisk_film import (
 )
 
 router = APIRouter(prefix='/films', tags=['films'])
+
+
+def _film_playback_response(dto: FilmPlaybackDTO) -> FilmPlaybackResponse:
+    return FilmPlaybackResponse(
+        provider=dto.provider,
+        title=dto.title,
+        iframe_url=dto.iframe_url,
+        film_id=dto.film_id,
+        kinopoisk_id=dto.kinopoisk_id,
+        expires_at=dto.expires_at,
+    )
 
 
 def _collection_progress_response(
@@ -195,6 +208,27 @@ async def list_film_following_ratings(
     except ListFollowingRatingsForTitleService.InvalidTitleRef:
         raise HTTPException(status_code=422, detail='invalid title ref') from None
     return following_ratings_list_response(result)
+
+
+@router.get(
+    '/{film_id}/playback',
+    response_model=FilmPlaybackResponse,
+    summary='Получить embed-источник для просмотра фильма',
+)
+async def get_film_playback(
+    film_id: int,
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FilmPlaybackResponse:
+    try:
+        dto = await ResolveFilmPlaybackService.build(db).execute(film_id, viewer.id)
+    except ResolveFilmPlaybackService.FilmNotFound:
+        raise HTTPException(status_code=404, detail='film_not_found') from None
+    except ResolveFilmPlaybackService.PlaybackUnavailable:
+        raise HTTPException(status_code=422, detail='playback_unavailable') from None
+    except ResolveFilmPlaybackService.PlaybackProviderError:
+        raise HTTPException(status_code=502, detail='playback_provider_error') from None
+    return _film_playback_response(dto)
 
 
 @router.get('/{film_id}', response_model=FilmResponse, summary='Получить фильм по id')

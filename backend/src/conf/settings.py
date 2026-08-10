@@ -122,6 +122,12 @@ class CatalogCacheSettings(BaseSettings):
     resolve_ttl_seconds: int = Field(60, alias='CATALOG_CACHE_RESOLVE_TTL_SECONDS')
 
 
+class PlaybackSettings(BaseSettings):
+    enabled: bool = Field(True, alias='PLAYBACK_ENABLED')
+    pleer_video_api_base_url: str = Field('https://pleer.video', alias='PLEER_VIDEO_API_BASE_URL')
+    cache_ttl_seconds: int = Field(600, alias='PLAYBACK_CACHE_TTL_SECONDS')
+
+
 @dataclass
 class Settings:
     app: AppSettings
@@ -134,6 +140,7 @@ class Settings:
     reaction_media: ReactionMediaSettings
     celery: CelerySettings
     catalog_cache: CatalogCacheSettings
+    playback: PlaybackSettings
 
     @classmethod
     def build(cls) -> Self:
@@ -148,6 +155,7 @@ class Settings:
             reaction_media=ReactionMediaSettings(),
             celery=CelerySettings(),
             catalog_cache=CatalogCacheSettings(),
+            playback=PlaybackSettings(),
         )
 
 

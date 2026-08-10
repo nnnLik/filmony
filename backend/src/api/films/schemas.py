@@ -68,3 +68,12 @@ class FilmCommunityCardItemResponse(BaseModel):
 class FilmCommunityCardsPageResponse(BaseModel):
     items: list[FilmCommunityCardItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
+
+
+class FilmPlaybackResponse(BaseModel):
+    provider: str
+    title: str
+    iframe_url: str
+    film_id: int
+    kinopoisk_id: int
+    expires_at: datetime

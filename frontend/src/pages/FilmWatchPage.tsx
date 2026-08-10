@@ -1,23 +1,30 @@
-import { ArrowLeft, Play } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { getFilmById } from '../api/cardApi'
+import { getFilmPlayback, type FilmPlaybackResponse } from '../api/filmPlaybackApi'
 import { ApiError, formatApiDetail } from '../api/client'
-import type { Film } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
+import { openExternalUrl } from '../lib/openExternalUrl'
 
-function filmErrorMessage(error: unknown): string {
+function playbackErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 404) {
       return 'Фильм не найден'
     }
+    if (error.status === 422 || error.detail === 'playback_unavailable') {
+      return 'Смотреть недоступно для этого фильма'
+    }
+    if (error.status >= 500) {
+      return 'Не удалось загрузить плеер. Попробуйте позже'
+    }
     return formatApiDetail(error.detail)
   }
-  return 'Не удалось загрузить фильм'
+  return 'Не удалось загрузить плеер. Попробуйте позже'
 }
 
 export function FilmWatchPage() {
@@ -26,10 +33,10 @@ export function FilmWatchPage() {
   const { filmId: filmIdRaw } = useParams<{ filmId: string }>()
   const filmId = Number(filmIdRaw)
 
-  const filmQuery = useQuery<Film, Error>({
-    queryKey: ['film', filmId],
+  const playbackQuery = useQuery<FilmPlaybackResponse, Error>({
+    queryKey: ['film-playback', filmId],
     enabled: auth.kind === 'ready' && Number.isFinite(filmId) && filmId > 0,
-    queryFn: () => getFilmById(filmId),
+    queryFn: () => getFilmPlayback(filmId),
     retry: false,
   })
 
@@ -47,49 +54,50 @@ export function FilmWatchPage() {
     return <PageErrorState message="Фильм не найден" className="min-h-dvh bg-black" />
   }
 
-  if (filmQuery.isLoading) {
-    return <PageLoadingState message="Загрузка…" className="min-h-dvh bg-black" />
+  if (playbackQuery.isLoading) {
+    return <PageLoadingState message="Загрузка плеера…" className="min-h-dvh bg-black" />
   }
 
-  if (filmQuery.isError) {
+  if (playbackQuery.isError) {
     return (
       <div className="flex min-h-dvh flex-col bg-black text-white">
         <WatchHeader filmId={filmId} title="Просмотр" />
-        <PageErrorState message={filmErrorMessage(filmQuery.error)} className="flex-1 bg-black" />
+        <PageErrorState message={playbackErrorMessage(playbackQuery.error)} className="flex-1 bg-black" />
       </div>
     )
   }
 
-  const film = filmQuery.data
-  if (!film) {
+  const playback = playbackQuery.data
+  if (!playback) {
     return null
   }
 
   return (
     <div className="flex min-h-dvh flex-col bg-black text-white">
-      <WatchHeader filmId={filmId} title={film.title} />
+      <WatchHeader filmId={filmId} title={playback.title} />
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 pb-8 pt-2">
-        <div className="relative flex aspect-video w-full items-center justify-center rounded-lg bg-white/5">
-          <Play className="size-12 text-white/30" />
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+          <iframe
+            title={`Просмотр: ${playback.title}`}
+            src={playback.iframe_url}
+            className="absolute inset-0 size-full border-0"
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+          />
         </div>
-        <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-5 text-center">
-          <p className="text-base font-semibold">Просмотр скоро появится</p>
-          <p className="text-sm text-(--tgui--hint_color)">
-            Интерфейс готов — подключим воспроизведение в одном из следующих обновлений.
-          </p>
-        </div>
-        <label className="flex flex-col gap-1 text-sm opacity-50">
-          <span className="text-(--tgui--hint_color)">Озвучка</span>
-          <select className="rounded-lg border border-white/15 bg-black px-3 py-2" disabled defaultValue="">
-            <option value="">Скоро</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm opacity-50">
-          <span className="text-(--tgui--hint_color)">Качество</span>
-          <select className="rounded-lg border border-white/15 bg-black px-3 py-2" disabled defaultValue="">
-            <option value="">Скоро</option>
-          </select>
-        </label>
+        <Button
+          mode="gray"
+          stretched
+          onClick={() => {
+            openExternalUrl(playback.iframe_url)
+          }}
+        >
+          Открыть в браузере
+        </Button>
+        <p className="text-center text-xs text-(--tgui--hint_color)">
+          Если плеер не загрузился в Telegram, откройте просмотр во внешнем браузере.
+        </p>
       </div>
     </div>
   )
