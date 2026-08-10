@@ -298,21 +298,36 @@ class GetUserCardStatsService:
                 key=lambda item: (-item[1][1], item[1][0]),
             )
         ]
+        rated_cards = (
+            select(
+                UserCard.id.label('card_id'),
+                UserCard.film_id,
+            ).where(UserCard.user_id == user_id, *_rated_card_filters())
+        ).cte('rated_cards')
+        actor_counts = (
+            select(
+                FilmActor.person_id,
+                func.count(rated_cards.c.card_id).label('actor_count'),
+            )
+            .select_from(rated_cards)
+            .join(FilmActor, FilmActor.film_id == rated_cards.c.film_id)
+            .group_by(FilmActor.person_id)
+        ).subquery('actor_counts')
         actor_rows = (
             await self._session.execute(
                 select(
                     Person.kinopoisk_id,
                     Person.name,
                     Person.poster_url,
-                    func.count(UserCard.id),
+                    actor_counts.c.actor_count,
                 )
-                .select_from(UserCard)
-                .join(Film, Film.id == UserCard.film_id)
-                .join(FilmActor, FilmActor.film_id == Film.id)
-                .join(Person, Person.id == FilmActor.person_id)
-                .where(UserCard.user_id == user_id, *_rated_card_filters())
-                .group_by(Person.kinopoisk_id, Person.name, Person.poster_url)
-                .order_by(desc(func.count(UserCard.id)), Person.name, Person.kinopoisk_id)
+                .select_from(actor_counts)
+                .join(Person, Person.id == actor_counts.c.person_id)
+                .order_by(
+                    desc(actor_counts.c.actor_count),
+                    Person.name,
+                    Person.kinopoisk_id,
+                )
                 .limit(20)
             )
         ).all()

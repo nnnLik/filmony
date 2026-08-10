@@ -158,4 +158,12 @@ class UserCard(Base):
             postgresql_ops={'favorite_marked_at': 'DESC NULLS LAST', 'id': 'DESC'},
             postgresql_where=text('is_favorite IS TRUE'),
         ),
+        Index(
+            'ix_user_card_user_rated_films',
+            'user_id',
+            'film_id',
+            postgresql_where=text(
+                'is_planned IS FALSE AND rating >= 1 AND film_id IS NOT NULL',
+            ),
+        ),
     )
