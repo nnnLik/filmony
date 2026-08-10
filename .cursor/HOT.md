@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-08T001000Z
+Updated: 2026-08-10T113100Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -13,6 +13,9 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
 3. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
    - Feature: `.cursor/features/achievements-rarity-profile-pins/feature.md`
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
+4. `standalone-web-telegram-login` — standalone web sign-in via Telegram Login Widget
+   - Feature: `.cursor/features/standalone-web-telegram-login/feature.md`
+   - Active: `.cursor/active/standalone-web-telegram-login/`
 
 ## recent_completed
 1. `personal-digest-redesign` — closed 2026-08-08T001000Z
