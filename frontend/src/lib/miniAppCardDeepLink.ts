@@ -43,7 +43,6 @@ export function parseMiniAppWatchlistStartParam(startParam: string): string | nu
   return null
 }
 
-/** Parses Telegram mini-app start_param for film community deeplinks (`f…`). */
 export function parseMiniAppFilmStartParam(startParam: string): number | null {
   const sp = startParam.trim()
   if (sp === '') return null
@@ -52,6 +51,29 @@ export function parseMiniAppFilmStartParam(startParam: string): number | null {
   const filmId = Number(compact[1])
   if (!Number.isInteger(filmId) || filmId < 1) return null
   return filmId
+}
+
+/** Parses Telegram mini-app start_param for watch party deeplinks (`wp…`). */
+export function parseMiniAppWatchPartyStartParam(startParam: string): string | null {
+  const sp = startParam.trim()
+  if (sp === '') return null
+  const prefixed = /^wp[-_](.+)$/i.exec(sp)
+  if (prefixed != null && prefixed[1] != null) {
+    return prefixed[1]
+  }
+  const compact = /^wp([A-Za-z0-9_-]+)$/i.exec(sp)
+  if (compact != null && compact[1] != null) {
+    return compact[1]
+  }
+  return null
+}
+
+export function buildMiniAppWatchPartyDeepLink(inviteSlug: string): string | null {
+  const trimmed = inviteSlug.trim()
+  if (trimmed === '') return null
+  const bot = normalizeBotUsername(import.meta.env.VITE_TELEGRAM_BOT_USERNAME)
+  if (bot == null) return null
+  return `https://t.me/${bot}/app?startapp=wp${trimmed}`
 }
 
 export function buildMiniAppFilmDeepLink(filmId: number): string | null {
@@ -168,6 +190,11 @@ export function resolveStartParamToPath(startParam: string): StartParamRouteTarg
   const sp = startParam.trim()
   if (sp === '') {
     return null
+  }
+
+  const watchPartySlug = parseMiniAppWatchPartyStartParam(sp)
+  if (watchPartySlug != null) {
+    return { path: `/watch-party/${encodeURIComponent(watchPartySlug)}` }
   }
 
   const watchlistCardId = parseMiniAppWatchlistStartParam(sp)

@@ -30,6 +30,7 @@ from api.reactions.routes import router as reactions_router
 from api.search.routes import router as search_router
 from api.streaks.routes import me_streak_router, streaks_router
 from api.taste_quiz.routes import router as taste_quiz_router
+from api.watch_parties.routes import router as watch_parties_router
 from api.watchlist.routes import router as watchlist_router
 from deps.auth import CurrentUser
 from models.user import User
@@ -49,6 +50,7 @@ router.include_router(profile_me_router)
 router.include_router(achievements_router)
 router.include_router(profile_users_router)
 router.include_router(watchlist_router)
+router.include_router(watch_parties_router)
 router.include_router(taste_quiz_router)
 router.include_router(streaks_router)
 router.include_router(me_streak_router)

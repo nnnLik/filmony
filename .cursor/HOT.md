@@ -1,14 +1,10 @@
 # HOT — Cursor session memory
-Updated: 2026-08-11T011500Z
+Updated: 2026-08-11T014500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
 ## in_progress
-1. `film-watch-party` — live co-view: room, chat, presence, host sync (SSE + REST)
-   - Feature: `.cursor/features/film-watch-party/feature.md`
-   - Active: `.cursor/active/film-watch-party/`
-   - Spec: `docs/superpowers/specs/2026-08-11-film-watch-party-design.md`
-2. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
+1. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
    - Feature: `.cursor/features/film-radarr-playback/feature.md`
    - Active: `.cursor/active/film-radarr-playback/`
    - Spec: `docs/superpowers/specs/2026-08-10-film-radarr-torrent-stack-design.md`
@@ -23,21 +19,21 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `film-pleer-playback` — closed 2026-08-11T005500Z
+1. `film-watch-party` — closed 2026-08-11T014500Z
+   - Feature: `.cursor/features/film-watch-party/feature.md`
+   - Active: `.cursor/active/film-watch-party/`
+   - Docs: `docs/features/film-watch-party.md`
+2. `film-pleer-playback` — closed 2026-08-11T005500Z
    - Feature: `.cursor/features/film-pleer-playback/feature.md`
    - Active: `.cursor/active/film-pleer-playback/`
    - Docs: `docs/features/film-pleer-playback.md`
-2. `profile-header-text-metrics` — closed 2026-08-10T235000Z
+3. `profile-header-text-metrics` — closed 2026-08-10T235000Z
    - Feature: `.cursor/features/profile-header-text-metrics/feature.md`
    - Active: `.cursor/active/profile-header-text-metrics/`
    - Docs: `docs/features/profile-header-text-metrics.md`
-3. `profile-stats-people-restructure` — closed 2026-08-10T233500Z
-   - Feature: `.cursor/features/profile-stats-people-restructure/feature.md`
-   - Active: `.cursor/active/profile-stats-people-restructure/`
-   - Docs: `docs/features/profile-stats-people-restructure.md`
 
 ## evicted (queue for archive)
-- `film-hls-playback` — evicted from recent_completed top-3 on 2026-08-11T005500Z (was #3)
+- `profile-stats-people-restructure` — evicted from recent_completed top-3 on 2026-08-11T014500Z (was #3)
 - `search-catalog-redesign` — evicted from recent_completed top-3 on 2026-08-10T235000Z (was #3)
 - `profile-directors-top20` — evicted from recent_completed top-3 on 2026-08-10T233500Z (was #3)
 - `profile-actors-top20` — evicted from recent_completed top-3 on 2026-08-10T224800Z (was #3)

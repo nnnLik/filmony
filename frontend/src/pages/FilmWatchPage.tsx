@@ -10,6 +10,7 @@ import { useAuthStatus } from '../auth/useAuthStatus'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { openExternalUrl } from '../lib/openExternalUrl'
+import { useWatchPartyCreateFlow } from '../hooks/useWatchPartyCreateFlow'
 
 function playbackErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -39,6 +40,12 @@ export function FilmWatchPage() {
     queryFn: () => getFilmPlayback(filmId),
     retry: false,
   })
+
+  const { openSheet, sheet } = useWatchPartyCreateFlow(
+    Number.isFinite(filmId) && filmId > 0 ? filmId : 0,
+    playbackQuery.data?.title ?? '',
+    null,
+  )
 
   useEffect(() => {
     if (auth.kind === 'unauthenticated') {
@@ -102,6 +109,9 @@ export function FilmWatchPage() {
             referrerPolicy="no-referrer-when-downgrade"
           />
         </div>
+        <Button mode="bezeled" stretched onClick={openSheet}>
+          Смотреть вместе
+        </Button>
         <Button
           mode="gray"
           stretched
@@ -115,6 +125,7 @@ export function FilmWatchPage() {
           Если плеер не загрузился в Telegram, откройте просмотр во внешнем браузере.
         </p>
       </div>
+      {sheet}
     </div>
   )
 }

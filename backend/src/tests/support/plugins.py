@@ -13,6 +13,7 @@ from core.database import dispose_engine
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from services.feed.global_feed_head_broker import reset_global_feed_head_broker_for_tests
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
+from services.watch_parties.watch_party_broker import reset_watch_party_broker_for_tests
 from tests.support import db_setup
 from utils.app_utils import get_app, setup_app
 
@@ -73,6 +74,7 @@ def _noop_kinopoisk_staff_lookup() -> None:
 @pytest_asyncio.fixture
 async def prepare_db() -> None:
     reset_global_feed_head_broker_for_tests()
+    reset_watch_party_broker_for_tests()
     try:
         await db_setup.reset_worker_schema()
         await db_setup.create_all_tables()

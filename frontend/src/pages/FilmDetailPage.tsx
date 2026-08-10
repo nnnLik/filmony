@@ -29,6 +29,7 @@ import {
   type FollowingRatingRow,
 } from '../lib/followingRatingsDisplay'
 import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
+import { useWatchPartyCreateFlow } from '../hooks/useWatchPartyCreateFlow'
 import { formatRating } from '../components/feed/feedCardUtils'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
@@ -267,6 +268,12 @@ export function FilmDetailPage() {
     }
   }, [filmId])
 
+  const { openSheet, sheet } = useWatchPartyCreateFlow(
+    film?.id ?? 0,
+    film?.title ?? '',
+    film?.poster_url ?? null,
+  )
+
   useEffect(() => {
     if (viewerId != null) return
     let alive = true
@@ -351,9 +358,14 @@ export function FilmDetailPage() {
     auth.kind === 'ready' && film != null ? (
       <>
         {film.kinopoisk_id >= 1 ? (
-          <Link to={`/films/${encodeURIComponent(String(film.id))}/watch`} className="no-underline">
-            <Button stretched>Смотреть</Button>
-          </Link>
+          <>
+            <Link to={`/films/${encodeURIComponent(String(film.id))}/watch`} className="no-underline">
+              <Button stretched>Смотреть</Button>
+            </Link>
+            <Button mode="gray" stretched onClick={openSheet}>
+              Смотреть вместе
+            </Button>
+          </>
         ) : null}
         {hasMyRatedCard ? (
           <>
@@ -398,7 +410,8 @@ export function FilmDetailPage() {
     ) : null
 
   return (
-    <TitleCommunityDetailLayout
+    <>
+      <TitleCommunityDetailLayout
       headerLabel="Тема в каталоге"
       loading={loading}
       error={error}
@@ -439,5 +452,7 @@ export function FilmDetailPage() {
       }
       ready={film != null}
     />
+      {sheet}
+    </>
   )
 }

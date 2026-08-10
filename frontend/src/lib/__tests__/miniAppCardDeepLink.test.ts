@@ -53,6 +53,15 @@ describe('resolveStartParamToPath', () => {
     })
   })
 
+  it('resolves watch party deeplinks', () => {
+    expect(resolveStartParamToPath('wpabc123token')).toEqual({
+      path: '/watch-party/abc123token',
+    })
+    expect(resolveStartParamToPath('wp_abc123token')).toEqual({
+      path: '/watch-party/abc123token',
+    })
+  })
+
   it('resolves recap deeplinks', () => {
     expect(resolveStartParamToPath('mr2024-3')).toEqual({
       path: '/me/recap/2024/3',

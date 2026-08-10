@@ -128,6 +128,14 @@ class PlaybackSettings(BaseSettings):
     cache_ttl_seconds: int = Field(600, alias='PLAYBACK_CACHE_TTL_SECONDS')
 
 
+class WatchPartySettings(BaseSettings):
+    hard_max_members: int = Field(64, alias='WATCH_PARTY_HARD_MAX_MEMBERS')
+    max_active_per_user: int = Field(1, alias='WATCH_PARTY_MAX_ACTIVE_PER_USER')
+    ttl_hours: int = Field(12, alias='WATCH_PARTY_TTL_HOURS')
+    sse_ping_seconds: int = Field(25, alias='WATCH_PARTY_SSE_PING_SECONDS')
+    public_app_base_url: str = Field('http://localhost:5173', alias='PUBLIC_APP_BASE_URL')
+
+
 @dataclass
 class Settings:
     app: AppSettings
@@ -141,6 +149,7 @@ class Settings:
     celery: CelerySettings
     catalog_cache: CatalogCacheSettings
     playback: PlaybackSettings
+    watch_party: WatchPartySettings
 
     @classmethod
     def build(cls) -> Self:
@@ -156,6 +165,7 @@ class Settings:
             celery=CelerySettings(),
             catalog_cache=CatalogCacheSettings(),
             playback=PlaybackSettings(),
+            watch_party=WatchPartySettings(),
         )
 
 

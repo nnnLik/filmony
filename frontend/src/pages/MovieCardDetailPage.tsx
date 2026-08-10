@@ -49,6 +49,7 @@ import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAutho
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../api/streaksTypes'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useWatchPartyCreateFlow } from '../hooks/useWatchPartyCreateFlow'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN } from '../lib/commentReactionTokens'
@@ -879,6 +880,11 @@ function MovieCardDetailLoadedBody({
     card.film_id != null && card.film_id > 0 ? card.film_id : null
   const filmIdForWatch =
     filmIdForCollections != null && showKinopoiskLink ? filmIdForCollections : null
+  const { openSheet, sheet } = useWatchPartyCreateFlow(
+    filmIdForWatch ?? 0,
+    primaryTitle,
+    primaryPoster,
+  )
   const filmCollectionsQuery = useQuery<CollectionSummary[], Error>({
     queryKey: filmCollectionsQueryKey(filmIdForCollections ?? 0),
     queryFn: async () => {
@@ -1151,12 +1157,17 @@ function MovieCardDetailLoadedBody({
             </div>
 
             {filmIdForWatch != null ? (
-              <Link
-                to={`/films/${encodeURIComponent(String(filmIdForWatch))}/watch`}
-                className="filmony-card-detail-panel-enter block no-underline"
-              >
-                <Button stretched>Смотреть</Button>
-              </Link>
+              <>
+                <Link
+                  to={`/films/${encodeURIComponent(String(filmIdForWatch))}/watch`}
+                  className="filmony-card-detail-panel-enter block no-underline"
+                >
+                  <Button stretched>Смотреть</Button>
+                </Link>
+                <Button mode="gray" stretched onClick={openSheet}>
+                  Смотреть вместе
+                </Button>
+              </>
             ) : null}
 
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-1 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
@@ -1316,6 +1327,7 @@ function MovieCardDetailLoadedBody({
               }}
             />
           </div>
+      {sheet}
     </>
   )
 }
