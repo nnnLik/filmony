@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Self
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EnsureFilmCastService:
-    """Ensures top-10 Kinopoisk ACTOR cast rows exist for a film (idempotent)."""
+    """Ensures full Kinopoisk ACTOR cast exists for a film (idempotent).
+
+    When ``force`` is True, existing film_actor links for the film are replaced;
+    Person rows are upserted by kinopoisk_id (no duplicates).
+    """
 
     _session: AsyncSession
     _kp_transport: KinopoiskProviderTransport
@@ -35,20 +39,21 @@ class EnsureFilmCastService:
             _kp_transport=transport or KinopoiskProviderTransport(),
         )
 
-    async def execute(self, film_id: int) -> None:
+    async def execute(self, film_id: int, *, force: bool = False) -> None:
         film = (
             await self._session.execute(select(Film).where(Film.id == film_id))
         ).scalar_one_or_none()
         if film is None or film.kinopoisk_id is None:
             return
 
-        existing = (
-            await self._session.execute(
-                select(FilmActor.id).where(FilmActor.film_id == film_id).limit(1),
-            )
-        ).scalar_one_or_none()
-        if existing is not None:
-            return
+        if not force:
+            existing = (
+                await self._session.execute(
+                    select(FilmActor.id).where(FilmActor.film_id == film_id).limit(1),
+                )
+            ).scalar_one_or_none()
+            if existing is not None:
+                return
 
         try:
             staff = await self._kp_transport.get_staff_by_film_id(film.kinopoisk_id)
@@ -64,6 +69,9 @@ class EnsureFilmCastService:
         actors = parse_top_actors(staff)
         if not actors:
             return
+
+        if force:
+            await self._session.execute(delete(FilmActor).where(FilmActor.film_id == film_id))
 
         for actor in actors:
             person = await self._upsert_person(actor)

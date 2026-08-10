@@ -1,9 +1,9 @@
-"""Backfill top-10 Kinopoisk ACTOR cast for films with rated user cards.
+"""Backfill full Kinopoisk ACTOR cast for films with rated user cards.
 
   docker compose exec -w /opt/app backend \\
-    python src/manage_backfill_film_cast.py [--dry-run] [--limit N]
+    python src/manage_backfill_film_cast.py [--dry-run] [--limit N] [--force]
 
-Options: --dry-run, --limit N, --sleep SEC (default 0.15), --concurrency N (default 5)
+Options: --dry-run, --limit N, --sleep SEC (default 0.15), --concurrency N (default 5), --force
 """
 
 from __future__ import annotations
@@ -55,12 +55,31 @@ def _films_without_cast_query(limit: int | None):
     return q
 
 
+def _films_force_cast_query(limit: int | None):
+    q = (
+        select(Film.id)
+        .where(
+            exists(
+                select(UserCard.id).where(
+                    UserCard.film_id == Film.id,
+                    *_rated_card_filters(),
+                ),
+            ),
+        )
+        .order_by(Film.id.asc())
+    )
+    if limit is not None:
+        q = q.limit(limit)
+    return q
+
+
 async def _run(
     *,
     dry_run: bool,
     sleep_s: float,
     limit: int | None,
     concurrency: int,
+    force: bool,
 ) -> None:
     _configure_script_logging()
     factory = get_session_factory()
@@ -68,15 +87,20 @@ async def _run(
     semaphore = asyncio.Semaphore(max(1, concurrency))
     processed = errors = 0
 
+    query = _films_force_cast_query if force else _films_without_cast_query
     async with factory() as session:
-        film_ids: list[int] = list(
-            (await session.execute(_films_without_cast_query(limit))).scalars().all()
-        )
+        film_ids: list[int] = list((await session.execute(query(limit))).scalars().all())
 
     total = len(film_ids)
     _log.info('=== Film cast backfill ===')
     _log.info('Candidates: %s', total)
-    _log.info('Mode: dry_run=%s | concurrency=%s | sleep=%s', dry_run, concurrency, sleep_s)
+    _log.info(
+        'Mode: dry_run=%s | force=%s | concurrency=%s | sleep=%s',
+        dry_run,
+        force,
+        concurrency,
+        sleep_s,
+    )
     if total == 0:
         _log.info('Nothing to do.')
         return
@@ -92,7 +116,7 @@ async def _run(
                     _log.info('[%s/%s] film_id=%s — DRY-RUN', current, total, film_id)
                 else:
                     async with factory() as session:
-                        await EnsureFilmCastService.build(session).execute(film_id)
+                        await EnsureFilmCastService.build(session).execute(film_id, force=force)
                     async with progress_lock:
                         processed += 1
                         current = processed
@@ -130,6 +154,11 @@ def main() -> None:
     parser.add_argument('--limit', type=int, default=None)
     parser.add_argument('--sleep', type=float, default=0.15)
     parser.add_argument('--concurrency', type=int, default=5)
+    parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Re-fetch and replace cast for all rated films (including those with existing cast)',
+    )
     args = parser.parse_args()
     asyncio.run(
         _run(
@@ -137,6 +166,7 @@ def main() -> None:
             sleep_s=max(0.0, args.sleep),
             limit=args.limit,
             concurrency=max(1, args.concurrency),
+            force=args.force,
         ),
     )
 

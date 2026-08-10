@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import select
 
 from core.database import get_session_factory
-from manage_backfill_film_cast import _films_without_cast_query, _run
+from manage_backfill_film_cast import _films_force_cast_query, _films_without_cast_query, _run
 from models.catalog_item import CatalogProvider
 from models.film import Film
 from models.film_actor import FilmActor
@@ -90,6 +90,63 @@ async def test_films_without_cast_query_selects_rated_only(prepare_db: None) -> 
 
 
 @pytest.mark.asyncio
+async def test_films_force_cast_query_includes_films_with_cast(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film_rated = Film(kinopoisk_id=906, title='Rated', year=2020, poster_url=None, genres=[])
+        film_with_cast = Film(
+            kinopoisk_id=907, title='HasCast', year=2020, poster_url=None, genres=[]
+        )
+        session.add_all([film_rated, film_with_cast])
+        await session.flush()
+
+        user = User(telegram_user_id=901004, profile_slug=f'cast-{uuid4().hex[:8]}')
+        session.add(user)
+        await session.flush()
+        category_id = await ensure_default_category(session, user.id)
+
+        session.add_all(
+            [
+                UserCard(
+                    user_id=user.id,
+                    film_id=film_rated.id,
+                    category_id=category_id,
+                    provider=CatalogProvider.kinopoisk,
+                    external_id=str(film_rated.kinopoisk_id),
+                    rating=8.0,
+                    company='alone',
+                    mood_before='relax',
+                    mood_after='enjoyed',
+                    is_planned=False,
+                ),
+                UserCard(
+                    user_id=user.id,
+                    film_id=film_with_cast.id,
+                    category_id=category_id,
+                    provider=CatalogProvider.kinopoisk,
+                    external_id=str(film_with_cast.kinopoisk_id),
+                    rating=7.0,
+                    company='alone',
+                    mood_before='relax',
+                    mood_after='enjoyed',
+                    is_planned=False,
+                ),
+            ],
+        )
+        person = Person(kinopoisk_id=101, name='Actor', poster_url=None)
+        session.add(person)
+        await session.flush()
+        session.add(FilmActor(film_id=film_with_cast.id, person_id=person.id, billing_order=1))
+        await session.commit()
+        rated_film_id = film_rated.id
+        film_with_cast_id = film_with_cast.id
+
+    async with session_factory() as session:
+        ids = list((await session.execute(_films_force_cast_query(None))).scalars().all())
+    assert sorted(ids) == sorted([rated_film_id, film_with_cast_id])
+
+
+@pytest.mark.asyncio
 async def test_backfill_dry_run_does_not_persist_cast(prepare_db: None) -> None:
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -119,7 +176,7 @@ async def test_backfill_dry_run_does_not_persist_cast(prepare_db: None) -> None:
 
     execute_mock = AsyncMock()
     with patch.object(EnsureFilmCastService, 'execute', execute_mock):
-        await _run(dry_run=True, sleep_s=0, limit=None, concurrency=10)
+        await _run(dry_run=True, sleep_s=0, limit=None, concurrency=10, force=False)
 
     execute_mock.assert_not_awaited()
     async with session_factory() as check_session:
@@ -159,6 +216,47 @@ async def test_backfill_runs_ensure_for_candidates(prepare_db: None) -> None:
     execute_mock = AsyncMock()
     with patch.object(EnsureFilmCastService, 'build') as build_mock:
         build_mock.return_value.execute = execute_mock
-        await _run(dry_run=False, sleep_s=0, limit=None, concurrency=10)
+        await _run(dry_run=False, sleep_s=0, limit=None, concurrency=10, force=False)
 
-    execute_mock.assert_awaited_once_with(film_id)
+    execute_mock.assert_awaited_once_with(film_id, force=False)
+
+
+@pytest.mark.asyncio
+async def test_backfill_force_runs_ensure_with_force(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=908, title='ForceBackfill', year=2020, poster_url=None, genres=[])
+        session.add(film)
+        await session.flush()
+
+        user = User(telegram_user_id=901005, profile_slug=f'cast-{uuid4().hex[:8]}')
+        session.add(user)
+        await session.flush()
+        category_id = await ensure_default_category(session, user.id)
+        session.add(
+            UserCard(
+                user_id=user.id,
+                film_id=film.id,
+                category_id=category_id,
+                provider=CatalogProvider.kinopoisk,
+                external_id=str(film.kinopoisk_id),
+                rating=8.5,
+                company='alone',
+                mood_before='relax',
+                mood_after='enjoyed',
+                is_planned=False,
+            ),
+        )
+        person = Person(kinopoisk_id=102, name='Existing', poster_url=None)
+        session.add(person)
+        await session.flush()
+        session.add(FilmActor(film_id=film.id, person_id=person.id, billing_order=1))
+        await session.commit()
+        film_id = film.id
+
+    execute_mock = AsyncMock()
+    with patch.object(EnsureFilmCastService, 'build') as build_mock:
+        build_mock.return_value.execute = execute_mock
+        await _run(dry_run=False, sleep_s=0, limit=None, concurrency=10, force=True)
+
+    execute_mock.assert_awaited_once_with(film_id, force=True)

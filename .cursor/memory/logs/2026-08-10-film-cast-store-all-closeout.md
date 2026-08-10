@@ -1,0 +1,23 @@
+# Action log fragment
+
+- **Timestamp:** 2026-08-10T113900Z
+- **Feature slug:** film-cast-store-all
+- **Action type:** closeout
+- **Summary:** Store full Kinopoisk ACTOR cast per film (removed top-10 cap), widened `billing_order` DB constraint, added `force` refresh on `EnsureFilmCastService` and `manage_backfill_film_cast --force`. Person dedupe by `kinopoisk_id` preserved.
+- **Files:**
+  - `backend/src/migrations/versions/d2e3f4a5b6c7_film_actor_unlimited_billing.py`
+  - `backend/src/models/film_actor.py`
+  - `backend/src/services/cast/parse_top_actors.py`
+  - `backend/src/services/cast/ensure_film_cast.py`
+  - `backend/src/manage_backfill_film_cast.py`
+  - `backend/src/tests/unit/services/cast/test_parse_top_actors.py`
+  - `backend/src/tests/integration/services/cast/test_ensure_film_cast.py`
+  - `backend/src/tests/integration/scripts/test_manage_backfill_film_cast.py`
+  - `docs/features/film-cast-store-all.md`
+  - `docs/features/actor-cast-profile-stats.md`
+  - `.cursor/active/film-cast-store-all/result.md`
+- **Verification:**
+  - `make backend-test-one target=src/tests/unit/services/cast/test_parse_top_actors.py` — passed
+  - `make backend-test-one target=src/tests/integration/services/cast/test_ensure_film_cast.py` — passed
+  - `make backend-test-one target=src/tests/integration/scripts/test_manage_backfill_film_cast.py` — passed
+  - 14 passed total across 3 cast test files

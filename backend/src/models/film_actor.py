@@ -34,7 +34,7 @@ class FilmActor(Base):
         UniqueConstraint('film_id', 'person_id', name='uq_film_actor_film_person'),
         UniqueConstraint('film_id', 'billing_order', name='uq_film_actor_film_billing_order'),
         CheckConstraint(
-            'billing_order >= 1 AND billing_order <= 10',
+            'billing_order >= 1',
             name='ck_film_actor_billing_order_range',
         ),
         Index('ix_film_actor_film_id', 'film_id'),
