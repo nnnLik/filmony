@@ -539,7 +539,6 @@ export type ProfileInsightsSnapshot = {
   top_franchise_label?: string | null
   top_franchise_count?: number
   unique_directors_count?: number
-  unique_actors_count?: number
 }
 
 /** Breakdown of weighted taste match signals (v2). */

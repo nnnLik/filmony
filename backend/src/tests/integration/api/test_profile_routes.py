@@ -10,6 +10,8 @@ from core.database import get_session_factory
 from models.card_tag import CardTag
 from models.catalog_item import CatalogProvider
 from models.film import Film
+from models.film_actor import FilmActor
+from models.person import Person
 from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
 from tests.auth.telegram_init_data import build_init_data
@@ -564,6 +566,7 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert insights['dominant_mood_after'] == 'cried'
     assert insights['top_tag'] == 'Шедевр'
     assert insights['activity_total_180d'] >= 0
+    assert 'unique_actors_count' not in insights
 
     social = body['social']
     assert social['mutual_subscriptions_count'] == 0
@@ -649,6 +652,109 @@ async def test_user_stats_director_and_franchise_distribution(
     assert insights['top_franchise_label'] == 'Matrix'
     assert insights['top_franchise_count'] == 2
     assert insights['unique_directors_count'] == 2
+    assert 'unique_actors_count' not in insights
+
+
+@pytest.mark.asyncio
+async def test_user_stats_actor_distribution_capped_at_twenty(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=5291)
+    user_id = UUID(str(me['id']))
+    top_actor_kinopoisk_id = 5291001
+    top_actor_name = 'Top Actor'
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        top_person = Person(
+            kinopoisk_id=top_actor_kinopoisk_id,
+            name=top_actor_name,
+            poster_url='https://example.com/top-actor.jpg',
+        )
+        session.add(top_person)
+        await session.flush()
+        cat_id = await ensure_default_category(session, user_id)
+
+        for idx in range(25):
+            film = Film(
+                kinopoisk_id=5291100 + idx,
+                title=f'Top actor film {idx + 1}',
+                year=2020,
+                poster_url='https://example.com/poster.jpg',
+                genres=[],
+                countries=[],
+            )
+            session.add(film)
+            await session.flush()
+            session.add(FilmActor(film_id=film.id, person_id=top_person.id, billing_order=1))
+            session.add(
+                UserCard(
+                    user_id=user_id,
+                    film_id=film.id,
+                    category_id=cat_id,
+                    provider=CatalogProvider.kinopoisk,
+                    external_id=str(film.kinopoisk_id),
+                    rating=8.0,
+                    company='alone',
+                    mood_before='relax',
+                    mood_after='enjoyed',
+                    is_planned=False,
+                )
+            )
+
+        for idx in range(24):
+            person = Person(
+                kinopoisk_id=5291200 + idx,
+                name=f'Supporting Actor {idx + 1:02d}',
+                poster_url=None,
+            )
+            session.add(person)
+            await session.flush()
+            film = Film(
+                kinopoisk_id=5291300 + idx,
+                title=f'Supporting film {idx + 1}',
+                year=2019,
+                poster_url='https://example.com/poster.jpg',
+                genres=[],
+                countries=[],
+            )
+            session.add(film)
+            await session.flush()
+            session.add(FilmActor(film_id=film.id, person_id=person.id, billing_order=1))
+            session.add(
+                UserCard(
+                    user_id=user_id,
+                    film_id=film.id,
+                    category_id=cat_id,
+                    provider=CatalogProvider.kinopoisk,
+                    external_id=str(film.kinopoisk_id),
+                    rating=7.0,
+                    company='alone',
+                    mood_before='relax',
+                    mood_after='enjoyed',
+                    is_planned=False,
+                )
+            )
+
+        await session.commit()
+
+    r = await async_client.get(f'/api/users/{user_id}/stats')
+    assert r.status_code == 200
+    body = r.json()
+
+    assert len(body['actor_distribution']) == 20
+    assert body['actor_distribution'][0] == {
+        'kinopoisk_id': top_actor_kinopoisk_id,
+        'name': top_actor_name,
+        'poster_url': 'https://example.com/top-actor.jpg',
+        'count': 25,
+    }
+
+    insights = body['insights']
+    assert insights['top_actor_kinopoisk_id'] == top_actor_kinopoisk_id
+    assert insights['top_actor_name'] == top_actor_name
+    assert insights['top_actor_count'] == 25
+    assert 'unique_actors_count' not in insights
 
 
 @pytest.mark.asyncio

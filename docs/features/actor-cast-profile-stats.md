@@ -19,14 +19,14 @@ Full Kinopoisk `ACTOR` cast for **rated** films only (see [film-cast-store-all](
 
 ### Profile & API
 
-- **`GetUserCardStatsService`**: `actor_distribution`, `top_actor_kinopoisk_id`, `top_actor_name`, `unique_actors_count` (rated cards only).
+- **`GetUserCardStatsService`**: `actor_distribution` (top 20), `top_actor_kinopoisk_id`, `top_actor_name` (rated cards only). See [profile-actors-top20](./profile-actors-top20.md) — donut and `unique_actors_count` removed.
 - **`list_user_cards`**: query `actor_kinopoisk_id` (AND with director filter).
 - **`GET /api/actors/{kinopoisk_id}`** — actor summary for a user (`user_id` query, default viewer).
 - **`GET /api/actors/{kinopoisk_id}/films`** — rated films featuring the actor for that user.
 
 ## Frontend
 
-- **Profile stats** — «Топ актёр» insight, «По актёрам» donut (top-8 legend), links to `/actors/:id?userId=`
+- **Profile stats** — «Любимый актёр» insight, «По актёрам» collapsible list (top 20, 10 visible by default); links to `/actors/:id?userId=`. Replaces donut — [profile-actors-top20](./profile-actors-top20.md).
 - **`ActorDetailPage`** — summary + rated films list with role
 - **Rated cards filter** — actor chip from `actor_distribution` (no extra endpoint)
 

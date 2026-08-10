@@ -1,3 +1,4 @@
+import { Avatar, Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
@@ -5,6 +6,7 @@ import { Link } from 'react-router'
 import { ApiError, formatApiDetail } from '../../api/client'
 import { getUserCards, getUserPublicCardCategories } from '../../api/profileApi'
 import type {
+  ActorDistributionItem,
   CardCompany,
   CardMoodAfter,
   MovieCard,
@@ -99,6 +101,81 @@ const MOOD_AFTER_LABELS: Record<string, string> = {
   enjoyed: 'Кайфанул',
   tense: 'Уставший',
   wasted_time: 'Зря время',
+}
+
+const COLLAPSED_ACTOR_LIST_LIMIT = 10
+
+function actorInitials(name: string): string {
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
+function actorFilmsLabel(count: number): string {
+  return `${count} ${count === 1 ? 'фильм' : count < 5 ? 'фильма' : 'фильмов'}`
+}
+
+function ActorDistributionList({
+  actors,
+  userId,
+}: {
+  actors: ActorDistributionItem[]
+  userId: string
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = actors.filter((actor) => actor.count > 0)
+  const canCollapse = visible.length > COLLAPSED_ACTOR_LIST_LIMIT
+  const displayed =
+    canCollapse && !expanded ? visible.slice(0, COLLAPSED_ACTOR_LIST_LIMIT) : visible
+  const hiddenCount = visible.length - COLLAPSED_ACTOR_LIST_LIMIT
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-2xl">
+      <ul className="divide-y divide-(--tgui--divider_color)">
+        {displayed.map((actor) => {
+          const actorHref =
+            userId !== ''
+              ? `/actors/${actor.kinopoisk_id}?userId=${encodeURIComponent(userId)}`
+              : `/actors/${actor.kinopoisk_id}`
+          return (
+            <li key={actor.kinopoisk_id}>
+              <Link
+                to={actorHref}
+                className="flex items-center gap-3 px-3 py-2.5 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color) sm:py-3"
+              >
+                <Avatar
+                  src={actor.poster_url ?? undefined}
+                  acronym={actorInitials(actor.name)}
+                  size={36}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-(--tgui--text_color)">{actor.name}</p>
+                  <p className="text-xs tabular-nums text-(--tgui--hint_color)">
+                    {actorFilmsLabel(actor.count)}
+                  </p>
+                </div>
+                <span className="shrink-0 text-base font-semibold tabular-nums text-(--tgui--link_color) sm:text-lg">
+                  {actor.count}
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+      {canCollapse && !expanded ? (
+        <Button
+          className="rounded-none! border-t border-(--tgui--divider_color)"
+          mode="gray"
+          stretched
+          onClick={() => setExpanded(true)}
+        >
+          Показать ещё {hiddenCount}
+        </Button>
+      ) : null}
+    </div>
+  )
 }
 
 function formatRating(value: number): string {
@@ -446,18 +523,6 @@ export function ProfileStatsPanel({
       }))
   }, [stats?.director_distribution])
 
-  const actorDonutSegments = useMemo((): DonutSegmentInput[] => {
-    const rows = stats?.actor_distribution ?? []
-    return rows
-      .filter((item) => item.count > 0)
-      .map((item, idx) => ({
-        label: item.name,
-        count: item.count,
-        value: String(item.kinopoisk_id),
-        color: DIRECTOR_DONUT_COLORS[idx % DIRECTOR_DONUT_COLORS.length] ?? '#5de1d4',
-      }))
-  }, [stats?.actor_distribution])
-
   const franchiseDonutSegments = useMemo((): DonutSegmentInput[] => {
     const rows = stats?.franchise_distribution ?? []
     return rows
@@ -519,16 +584,12 @@ export function ProfileStatsPanel({
     const total = stats != null ? String(stats.total_movies) : '0'
     const avg = stats != null ? formatRating(stats.average_rating) : '0'
     const uniqueDirectors = stats?.insights?.unique_directors_count ?? 0
-    const uniqueActors = stats?.insights?.unique_actors_count ?? 0
     const items = [
       { label: 'Карточек', value: total },
       { label: 'Средний балл', value: avg },
     ]
     if (uniqueDirectors > 0) {
       items.push({ label: 'Режиссёров', value: String(uniqueDirectors) })
-    }
-    if (uniqueActors > 0) {
-      items.push({ label: 'Актёров', value: String(uniqueActors) })
     }
     return items
   }, [stats])
@@ -589,19 +650,6 @@ export function ProfileStatsPanel({
       genre: trimmed,
       directorKinopoiskId: '',
       actorKinopoiskId: '',
-      franchiseKey: '',
-    })
-    onDrillToRatedCards?.()
-  }
-
-  const handleActorDistributionDrill = (kinopoiskIdValue: string) => {
-    const id = Number(kinopoiskIdValue)
-    if (!Number.isInteger(id) || id < 1) return
-    onCardsQueryChange({
-      ...cardsQuery,
-      actorKinopoiskId: String(id),
-      genre: '',
-      directorKinopoiskId: '',
       franchiseKey: '',
     })
     onDrillToRatedCards?.()
@@ -871,17 +919,10 @@ export function ProfileStatsPanel({
           </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="По актёрам">
-            {actorDonutSegments.length > 0 ? (
+            {(stats.actor_distribution ?? []).some((actor) => actor.count > 0) ? (
               <div className="space-y-3">
-                <StatsDonutChart
-                  segments={actorDonutSegments}
-                  legendCollapsedTopN={8}
-                  onSegmentClick={handleActorDistributionDrill}
-                  activeValue={
-                    cardsQuery.actorKinopoiskId === '' ? undefined : cardsQuery.actorKinopoiskId
-                  }
-                />
-                {stats?.insights?.top_actor_kinopoisk_id != null ? (
+                <ActorDistributionList actors={stats.actor_distribution ?? []} userId={userId} />
+                {stats.insights?.top_actor_kinopoisk_id != null ? (
                   <Link
                     to={`/actors/${stats.insights.top_actor_kinopoisk_id}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
                     className="block text-center text-sm text-(--tgui--link_color) no-underline"

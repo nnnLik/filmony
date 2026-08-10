@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-10T120000Z
+Updated: 2026-08-10T134500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -15,20 +15,21 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `standalone-web-telegram-login` — closed 2026-08-10T120000Z
+1. `profile-actors-top20` — closed 2026-08-10T134500Z
+   - Feature: `.cursor/features/profile-actors-top20/feature.md`
+   - Active: `.cursor/active/profile-actors-top20/`
+   - Docs: `docs/features/profile-actors-top20.md`
+2. `standalone-web-telegram-login` — closed 2026-08-10T120000Z
    - Feature: `.cursor/features/standalone-web-telegram-login/feature.md`
    - Active: `.cursor/active/standalone-web-telegram-login/`
    - Docs: `docs/features/standalone-web-telegram-login.md`
-2. `film-cast-store-all` — closed 2026-08-10T113900Z
+3. `film-cast-store-all` — closed 2026-08-10T113900Z
    - Feature: `.cursor/features/film-cast-store-all/feature.md`
    - Active: `.cursor/active/film-cast-store-all/`
    - Docs: `docs/features/film-cast-store-all.md`
-3. `personal-digest-redesign` — closed 2026-08-08T001000Z
-   - Feature: `.cursor/features/personal-digest-redesign/feature.md`
-   - Active: `.cursor/active/personal-digest-redesign/`
-   - Docs: `docs/features/personal-digest-redesign.md`
 
 ## evicted (queue for archive)
+- `personal-digest-redesign` — evicted from recent_completed top-3 on 2026-08-10T134500Z (was #3)
 - `actor-cast-profile-stats` — evicted from recent_completed top-3 on 2026-08-10T120000Z (was #3)
 - `profile-streak-stats-legend-ux` — evicted from recent_completed top-3 on 2026-08-10T120000Z (was #3)
 - `backend-test-unit-integration-split` — evicted from recent_completed top-3 on 2026-08-08T001000Z (was #3)

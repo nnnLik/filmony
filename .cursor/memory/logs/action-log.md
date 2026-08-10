@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-10-profile-actors-top20-closeout.md`
 - `2026-08-10-standalone-web-telegram-login-closeout.md`
 - `2026-08-10-film-cast-store-all-closeout.md`
 - `2026-08-08T001000Z-personal-digest-redesign-closeout.md`
@@ -42,4 +43,3 @@
 - `2026-07-29T014200Z-pet-project-micro-fun-code.md`
 - `2026-07-29T013600Z-social-depth-pack-controversy-tg-upgrade-code.md`
 - `2026-07-29T012900Z-frontend-ui-boot-polish-code.md`
-- `2026-07-28T174500Z-social-depth-pack-code.md`

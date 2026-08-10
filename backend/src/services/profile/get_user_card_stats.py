@@ -69,7 +69,6 @@ class ProfileInsights:
     top_franchise_label: str | None
     top_franchise_count: int
     unique_directors_count: int
-    unique_actors_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -314,6 +313,7 @@ class GetUserCardStatsService:
                 .where(UserCard.user_id == user_id, *_rated_card_filters())
                 .group_by(Person.kinopoisk_id, Person.name, Person.poster_url)
                 .order_by(desc(func.count(UserCard.id)), Person.name, Person.kinopoisk_id)
+                .limit(20)
             )
         ).all()
         actor_distribution = [
@@ -431,7 +431,6 @@ class GetUserCardStatsService:
             top_franchise_label=top_franchise.label if top_franchise else None,
             top_franchise_count=top_franchise.count if top_franchise else 0,
             unique_directors_count=len(director_distribution),
-            unique_actors_count=len(actor_distribution),
         )
 
         return UserCardStats(
