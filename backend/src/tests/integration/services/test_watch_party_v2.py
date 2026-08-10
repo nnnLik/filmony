@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
+import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy import update
 
@@ -13,7 +14,7 @@ from conf import settings
 from core.database import get_session_factory
 from models.film import Film
 from models.user import User
-from models.watch_party import WatchParty
+from models.watch_party import WatchParty, WatchPartyWatchSessionLink
 from models.watch_session import WatchSession
 from services.films.resolve_film_playback import FilmPlaybackDTO, ResolveFilmPlaybackService
 from services.watch_parties.end_expired_watch_parties import EndExpiredWatchPartiesService
@@ -117,6 +118,13 @@ async def test_bridge_watch_party_to_watch_session(
         watch_session = await session.get(WatchSession, UUID(watch_session_id))
         assert watch_session is not None
         assert watch_session.anchor_film_id == film.id
-        assert watch_session.source_watch_party_id is not None
+        link = (
+            await session.execute(
+                sa.select(WatchPartyWatchSessionLink).where(
+                    WatchPartyWatchSessionLink.watch_session_id == UUID(watch_session_id),
+                ),
+            )
+        ).scalar_one()
+        assert link.watch_party_id == UUID(party_id)
         assert str(host.id) in watch_session.participant_user_ids
         assert str(guest.id) in watch_session.participant_user_ids

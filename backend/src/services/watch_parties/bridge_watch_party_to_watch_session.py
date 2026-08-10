@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from daos.watch_party_dao import WatchPartyDAO
+from models.watch_party import WatchPartyWatchSessionLink
 from models.watch_party_enums import WatchPartyMemberStatus, WatchPartyStatus
 from services.films.get_film_by_id import GetFilmByIdService
 from services.watch_parties.watch_party_redis import clear_party_redis, clear_user_watching
@@ -91,7 +92,12 @@ class BridgeWatchPartyToWatchSessionService:
             anchor_film_id=party.film_id,
             anchor_catalog_item_id=None,
             source_watchlist_entry_id=None,
-            source_watch_party_id=party.id,
+        )
+        self._session.add(
+            WatchPartyWatchSessionLink(
+                watch_session_id=watch_session.id,
+                watch_party_id=party.id,
+            ),
         )
         await self._session.commit()
         return BridgeWatchPartyResult(watch_session_id=watch_session.id)

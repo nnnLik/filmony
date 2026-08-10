@@ -50,12 +50,6 @@ class WatchSession(Base):
         nullable=True,
         index=True,
     )
-    source_watch_party_id: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey('watch_party.id', ondelete='SET NULL'),
-        nullable=True,
-        index=True,
-    )
     first_rated_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

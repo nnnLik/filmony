@@ -94,3 +94,21 @@ class WatchPartyMember(Base):
         Index('ix_watch_party_member_party_status', 'party_id', 'status'),
         Index('ix_watch_party_member_user_status', 'user_id', 'status'),
     )
+
+
+class WatchPartyWatchSessionLink(Base):
+    """Links a planned WatchSession back to the live party that spawned it."""
+
+    watch_session_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey('watch_session.id', ondelete='CASCADE'),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    watch_party_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey('watch_party.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
