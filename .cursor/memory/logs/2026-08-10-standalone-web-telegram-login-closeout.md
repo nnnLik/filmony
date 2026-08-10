@@ -1,0 +1,28 @@
+# Action log fragment
+
+- **Timestamp:** 2026-08-10T12:00:00Z
+- **Feature slug:** standalone-web-telegram-login
+- **Action type:** closeout
+- **Summary:** Standalone web sign-in via Telegram Login Widget: widget HMAC verifier, `POST /api/auth/telegram-widget`, `/login` page with widget, `RequireAuth` on protected routes; TMA initData flow unchanged.
+- **Files:**
+  - `backend/src/services/auth/verify_telegram_login_widget.py`
+  - `backend/src/services/auth/errors.py`
+  - `backend/src/api/auth/routes.py`
+  - `backend/src/api/auth/schemas.py`
+  - `backend/src/tests/unit/auth/test_verify_telegram_login_widget.py`
+  - `backend/src/tests/integration/auth/test_telegram_widget.py`
+  - `backend/src/tests/auth/telegram_login_widget.py`
+  - `frontend/src/components/auth/TelegramLoginWidget.tsx`
+  - `frontend/src/pages/LoginPage.tsx`
+  - `frontend/src/auth/RequireAuth.tsx`
+  - `frontend/src/auth/AuthProvider.tsx`
+  - `frontend/src/auth/authBootstrap.ts`
+  - `frontend/src/routes.tsx`
+  - `frontend/src/api/profileApi.ts`
+  - `docs/features/standalone-web-telegram-login.md`
+  - `.cursor/active/standalone-web-telegram-login/result.md`
+- **Verification:**
+  - `PYTHONPATH=src python3.12 -m pytest src/tests/unit/auth/test_verify_telegram_login_widget.py -o addopts= --confcutdir=src/tests/unit/auth` — 6 passed (host)
+  - `cd frontend && npx tsc --noEmit` — clean
+  - `cd frontend && npm run lint` — clean on touched files
+  - Integration (`make backend-test-one target=src/tests/integration/auth/test_telegram_widget.py`) — not run in closeout env (Docker)

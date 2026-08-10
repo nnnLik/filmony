@@ -1,6 +1,6 @@
 # Progress — standalone-web-telegram-login
 
-**Status:** in_progress
+**Status:** complete (closeout 2026-08-10T120000Z)
 
 ## 2026-08-10 — Task 1 complete
 
@@ -17,3 +17,8 @@
 - Protected routes wrapped with `RequireAuth`; removed dead-end «Откройте в Telegram» gates.
 - Public routes (`PublicProfilePage`, `FilmDetailPage`, `CatalogDetailPage`) allow logged-out view.
 - **Verification:** `npx tsc --noEmit` clean; `npm run lint` on touched files.
+
+## 2026-08-10 — Closeout
+
+- Published `docs/features/standalone-web-telegram-login.md`, `result.md`, HOT eviction, action-log fragment.
+- Integration tests present at `src/tests/integration/auth/test_telegram_widget.py` (Docker not run in closeout env).
