@@ -25,18 +25,18 @@ import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import {
   WATCH_PARTY_TYPING_DISPLAY_MS,
-  WatchPartyChatSheet,
 } from '../components/watchparty/WatchPartyChatSheet'
 import { WatchPartyEndSheet } from '../components/watchparty/WatchPartyEndSheet'
 import { WatchPartyHeader } from '../components/watchparty/WatchPartyHeader'
-import { WatchPartyHostControlsSheet } from '../components/watchparty/WatchPartyHostControlsSheet'
+import { WatchPartyHostBar } from '../components/watchparty/WatchPartyHostBar'
+import { WatchPartyInlineChat } from '../components/watchparty/WatchPartyInlineChat'
 import { WatchPartyInviteSheet } from '../components/watchparty/WatchPartyInviteSheet'
+import { WatchPartyMemberStrip } from '../components/watchparty/WatchPartyMemberStrip'
 import { WatchPartyRosterSheet } from '../components/watchparty/WatchPartyRosterSheet'
 import { useEnsureWatchParty } from '../hooks/useEnsureWatchParty'
 import { useWatchPartyEvents } from '../hooks/useWatchPartyEvents'
 import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { mergeWatchPartyMessages } from '../lib/mergeWatchPartyMessages'
-import { openExternalUrl } from '../lib/openExternalUrl'
 import { expectedPlaybackMs, formatPlaybackMs } from '../lib/watchPartyTime'
 
 const DRIFT_THRESHOLD_MS = 8000
@@ -115,7 +115,6 @@ export function FilmWatchPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [hostControlsOpen, setHostControlsOpen] = useState(false)
   const [endSheetOpen, setEndSheetOpen] = useState(false)
   const [endBusy, setEndBusy] = useState(false)
   const [syncHintOpen, setSyncHintOpen] = useState(false)
@@ -454,12 +453,17 @@ export function FilmWatchPage() {
         memberCount={activeMembers.length}
         onBack={() => void handleBack()}
         onMemberCountTap={() => setRosterOpen(true)}
-        onChat={() => setChatOpen(true)}
+        onChat={() => setChatOpen((v) => !v)}
         onInvite={isHost ? () => setInviteOpen(true) : undefined}
       />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-3 px-3 py-3">
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+      <WatchPartyMemberStrip
+        members={snapshot.members}
+        onTap={() => setRosterOpen(true)}
+      />
+
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-2 px-3 pb-3 pt-1">
+        <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg bg-black">
           <iframe
             title={`Просмотр: ${title}`}
             src={iframeUrl}
@@ -499,11 +503,28 @@ export function FilmWatchPage() {
         ) : null}
 
         {isHost ? (
-          <Button mode="bezeled" stretched onClick={() => setHostControlsOpen(true)}>
-            Управление воспроизведением
-          </Button>
+          <WatchPartyHostBar
+            busy={playbackBusy}
+            playing={snapshot.playback_state.playing}
+            positionMs={hostPositionMs}
+            onPositionChange={setHostPositionMs}
+            onPlay={() => void sendPlayback('play', hostPositionMs)}
+            onPause={() => void sendPlayback('pause', hostPositionMs)}
+            onSeek={() => void sendPlayback('seek', hostPositionMs)}
+            onEndSession={() => setEndSheetOpen(true)}
+          />
         ) : null}
       </div>
+
+      {chatOpen ? (
+        <WatchPartyInlineChat
+          partyId={snapshot.id}
+          messages={messages}
+          onMessagesChange={setMessages}
+          typingNames={typingNames}
+          onClose={() => setChatOpen(false)}
+        />
+      ) : null}
 
       <WatchPartyRosterSheet
         open={rosterOpen}
@@ -512,37 +533,10 @@ export function FilmWatchPage() {
         onClose={() => setRosterOpen(false)}
       />
 
-      <WatchPartyChatSheet
-        open={chatOpen}
-        partyId={snapshot.id}
-        messages={messages}
-        onMessagesChange={setMessages}
-        typingNames={typingNames}
-        onClose={() => setChatOpen(false)}
-      />
-
       <WatchPartyInviteSheet
         open={inviteOpen}
         partyId={snapshot.id}
         onClose={() => setInviteOpen(false)}
-      />
-
-      <WatchPartyHostControlsSheet
-        open={hostControlsOpen}
-        busy={playbackBusy}
-        playing={snapshot.playback_state.playing}
-        positionMs={hostPositionMs}
-        onClose={() => setHostControlsOpen(false)}
-        onPositionChange={setHostPositionMs}
-        onPlay={() => void sendPlayback('play', hostPositionMs)}
-        onPause={() => void sendPlayback('pause', hostPositionMs)}
-        onSeek={() => void sendPlayback('seek', hostPositionMs)}
-        onCountdownStart={() => void sendPlayback('play', hostPositionMs)}
-        onEndSession={() => {
-          setHostControlsOpen(false)
-          setEndSheetOpen(true)
-        }}
-        onOpenInBrowser={() => openExternalUrl(iframeUrl)}
       />
 
       <WatchPartyEndSheet
