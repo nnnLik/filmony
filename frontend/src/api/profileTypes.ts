@@ -521,6 +521,8 @@ export type ProfileInsightItem = {
   label: string
   value: string
   hint?: string | null
+  /** React Router path when the insight should link to a detail page. */
+  to?: string
 }
 
 /** Сводка активности и доминирующих паттернов (GET /stats insights). */
@@ -538,7 +540,6 @@ export type ProfileInsightsSnapshot = {
   top_franchise_key?: string | null
   top_franchise_label?: string | null
   top_franchise_count?: number
-  unique_directors_count?: number
 }
 
 /** Breakdown of weighted taste match signals (v2). */

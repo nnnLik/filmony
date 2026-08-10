@@ -10,18 +10,17 @@ Extended fields on `GET /api/users/{id}/stats`:
 
 | Field | Shape | Description |
 |-------|-------|-------------|
-| `director_distribution` | `{ kinopoisk_id, name, count }[]` | Sorted by count desc |
+| `director_distribution` | `{ kinopoisk_id, name, count }[]` | Top **20** by count desc — see [profile-directors-top20](./profile-directors-top20.md) |
 | `franchise_distribution` | `{ franchise_key, label, count }[]` | Label via `resolve_franchise_label` |
 | `insights.top_director_*` | id, name, count | Top director by film count |
 | `insights.top_franchise_*` | key, label, count | Top franchise by film count |
-| `insights.unique_directors_count` | int | Distinct directors in rated cards |
 
 Cards included: all non-planned (`is_planned=False`), same as other stats aggregates.
 
 ## Frontend
 
-- **Overview:** insight cards «Любимый режиссёр», «Любимая серия»; metric strip adds «Режиссёров» when > 0
-- **Taste:** «По режиссёрам» and «По сериям» donut charts; click → rated cards filter; link to `/directors`
+- **Overview:** insight cards «Любимый режиссёр», «Любимая серия» (director insight links to `/directors/:id`)
+- **Taste:** «По режиссёрам» collapsible list (top 20, 10 visible) — [profile-directors-top20](./profile-directors-top20.md); «По сериям» donut chart
 
 ## Ops
 

@@ -651,7 +651,7 @@ async def test_user_stats_director_and_franchise_distribution(
     assert insights['top_franchise_key'] == franchise_key
     assert insights['top_franchise_label'] == 'Matrix'
     assert insights['top_franchise_count'] == 2
-    assert insights['unique_directors_count'] == 2
+    assert 'unique_directors_count' not in insights
     assert 'unique_actors_count' not in insights
 
 
@@ -755,6 +755,95 @@ async def test_user_stats_actor_distribution_capped_at_twenty(
     assert insights['top_actor_name'] == top_actor_name
     assert insights['top_actor_count'] == 25
     assert 'unique_actors_count' not in insights
+
+
+@pytest.mark.asyncio
+async def test_user_stats_director_distribution_capped_at_twenty(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=5292)
+    user_id = UUID(str(me['id']))
+    top_director_kinopoisk_id = 5292001
+    top_director_name = 'Top Director'
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        cat_id = await ensure_default_category(session, user_id)
+
+        for idx in range(25):
+            film = Film(
+                kinopoisk_id=5292100 + idx,
+                title=f'Top director film {idx + 1}',
+                year=2020,
+                poster_url='https://example.com/poster.jpg',
+                genres=[],
+                countries=[],
+                primary_director_kinopoisk_id=top_director_kinopoisk_id,
+                primary_director_name=top_director_name,
+            )
+            session.add(film)
+            await session.flush()
+            session.add(
+                UserCard(
+                    user_id=user_id,
+                    film_id=film.id,
+                    category_id=cat_id,
+                    provider=CatalogProvider.kinopoisk,
+                    external_id=str(film.kinopoisk_id),
+                    rating=8.0,
+                    company='alone',
+                    mood_before='relax',
+                    mood_after='enjoyed',
+                    is_planned=False,
+                )
+            )
+
+        for idx in range(24):
+            film = Film(
+                kinopoisk_id=5292200 + idx,
+                title=f'Supporting director film {idx + 1}',
+                year=2019,
+                poster_url='https://example.com/poster.jpg',
+                genres=[],
+                countries=[],
+                primary_director_kinopoisk_id=5292300 + idx,
+                primary_director_name=f'Supporting Director {idx + 1:02d}',
+            )
+            session.add(film)
+            await session.flush()
+            session.add(
+                UserCard(
+                    user_id=user_id,
+                    film_id=film.id,
+                    category_id=cat_id,
+                    provider=CatalogProvider.kinopoisk,
+                    external_id=str(film.kinopoisk_id),
+                    rating=7.0,
+                    company='alone',
+                    mood_before='relax',
+                    mood_after='enjoyed',
+                    is_planned=False,
+                )
+            )
+
+        await session.commit()
+
+    r = await async_client.get(f'/api/users/{user_id}/stats')
+    assert r.status_code == 200
+    body = r.json()
+
+    assert len(body['director_distribution']) == 20
+    assert body['director_distribution'][0] == {
+        'kinopoisk_id': top_director_kinopoisk_id,
+        'name': top_director_name,
+        'count': 25,
+    }
+
+    insights = body['insights']
+    assert insights['top_director_kinopoisk_id'] == top_director_kinopoisk_id
+    assert insights['top_director_name'] == top_director_name
+    assert insights['top_director_count'] == 25
+    assert 'unique_directors_count' not in insights
 
 
 @pytest.mark.asyncio

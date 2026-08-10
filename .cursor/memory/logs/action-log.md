@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-10-profile-directors-top20-closeout.md`
 - `2026-08-10-profile-actors-top20-closeout.md`
 - `2026-08-10-standalone-web-telegram-login-closeout.md`
 - `2026-08-10-film-cast-store-all-closeout.md`

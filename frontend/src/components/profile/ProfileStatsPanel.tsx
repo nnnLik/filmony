@@ -9,6 +9,7 @@ import type {
   ActorDistributionItem,
   CardCompany,
   CardMoodAfter,
+  DirectorDistributionItem,
   MovieCard,
   ProfileInsightItem,
   ProfileStatsMovieItem,
@@ -24,7 +25,6 @@ import {
   aggregateYearDistributionToDecades,
   COMPANY_DONUT_COLORS,
   DECADE_DONUT_COLORS,
-  DIRECTOR_DONUT_COLORS,
   FRANCHISE_DONUT_COLORS,
   GENRE_DONUT_COLORS,
   findPeakRatedYear,
@@ -103,9 +103,9 @@ const MOOD_AFTER_LABELS: Record<string, string> = {
   wasted_time: 'Зря время',
 }
 
-const COLLAPSED_ACTOR_LIST_LIMIT = 10
+const COLLAPSED_DISTRIBUTION_LIST_LIMIT = 10
 
-function actorInitials(name: string): string {
+function personInitials(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean)
   if (parts.length >= 2) {
     return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase()
@@ -113,8 +113,65 @@ function actorInitials(name: string): string {
   return name.slice(0, 2).toUpperCase()
 }
 
-function actorFilmsLabel(count: number): string {
+function distributionFilmsLabel(count: number): string {
   return `${count} ${count === 1 ? 'фильм' : count < 5 ? 'фильма' : 'фильмов'}`
+}
+
+function DirectorDistributionList({
+  directors,
+  userId,
+}: {
+  directors: DirectorDistributionItem[]
+  userId: string
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = directors.filter((director) => director.count > 0)
+  const canCollapse = visible.length > COLLAPSED_DISTRIBUTION_LIST_LIMIT
+  const displayed =
+    canCollapse && !expanded ? visible.slice(0, COLLAPSED_DISTRIBUTION_LIST_LIMIT) : visible
+  const hiddenCount = visible.length - COLLAPSED_DISTRIBUTION_LIST_LIMIT
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-2xl">
+      <ul className="divide-y divide-(--tgui--divider_color)">
+        {displayed.map((director) => {
+          const directorHref =
+            userId !== ''
+              ? `/directors/${director.kinopoisk_id}?userId=${encodeURIComponent(userId)}`
+              : `/directors/${director.kinopoisk_id}`
+          return (
+          <li key={director.kinopoisk_id}>
+            <Link
+              to={directorHref}
+              className="flex items-center gap-3 px-3 py-2.5 text-sm no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color) sm:py-3"
+            >
+              <Avatar acronym={personInitials(director.name)} size={36} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-(--tgui--text_color)">{director.name}</p>
+                <p className="text-xs tabular-nums text-(--tgui--hint_color)">
+                  {distributionFilmsLabel(director.count)}
+                </p>
+              </div>
+              <span className="shrink-0 text-base font-semibold tabular-nums text-(--tgui--link_color) sm:text-lg">
+                {director.count}
+              </span>
+            </Link>
+          </li>
+          )
+        })}
+      </ul>
+      {canCollapse && !expanded ? (
+        <Button
+          className="rounded-none! border-t border-(--tgui--divider_color)"
+          mode="gray"
+          stretched
+          onClick={() => setExpanded(true)}
+        >
+          Показать ещё {hiddenCount}
+        </Button>
+      ) : null}
+    </div>
+  )
 }
 
 function ActorDistributionList({
@@ -126,10 +183,10 @@ function ActorDistributionList({
 }) {
   const [expanded, setExpanded] = useState(false)
   const visible = actors.filter((actor) => actor.count > 0)
-  const canCollapse = visible.length > COLLAPSED_ACTOR_LIST_LIMIT
+  const canCollapse = visible.length > COLLAPSED_DISTRIBUTION_LIST_LIMIT
   const displayed =
-    canCollapse && !expanded ? visible.slice(0, COLLAPSED_ACTOR_LIST_LIMIT) : visible
-  const hiddenCount = visible.length - COLLAPSED_ACTOR_LIST_LIMIT
+    canCollapse && !expanded ? visible.slice(0, COLLAPSED_DISTRIBUTION_LIST_LIMIT) : visible
+  const hiddenCount = visible.length - COLLAPSED_DISTRIBUTION_LIST_LIMIT
 
   return (
     <div className="overflow-hidden rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-2xl">
@@ -147,13 +204,13 @@ function ActorDistributionList({
               >
                 <Avatar
                   src={actor.poster_url ?? undefined}
-                  acronym={actorInitials(actor.name)}
+                  acronym={personInitials(actor.name)}
                   size={36}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-(--tgui--text_color)">{actor.name}</p>
                   <p className="text-xs tabular-nums text-(--tgui--hint_color)">
-                    {actorFilmsLabel(actor.count)}
+                    {distributionFilmsLabel(actor.count)}
                   </p>
                 </div>
                 <span className="shrink-0 text-base font-semibold tabular-nums text-(--tgui--link_color) sm:text-lg">
@@ -244,6 +301,7 @@ function tagTasteFromStats(stats: UserMovieCardStats): TagTasteItem[] {
 function deriveInsights(
   stats: UserMovieCardStats,
   sentiment: { highPct: number; total: number },
+  userId: string,
 ): ProfileInsightItem[] {
   const snap = stats.insights
   const items: ProfileInsightItem[] = []
@@ -265,6 +323,12 @@ function deriveInsights(
           snap.top_director_count != null && snap.top_director_count > 0
             ? `${snap.top_director_count} ${snap.top_director_count === 1 ? 'фильм' : snap.top_director_count < 5 ? 'фильма' : 'фильмов'}`
             : undefined,
+        to:
+          snap.top_director_kinopoisk_id != null && snap.top_director_kinopoisk_id > 0
+            ? userId !== ''
+              ? `/directors/${snap.top_director_kinopoisk_id}?userId=${encodeURIComponent(userId)}`
+              : `/directors/${snap.top_director_kinopoisk_id}`
+            : undefined,
       })
     }
     if (snap.top_actor_name != null && snap.top_actor_name !== '') {
@@ -275,6 +339,12 @@ function deriveInsights(
         hint:
           snap.top_actor_count != null && snap.top_actor_count > 0
             ? `${snap.top_actor_count} ${snap.top_actor_count === 1 ? 'фильм' : snap.top_actor_count < 5 ? 'фильма' : 'фильмов'}`
+            : undefined,
+        to:
+          snap.top_actor_kinopoisk_id != null && snap.top_actor_kinopoisk_id > 0
+            ? userId !== ''
+              ? `/actors/${snap.top_actor_kinopoisk_id}?userId=${encodeURIComponent(userId)}`
+              : `/actors/${snap.top_actor_kinopoisk_id}`
             : undefined,
       })
     }
@@ -511,18 +581,6 @@ export function ProfileStatsPanel({
       }))
   }, [stats?.genre_distribution])
 
-  const directorDonutSegments = useMemo((): DonutSegmentInput[] => {
-    const rows = stats?.director_distribution ?? []
-    return rows
-      .filter((item) => item.count > 0)
-      .map((item, idx) => ({
-        label: item.name,
-        count: item.count,
-        value: String(item.kinopoisk_id),
-        color: DIRECTOR_DONUT_COLORS[idx % DIRECTOR_DONUT_COLORS.length] ?? '#5de1d4',
-      }))
-  }, [stats?.director_distribution])
-
   const franchiseDonutSegments = useMemo((): DonutSegmentInput[] => {
     const rows = stats?.franchise_distribution ?? []
     return rows
@@ -583,15 +641,10 @@ export function ProfileStatsPanel({
   const metricStripItems = useMemo(() => {
     const total = stats != null ? String(stats.total_movies) : '0'
     const avg = stats != null ? formatRating(stats.average_rating) : '0'
-    const uniqueDirectors = stats?.insights?.unique_directors_count ?? 0
-    const items = [
+    return [
       { label: 'Карточек', value: total },
       { label: 'Средний балл', value: avg },
     ]
-    if (uniqueDirectors > 0) {
-      items.push({ label: 'Режиссёров', value: String(uniqueDirectors) })
-    }
-    return items
   }, [stats])
 
   const watchSummaryRows = useMemo(() => {
@@ -655,19 +708,6 @@ export function ProfileStatsPanel({
     onDrillToRatedCards?.()
   }
 
-  const handleDirectorDistributionDrill = (kinopoiskIdValue: string) => {
-    const id = Number(kinopoiskIdValue)
-    if (!Number.isInteger(id) || id < 1) return
-    onCardsQueryChange({
-      ...cardsQuery,
-      directorKinopoiskId: String(id),
-      actorKinopoiskId: '',
-      genre: '',
-      franchiseKey: '',
-    })
-    onDrillToRatedCards?.()
-  }
-
   const handleFranchiseDistributionDrill = (franchiseKey: string) => {
     const trimmed = franchiseKey.trim()
     if (trimmed === '') return
@@ -699,8 +739,8 @@ export function ProfileStatsPanel({
   const tagTasteItems = useMemo(() => (stats != null ? tagTasteFromStats(stats) : []), [stats])
 
   const insightItems = useMemo(
-    () => (stats != null ? deriveInsights(stats, sentiment) : []),
-    [stats, sentiment],
+    () => (stats != null ? deriveInsights(stats, sentiment, userId) : []),
+    [stats, sentiment, userId],
   )
 
   const companyDonutSegments = useMemo((): DonutSegmentInput[] => {
@@ -884,24 +924,20 @@ export function ProfileStatsPanel({
           </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="По режиссёрам">
-            {directorDonutSegments.length > 0 ? (
+            {(stats.director_distribution ?? []).some((director) => director.count > 0) ? (
               <div className="space-y-3">
-                <StatsDonutChart
-                  segments={directorDonutSegments}
-                  legendCollapsedTopN={8}
-                  onSegmentClick={handleDirectorDistributionDrill}
-                  activeValue={
-                    cardsQuery.directorKinopoiskId === ''
-                      ? undefined
-                      : cardsQuery.directorKinopoiskId
-                  }
+                <DirectorDistributionList
+                  directors={stats.director_distribution ?? []}
+                  userId={userId}
                 />
-                <Link
-                  to="/directors"
-                  className="block text-center text-sm text-(--tgui--link_color) no-underline"
-                >
-                  Все режиссёры →
-                </Link>
+                {stats.insights?.top_director_kinopoisk_id != null ? (
+                  <Link
+                    to={`/directors/${stats.insights.top_director_kinopoisk_id}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
+                    className="block text-center text-sm text-(--tgui--link_color) no-underline"
+                  >
+                    Страница топ-режиссёра →
+                  </Link>
+                ) : null}
               </div>
             ) : (
               <div className="space-y-3">

@@ -393,20 +393,40 @@ export function TasteFlowStrip({
 export function ProfileInsightsGrid({ items }: { items: ProfileInsightItem[] }) {
   if (items.length === 0) return null
 
+  const cardClassName =
+    'min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--tgui--divider_color)_72%,transparent)] bg-(--tgui--bg_color) px-2.5 py-2 sm:px-3'
+
   return (
     <div className="grid grid-cols-2 gap-2">
-      {items.map((item) => (
-        <div
-          key={item.key}
-          className="min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--tgui--divider_color)_72%,transparent)] bg-(--tgui--bg_color) px-2.5 py-2 sm:px-3"
-        >
-          <p className="truncate text-[10px] font-medium text-(--tgui--hint_color)">{item.label}</p>
-          <p className="mt-0.5 text-base font-semibold tabular-nums text-(--tgui--text_color) sm:text-lg">{item.value}</p>
-          {item.hint != null && item.hint !== '' ? (
-            <p className="mt-0.5 truncate text-[10px] text-(--tgui--hint_color)">{item.hint}</p>
-          ) : null}
-        </div>
-      ))}
+      {items.map((item) => {
+        const content = (
+          <>
+            <p className="truncate text-[10px] font-medium text-(--tgui--hint_color)">{item.label}</p>
+            <p className="mt-0.5 text-base font-semibold tabular-nums text-(--tgui--text_color) sm:text-lg">{item.value}</p>
+            {item.hint != null && item.hint !== '' ? (
+              <p className="mt-0.5 truncate text-[10px] text-(--tgui--hint_color)">{item.hint}</p>
+            ) : null}
+          </>
+        )
+
+        if (item.to != null && item.to !== '') {
+          return (
+            <Link
+              key={item.key}
+              to={item.to}
+              className={`${cardClassName} block no-underline outline-none transition-[background-color,transform] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] active:scale-[0.998] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color)`}
+            >
+              {content}
+            </Link>
+          )
+        }
+
+        return (
+          <div key={item.key} className={cardClassName}>
+            {content}
+          </div>
+        )
+      })}
     </div>
   )
 }

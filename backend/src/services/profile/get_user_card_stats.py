@@ -68,7 +68,6 @@ class ProfileInsights:
     top_franchise_key: str | None
     top_franchise_label: str | None
     top_franchise_count: int
-    unique_directors_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -296,7 +295,7 @@ class GetUserCardStatsService:
             for kinopoisk_id, (name, count) in sorted(
                 director_counts.items(),
                 key=lambda item: (-item[1][1], item[1][0]),
-            )
+            )[:20]
         ]
         rated_cards = (
             select(
@@ -445,7 +444,6 @@ class GetUserCardStatsService:
             top_franchise_key=top_franchise.franchise_key if top_franchise else None,
             top_franchise_label=top_franchise.label if top_franchise else None,
             top_franchise_count=top_franchise.count if top_franchise else 0,
-            unique_directors_count=len(director_distribution),
         )
 
         return UserCardStats(

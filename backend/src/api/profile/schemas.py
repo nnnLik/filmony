@@ -342,7 +342,6 @@ class ProfileInsightsResponse(BaseModel):
     top_franchise_key: str | None = None
     top_franchise_label: str | None = None
     top_franchise_count: int = 0
-    unique_directors_count: int = 0
 
     model_config = ConfigDict(extra='forbid')
 
@@ -677,7 +676,6 @@ def build_user_card_stats_response(
             top_franchise_key=stats.insights.top_franchise_key,
             top_franchise_label=stats.insights.top_franchise_label,
             top_franchise_count=stats.insights.top_franchise_count,
-            unique_directors_count=stats.insights.unique_directors_count,
         ),
         watch_with_distribution=[
             ValueDistributionItemResponse(value=item.value, count=item.count)
