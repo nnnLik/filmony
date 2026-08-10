@@ -4,49 +4,49 @@ overview: "Watch party v2: единый экран просмотра (solo = pa
 todos:
   - id: unified-watch-ux
     content: "Phase UX-0: один экран /films/:id/watch для solo и party; убрать «Смотреть вместе»; auto-create party; redirect /watch-party/:slug"
-    status: in_progress
+    status: completed
   - id: watch-ui-simplify
     content: "Phase UX-1: упростить layout, починить chat input, dedup сообщений (REST+SSE), vitest merge helper"
-    status: pending
+    status: completed
   - id: redis-infra
     content: "Phase 1: WatchPartySettings Redis env + watch_party_redis.py (fake for tests)"
-    status: pending
+    status: completed
   - id: redis-sse
     content: "Phase 2: Refactor watch_party_broker to Redis PUB/SUB + INCR seq; update tests"
-    status: pending
+    status: completed
   - id: ephemeral-chat
     content: "Phase 3: Move chat to Redis LIST; drop watch_party_message table/model; update snapshot/list routes"
-    status: pending
+    status: completed
   - id: redis-rl
     content: "Phase 4: Seek + message rate limits in Redis; remove in-memory dicts"
-    status: pending
+    status: completed
   - id: celery-expire
     content: "Phase 5: Celery EndExpiredWatchPartiesService + cron doc + integration test"
-    status: pending
+    status: completed
   - id: heartbeat-presence
     content: "Phase 6: N-missed-heartbeats away/left + user_watching Redis keys on heartbeat/leave"
-    status: pending
+    status: completed
   - id: typing
     content: "Phase 7: POST /typing + SSE event + WatchPartyPage UI"
-    status: pending
+    status: completed
   - id: chat-virtual
     content: "Phase 8: Cursor pagination + @tanstack/react-virtual WatchPartyChatList"
-    status: pending
+    status: completed
   - id: sse-reconnect
     content: "Phase 9: useWatchPartyEvents reconnect loop with since_seq backoff"
-    status: pending
+    status: completed
   - id: drift-banner
     content: "Phase 10: Guest drift detection banner in WatchPartyPage"
-    status: pending
+    status: completed
   - id: watching-badge
     content: "Phase 11: Batch API + WatchingNowBadge wired in all author-badge surfaces"
-    status: pending
+    status: completed
   - id: mutual-invite
     content: "Phase 12: Invite endpoint + Telegram notification + WatchPartyInviteSheet"
-    status: pending
+    status: completed
   - id: watch-session-bridge
     content: "Phase 13: Host opt-in bridge service + source_watch_party_id + end sheet UX + tests"
-    status: pending
+    status: completed
 isProject: false
 ---
 
