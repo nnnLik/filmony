@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.health.routes import router as health_router
 from api.router import router as api_router
 from conf import settings
 
@@ -33,6 +34,7 @@ def setup_app(app: FastAPI) -> FastAPI:
         'allow_headers': settings.app.CORS_ALLOW_HEADERS,
     }
     app.add_middleware(CORSMiddleware, **cors_kw)
+    app.include_router(health_router)
     app.include_router(api_router)
 
     @app.get('/')

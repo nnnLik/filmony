@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 
 import type { WatchPartyMember, WatchPartyPlaybackState } from '../../api/watchPartyTypes'
 import {
+  expectedPlaybackMs,
   formatPlaybackMs,
   memberDisplayPositionMs,
   memberPositionDeltaSeconds,
@@ -42,19 +43,9 @@ export function WatchPartyRoomPanel({
     [members],
   )
 
-  const hostDisplayMs = useMemo(
-    () => memberDisplayPositionMs(
-      {
-        user_id: hostUserId,
-        position_ms: playbackState.position_ms,
-        position_playing: playbackState.playing,
-        position_at: playbackState.updated_at,
-      },
-      hostUserId,
-      playbackState,
-      tickMs,
-    ),
-    [hostUserId, playbackState, tickMs],
+  const syncMs = useMemo(
+    () => expectedPlaybackMs(playbackState, tickMs),
+    [playbackState, tickMs],
   )
 
   if (visible.length === 0) {
@@ -74,19 +65,17 @@ export function WatchPartyRoomPanel({
           {' '}
           {visible.length}
         </span>
-        {hostDisplayMs != null ? (
-          <span className="text-xs text-(--tgui--hint_color)">
-            Эталон
-            {' '}
-            {formatPlaybackMs(hostDisplayMs)}
-          </span>
-        ) : null}
+        <span className="font-mono text-xs tabular-nums text-(--tgui--hint_color)">
+          {formatPlaybackMs(syncMs)}
+          {' '}
+          {playbackState.playing ? '▶' : '⏸'}
+        </span>
       </button>
 
       <ul className="divide-y divide-white/10 border-t border-white/10">
         {visible.map((member) => {
           const displayMs = memberDisplayPositionMs(member, hostUserId, playbackState, tickMs)
-          const deltaSec = memberPositionDeltaSeconds(displayMs, hostDisplayMs)
+          const deltaSec = memberPositionDeltaSeconds(displayMs, syncMs)
           const hint = statusLabel(member)
 
           return (

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from conf import settings
 from daos.watch_party_dao import WatchPartyDAO
 from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
+from services.watch_parties.helpers import expected_playback_ms
 from services.watch_parties.watch_party_broker import publish_watch_party_event
 from services.watch_parties.watch_party_redis import enforce_seek_rate_limit
 
@@ -69,7 +70,11 @@ class UpdateWatchPartyPlaybackService:
         state = dict(party.playback_state or {})
         now = dt.datetime.now(dt.UTC)
         now_iso = now.isoformat()
-        current_position = int(state.get('position_ms', 0))
+
+        if state.get('playing'):
+            current_position = expected_playback_ms(state, now=now)
+        else:
+            current_position = int(state.get('position_ms', 0))
 
         if action == 'play':
             state['playing'] = True

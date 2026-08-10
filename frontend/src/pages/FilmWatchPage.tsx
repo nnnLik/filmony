@@ -119,7 +119,8 @@ export function FilmWatchPage() {
   const [endBusy, setEndBusy] = useState(false)
   const [syncHintOpen, setSyncHintOpen] = useState(false)
   const [driftSeconds, setDriftSeconds] = useState<number | null>(null)
-  const [hostPositionMs, setHostPositionMs] = useState(0)
+  const [seekDraftMs, setSeekDraftMs] = useState(0)
+  const [seekDraftDirty, setSeekDraftDirty] = useState(false)
   const [playbackBusy, setPlaybackBusy] = useState(false)
   const [guestAnchorMs, setGuestAnchorMs] = useState<number | null>(null)
   const [guestAnchorAt, setGuestAnchorAt] = useState<number | null>(null)
@@ -129,7 +130,6 @@ export function FilmWatchPage() {
   const [typingNowMs, setTypingNowMs] = useState(() => Date.now())
   const [positionTickMs, setPositionTickMs] = useState(() => Date.now())
   const guestAnchoredRef = useRef(false)
-  const hostPositionMsRef = useRef(0)
   const guestAnchorMsRef = useRef<number | null>(null)
   const guestAnchorAtRef = useRef<number | null>(null)
 
@@ -154,27 +154,31 @@ export function FilmWatchPage() {
   }, [snapshot])
 
   useEffect(() => {
-    hostPositionMsRef.current = hostPositionMs
-  }, [hostPositionMs])
-
-  useEffect(() => {
     guestAnchorMsRef.current = guestAnchorMs
     guestAnchorAtRef.current = guestAnchorAt
   }, [guestAnchorAt, guestAnchorMs])
 
+  const playbackState = snapshot?.playback_state ?? null
+  const syncMs = playbackState == null
+    ? 0
+    : expectedPlaybackMs(playbackState, positionTickMs)
+
+  const playbackVersion = playbackState?.version ?? 0
+
   useEffect(() => {
-    if (snapshot == null) {
+    if (playbackState == null) {
       return
     }
     queueMicrotask(() => {
-      setHostPositionMs(snapshot.playback_state.position_ms)
+      setSeekDraftMs(expectedPlaybackMs(playbackState, Date.now()))
+      setSeekDraftDirty(false)
       if (!guestAnchoredRef.current) {
         guestAnchoredRef.current = true
-        setGuestAnchorMs(snapshot.playback_state.position_ms)
+        setGuestAnchorMs(playbackState.position_ms)
         setGuestAnchorAt(Date.now())
       }
     })
-  }, [snapshot])
+  }, [playbackVersion, playbackState])
 
   const partyId = snapshot?.id ?? null
   const isHost = snapshot?.viewer_role === 'host'
@@ -320,7 +324,7 @@ export function FilmWatchPage() {
       }
       let positionMs: number
       if (snapshotRef.current?.viewer_role === 'host') {
-        positionMs = hostPositionMsRef.current
+        positionMs = expectedPlaybackMs(playback, Date.now())
       } else {
         const anchorMs = guestAnchorMsRef.current ?? playback.position_ms
         const anchorAt = guestAnchorAtRef.current ?? Date.now()
@@ -359,9 +363,7 @@ export function FilmWatchPage() {
     return () => window.clearInterval(id)
   }, [])
 
-  const guestExpectedMs = snapshot?.playback_state
-    ? expectedPlaybackMs(snapshot.playback_state)
-    : 0
+  const guestExpectedMs = syncMs
 
   useEffect(() => {
     if (!isGuest || snapshot?.playback_state == null) {
@@ -431,6 +433,31 @@ export function FilmWatchPage() {
     void navigate(`/films/${filmId}`, { replace: true })
   }, [filmId, navigate, partyId])
 
+  const applyPlaybackState = useCallback((state: WatchPartyPlaybackState) => {
+    setSnapshot((prev) => {
+      if (prev == null) {
+        return prev
+      }
+      const hostId = prev.host_user_id
+      return {
+        ...prev,
+        playback_state: state,
+        members: prev.members.map((member) => (
+          member.user_id === hostId
+            ? {
+                ...member,
+                position_ms: state.position_ms,
+                position_playing: state.playing,
+                position_at: state.updated_at,
+              }
+            : member
+        )),
+      }
+    })
+    setSeekDraftMs(expectedPlaybackMs(state, Date.now()))
+    setSeekDraftDirty(false)
+  }, [setSnapshot])
+
   const sendPlayback = useCallback(
     async (action: 'play' | 'pause' | 'seek', positionMs?: number) => {
       if (partyId == null) {
@@ -442,13 +469,18 @@ export function FilmWatchPage() {
           action,
           position_ms: positionMs,
         })
-        setSnapshot((prev) => (prev ? { ...prev, playback_state: state } : prev))
+        applyPlaybackState(state)
       } finally {
         setPlaybackBusy(false)
       }
     },
-    [partyId, setSnapshot],
+    [applyPlaybackState, partyId],
   )
+
+  const handleSeekDraftChange = useCallback((ms: number) => {
+    setSeekDraftMs(ms)
+    setSeekDraftDirty(true)
+  }, [])
 
   const handleEndOnly = useCallback(async () => {
     if (partyId == null) {
@@ -591,11 +623,13 @@ export function FilmWatchPage() {
           <WatchPartyHostBar
             busy={playbackBusy}
             playing={snapshot.playback_state.playing}
-            positionMs={hostPositionMs}
-            onPositionChange={setHostPositionMs}
-            onPlay={() => void sendPlayback('play', hostPositionMs)}
-            onPause={() => void sendPlayback('pause', hostPositionMs)}
-            onSeek={() => void sendPlayback('seek', hostPositionMs)}
+            syncMs={syncMs}
+            seekDraftMs={seekDraftMs}
+            seekDraftDirty={seekDraftDirty}
+            onSeekDraftChange={handleSeekDraftChange}
+            onPlay={() => void sendPlayback('play')}
+            onPause={() => void sendPlayback('pause')}
+            onSeek={() => void sendPlayback('seek', seekDraftMs)}
             onEndSession={() => setEndSheetOpen(true)}
           />
         ) : null}

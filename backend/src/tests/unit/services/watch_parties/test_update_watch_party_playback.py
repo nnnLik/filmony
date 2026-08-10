@@ -129,3 +129,42 @@ async def test_playback_host_required() -> None:
             action='pause',
             position_ms=100,
         )
+
+
+@pytest.mark.asyncio
+async def test_playback_pause_freezes_extrapolated_position(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host_id = uuid4()
+    party = FakeParty(host_id)
+    started_at = dt.datetime.now(dt.UTC) - dt.timedelta(seconds=10)
+    party.playback_state = {
+        'playing': True,
+        'position_ms': 60_000,
+        'updated_at': started_at.isoformat(),
+        'host_user_id': str(host_id),
+        'version': 3,
+    }
+    dao = FakeDAO()
+    service = UpdateWatchPartyPlaybackService(
+        _dao=dao,
+        _ensure_active=FakeEnsureActive(party),
+        _session=FakeSession(),
+    )
+
+    async def _noop_publish(*_args, **_kwargs):
+        return 1
+
+    monkeypatch.setattr(
+        'services.watch_parties.update_watch_party_playback.publish_watch_party_event',
+        _noop_publish,
+    )
+
+    state = await service.execute(
+        party_id=party.id,
+        actor_user_id=host_id,
+        action='pause',
+    )
+    assert state['playing'] is False
+    assert state['position_ms'] >= 69_000
+    assert state['position_ms'] <= 71_000

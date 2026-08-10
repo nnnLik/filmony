@@ -6,8 +6,10 @@ import { formatPlaybackMs } from '../../lib/watchPartyTime'
 export type WatchPartyHostBarProps = {
   busy: boolean
   playing: boolean
-  positionMs: number
-  onPositionChange: (ms: number) => void
+  syncMs: number
+  seekDraftMs: number
+  seekDraftDirty: boolean
+  onSeekDraftChange: (ms: number) => void
   onPlay: () => void
   onPause: () => void
   onSeek: () => void
@@ -17,8 +19,10 @@ export type WatchPartyHostBarProps = {
 export function WatchPartyHostBar({
   busy,
   playing,
-  positionMs,
-  onPositionChange,
+  syncMs,
+  seekDraftMs,
+  seekDraftDirty,
+  onSeekDraftChange,
   onPlay,
   onPause,
   onSeek,
@@ -26,8 +30,18 @@ export function WatchPartyHostBar({
 }: WatchPartyHostBarProps) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-(--tgui--hint_color)">
+          Время комнаты для гостей
+        </p>
+        <p className="font-mono text-sm tabular-nums">
+          {formatPlaybackMs(syncMs)}
+          {' '}
+          {playing ? '▶' : '⏸'}
+        </p>
+      </div>
       <p className="mb-2 text-[11px] text-(--tgui--hint_color)">
-        Синхронизация для гостей. Свой плеер — в iframe выше.
+        Плеер сверху — отдельный. После перемотки в нём выставьте то же время ползунком и нажмите «Применить».
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <Button mode="filled" size="s" disabled={busy} onClick={onPlay} aria-label="Play">
@@ -36,27 +50,26 @@ export function WatchPartyHostBar({
         <Button mode="gray" size="s" disabled={busy} onClick={onPause} aria-label="Pause">
           <Pause className="block size-4" />
         </Button>
-        <span className="min-w-14 font-mono text-xs tabular-nums">{formatPlaybackMs(positionMs)}</span>
         <input
           type="range"
           min={0}
           max={7_200_000}
           step={1000}
-          value={positionMs}
-          onChange={(e) => onPositionChange(Number(e.target.value))}
+          value={seekDraftMs}
+          onChange={(e) => onSeekDraftChange(Number(e.target.value))}
           className="min-w-24 flex-1"
-          aria-label="Позиция воспроизведения"
+          aria-label="Позиция для гостей"
         />
-        <Button mode="gray" size="s" disabled={busy} onClick={onSeek}>
-          Seek
+        <span className="min-w-14 font-mono text-xs tabular-nums text-(--tgui--hint_color)">
+          {seekDraftDirty ? formatPlaybackMs(seekDraftMs) : '—'}
+        </span>
+        <Button mode="gray" size="s" disabled={busy || !seekDraftDirty} onClick={onSeek}>
+          Применить
         </Button>
         <Button mode="plain" size="s" className="ml-auto!" onClick={onEndSession}>
           Завершить
         </Button>
       </div>
-      <p className="mt-1 text-[11px] text-(--tgui--hint_color)">
-        {playing ? '▶ играет' : '⏸ пауза'}
-      </p>
     </div>
   )
 }

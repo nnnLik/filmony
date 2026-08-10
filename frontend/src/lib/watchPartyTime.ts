@@ -9,11 +9,14 @@ export function formatPlaybackMs(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
-export function expectedPlaybackMs(state: {
-  playing: boolean
-  position_ms: number
-  updated_at: string
-}): number {
+export function expectedPlaybackMs(
+  state: {
+    playing: boolean
+    position_ms: number
+    updated_at: string
+  },
+  nowMs: number = Date.now(),
+): number {
   if (!state.playing) {
     return state.position_ms
   }
@@ -21,7 +24,7 @@ export function expectedPlaybackMs(state: {
   if (!Number.isFinite(updatedAt)) {
     return state.position_ms
   }
-  return state.position_ms + Math.max(0, Date.now() - updatedAt)
+  return state.position_ms + Math.max(0, nowMs - updatedAt)
 }
 
 type MemberPositionSource = {

@@ -9,7 +9,7 @@ from conf import settings
 from models.user import User
 
 
-def expected_playback_ms(state: dict) -> int:
+def expected_playback_ms(state: dict, *, now: dt.datetime | None = None) -> int:
     """Extrapolates playback position from stored anchor and playing flag."""
     position_ms = int(state.get('position_ms', 0))
     playing = bool(state.get('playing', False))
@@ -26,7 +26,12 @@ def expected_playback_ms(state: dict) -> int:
         updated_at = updated_at.replace(tzinfo=dt.UTC)
     else:
         updated_at = updated_at.astimezone(dt.UTC)
-    elapsed_ms = max(0, int((dt.datetime.now(dt.UTC) - updated_at).total_seconds() * 1000))
+    current = now if now is not None else dt.datetime.now(dt.UTC)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=dt.UTC)
+    else:
+        current = current.astimezone(dt.UTC)
+    elapsed_ms = max(0, int((current - updated_at).total_seconds() * 1000))
     return max(0, position_ms + elapsed_ms)
 
 

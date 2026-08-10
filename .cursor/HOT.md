@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-11T014500Z
+Updated: 2026-08-11T023500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -19,20 +19,21 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `film-watch-party` — closed 2026-08-11T014500Z
+1. `backend-healthcheck` — closed 2026-08-11T023500Z
+   - Feature: `.cursor/features/backend-healthcheck/feature.md`
+   - Active: `.cursor/active/backend-healthcheck/`
+   - Docs: `docs/features/backend-healthcheck.md`
+2. `film-watch-party` — closed 2026-08-11T014500Z
    - Feature: `.cursor/features/film-watch-party/feature.md`
    - Active: `.cursor/active/film-watch-party/`
    - Docs: `docs/features/film-watch-party.md`
-2. `film-pleer-playback` — closed 2026-08-11T005500Z
+3. `film-pleer-playback` — closed 2026-08-11T005500Z
    - Feature: `.cursor/features/film-pleer-playback/feature.md`
    - Active: `.cursor/active/film-pleer-playback/`
    - Docs: `docs/features/film-pleer-playback.md`
-3. `profile-header-text-metrics` — closed 2026-08-10T235000Z
-   - Feature: `.cursor/features/profile-header-text-metrics/feature.md`
-   - Active: `.cursor/active/profile-header-text-metrics/`
-   - Docs: `docs/features/profile-header-text-metrics.md`
 
 ## evicted (queue for archive)
+- `profile-header-text-metrics` — evicted from recent_completed top-3 on 2026-08-11T023500Z (was #3)
 - `profile-stats-people-restructure` — evicted from recent_completed top-3 on 2026-08-11T014500Z (was #3)
 - `search-catalog-redesign` — evicted from recent_completed top-3 on 2026-08-10T235000Z (was #3)
 - `profile-directors-top20` — evicted from recent_completed top-3 on 2026-08-10T233500Z (was #3)
