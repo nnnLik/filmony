@@ -78,6 +78,17 @@ def telegram_mini_app_weekly_digest_url(*, period_key: str) -> str | None:
     return f'{base}?startapp=wd{period_key}'
 
 
+def telegram_mini_app_watch_party_url(invite_slug: str) -> str | None:
+    raw = settings.telegram.bot_username
+    if raw is None:
+        return None
+    name = raw.strip().lstrip('@')
+    if not name:
+        return None
+    base = f'https://t.me/{name}/{_DIRECT_LINK_SEGMENT}'
+    return f'{base}?startapp=wp{invite_slug}'
+
+
 def html_card_deep_link_block(card_id: int, *, link_text: str | None = None) -> str:
     url = telegram_mini_app_card_url(card_id)
     if url is None:
@@ -134,6 +145,15 @@ def html_weekly_digest_deep_link_block(
         return '📱 Откройте приложение Filmony из Telegram'
     esc_url = html.escape(url, quote=True)
     label = html.escape(link_text or 'Открыть сводку недели')
+    return f'🔗 <a href="{esc_url}">{label}</a>'
+
+
+def html_watch_party_deep_link_block(invite_slug: str, *, link_text: str | None = None) -> str:
+    url = telegram_mini_app_watch_party_url(invite_slug)
+    if url is None:
+        return '📱 Откройте приложение Filmony из Telegram'
+    esc_url = html.escape(url, quote=True)
+    label = html.escape(link_text or 'Открыть watch party')
     return f'🔗 <a href="{esc_url}">{label}</a>'
 
 

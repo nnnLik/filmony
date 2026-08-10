@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import type { FeedPageItem } from '../api/feedListPageTypes'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { collectFeedPrimaryAuthorIds } from '../lib/feedVisibleAuthorIds'
 
 import {
@@ -92,6 +93,8 @@ export function FeedAuthorBadgesProvider({
     [primaryAuthorIds.streakUserIds, registeredCommentAuthorIds],
   )
 
+  const watchingUserIds = streakUserIds
+
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: tasteQuizOwnerIds.length > 0,
     staleTime: FEED_BADGE_STALE_TIME_MS,
@@ -104,13 +107,21 @@ export function FeedAuthorBadgesProvider({
     gcTime: FEED_BADGE_GC_TIME_MS,
   })
 
+  const { watchingByUserId } = useWatchingNowOfUsers(watchingUserIds, {
+    enabled: watchingUserIds.length > 0,
+    staleTime: 60_000,
+    gcTime: FEED_BADGE_GC_TIME_MS,
+    refetchInterval: 60_000,
+  })
+
   const value = useMemo<FeedAuthorBadgesContextValue>(
     () => ({
       knowledgeByOwnerId,
       streakByUserId,
+      watchingByUserId,
       registerCommentAuthors,
     }),
-    [knowledgeByOwnerId, streakByUserId, registerCommentAuthors],
+    [knowledgeByOwnerId, streakByUserId, watchingByUserId, registerCommentAuthors],
   )
 
   return (

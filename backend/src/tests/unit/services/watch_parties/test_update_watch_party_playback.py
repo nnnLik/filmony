@@ -54,7 +54,6 @@ async def test_playback_play_updates_state(monkeypatch: pytest.MonkeyPatch) -> N
         _dao=dao,
         _ensure_active=FakeEnsureActive(party),
         _session=FakeSession(),
-        _seek_timestamps={},
     )
 
     async def _noop_publish(*_args, **_kwargs):
@@ -85,19 +84,22 @@ async def test_playback_seek_rate_limited(monkeypatch: pytest.MonkeyPatch) -> No
         _dao=dao,
         _ensure_active=FakeEnsureActive(party),
         _session=FakeSession(),
-        _seek_timestamps={},
     )
 
     async def _noop_publish(*_args, **_kwargs):
         return 1
 
+    async def _deny_seek(*_args, **_kwargs):
+        return False
+
     monkeypatch.setattr(
         'services.watch_parties.update_watch_party_playback.publish_watch_party_event',
         _noop_publish,
     )
-
-    now = dt.datetime.now(dt.UTC)
-    service._seek_timestamps[(party.id, host_id)] = [now] * 10
+    monkeypatch.setattr(
+        'services.watch_parties.update_watch_party_playback.enforce_seek_rate_limit',
+        _deny_seek,
+    )
 
     with pytest.raises(UpdateWatchPartyPlaybackService.SeekRateLimited):
         await service.execute(
@@ -113,11 +115,11 @@ async def test_playback_host_required() -> None:
     host_id = uuid4()
     guest_id = uuid4()
     party = FakeParty(host_id)
+    dao = FakeDAO()
     service = UpdateWatchPartyPlaybackService(
-        _dao=FakeDAO(),
+        _dao=dao,
         _ensure_active=FakeEnsureActive(party),
         _session=FakeSession(),
-        _seek_timestamps={},
     )
 
     with pytest.raises(UpdateWatchPartyPlaybackService.HostRequired):

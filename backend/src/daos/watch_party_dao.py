@@ -8,7 +8,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
-from models.watch_party import WatchParty, WatchPartyMember, WatchPartyMessage
+from models.watch_party import WatchParty, WatchPartyMember
 from models.watch_party_enums import WatchPartyMemberStatus, WatchPartyStatus
 
 
@@ -112,12 +112,14 @@ class WatchPartyDAO:
         )
         rows: list[WatchPartyMemberRow] = []
         for member, user in result.all():
+            role = member.role.value if hasattr(member.role, 'value') else str(member.role)
+            status = member.status.value if hasattr(member.status, 'value') else str(member.status)
             rows.append(
                 WatchPartyMemberRow(
                     party_id=member.party_id,
                     user_id=member.user_id,
-                    role=member.role.value,
-                    status=member.status.value,
+                    role=role,
+                    status=status,
                     last_seen_at=member.last_seen_at,
                     joined_at=member.joined_at,
                     display_name=user.display_name,
@@ -183,31 +185,11 @@ class WatchPartyDAO:
             .values(playback_state=playback_state),
         )
 
-    async def list_messages(
-        self,
-        *,
-        party_id: UUID,
-        limit: int,
-        before_id: int | None = None,
-    ) -> list[WatchPartyMessage]:
-        stmt = select(WatchPartyMessage).where(WatchPartyMessage.party_id == party_id)
-        if before_id is not None:
-            stmt = stmt.where(WatchPartyMessage.id < before_id)
-        stmt = stmt.order_by(WatchPartyMessage.id.desc()).limit(limit)
-        result = await self._session.execute(stmt)
-        messages = list(result.scalars().all())
-        messages.reverse()
-        return messages
+    async def list_expired_active_parties(self, *, now: dt.datetime) -> list[WatchParty]:
+        from services.watch_parties.ensure_active_watch_party import is_party_expired
 
-    async def insert_message(self, message: WatchPartyMessage) -> WatchPartyMessage:
-        self._session.add(message)
-        await self._session.flush()
-        return message
-
-    async def get_message(self, message_id: int) -> WatchPartyMessage | None:
-        return await self._session.get(WatchPartyMessage, message_id)
-
-    async def delete_message(self, message_id: int) -> None:
-        message = await self.get_message(message_id)
-        if message is not None:
-            await self._session.delete(message)
+        result = await self._session.execute(
+            select(WatchParty).where(WatchParty.status == WatchPartyStatus.active.value),
+        )
+        parties = list(result.scalars().all())
+        return [party for party in parties if is_party_expired(party, now=now)]

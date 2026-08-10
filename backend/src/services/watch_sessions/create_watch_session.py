@@ -41,7 +41,8 @@ class CreateWatchSessionService:
         partner_user_ids: list[UUID],
         anchor_film_id: int | None,
         anchor_catalog_item_id: int | None,
-        source_watchlist_entry_id: int,
+        source_watchlist_entry_id: int | None,
+        source_watch_party_id: UUID | None = None,
     ) -> WatchSession:
         has_film = anchor_film_id is not None
         has_catalog = anchor_catalog_item_id is not None
@@ -58,6 +59,7 @@ class CreateWatchSessionService:
             ),
             status=WatchSessionStatus.planned,
             source_watchlist_entry_id=source_watchlist_entry_id,
+            source_watch_party_id=source_watch_party_id,
         )
         self._session.add(entity)
         await self._session.flush()

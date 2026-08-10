@@ -3,9 +3,11 @@ import { Avatar, Title } from '@telegram-apps/telegram-ui'
 import type { PublicProfile } from '../../api/profileTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
+import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
 import { ProfileCompactMetrics, type ProfileCompactMetricsProps } from './ProfileCompactMetrics'
 
 type ProfileHeaderProps = {
@@ -14,6 +16,7 @@ type ProfileHeaderProps = {
   viewerId?: string | null
   knowledgeByOwnerId?: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId?: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   showTasteQuizBadge?: boolean
   metrics?: ProfileCompactMetricsProps
   avatarSize?: number
@@ -26,6 +29,7 @@ export function ProfileHeader({
   viewerId = null,
   knowledgeByOwnerId = {},
   streakByUserId = {},
+  watchingByUserId = {},
   showTasteQuizBadge = true,
   metrics,
   avatarSize = 76,
@@ -55,6 +59,7 @@ export function ProfileHeader({
             />
           ) : null}
           <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={profile.id} />
+          <WatchingNowAuthorBadge watchingByUserId={watchingByUserId} authorId={profile.id} />
         </div>
         {subtitle != null && subtitle !== '' ? (
           <p className="filmony-text-panel mt-1 max-w-full text-sm text-(--tgui--hint_color,#94a3b8)">{subtitle}</p>

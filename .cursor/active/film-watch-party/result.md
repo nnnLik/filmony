@@ -1,38 +1,36 @@
-# film-watch-party — result
+# film-watch-party — result (v2)
 
-**Status:** completed (MVP)
+**Status:** completed
 
-## Implemented
-- Live watch party domain (`WatchParty`, `WatchPartyMember`, `WatchPartyMessage`) separate from async `WatchSession`
-- REST: create/join/get/by-slug/leave/end/kick, playback, chat, heartbeat
-- In-process SSE broker with snapshot + playback/chat/presence/party_ended events
-- Soft sync: host controls + guest sync hints (pleer iframe, no cross-origin control)
-- `WatchPartyPage` with iframe, roster, chat sheet, invite copy, host countdown
-- Entry CTAs on `FilmWatchPage`, `FilmDetailPage`, `MovieCardDetailPage`
-- Telegram deep link `wp{slug}` / `wp_{slug}` → `/watch-party/:inviteSlug`
+## Implemented (v2)
+- Unified watch UX: one «Смотреть» CTA, `/films/:id/watch` for solo and group; `/watch-party/:slug` redirects
+- Simplified UI: header + iframe + sheets (roster, chat, host controls, end/bridge, invite)
+- Ephemeral Redis chat (drop `watch_party_message`); pagination + virtual scroll
+- Redis SSE fan-out, seek/message rate limits, user_watching presence keys
+- Heartbeat away/left via missed-heartbeat settings
+- SSE reconnect with `since_seq`; guest drift banner
+- Typing indicator; global «сейчас смотрит» badge (batch API + feed/profile wiring)
+- Mutual-follow in-app invite + Telegram notification
+- Host opt-in bridge party → WatchSession (`source_watch_party_id`)
+- Celery `end_expired_watch_parties` (cron */15)
 
-## Changed files (high level)
-- Backend: `models/watch_party*.py`, `daos/watch_party_dao.py`, `services/watch_parties/*`, `api/watch_parties/*`, migration `f4a5b6c7d890_watch_party.py`, settings
-- Frontend: `pages/WatchPartyPage.tsx`, `api/watchParty*.ts`, `lib/watchPartySse.ts`, `hooks/useWatchParty*.tsx`, `components/watchparty/WatchPartyCreateSheet.tsx`, routes, miniAppCardDeepLink
-- Tests: `test_watch_party_routes.py`, `test_watch_party_sse_routes.py`, unit broker/playback tests, deep link vitest
+## Key files
+- Backend: `watch_party_redis.py`, refactored broker/messages/heartbeat, `end_expired_watch_parties.py`, invite/bridge/batch/typing services, migration `g5h6i7j8k901_watch_party_v2_redis_bridge.py`
+- Frontend: `FilmWatchPage.tsx`, `WatchPartyRedirectPage.tsx`, `components/watchparty/*`, `useEnsureWatchParty.ts`, `mergeWatchPartyMessages.ts`, watching badge hooks
 
 ## Verification
 ```bash
 docker compose exec -T backend uv run pytest -n0 --no-cov \
+  src/tests/unit/services/watch_parties/ \
   src/tests/integration/api/test_watch_party_routes.py \
   src/tests/integration/api/test_watch_party_sse_routes.py \
-  src/tests/unit/services/watch_parties/
+  src/tests/integration/services/test_watch_party_v2.py
 cd frontend && npm run lint && npm run build
-npm run test -- --run src/lib/__tests__/miniAppCardDeepLink.test.ts
+npm run test -- --run src/lib/__tests__/mergeWatchPartyMessages.test.ts
 ```
-All passed locally after backend container restart.
+20 backend tests passed; frontend lint/build pass.
 
 ## Known limitations
-- SSE broker is single-worker (same as global feed MVP)
-- No hard video sync inside pleer iframe (phase 2)
-- No bridge to `WatchSession` after party end (phase 3)
-- In-app mutual-follow push invite not implemented (copy link + TMA deep link only)
-
-## Next steps
-- Phase 2: custom `<video>` + HLS hard sync
-- Phase 3: end party → spawn/link `WatchSession` for co-rating feed post
+- Soft sync only (pleer iframe); hard sync deferred
+- Chat lost on page reload (by design)
+- TanStack Virtual triggers React Compiler incompatible-library warning (expected)

@@ -5,9 +5,11 @@ import { Link } from 'react-router'
 import type { FilmCommunityCardItem } from '../../api/profileTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
+import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
 import {
   COMPANY_SHORT,
   MOOD_AFTER_SHORT,
@@ -40,6 +42,7 @@ type CommunityRatingsListProps = {
   viewerId: string | null
   tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   followingUserIds?: ReadonlySet<string>
   onLoadMore: () => void
 }
@@ -53,6 +56,7 @@ export function CommunityRatingsList({
   viewerId,
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
+  watchingByUserId = {},
   followingUserIds,
   onLoadMore,
 }: CommunityRatingsListProps) {
@@ -128,6 +132,7 @@ export function CommunityRatingsList({
                         viewerId={viewerId}
                       />
                       <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={row.author.id} />
+                      <WatchingNowAuthorBadge watchingByUserId={watchingByUserId} authorId={row.author.id} />
                       <Link
                         to={`/cards/${encodeURIComponent(String(row.id))}`}
                         className="shrink-0 text-xs font-semibold text-(--tgui--link_color) no-underline"

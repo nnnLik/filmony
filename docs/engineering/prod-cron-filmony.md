@@ -11,6 +11,7 @@
 | `0 10 * * 1` | `tasks.personal_digest.send_weekly_personal_digests` | Weekly personal + friends Telegram digest |
 | `0 10 1 * *` | `tasks.personal_digest.send_monthly_personal_digests` | Monthly personal stats Telegram teaser |
 | `0 4 * * *` | `tasks.achievement_rarity.recalculate_achievement_rarity` | Achievement rarity snapshots |
+| `*/15 * * * *` | `tasks.watch_party.end_expired_watch_parties` | End watch parties past TTL |
 
 ## Logs
 

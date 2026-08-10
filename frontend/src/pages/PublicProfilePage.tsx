@@ -17,6 +17,7 @@ import {
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
 import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
@@ -239,6 +240,11 @@ export function PublicProfilePage() {
   const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
     enabled: streakUserIds.length > 0,
   })
+  const { watchingByUserId } = useWatchingNowOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  })
 
   if (auth.kind === 'loading') {
     return <PageLoadingState authPending />
@@ -289,6 +295,7 @@ export function PublicProfilePage() {
           viewerId={myUserId}
           knowledgeByOwnerId={knowledgeByOwnerId}
           streakByUserId={streakByUserId}
+          watchingByUserId={watchingByUserId}
           metrics={{
             followers_count: profile.followers_count,
             following_count: profile.following_count,

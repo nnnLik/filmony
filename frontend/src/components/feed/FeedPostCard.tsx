@@ -34,6 +34,7 @@ import { useFeedInlineCommentsPanel } from '../../hooks/useFeedInlineCommentsPan
 import { useCommentScrollHighlight } from '../../hooks/useCommentScrollHighlight'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
+import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { EngagementCommentsRow } from './EngagementCommentsRow'
@@ -495,7 +496,7 @@ export function FeedPostCard({
     }
     return ids
   }, [sourceCommentQuote, user_id])
-  const { knowledgeByOwnerId, streakByUserId } = useFeedCardAuthorBadges({
+  const { knowledgeByOwnerId, streakByUserId, watchingByUserId } = useFeedCardAuthorBadges({
     scopeKey: `feed_post:${id}`,
     tasteQuizOwnerIds: primaryTasteQuizOwnerIds,
     streakUserIds: primaryStreakUserIds,
@@ -539,6 +540,7 @@ export function FeedPostCard({
       viewerUserId={viewerUserId}
       knowledgeByAuthor={knowledgeByOwnerId}
       streakByUserId={streakByUserId}
+      watchingByUserId={watchingByUserId}
       previewReactions={previewReactions}
       onPreviewReactionChange={(commentId, next) =>
         setPreviewReactions((prev) => ({ ...prev, [commentId]: next }))
@@ -635,6 +637,7 @@ export function FeedPostCard({
                   viewerId={viewerUserId}
                 />
                 <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={user_id} />
+                <WatchingNowAuthorBadge watchingByUserId={watchingByUserId} authorId={user_id} />
                 <span className="shrink-0 text-[11px] text-(--tgui--hint_color)">{formatCommentTime(created_at)}</span>
               </div>
             </div>
@@ -679,6 +682,10 @@ export function FeedPostCard({
                 />
                 <RatingStreakAuthorBadge
                   streakByUserId={streakByUserId}
+                  authorId={sourceCommentQuote.author.id}
+                />
+                <WatchingNowAuthorBadge
+                  watchingByUserId={watchingByUserId}
                   authorId={sourceCommentQuote.author.id}
                 />
               </Link>

@@ -134,6 +134,14 @@ class WatchPartySettings(BaseSettings):
     ttl_hours: int = Field(12, alias='WATCH_PARTY_TTL_HOURS')
     sse_ping_seconds: int = Field(25, alias='WATCH_PARTY_SSE_PING_SECONDS')
     public_app_base_url: str = Field('http://localhost:5173', alias='PUBLIC_APP_BASE_URL')
+    redis_url: str | None = Field(None, alias='WATCH_PARTY_REDIS_URL')
+    chat_max_messages: int = Field(200, alias='WATCH_PARTY_CHAT_MAX_MESSAGES')
+    chat_page_size: int = Field(50, alias='WATCH_PARTY_CHAT_PAGE_SIZE')
+    seek_rate_limit: int = Field(10, alias='WATCH_PARTY_SEEK_RATE_LIMIT')
+    heartbeat_interval_seconds: int = Field(30, alias='WATCH_PARTY_HEARTBEAT_INTERVAL_SECONDS')
+    missed_heartbeats_away: int = Field(3, alias='WATCH_PARTY_MISSED_HEARTBEATS_AWAY')
+    missed_heartbeats_left: int = Field(20, alias='WATCH_PARTY_MISSED_HEARTBEATS_LEFT')
+    typing_ttl_seconds: int = Field(3, alias='WATCH_PARTY_TYPING_TTL_SECONDS')
 
 
 @dataclass

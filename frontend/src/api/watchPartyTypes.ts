@@ -59,8 +59,32 @@ export type ActivePartyConflictDetail = {
 
 export type WatchPartySseEvent = {
   seq: number
-  type: 'snapshot' | 'playback_state' | 'chat_message' | 'chat_message_deleted' | 'presence' | 'party_ended' | 'ping'
+  type:
+    | 'snapshot'
+    | 'playback_state'
+    | 'chat_message'
+    | 'chat_message_deleted'
+    | 'presence'
+    | 'party_ended'
+    | 'ping'
+    | 'typing'
   payload: Record<string, unknown>
+}
+
+export type WatchingNowBatchItem = {
+  film_id: number
+  film_title: string
+  party_id?: string
+}
+
+export const WATCHING_NOW_BATCH_MAX_USER_IDS = 100
+
+export type WatchingNowBatchResponse = {
+  items: Record<string, WatchingNowBatchItem>
+}
+
+export type WatchPartyBridgeResponse = {
+  watch_session_id: string
 }
 
 export type WatchPartySnapshotPayload = {

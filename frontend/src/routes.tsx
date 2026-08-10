@@ -41,9 +41,9 @@ const FilmWatchPage = lazy(async () => {
   const m = await import('./pages/FilmWatchPage')
   return { default: m.FilmWatchPage }
 })
-const WatchPartyPage = lazy(async () => {
-  const m = await import('./pages/WatchPartyPage')
-  return { default: m.WatchPartyPage }
+const WatchPartyRedirectPage = lazy(async () => {
+  const m = await import('./pages/WatchPartyRedirectPage')
+  return { default: m.WatchPartyRedirectPage }
 })
 const ActorDetailPage = lazy(async () => {
   const m = await import('./pages/ActorDetailPage')
@@ -153,8 +153,8 @@ export function AppRoutes() {
         <Route path="/u/:userId" element={<PublicProfilePage />} />
         <Route path="/u/:userId/subscriptions" element={<RequireAuth><SubscriptionsPage /></RequireAuth>} />
         <Route path="/films/:filmId" element={<FilmDetailPage />} />
-        <Route path="/films/:filmId/watch" element={<FilmWatchPage />} />
-        <Route path="/watch-party/:inviteSlug" element={<RequireAuth><WatchPartyPage /></RequireAuth>} />
+        <Route path="/films/:filmId/watch" element={<RequireAuth><FilmWatchPage /></RequireAuth>} />
+        <Route path="/watch-party/:inviteSlug" element={<RequireAuth><WatchPartyRedirectPage /></RequireAuth>} />
         <Route path="/directors" element={<DirectorsIndexPage />} />
         <Route path="/directors/:kinopoiskId" element={<DirectorDetailPage />} />
         <Route path="/actors/:kinopoiskId" element={<ActorDetailPage />} />

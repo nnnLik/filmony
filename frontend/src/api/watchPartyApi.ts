@@ -1,5 +1,6 @@
 import { apiFetch, apiJson, ApiError, readErrorDetail } from './client'
 import type {
+  WatchPartyBridgeResponse,
   WatchPartyCreateResponse,
   WatchPartyMessage,
   WatchPartyPlaybackState,
@@ -55,11 +56,12 @@ export async function postWatchPartyPlayback(
 
 export async function listWatchPartyMessages(
   partyId: string,
-  params?: { cursor?: number; limit?: number },
+  params?: { cursor?: number; before_id?: number; limit?: number },
 ): Promise<WatchPartyMessage[]> {
   const search = new URLSearchParams()
-  if (params?.cursor != null) {
-    search.set('cursor', String(params.cursor))
+  const cursor = params?.before_id ?? params?.cursor
+  if (cursor != null) {
+    search.set('cursor', String(cursor))
   }
   if (params?.limit != null) {
     search.set('limit', String(params.limit))
@@ -68,6 +70,34 @@ export async function listWatchPartyMessages(
   return apiJson<WatchPartyMessage[]>(
     `/api/watch-parties/${partyId}/messages${qs === '' ? '' : `?${qs}`}`,
   )
+}
+
+export async function sendWatchPartyTyping(partyId: string): Promise<void> {
+  const res = await apiFetch(`/api/watch-parties/${partyId}/typing`, { method: 'POST' })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorDetail(res))
+  }
+}
+
+export async function inviteWatchPartyMembers(
+  partyId: string,
+  userIds: string[],
+): Promise<void> {
+  const res = await apiFetch(`/api/watch-parties/${partyId}/invite`, {
+    method: 'POST',
+    body: JSON.stringify({ user_ids: userIds }),
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorDetail(res))
+  }
+}
+
+export async function bridgeWatchPartyToWatchSession(
+  partyId: string,
+): Promise<WatchPartyBridgeResponse> {
+  return apiJson<WatchPartyBridgeResponse>(`/api/watch-parties/${partyId}/bridge`, {
+    method: 'POST',
+  })
 }
 
 export async function createWatchPartyMessage(

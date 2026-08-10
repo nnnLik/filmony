@@ -1,5 +1,6 @@
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import type { ReactionSummary } from '../../api/profileTypes'
 import type { ThreadComment } from '../../lib/commentThreadTypes'
 import { CommentListItem, type CommentListItemLayout } from './CommentListItem'
@@ -16,6 +17,7 @@ export type CommentThreadListProps<T extends ThreadComment> = {
   viewerId?: string | null
   knowledgeByAuthor?: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId?: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   editingCommentId?: number | null
   editText?: string
   editBusy?: boolean
@@ -48,6 +50,7 @@ export function CommentThreadList<T extends ThreadComment>({
   viewerId = null,
   knowledgeByAuthor,
   streakByUserId,
+  watchingByUserId,
   editingCommentId = null,
   editText = '',
   editBusy = false,
@@ -94,6 +97,7 @@ export function CommentThreadList<T extends ThreadComment>({
             viewerId={viewerId}
             knowledgeByAuthor={knowledgeByAuthor}
             streakByUserId={streakByUserId}
+            watchingByUserId={watchingByUserId}
             editingCommentId={editingCommentId}
             editText={editText}
             editBusy={editBusy}

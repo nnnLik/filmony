@@ -4,6 +4,7 @@ import type { WatchedInlinePickerItem } from '../../api/watchedInlinePickerTypes
 import type { SubscriptionListItem } from '../../api/profileTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import type { ThreadComment, ReplyToState } from '../../lib/commentThreadTypes'
 import type { ActiveMentionQuery } from '../../lib/feedMentionCompose'
 import { commentAuthorLabel } from '../../lib/commentDisplay'
@@ -50,6 +51,7 @@ export type CommentThreadSectionProps<T extends ThreadComment> = {
   onDismissCommentMention: () => void
   tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   editingCommentId: number | null
   editText: string
   setEditText: Dispatch<SetStateAction<string>>
@@ -111,6 +113,7 @@ export function CommentThreadSection<T extends ThreadComment>({
   onDismissCommentMention,
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
+  watchingByUserId = {},
   editingCommentId,
   editText,
   setEditText,
@@ -216,6 +219,7 @@ export function CommentThreadSection<T extends ThreadComment>({
             viewerId={viewerId}
             knowledgeByAuthor={tasteQuizKnowledgeByAuthor}
             streakByUserId={streakByUserId}
+            watchingByUserId={watchingByUserId}
             editingCommentId={editingCommentId}
             editText={editText}
             editBusy={editBusy}

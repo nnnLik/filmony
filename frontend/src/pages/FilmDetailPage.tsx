@@ -29,11 +29,11 @@ import {
   type FollowingRatingRow,
 } from '../lib/followingRatingsDisplay'
 import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistOverlapSection'
-import { useWatchPartyCreateFlow } from '../hooks/useWatchPartyCreateFlow'
-import { formatRating } from '../components/feed/feedCardUtils'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { formatRating } from '../components/feed/feedCardUtils'
 
 export function FilmDetailPage() {
   const auth = useAuthStatus()
@@ -68,6 +68,11 @@ export function FilmDetailPage() {
   )
   const { streakByUserId } = useRatingStreaksOfUsers(communityAuthorIds, {
     enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
+  })
+  const { watchingByUserId } = useWatchingNowOfUsers(communityAuthorIds, {
+    enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
   const followingUserIds = useMemo(() => {
     if (followingRatings == null) return undefined
@@ -268,12 +273,6 @@ export function FilmDetailPage() {
     }
   }, [filmId])
 
-  const { openSheet, sheet } = useWatchPartyCreateFlow(
-    film?.id ?? 0,
-    film?.title ?? '',
-    film?.poster_url ?? null,
-  )
-
   useEffect(() => {
     if (viewerId != null) return
     let alive = true
@@ -362,9 +361,6 @@ export function FilmDetailPage() {
             <Link to={`/films/${encodeURIComponent(String(film.id))}/watch`} className="no-underline">
               <Button stretched>Смотреть</Button>
             </Link>
-            <Button mode="gray" stretched onClick={openSheet}>
-              Смотреть вместе
-            </Button>
           </>
         ) : null}
         {hasMyRatedCard ? (
@@ -446,13 +442,13 @@ export function FilmDetailPage() {
           viewerId={viewerId}
           tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
           streakByUserId={streakByUserId}
+          watchingByUserId={watchingByUserId}
           followingUserIds={followingUserIds}
           onLoadMore={() => void loadMoreCommunity()}
         />
       }
       ready={film != null}
     />
-      {sheet}
     </>
   )
 }

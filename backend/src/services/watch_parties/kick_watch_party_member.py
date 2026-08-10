@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from daos.watch_party_dao import WatchPartyDAO
 from models.watch_party_enums import WatchPartyMemberRole, WatchPartyMemberStatus
 from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
+from services.watch_parties.watch_party_redis import clear_user_watching
 
 
 @dataclass
@@ -76,3 +77,4 @@ class KickWatchPartyMemberService:
             status=WatchPartyMemberStatus.left,
         )
         await self._session.commit()
+        await clear_user_watching(target_user_id)

@@ -29,6 +29,7 @@ import { useFeedInlineCommentsPanel } from '../../hooks/useFeedInlineCommentsPan
 import { useCommentScrollHighlight } from '../../hooks/useCommentScrollHighlight'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
+import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
 import { FilmGenreChips } from '../films/FilmGenreChips'
 import { DirectorChip } from '../films/DirectorChip'
 import { FranchiseChip } from '../films/FranchiseChip'
@@ -155,7 +156,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     () => panelComments.map((comment) => comment.author.id),
     [panelComments],
   )
-  const { knowledgeByOwnerId, streakByUserId } = useFeedCardAuthorBadges({
+  const { knowledgeByOwnerId, streakByUserId, watchingByUserId } = useFeedCardAuthorBadges({
     scopeKey: `movie_card:${card.id}`,
     tasteQuizOwnerIds: isOwnCard ? [] : [card.user_id],
     streakUserIds: [card.user_id],
@@ -425,6 +426,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
               viewerId={viewerUserId}
             />
             <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={card.user_id} />
+            <WatchingNowAuthorBadge watchingByUserId={watchingByUserId} authorId={card.user_id} />
             {card.film_primary_director_kinopoisk_id != null &&
             card.film_primary_director_name != null &&
             card.film_primary_director_name.trim() !== '' ? (
@@ -503,6 +505,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           viewerUserId={viewerUserId}
           knowledgeByAuthor={knowledgeByOwnerId}
           streakByUserId={streakByUserId}
+          watchingByUserId={watchingByUserId}
           previewReactions={previewReactions}
           onPreviewReactionChange={(commentId, next) =>
             setPreviewReactions((prev) => ({ ...prev, [commentId]: next }))

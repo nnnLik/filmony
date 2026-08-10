@@ -4,10 +4,12 @@ import type { ReactNode } from 'react'
 
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import { commentAuthorLabel, formatCommentTime } from '../../lib/commentDisplay'
 import type { ThreadCommentAuthor } from '../../lib/commentThreadTypes'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
+import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
 
 export type CommentAuthorRowProps = {
   author: ThreadCommentAuthor
@@ -15,6 +17,7 @@ export type CommentAuthorRowProps = {
   viewerId?: string | null
   knowledgeByAuthor?: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId?: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   avatarSize?: 24 | 28
   nameAsLink?: boolean
   trailing?: ReactNode
@@ -27,6 +30,7 @@ export function CommentAuthorRow({
   viewerId = null,
   knowledgeByAuthor,
   streakByUserId,
+  watchingByUserId,
   avatarSize = 28,
   nameAsLink = true,
   trailing,
@@ -78,6 +82,9 @@ export function CommentAuthorRow({
             ) : null}
             {streakByUserId != null ? (
               <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={author.id} />
+            ) : null}
+            {watchingByUserId != null ? (
+              <WatchingNowAuthorBadge watchingByUserId={watchingByUserId} authorId={author.id} />
             ) : null}
             <span className="text-xs text-(--tgui--hint_color)">{formatCommentTime(createdAt)}</span>
           </div>

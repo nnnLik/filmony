@@ -1,24 +1,22 @@
 import { Button, IconButton } from '@telegram-apps/telegram-ui'
-import { Users, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
-export type WatchPartyCreateSheetProps = {
+export type WatchPartyEndSheetProps = {
   open: boolean
-  title: string
-  posterUrl: string | null
   busy?: boolean
   onClose: () => void
-  onConfirm: () => void
+  onEndOnly: () => void
+  onEndAndRateTogether: () => void
 }
 
-export function WatchPartyCreateSheet({
+export function WatchPartyEndSheet({
   open,
-  title,
-  posterUrl,
   busy = false,
   onClose,
-  onConfirm,
-}: WatchPartyCreateSheetProps) {
+  onEndOnly,
+  onEndAndRateTogether,
+}: WatchPartyEndSheetProps) {
   if (!open) {
     return null
   }
@@ -36,25 +34,26 @@ export function WatchPartyCreateSheet({
         role="dialog"
         aria-modal="true"
       >
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-(--tgui--hint_color)">Смотреть вместе</p>
-            <h2 className="truncate text-lg font-semibold">{title}</h2>
-          </div>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Завершить сеанс?</h2>
           <IconButton mode="gray" size="s" onClick={onClose} aria-label="Закрыть" disabled={busy}>
             <X className="block size-5" />
           </IconButton>
         </div>
-        {posterUrl ? (
-          <img src={posterUrl} alt="" className="mb-3 aspect-[2/3] w-24 rounded-lg object-cover" />
-        ) : null}
         <p className="mb-4 text-sm text-(--tgui--hint_color)">
-          Создайте комнату с чатом и синхронизацией от ведущего. Пригласите друзей по ссылке.
+          Можно просто закрыть комнату или сразу перейти к совместной оценке фильма.
         </p>
-        <Button mode="filled" stretched disabled={busy} onClick={onConfirm}>
-          <Users className="mr-2 inline size-4" />
-          Начать просмотр
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button stretched disabled={busy} onClick={onEndAndRateTogether}>
+            Завершить и оценить вместе
+          </Button>
+          <Button mode="gray" stretched disabled={busy} onClick={onEndOnly}>
+            Завершить
+          </Button>
+          <Button mode="plain" stretched disabled={busy} onClick={onClose}>
+            Отмена
+          </Button>
+        </div>
       </div>
     </div>,
     document.body,

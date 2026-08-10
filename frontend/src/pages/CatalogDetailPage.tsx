@@ -25,6 +25,7 @@ import { WatchlistOverlapAnchorBanner } from '../components/watchlist/WatchlistO
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { readMyProfileBundleCache, clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 
 function catalogWatchlistCardId(item: CatalogItemDetail): string {
@@ -67,6 +68,11 @@ export function CatalogDetailPage() {
   )
   const { streakByUserId } = useRatingStreaksOfUsers(communityAuthorIds, {
     enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
+  })
+  const { watchingByUserId } = useWatchingNowOfUsers(communityAuthorIds, {
+    enabled: auth.kind === 'ready' && communityAuthorIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
   const followingUserIds = useMemo(() => {
     if (followingRatings == null) return undefined
@@ -380,6 +386,7 @@ export function CatalogDetailPage() {
           viewerId={viewerId}
           tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
           streakByUserId={streakByUserId}
+          watchingByUserId={watchingByUserId}
           followingUserIds={followingUserIds}
           onLoadMore={() => void loadMoreCommunity()}
         />

@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-11T020000Z-film-watch-party-v2-closeout.md`
 - `2026-08-11T014500Z-film-watch-party-closeout.md`
 - `2026-08-11T005500Z-film-pleer-playback-closeout.md`
 - `2026-08-10T235000Z-profile-header-text-metrics-closeout.md`

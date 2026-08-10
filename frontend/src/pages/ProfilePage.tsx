@@ -23,6 +23,7 @@ import { PageHeader } from '../components/layout/PageHeader'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
 import { useMyLatestMonthlyRecapQuery } from '../hooks/useMyLatestMonthlyRecapQuery'
 import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
@@ -148,6 +149,11 @@ export function ProfilePage() {
   }, [profile])
   const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
     enabled: streakUserIds.length > 0,
+  })
+  const { watchingByUserId } = useWatchingNowOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
 
   const gamificationQuery = useGamification({
@@ -335,6 +341,7 @@ export function ProfilePage() {
           profile={pub}
           showTasteQuizBadge={false}
           streakByUserId={streakByUserId}
+          watchingByUserId={watchingByUserId}
           metrics={{
             followers_count: profile.followers_count,
             following_count: profile.following_count,

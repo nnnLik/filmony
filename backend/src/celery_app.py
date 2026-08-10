@@ -37,6 +37,7 @@ def _register_all_tasks(application: Celery) -> None:
     from tasks.personal_digest import register_tasks as register_personal_digest_tasks
     from tasks.ping import register_tasks as register_ping_tasks
     from tasks.telegram_engagement import register_tasks as register_telegram_engagement_tasks
+    from tasks.watch_party import register_tasks as register_watch_party_tasks
     from tasks.watch_session import register_tasks as register_watch_session_tasks
 
     register_ping_tasks(application)
@@ -45,6 +46,7 @@ def _register_all_tasks(application: Celery) -> None:
     register_personal_digest_tasks(application)
     register_telegram_engagement_tasks(application)
     register_watch_session_tasks(application)
+    register_watch_party_tasks(application)
 
 
 _register_all_tasks(app)

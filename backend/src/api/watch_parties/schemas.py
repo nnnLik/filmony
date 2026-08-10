@@ -71,3 +71,29 @@ class WatchPartyMessageResponse(BaseModel):
     author_user_id: UUID
     body: str
     created_at: str
+
+
+class WatchPartyTypingRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=120)
+
+
+class WatchPartyInviteRequest(BaseModel):
+    user_ids: list[UUID] = Field(..., min_length=1, max_length=32)
+
+
+class WatchPartyWatchingBatchRequest(BaseModel):
+    user_ids: list[UUID] = Field(default_factory=list, max_length=100)
+
+
+class WatchPartyWatchingItemResponse(BaseModel):
+    film_id: int
+    film_title: str
+    party_id: UUID | None = None
+
+
+class WatchPartyWatchingBatchResponse(BaseModel):
+    items: dict[str, WatchPartyWatchingItemResponse]
+
+
+class WatchPartyBridgeResponse(BaseModel):
+    watch_session_id: UUID

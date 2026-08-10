@@ -3,6 +3,7 @@ import type { MouseEventHandler, ReactNode } from 'react'
 
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import type { ReactionSummary } from '../../api/profileTypes'
 import { COMMENT_BODY_MAX_LEN } from '../../lib/commentReactionTokens'
 import { commentAuthorLabel, snippetPreview } from '../../lib/commentDisplay'
@@ -33,6 +34,7 @@ export type CommentListItemProps = {
   viewerId?: string | null
   knowledgeByAuthor?: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId?: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   editingCommentId?: number | null
   editText?: string
   editBusy?: boolean
@@ -65,6 +67,7 @@ export function CommentListItem({
   viewerId = null,
   knowledgeByAuthor,
   streakByUserId,
+  watchingByUserId,
   editingCommentId = null,
   editText = '',
   editBusy = false,
@@ -138,6 +141,7 @@ export function CommentListItem({
         viewerId={viewerId}
         knowledgeByAuthor={knowledgeByAuthor}
         streakByUserId={streakByUserId}
+        watchingByUserId={watchingByUserId}
         avatarSize={layout === 'feed' ? 24 : 28}
         nameAsLink={layout === 'detail'}
         trailing={trailing}

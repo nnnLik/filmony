@@ -32,7 +32,7 @@ from .user_collection_pin import UserCollectionPin
 from .user_collection_progress import UserCollectionProgress
 from .user_reaction import UserReaction
 from .user_subscription import UserSubscription
-from .watch_party import WatchParty, WatchPartyMember, WatchPartyMessage
+from .watch_party import WatchParty, WatchPartyMember
 from .watch_party_enums import WatchPartyMemberRole, WatchPartyMemberStatus, WatchPartyStatus
 from .watch_session import WatchSession
 from .watch_session_enums import WatchSessionStatus
@@ -83,7 +83,6 @@ __all__ = (
     'WatchPartyMember',
     'WatchPartyMemberRole',
     'WatchPartyMemberStatus',
-    'WatchPartyMessage',
     'WatchPartyStatus',
     'WatchSession',
     'WatchSessionStatus',

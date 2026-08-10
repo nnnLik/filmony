@@ -1,29 +1,23 @@
-"""In-process SSE broker for watch party rooms (MVP, single worker)."""
-
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
 import orjson
 
 from conf import settings
-
-_lock = asyncio.Lock()
-_parties: dict[UUID, _PartyChannel] = {}
-
-
-@dataclass
-class _PartyChannel:
-    seq: int = 0
-    subscribers: set[asyncio.Queue[tuple[int, str, dict[str, Any]]]] = field(default_factory=set)
+from services.watch_parties.watch_party_redis import (
+    publish_party_event,
+    reset_watch_party_redis_for_tests,
+    subscribe_party_events,
+)
 
 
 def reset_watch_party_broker_for_tests() -> None:
-    _parties.clear()
+    reset_watch_party_redis_for_tests()
 
 
 async def publish_watch_party_event(
@@ -32,17 +26,7 @@ async def publish_watch_party_event(
     event_type: str,
     payload: dict[str, Any],
 ) -> int:
-    async with _lock:
-        channel = _parties.setdefault(party_id, _PartyChannel())
-        channel.seq += 1
-        seq = channel.seq
-        item = (seq, event_type, payload)
-        for queue in list(channel.subscribers):
-            try:
-                queue.put_nowait(item)
-            except Exception:
-                continue
-        return seq
+    return await publish_party_event(party_id, event_type, payload)
 
 
 async def iter_watch_party_sse(
@@ -52,13 +36,26 @@ async def iter_watch_party_sse(
     since_seq: int | None = None,
 ) -> AsyncIterator[bytes]:
     queue: asyncio.Queue[tuple[int, str, dict[str, Any]]] = asyncio.Queue(maxsize=64)
-    async with _lock:
-        channel = _parties.setdefault(party_id, _PartyChannel())
-        channel.subscribers.add(queue)
-        current_seq = channel.seq
+    stop_event = asyncio.Event()
+
+    async def _redis_listener() -> None:
+        try:
+            async for item in subscribe_party_events(party_id):
+                if stop_event.is_set():
+                    break
+                try:
+                    queue.put_nowait(item)
+                except Exception:
+                    continue
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            return
+
+    listener = asyncio.create_task(_redis_listener())
 
     try:
-        if since_seq is None or since_seq >= current_seq:
+        if since_seq is None:
             snapshot_seq = await publish_watch_party_event(
                 party_id,
                 event_type='snapshot',
@@ -72,14 +69,18 @@ async def iter_watch_party_sse(
             except TimeoutError:
                 yield b': ping\n\n'
             else:
+                if event_type == 'snapshot' and since_seq is None:
+                    continue
                 if event_type == 'snapshot' and since_seq is not None and seq <= since_seq:
+                    continue
+                if since_seq is not None and seq <= since_seq:
                     continue
                 yield _encode_event(seq, event_type, payload)
     finally:
-        async with _lock:
-            channel = _parties.get(party_id)
-            if channel is not None:
-                channel.subscribers.discard(queue)
+        stop_event.set()
+        listener.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await listener
 
 
 def _encode_event(seq: int, event_type: str, payload: dict[str, Any]) -> bytes:

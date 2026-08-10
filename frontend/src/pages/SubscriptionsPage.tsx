@@ -22,8 +22,10 @@ import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
+import { WatchingNowAuthorBadge } from '../components/watchparty/WatchingNowAuthorBadge'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 
 type SubscriptionsTab = 'following' | 'followers'
@@ -173,6 +175,11 @@ export function SubscriptionsPage() {
   })
   const { streakByUserId } = useRatingStreaksOfUsers(subscriptionOwnerIds, {
     enabled: subscriptionOwnerIds.length > 0,
+  })
+  const { watchingByUserId } = useWatchingNowOfUsers(subscriptionOwnerIds, {
+    enabled: subscriptionOwnerIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
 
   const backTo = userId ? `/u/${encodeURIComponent(resolvedUserId)}` : '/profile'
@@ -329,6 +336,7 @@ export function SubscriptionsPage() {
                             viewerId={viewerId}
                           />
                           <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={item.id} />
+                          <WatchingNowAuthorBadge watchingByUserId={watchingByUserId} authorId={item.id} />
                         </div>
                         <p className="truncate text-xs text-(--tgui--hint_color)">@{item.profile_slug}</p>
                       </div>

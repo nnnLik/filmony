@@ -2,9 +2,11 @@ import { useEffect, useMemo } from 'react'
 
 import type { StreakBatchItem } from '../api/streaksTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
+import type { WatchingNowBatchItem } from '../api/watchPartyTypes'
 import { useOptionalFeedAuthorBadges } from './useFeedAuthorBadges'
 import { useRatingStreaksOfUsers } from './useRatingStreaksOfUsers'
 import { useTasteQuizKnowledgeOfUsers } from './useTasteQuizKnowledgeOfUsers'
+import { useWatchingNowOfUsers } from './useWatchingNowOfUsers'
 
 type UseFeedCardAuthorBadgesArgs = {
   scopeKey: string
@@ -16,6 +18,7 @@ type UseFeedCardAuthorBadgesArgs = {
 type FeedCardAuthorBadgesResult = {
   knowledgeByOwnerId: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId: Record<string, StreakBatchItem>
+  watchingByUserId: Record<string, WatchingNowBatchItem>
 }
 
 /**
@@ -46,6 +49,11 @@ export function useFeedCardAuthorBadges({
   const { streakByUserId: localStreakByUserId } = useRatingStreaksOfUsers(localStreakUserIds, {
     enabled: providerBadges == null && localStreakUserIds.length > 0,
   })
+  const { watchingByUserId: localWatchingByUserId } = useWatchingNowOfUsers(localStreakUserIds, {
+    enabled: providerBadges == null && localStreakUserIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  })
 
   useEffect(() => {
     if (providerBadges == null) {
@@ -61,11 +69,13 @@ export function useFeedCardAuthorBadges({
     return {
       knowledgeByOwnerId: providerBadges.knowledgeByOwnerId,
       streakByUserId: providerBadges.streakByUserId,
+      watchingByUserId: providerBadges.watchingByUserId,
     }
   }
 
   return {
     knowledgeByOwnerId: localKnowledgeByOwnerId,
     streakByUserId: localStreakByUserId,
+    watchingByUserId: localWatchingByUserId,
   }
 }

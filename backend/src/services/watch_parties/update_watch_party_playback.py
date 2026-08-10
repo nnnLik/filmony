@@ -7,9 +7,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf import settings
 from daos.watch_party_dao import WatchPartyDAO
 from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
 from services.watch_parties.watch_party_broker import publish_watch_party_event
+from services.watch_parties.watch_party_redis import enforce_seek_rate_limit
 
 PlaybackAction = Literal['play', 'pause', 'seek']
 
@@ -21,7 +23,6 @@ class UpdateWatchPartyPlaybackService:
     _dao: WatchPartyDAO
     _ensure_active: EnsureActiveWatchPartyService
     _session: AsyncSession
-    _seek_timestamps: dict[tuple[UUID, UUID], list[dt.datetime]]
 
     class PartyNotFound(Exception):
         pass
@@ -45,7 +46,6 @@ class UpdateWatchPartyPlaybackService:
             _dao=dao,
             _ensure_active=EnsureActiveWatchPartyService.build(dao),
             _session=session,
-            _seek_timestamps={},
         )
 
     async def execute(
@@ -83,7 +83,14 @@ class UpdateWatchPartyPlaybackService:
         elif action == 'seek':
             if position_ms is None:
                 raise self.InvalidAction
-            self._enforce_seek_rate_limit(party_id=party.id, actor_user_id=actor_user_id, now=now)
+            allowed = await enforce_seek_rate_limit(
+                party.id,
+                actor_user_id,
+                settings.watch_party.seek_rate_limit,
+                window_seconds=60,
+            )
+            if not allowed:
+                raise self.SeekRateLimited
             state['position_ms'] = max(0, position_ms)
             state['playing'] = bool(state.get('playing', False))
         else:
@@ -102,18 +109,3 @@ class UpdateWatchPartyPlaybackService:
             payload={'playback_state': state},
         )
         return state
-
-    def _enforce_seek_rate_limit(
-        self,
-        *,
-        party_id: UUID,
-        actor_user_id: UUID,
-        now: dt.datetime,
-    ) -> None:
-        key = (party_id, actor_user_id)
-        window_start = now - dt.timedelta(minutes=1)
-        recent = [ts for ts in self._seek_timestamps.get(key, []) if ts >= window_start]
-        if len(recent) >= 10:
-            raise self.SeekRateLimited
-        recent.append(now)
-        self._seek_timestamps[key] = recent

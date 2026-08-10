@@ -10,6 +10,7 @@ import { CommentThreadList } from '../comments/CommentThreadList'
 import { CommentComposeBar } from '../comments/CommentComposeBar'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
+import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import type { WatchedInlinePickerItem } from '../../api/watchedInlinePickerTypes'
 
 export type EngagementCommentsRowProps<T extends ThreadComment> = {
@@ -29,6 +30,7 @@ export type EngagementCommentsRowProps<T extends ThreadComment> = {
   viewerUserId?: string | null
   knowledgeByAuthor?: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId?: Record<string, StreakBatchItem>
+  watchingByUserId?: Record<string, WatchingNowBatchItem>
   previewReactions?: Record<number, ReactionSummary>
   onPreviewReactionChange?: (commentId: number, next: ReactionSummary) => void
   commentReactionTargetKind: 'movie_card_comment' | 'feed_post_comment'
@@ -73,6 +75,7 @@ export function EngagementCommentsRow<T extends ThreadComment>({
   viewerUserId = null,
   knowledgeByAuthor,
   streakByUserId,
+  watchingByUserId,
   previewReactions,
   onPreviewReactionChange,
   commentReactionTargetKind,
@@ -206,6 +209,7 @@ export function EngagementCommentsRow<T extends ThreadComment>({
                   viewerId={viewerUserId}
                   knowledgeByAuthor={knowledgeByAuthor}
                   streakByUserId={streakByUserId}
+                  watchingByUserId={watchingByUserId}
                   reactionTargetKind={commentReactionTargetKind}
                   previewReactions={previewReactions}
                   onPreviewReactionChange={onPreviewReactionChange}

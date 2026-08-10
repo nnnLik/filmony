@@ -7,13 +7,33 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conf import settings
 from daos.watch_party_dao import WatchPartyDAO
-from models.watch_party_enums import WatchPartyMemberStatus, WatchPartyStatus
+from models.watch_party_enums import WatchPartyMemberStatus
+from services.films.get_film_by_id import GetFilmByIdService
 from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
 from services.watch_parties.watch_party_broker import publish_watch_party_event
+from services.watch_parties.watch_party_redis import (
+    clear_user_watching,
+    list_chat_messages,
+    set_user_watching,
+)
 
-_AWAY_AFTER_SECONDS = 90
-_LEFT_AFTER_AWAY_SECONDS = 30 * 60
+
+def _away_after_seconds() -> float:
+    interval = settings.watch_party.heartbeat_interval_seconds
+    return float(interval * settings.watch_party.missed_heartbeats_away)
+
+
+def _left_after_seconds() -> float:
+    interval = settings.watch_party.heartbeat_interval_seconds
+    return float(interval * settings.watch_party.missed_heartbeats_left)
+
+
+def _watching_ttl_seconds() -> int:
+    interval = settings.watch_party.heartbeat_interval_seconds
+    left = settings.watch_party.missed_heartbeats_left
+    return interval * left + interval
 
 
 @dataclass
@@ -22,6 +42,7 @@ class RecordWatchPartyHeartbeatService:
 
     _dao: WatchPartyDAO
     _ensure_active: EnsureActiveWatchPartyService
+    _film_service: GetFilmByIdService
     _session: AsyncSession
 
     class PartyNotFound(Exception):
@@ -39,6 +60,7 @@ class RecordWatchPartyHeartbeatService:
         return cls(
             _dao=dao,
             _ensure_active=EnsureActiveWatchPartyService.build(dao),
+            _film_service=GetFilmByIdService(session),
             _session=session,
         )
 
@@ -62,8 +84,23 @@ class RecordWatchPartyHeartbeatService:
             last_seen_at=now,
         )
 
-        changed = await self._sweep_presence(party_id=party.id, now=now)
+        film = await self._film_service.execute(party.film_id)
+        film_title = film.title if film is not None else ''
+        await set_user_watching(
+            actor_user_id,
+            {
+                'film_id': party.film_id,
+                'film_title': film_title,
+                'party_id': str(party.id),
+            },
+            ttl_seconds=_watching_ttl_seconds(),
+        )
+
+        changed, left_user_ids = await self._sweep_presence(party_id=party.id, now=now)
         await self._session.commit()
+
+        for user_id in left_user_ids:
+            await clear_user_watching(user_id)
 
         if changed:
             roster = await self._dao.list_member_rows(party.id)
@@ -82,9 +119,17 @@ class RecordWatchPartyHeartbeatService:
                 },
             )
 
-    async def _sweep_presence(self, *, party_id: UUID, now: dt.datetime) -> bool:
+    async def _sweep_presence(
+        self,
+        *,
+        party_id: UUID,
+        now: dt.datetime,
+    ) -> tuple[bool, list[UUID]]:
         rows = await self._dao.list_member_rows(party_id)
         changed = False
+        left_user_ids: list[UUID] = []
+        away_after = _away_after_seconds()
+        left_after = _left_after_seconds()
         for row in rows:
             if row.status == WatchPartyMemberStatus.left.value:
                 continue
@@ -94,24 +139,22 @@ class RecordWatchPartyHeartbeatService:
             else:
                 last_seen = last_seen.astimezone(dt.UTC)
             delta = (now - last_seen).total_seconds()
-            if (
-                delta >= _LEFT_AFTER_AWAY_SECONDS
-                and row.status != WatchPartyMemberStatus.left.value
-            ):
+            if delta >= left_after and row.status != WatchPartyMemberStatus.left.value:
                 await self._dao.update_member_status(
                     party_id=party_id,
                     user_id=row.user_id,
                     status=WatchPartyMemberStatus.left,
                 )
                 changed = True
-            elif delta >= _AWAY_AFTER_SECONDS and row.status == WatchPartyMemberStatus.active.value:
+                left_user_ids.append(row.user_id)
+            elif delta >= away_after and row.status == WatchPartyMemberStatus.active.value:
                 await self._dao.update_member_status(
                     party_id=party_id,
                     user_id=row.user_id,
                     status=WatchPartyMemberStatus.away,
                 )
                 changed = True
-        return changed
+        return changed, left_user_ids
 
 
 @dataclass
@@ -132,7 +175,11 @@ class BuildWatchPartySnapshotPayloadService:
     async def execute(self, *, party_id: UUID) -> dict:
         party = await self._ensure_active.execute(party_id)
         members = await self._dao.list_member_rows(party.id)
-        messages = await self._dao.list_messages(party_id=party.id, limit=50)
+        messages = await list_chat_messages(
+            party.id,
+            before_id=None,
+            limit=settings.watch_party.chat_page_size,
+        )
         return {
             'party_id': str(party.id),
             'status': party.status.value,
@@ -150,10 +197,10 @@ class BuildWatchPartySnapshotPayloadService:
             ],
             'messages': [
                 {
-                    'id': message.id,
-                    'author_user_id': str(message.author_user_id),
-                    'body': message.body,
-                    'created_at': message.created_at.isoformat(),
+                    'id': int(message['id']),
+                    'author_user_id': str(message['author_user_id']),
+                    'body': str(message['body']),
+                    'created_at': str(message['created_at']),
                 }
                 for message in messages
             ],

@@ -46,11 +46,13 @@ import { copyTextToClipboard } from '../lib/copyTextToClipboard'
 import { safeHapticSuccess } from '../lib/safeHaptic'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
+import { WatchingNowAuthorBadge } from '../components/watchparty/WatchingNowAuthorBadge'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../api/streaksTypes'
+import type { WatchingNowBatchItem } from '../api/watchPartyTypes'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
-import { useWatchPartyCreateFlow } from '../hooks/useWatchPartyCreateFlow'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
+import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { MentionProfileLookupProvider } from '../context/MentionProfileLookupProvider'
 import { COMMENT_BODY_MAX_LEN } from '../lib/commentReactionTokens'
 import {
@@ -297,6 +299,11 @@ export function MovieCardDetailPage() {
   })
   const { streakByUserId } = useRatingStreaksOfUsers(streakUserIds, {
     enabled: streakUserIds.length > 0,
+  })
+  const { watchingByUserId } = useWatchingNowOfUsers(streakUserIds, {
+    enabled: streakUserIds.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
 
   const palette = useMemo(() => ratingPalette(card?.rating ?? 1), [card?.rating])
@@ -713,6 +720,7 @@ export function MovieCardDetailPage() {
             }}
             tasteQuizKnowledgeByAuthor={knowledgeByOwnerId}
             streakByUserId={streakByUserId}
+            watchingByUserId={watchingByUserId}
           />
           </MentionProfileLookupProvider>
         ) : null}
@@ -782,6 +790,7 @@ type MovieCardDetailLoadedBodyProps = {
   onDeleteComment: (commentId: number) => void
   tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId: Record<string, StreakBatchItem>
+  watchingByUserId: Record<string, WatchingNowBatchItem>
 }
 
 function MovieCardDetailLoadedBody({
@@ -845,6 +854,7 @@ function MovieCardDetailLoadedBody({
   onDeleteComment,
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
+  watchingByUserId,
 }: MovieCardDetailLoadedBodyProps) {
   const auth = useAuthStatus()
   const [cardAttachedAudio, setCardAttachedAudio] = useState<HTMLAudioElement | null>(null)
@@ -880,11 +890,6 @@ function MovieCardDetailLoadedBody({
     card.film_id != null && card.film_id > 0 ? card.film_id : null
   const filmIdForWatch =
     filmIdForCollections != null && showKinopoiskLink ? filmIdForCollections : null
-  const { openSheet, sheet } = useWatchPartyCreateFlow(
-    filmIdForWatch ?? 0,
-    primaryTitle,
-    primaryPoster,
-  )
   const filmCollectionsQuery = useQuery<CollectionSummary[], Error>({
     queryKey: filmCollectionsQueryKey(filmIdForCollections ?? 0),
     queryFn: async () => {
@@ -1021,6 +1026,10 @@ function MovieCardDetailLoadedBody({
                           />
                           <RatingStreakAuthorBadge
                             streakByUserId={streakByUserId}
+                            authorId={detailCardAuthor.id}
+                          />
+                          <WatchingNowAuthorBadge
+                            watchingByUserId={watchingByUserId}
                             authorId={detailCardAuthor.id}
                           />
                         </>
@@ -1164,9 +1173,6 @@ function MovieCardDetailLoadedBody({
                 >
                   <Button stretched>Смотреть</Button>
                 </Link>
-                <Button mode="gray" stretched onClick={openSheet}>
-                  Смотреть вместе
-                </Button>
               </>
             ) : null}
 
@@ -1295,6 +1301,7 @@ function MovieCardDetailLoadedBody({
               onDismissCommentMention={onDismissCommentMention}
               tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
               streakByUserId={streakByUserId}
+              watchingByUserId={watchingByUserId}
               editingCommentId={editingCommentId}
               editText={editText}
               setEditText={setEditText}
@@ -1327,7 +1334,6 @@ function MovieCardDetailLoadedBody({
               }}
             />
           </div>
-      {sheet}
     </>
   )
 }

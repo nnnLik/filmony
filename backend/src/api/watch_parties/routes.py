@@ -8,8 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.watch_parties.schemas import (
     ActivePartyConflictResponse,
+    WatchPartyBridgeResponse,
     WatchPartyCreateRequest,
     WatchPartyCreateResponse,
+    WatchPartyInviteRequest,
     WatchPartyKickRequest,
     WatchPartyMemberResponse,
     WatchPartyMessageCreateRequest,
@@ -17,13 +19,22 @@ from api.watch_parties.schemas import (
     WatchPartyPlaybackRequest,
     WatchPartySlugResolveResponse,
     WatchPartySnapshotResponse,
+    WatchPartyTypingRequest,
+    WatchPartyWatchingBatchRequest,
+    WatchPartyWatchingBatchResponse,
+    WatchPartyWatchingItemResponse,
 )
 from core.database import get_db
 from deps.auth import CurrentUser
+from services.watch_parties.batch_user_watching import BatchUserWatchingService
+from services.watch_parties.bridge_watch_party_to_watch_session import (
+    BridgeWatchPartyToWatchSessionService,
+)
 from services.watch_parties.create_watch_party import CreateWatchPartyService
 from services.watch_parties.end_watch_party import EndWatchPartyService
 from services.watch_parties.get_watch_party import GetWatchPartyService, WatchPartySnapshotDTO
 from services.watch_parties.get_watch_party_by_slug import GetWatchPartyBySlugService
+from services.watch_parties.invite_watch_party_members import InviteWatchPartyMembersService
 from services.watch_parties.join_watch_party import JoinWatchPartyService
 from services.watch_parties.kick_watch_party_member import KickWatchPartyMemberService
 from services.watch_parties.leave_watch_party import LeaveWatchPartyService
@@ -31,6 +42,7 @@ from services.watch_parties.record_watch_party_heartbeat import (
     BuildWatchPartySnapshotPayloadService,
     RecordWatchPartyHeartbeatService,
 )
+from services.watch_parties.record_watch_party_typing import RecordWatchPartyTypingService
 from services.watch_parties.update_watch_party_playback import UpdateWatchPartyPlaybackService
 from services.watch_parties.watch_party_broker import iter_watch_party_sse
 from services.watch_parties.watch_party_messages import (
@@ -101,6 +113,25 @@ async def create_watch_party(
         id=result.party_id,
         invite_slug=result.invite_slug,
         invite_url=result.invite_url,
+    )
+
+
+@router.post('/watching/batch', response_model=WatchPartyWatchingBatchResponse)
+async def batch_user_watching(
+    body: WatchPartyWatchingBatchRequest,
+    user: CurrentUser,
+) -> WatchPartyWatchingBatchResponse:
+    _ = user
+    items = await BatchUserWatchingService.build().execute(list(body.user_ids))
+    return WatchPartyWatchingBatchResponse(
+        items={
+            str(user_id): WatchPartyWatchingItemResponse(
+                film_id=item.film_id,
+                film_title=item.film_title,
+                party_id=item.party_id,
+            )
+            for user_id, item in items.items()
+        },
     )
 
 
@@ -347,6 +378,76 @@ async def delete_watch_party_message(
         raise HTTPException(status_code=404, detail='message_not_found') from None
     except DeleteWatchPartyMessageService.Forbidden:
         raise HTTPException(status_code=403, detail='forbidden') from None
+
+
+@router.post('/{party_id}/typing', status_code=status.HTTP_204_NO_CONTENT)
+async def watch_party_typing(
+    party_id: UUID,
+    body: WatchPartyTypingRequest,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    service = RecordWatchPartyTypingService.build(db)
+    try:
+        await service.execute(
+            party_id=party_id,
+            actor_user_id=user.id,
+            display_name=body.display_name,
+        )
+    except RecordWatchPartyTypingService.PartyNotFound:
+        raise HTTPException(status_code=404, detail='party_not_found') from None
+    except RecordWatchPartyTypingService.PartyEnded:
+        raise HTTPException(status_code=404, detail='party_not_found') from None
+    except RecordWatchPartyTypingService.NotMember:
+        raise HTTPException(status_code=403, detail='not_member') from None
+    except RecordWatchPartyTypingService.RateLimited:
+        raise HTTPException(status_code=429, detail='typing_rate_limited') from None
+
+
+@router.post('/{party_id}/invite', status_code=status.HTTP_204_NO_CONTENT)
+async def invite_watch_party_members(
+    party_id: UUID,
+    body: WatchPartyInviteRequest,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    service = InviteWatchPartyMembersService.build(db)
+    try:
+        await service.execute(
+            party_id=party_id,
+            actor_user_id=user.id,
+            user_ids=body.user_ids,
+        )
+    except InviteWatchPartyMembersService.PartyNotFound:
+        raise HTTPException(status_code=404, detail='party_not_found') from None
+    except InviteWatchPartyMembersService.PartyEnded:
+        raise HTTPException(status_code=404, detail='party_not_found') from None
+    except InviteWatchPartyMembersService.HostRequired:
+        raise HTTPException(status_code=403, detail='host_required') from None
+    except InviteWatchPartyMembersService.PartyFull:
+        raise HTTPException(status_code=409, detail='party_full') from None
+    except InviteWatchPartyMembersService.InvalidTarget:
+        raise HTTPException(status_code=422, detail='invalid_invite_target') from None
+
+
+@router.post('/{party_id}/bridge-watch-session', response_model=WatchPartyBridgeResponse)
+async def bridge_watch_party_to_watch_session(
+    party_id: UUID,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> WatchPartyBridgeResponse:
+    service = BridgeWatchPartyToWatchSessionService.build(db)
+    try:
+        result = await service.execute(party_id=party_id, actor_user_id=user.id)
+    except BridgeWatchPartyToWatchSessionService.PartyNotFound:
+        raise HTTPException(status_code=404, detail='party_not_found') from None
+    except BridgeWatchPartyToWatchSessionService.PartyEnded:
+        raise HTTPException(status_code=404, detail='party_not_found') from None
+    except BridgeWatchPartyToWatchSessionService.HostRequired:
+        raise HTTPException(status_code=403, detail='host_required') from None
+    except BridgeWatchPartyToWatchSessionService.InvalidRoster:
+        raise HTTPException(status_code=422, detail='invalid_roster') from None
+    return WatchPartyBridgeResponse(watch_session_id=result.watch_session_id)
 
 
 @router.post('/{party_id}/heartbeat', status_code=status.HTTP_204_NO_CONTENT)

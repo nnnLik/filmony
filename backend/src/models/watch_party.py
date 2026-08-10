@@ -4,13 +4,11 @@ import datetime as dt
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    BigInteger,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     String,
-    Text,
     UniqueConstraint,
     Uuid,
     func,
@@ -96,24 +94,3 @@ class WatchPartyMember(Base):
         Index('ix_watch_party_member_party_status', 'party_id', 'status'),
         Index('ix_watch_party_member_user_status', 'user_id', 'status'),
     )
-
-
-class WatchPartyMessage(Base):
-    """Persisted chat message in a watch party room."""
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    party_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey('watch_party.id', ondelete='CASCADE'),
-        nullable=False,
-        index=True,
-    )
-    author_user_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey('user.id', ondelete='CASCADE'),
-        nullable=False,
-        index=True,
-    )
-    body: Mapped[str] = mapped_column(Text, nullable=False)
-
-    __table_args__ = (Index('ix_watch_party_message_party_id_id', 'party_id', 'id'),)
