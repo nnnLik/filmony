@@ -1,10 +1,14 @@
 # HOT — Cursor session memory
-Updated: 2026-08-11T005500Z
+Updated: 2026-08-11T011500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
 ## in_progress
-1. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
+1. `film-watch-party` — live co-view: room, chat, presence, host sync (SSE + REST)
+   - Feature: `.cursor/features/film-watch-party/feature.md`
+   - Active: `.cursor/active/film-watch-party/`
+   - Spec: `docs/superpowers/specs/2026-08-11-film-watch-party-design.md`
+2. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
    - Feature: `.cursor/features/film-radarr-playback/feature.md`
    - Active: `.cursor/active/film-radarr-playback/`
    - Spec: `docs/superpowers/specs/2026-08-10-film-radarr-torrent-stack-design.md`
