@@ -249,7 +249,7 @@ export function PublicProfilePage() {
     return <PageErrorState message={auth.message} backLabel="На главную" backHref="/" />
   }
 
-  if (auth.kind === 'skipped') {
+  if (auth.kind === 'unauthenticated') {
     return (
       <PageErrorState
         message="Войдите через Telegram Mini App, чтобы открыть профиль."

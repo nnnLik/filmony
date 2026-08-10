@@ -225,7 +225,7 @@ export function SubscriptionsPage() {
     return <PageErrorState message={auth.message} backLabel="На главную" backHref="/" />
   }
 
-  if (auth.kind === 'skipped') {
+  if (auth.kind === 'unauthenticated') {
     return (
       <PageErrorState
         message="Откройте приложение в Telegram, чтобы увидеть подписки."

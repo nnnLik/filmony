@@ -16,10 +16,11 @@ export type AuthBootstrapDeps = {
   isCurrent: () => boolean
   setState: (status: AuthStatus) => void
   waitForInitDataRaw: (maxWaitMs: number, isCurrent: () => boolean) => Promise<string>
+  environment: 'tma' | 'browser'
 }
 
 export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
-  const { isCurrent, setState, waitForInitDataRaw } = deps
+  const { isCurrent, setState, waitForInitDataRaw, environment } = deps
 
   const resumeWithStoredBearer = async (): Promise<boolean> => {
     const token = readAccessToken()
@@ -69,9 +70,10 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
     }
   }
 
-  const initDataPromise = waitForInitDataRaw(4000, isCurrent)
   const bearerPromise = resumeWithStoredBearer()
   const cookiePromise = tryResumeFromCookie()
+  const initDataPromise =
+    environment === 'tma' ? waitForInitDataRaw(4000, isCurrent) : null
 
   if (await bearerPromise) {
     return
@@ -80,7 +82,12 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
     return
   }
 
-  const raw = await initDataPromise
+  if (environment === 'browser') {
+    setState({ kind: 'unauthenticated' })
+    return
+  }
+
+  const raw = await initDataPromise!
   if (!isCurrent()) {
     return
   }

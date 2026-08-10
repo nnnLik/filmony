@@ -70,9 +70,6 @@ async function waitForInitDataRaw(
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthStatus>(() => {
-    if (!isTMA()) {
-      return { kind: 'skipped' }
-    }
     if (readAuthSessionFlag() && readAccessToken()) {
       return { kind: 'loading' }
     }
@@ -83,19 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
-    if (!isTMA()) {
-      return
-    }
-
     const runId = ++authBootstrapGeneration.current
+    const environment = isTMA() ? 'tma' : 'browser'
 
     void (async () => {
-      signalTelegramWebAppReady()
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => resolve())
-      })
-      if (runId !== authBootstrapGeneration.current) {
-        return
+      if (isTMA()) {
+        signalTelegramWebAppReady()
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => resolve())
+        })
+        if (runId !== authBootstrapGeneration.current) {
+          return
+        }
       }
 
       await runAuthBootstrap({
@@ -103,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isCurrent: () => runId === authBootstrapGeneration.current,
         setState,
         waitForInitDataRaw,
+        environment,
       })
     })()
   }, [])

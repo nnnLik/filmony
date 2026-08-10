@@ -77,6 +77,7 @@ describe('runAuthBootstrap', () => {
         states.push(status)
       },
       waitForInitDataRaw: () => Promise.resolve('init-data'),
+      environment: 'tma',
     })
 
     expect(states).toEqual([{ kind: 'ready' }])
@@ -96,6 +97,7 @@ describe('runAuthBootstrap', () => {
         states.push(status)
       },
       waitForInitDataRaw: () => Promise.resolve(''),
+      environment: 'tma',
     })
 
     expect(states).toEqual([{ kind: 'ready' }])
@@ -118,10 +120,31 @@ describe('runAuthBootstrap', () => {
         states.push(status)
       },
       waitForInitDataRaw: () => Promise.resolve('telegram-init'),
+      environment: 'tma',
     })
 
     expect(mocks.authTelegram).toHaveBeenCalledWith('telegram-init')
     expect(states).toEqual([{ kind: 'ready' }])
     expect(mocks.writeAccessToken).toHaveBeenCalledWith('fresh-token')
+  })
+
+  it('sets unauthenticated in browser when resume probes fail', async () => {
+    mocks.readAccessToken.mockReturnValue(null)
+    mocks.apiFetchCredentialsOnly.mockResolvedValue(mockResponse(false, 401))
+    const waitForInitDataRaw = vi.fn(() => Promise.resolve(''))
+
+    await runAuthBootstrap({
+      runId: 1,
+      isCurrent: () => true,
+      setState: (status) => {
+        states.push(status)
+      },
+      waitForInitDataRaw,
+      environment: 'browser',
+    })
+
+    expect(states).toEqual([{ kind: 'unauthenticated' }])
+    expect(waitForInitDataRaw).not.toHaveBeenCalled()
+    expect(mocks.authTelegram).not.toHaveBeenCalled()
   })
 })

@@ -298,7 +298,7 @@ export function FilmDetailPage() {
     }
   }, [filmId, communityNext])
 
-  if (auth.kind === 'loading' || auth.kind === 'skipped') {
+  if (auth.kind === 'loading' || auth.kind === 'unauthenticated') {
     return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
   }
 

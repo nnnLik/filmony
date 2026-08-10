@@ -377,6 +377,24 @@ export async function authTelegram(initData: string): Promise<Response> {
   })
 }
 
+export type TelegramWidgetAuthPayload = {
+  id: number
+  auth_date: number
+  hash: string
+  first_name?: string
+  last_name?: string
+  username?: string
+  photo_url?: string
+}
+
+export async function authTelegramWidget(payload: TelegramWidgetAuthPayload): Promise<Response> {
+  return apiFetch('/api/auth/telegram-widget', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function subscribeToUser(userId: string): Promise<void> {
   const res = await apiFetch(`/api/users/${encodeURIComponent(userId)}/subscriptions`, {
     method: 'POST',

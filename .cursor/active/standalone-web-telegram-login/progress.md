@@ -10,8 +10,13 @@
   - Host fallback (Docker unavailable): `PYTHONPATH=src python3.12 -m pytest src/tests/unit/auth/test_verify_telegram_login_widget.py -o addopts= --confcutdir=src/tests/unit/auth`
   - Docker target: `make backend-test-one target=src/tests/unit/auth/test_verify_telegram_login_widget.py`
 
-## 2026-08-10 — Task 2 complete
+## 2026-08-10 — Task 3 complete
 
-- Added `TelegramWidgetAuthRequest` schema and `POST /api/auth/telegram-widget` route.
-- Route delegates HMAC verification to `VerifyTelegramLoginWidgetService`, then reuses upsert/JWT/cookie flow from `/telegram`.
-- Integration tests in `src/tests/integration/auth/test_telegram_widget.py` (happy path, bad hash, missing hash 422, widget+initData same user).
+- Replaced `AuthStatus` `skipped` with `unauthenticated`.
+- Browser bootstrap runs resume probes then ends in `unauthenticated` (no initData / authTelegram).
+- TMA bootstrap unchanged after failed resume (initData wait + authTelegram).
+- `AuthProvider` always runs bootstrap; gates `signalTelegramWebAppReady` to TMA.
+- Added `authTelegramWidget` API type + POST helper in `profileApi.ts`.
+- `useAuthReadyGate`: `unauthenticated` is not pending.
+- Page gates renamed `skipped` → `unauthenticated` (same UX text until LoginPage).
+- **Tests:** 4 passed (`src/auth/authBootstrap.test.ts`); `npx tsc --noEmit` clean.
