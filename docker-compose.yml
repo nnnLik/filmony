@@ -69,4 +69,14 @@ services:
       - homelab-infra
     depends_on:
       - rustfs
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'celery -A celery_app inspect ping -d celery@$$HOSTNAME --timeout 5',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     command: celery -A celery_app worker --loglevel=INFO

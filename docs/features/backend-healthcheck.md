@@ -87,6 +87,24 @@ The `backend` service in `docker-compose.yml` and `docker-compose.prod.yml` uses
 
 Compose marks the container healthy only when readiness returns `200` (Postgres and Redis up).
 
+### Celery worker
+
+The `celery-worker` service uses a **broker/worker ping**, not HTTP. Compose overrides the image `HEALTHCHECK` (which targets the API readiness URL) with:
+
+```text
+celery -A celery_app inspect ping -d celery@$HOSTNAME --timeout 5
+```
+
+In `docker-compose.yml` and `docker-compose.prod.yml`:
+
+- `test`: `CMD-SHELL` with the `inspect ping` command above (`$$HOSTNAME` in compose files)
+- `interval`: 30s
+- `timeout`: 10s
+- `retries`: 3
+- `start_period`: 40s
+
+The worker is healthy when Celery can reach the broker and the named worker responds to `inspect ping`.
+
 ## Tests
 
 - Integration: `backend/src/tests/integration/api/test_health_routes.py`
