@@ -65,7 +65,7 @@ export function TasteQuizStatsPage() {
     }
   }
 
-  if (auth.kind === 'loading' || auth.kind === 'unauthenticated') {
+  if (auth.kind === 'loading') {
     return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
   }
 

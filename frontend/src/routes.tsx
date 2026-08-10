@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router'
 
+import { RequireAuth } from './auth/RequireAuth'
 import { AppShell } from './layout/AppShell'
 import { RoutePageFallback } from './layout/RoutePageFallback'
 
@@ -120,24 +121,29 @@ const CollectionsIndexPage = lazy(async () => {
   const m = await import('./pages/CollectionsIndexPage')
   return { default: m.CollectionsIndexPage }
 })
+const LoginPage = lazy(async () => {
+  const m = await import('./pages/LoginPage')
+  return { default: m.LoginPage }
+})
 
 export function AppRoutes() {
   return (
     <Suspense fallback={<RoutePageFallback />}>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<AppShell />}>
-          <Route index element={<FeedPage />} />
+          <Route index element={<RequireAuth><FeedPage /></RequireAuth>} />
           <Route path="search" element={<SearchPage />} />
           <Route path="collections" element={<CollectionsIndexPage />} />
           <Route path="collections/:slug" element={<CollectionDetailPage />} />
           <Route path="cards/new" element={<CreateCardPage />} />
-          <Route path="watchlist/new" element={<CreateWatchlistPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="profile/edit" element={<ProfileEditPage />} />
-          <Route path="profile/subscriptions" element={<SubscriptionsPage />} />
+          <Route path="watchlist/new" element={<RequireAuth><CreateWatchlistPage /></RequireAuth>} />
+          <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+          <Route path="profile/edit" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
+          <Route path="profile/subscriptions" element={<RequireAuth><SubscriptionsPage /></RequireAuth>} />
         </Route>
         <Route path="/u/:userId" element={<PublicProfilePage />} />
-        <Route path="/u/:userId/subscriptions" element={<SubscriptionsPage />} />
+        <Route path="/u/:userId/subscriptions" element={<RequireAuth><SubscriptionsPage /></RequireAuth>} />
         <Route path="/films/:filmId" element={<FilmDetailPage />} />
         <Route path="/directors" element={<DirectorsIndexPage />} />
         <Route path="/directors/:kinopoiskId" element={<DirectorDetailPage />} />
@@ -149,19 +155,19 @@ export function AppRoutes() {
         <Route path="/games/:catalogItemId" element={<CatalogDetailPage />} />
         <Route path="/feed-posts/:postId" element={<FeedPostDetailPage />} />
         <Route path="/cards/:cardId" element={<MovieCardDetailPage />} />
-        <Route path="/cards/:cardId/share" element={<ShareMovieCardPage />} />
+        <Route path="/cards/:cardId/share" element={<RequireAuth><ShareMovieCardPage /></RequireAuth>} />
         <Route path="/cards/:cardId/edit" element={<EditMovieCardPage />} />
         <Route path="/cards/:cardId/edit-planned" element={<EditPlannedWatchlistPage />} />
-        <Route path="/taste-quiz/play/:ownerId" element={<TasteQuizPlayPage />} />
-        <Route path="/taste-quiz/invite/:inviteToken" element={<TasteQuizInviteLandingPage />} />
-        <Route path="/taste-quiz/invite" element={<TasteQuizInvitePage />} />
-        <Route path="/taste-quiz/stats" element={<TasteQuizStatsPage />} />
-        <Route path="/me/recap/:year/:month" element={<MonthlyRecapPage />} />
-        <Route path="/me/recap/latest" element={<MonthlyRecapPage />} />
-        <Route path="/me/digest/month/:year/:month" element={<MonthlyRecapPage />} />
-        <Route path="/me/digest/month/latest" element={<MonthlyRecapPage />} />
-        <Route path="/me/digest/week/:periodKey" element={<WeeklyDigestPage />} />
-        <Route path="/me/digest/week/latest" element={<WeeklyDigestPage />} />
+        <Route path="/taste-quiz/play/:ownerId" element={<RequireAuth><TasteQuizPlayPage /></RequireAuth>} />
+        <Route path="/taste-quiz/invite/:inviteToken" element={<RequireAuth><TasteQuizInviteLandingPage /></RequireAuth>} />
+        <Route path="/taste-quiz/invite" element={<RequireAuth><TasteQuizInvitePage /></RequireAuth>} />
+        <Route path="/taste-quiz/stats" element={<RequireAuth><TasteQuizStatsPage /></RequireAuth>} />
+        <Route path="/me/recap/:year/:month" element={<RequireAuth><MonthlyRecapPage /></RequireAuth>} />
+        <Route path="/me/recap/latest" element={<RequireAuth><MonthlyRecapPage /></RequireAuth>} />
+        <Route path="/me/digest/month/:year/:month" element={<RequireAuth><MonthlyRecapPage /></RequireAuth>} />
+        <Route path="/me/digest/month/latest" element={<RequireAuth><MonthlyRecapPage /></RequireAuth>} />
+        <Route path="/me/digest/week/:periodKey" element={<RequireAuth><WeeklyDigestPage /></RequireAuth>} />
+        <Route path="/me/digest/week/latest" element={<RequireAuth><WeeklyDigestPage /></RequireAuth>} />
       </Routes>
     </Suspense>
   )

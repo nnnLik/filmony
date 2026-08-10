@@ -204,16 +204,6 @@ export function FeedPage() {
     )
   }
 
-  if (auth.kind === 'unauthenticated') {
-    return (
-      <div className="min-h-full px-4 py-12">
-        <p className="filmony-text-panel text-sm text-(--tgui--hint_color)">
-          Откройте приложение в Telegram, чтобы увидеть ленту.
-        </p>
-      </div>
-    )
-  }
-
   const authPending = auth.kind === 'loading'
 
   return (

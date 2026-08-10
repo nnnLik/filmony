@@ -296,16 +296,6 @@ export function ProfilePage() {
     return <PageErrorState message={auth.message} backLabel="На главную" backHref="/" />
   }
 
-  if (auth.kind === 'unauthenticated') {
-    return (
-      <PageErrorState
-        message="Откройте приложение в Telegram, чтобы увидеть профиль."
-        backLabel="На главную"
-        backHref="/"
-      />
-    )
-  }
-
   if (loadError != null) {
     return <PageErrorState message={loadError} backLabel="На главную" backHref="/" />
   }

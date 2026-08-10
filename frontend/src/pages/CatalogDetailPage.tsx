@@ -288,7 +288,7 @@ export function CatalogDetailPage() {
   const displayTitle =
     item != null ? `${item.title}${item.year != null ? ` (${item.year})` : ''}` : ''
 
-  if (auth.kind === 'loading' || auth.kind === 'unauthenticated') {
+  if (auth.kind === 'loading') {
     return <PageLoadingState authPending className="bg-(--tgui--bg_color)" />
   }
 

@@ -1,7 +1,8 @@
 import { isTMA, retrieveRawInitData } from '@telegram-apps/sdk'
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { runAuthBootstrap } from './authBootstrap'
+import { AuthActionsContext } from './auth-actions-context'
 import { AuthStateContext, type AuthStatus } from './auth-context'
 import {
   readAccessToken,
@@ -105,5 +106,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(() => state, [state])
-  return <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>
+  const completeLogin = useCallback(() => {
+    setState({ kind: 'ready' })
+  }, [])
+  const actions = useMemo(() => ({ completeLogin }), [completeLogin])
+
+  return (
+    <AuthActionsContext.Provider value={actions}>
+      <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>
+    </AuthActionsContext.Provider>
+  )
 }
