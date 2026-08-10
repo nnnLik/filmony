@@ -72,7 +72,9 @@ export function TelegramLoginWidget({ botUsername, onAuth, className }: Telegram
     script.setAttribute('data-size', 'large')
     script.setAttribute('data-radius', '8')
     script.setAttribute('data-request-access', 'write')
-    script.setAttribute('data-onauth', CALLBACK_NAME)
+    // telegram-widget.js wraps data-onauth as (function(user){ <attr> }); bare name does not invoke the callback
+    script.setAttribute('data-onauth', `${CALLBACK_NAME}(user)`)
+    container.replaceChildren()
     container.appendChild(script)
 
     return () => {
