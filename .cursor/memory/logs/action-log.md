@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-10T235000Z-profile-header-text-metrics-closeout.md`
 - `2026-08-10T233500Z-profile-stats-people-restructure-closeout.md`
 - `2026-08-10T224800Z-film-hls-playback-closeout.md`
 - `2026-08-10-search-catalog-redesign-closeout.md`

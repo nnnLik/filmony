@@ -58,8 +58,10 @@ import { profileStatsFilteredRankingsQueryKey } from '../../lib/profileQueryKeys
 import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQuery'
 import { ProfilePassportPanel } from './gamification/ProfilePassportPanel'
 import { AchievementsPanel } from './AchievementsPanel'
+import { SegmentedControl } from '../ui/SegmentedControl'
 
 type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'rewards'
+type PeopleKind = 'directors' | 'actors'
 
 const BASE_STATS_SUB_TABS: { id: StatsSubTab; label: string }[] = [
   { id: 'overview', label: 'Обзор' },
@@ -171,6 +173,91 @@ function PersonDistributionStrip({
         )
       })}
     </div>
+  )
+}
+
+function PeopleDistributionSection({
+  stats,
+  userId,
+}: {
+  stats: UserMovieCardStats
+  userId: string
+}) {
+  const directors = stats.director_distribution ?? []
+  const actors = stats.actor_distribution ?? []
+  const hasDirectors = directors.some((director) => director.count > 0)
+  const hasActors = actors.some((actor) => actor.count > 0)
+  const [peopleKindOverride, setPeopleKindOverride] = useState<PeopleKind | null>(null)
+  const peopleKind: PeopleKind =
+    peopleKindOverride ?? (hasDirectors ? 'directors' : 'actors')
+
+  if (!hasDirectors && !hasActors) {
+    return (
+      <ProfileStatsSectionCard title="Люди">
+        <div className="space-y-3">
+          <p className="text-sm text-(--tgui--hint_color)">
+            Режиссёры и актёры появятся, когда в карточках будут фильмы с метаданными Кинопоиска.
+          </p>
+          <TabEmptyState
+            fallback="Оцените фильм — мы построим распределение по режиссёрам и актёрам."
+            userId={userId}
+            action={{ label: 'Добавить карточку', href: '/cards/new' }}
+            className="py-4"
+          />
+        </div>
+      </ProfileStatsSectionCard>
+    )
+  }
+
+  const showToggle = hasDirectors && hasActors
+  const topDirectorId = stats.insights?.top_director_kinopoisk_id
+  const topActorId = stats.insights?.top_actor_kinopoisk_id
+
+  return (
+    <ProfileStatsSectionCard title="Люди">
+      <div className="space-y-3">
+        {showToggle ? (
+          <SegmentedControl
+            value={peopleKind}
+            onChange={setPeopleKindOverride}
+            segments={[
+              { value: 'directors', label: 'Режиссёры', disabled: !hasDirectors },
+              { value: 'actors', label: 'Актёры', disabled: !hasActors },
+            ]}
+            ariaLabel="Режиссёры или актёры"
+            size="sm"
+          />
+        ) : null}
+
+        {peopleKind === 'directors' && hasDirectors ? (
+          <>
+            <PersonDistributionStrip items={directors} userId={userId} personKind="directors" />
+            {topDirectorId != null ? (
+              <Link
+                to={`/directors/${topDirectorId}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
+                className="block text-center text-sm text-(--tgui--link_color) no-underline"
+              >
+                Страница топ-режиссёра →
+              </Link>
+            ) : null}
+          </>
+        ) : null}
+
+        {peopleKind === 'actors' && hasActors ? (
+          <>
+            <PersonDistributionStrip items={actors} userId={userId} personKind="actors" />
+            {topActorId != null ? (
+              <Link
+                to={`/actors/${topActorId}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
+                className="block text-center text-sm text-(--tgui--link_color) no-underline"
+              >
+                Страница топ-актёра →
+              </Link>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </ProfileStatsSectionCard>
   )
 }
 
@@ -826,69 +913,7 @@ export function ProfileStatsPanel({
             )}
           </ProfileStatsSectionCard>
 
-          <ProfileStatsSectionCard title="По режиссёрам">
-            {(stats.director_distribution ?? []).some((director) => director.count > 0) ? (
-              <div className="space-y-3">
-                <PersonDistributionStrip
-                  items={stats.director_distribution ?? []}
-                  userId={userId}
-                  personKind="directors"
-                />
-                {stats.insights?.top_director_kinopoisk_id != null ? (
-                  <Link
-                    to={`/directors/${stats.insights.top_director_kinopoisk_id}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
-                    className="block text-center text-sm text-(--tgui--link_color) no-underline"
-                  >
-                    Страница топ-режиссёра →
-                  </Link>
-                ) : null}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-(--tgui--hint_color)">
-                  Режиссёры появятся, когда в карточках будут фильмы с метаданными Кинопоиска.
-                </p>
-                <TabEmptyState
-                  fallback="Оцените фильм с режиссёром — мы построим распределение автоматически."
-                  userId={userId}
-                  action={{ label: 'Добавить карточку', href: '/cards/new' }}
-                  className="py-4"
-                />
-              </div>
-            )}
-          </ProfileStatsSectionCard>
-
-          <ProfileStatsSectionCard title="По актёрам">
-            {(stats.actor_distribution ?? []).some((actor) => actor.count > 0) ? (
-              <div className="space-y-3">
-                <PersonDistributionStrip
-                  items={stats.actor_distribution ?? []}
-                  userId={userId}
-                  personKind="actors"
-                />
-                {stats.insights?.top_actor_kinopoisk_id != null ? (
-                  <Link
-                    to={`/actors/${stats.insights.top_actor_kinopoisk_id}${userId !== '' ? `?userId=${encodeURIComponent(userId)}` : ''}`}
-                    className="block text-center text-sm text-(--tgui--link_color) no-underline"
-                  >
-                    Страница топ-актёра →
-                  </Link>
-                ) : null}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-(--tgui--hint_color)">
-                  Актёры появятся после синхронизации cast для ваших оценённых фильмов.
-                </p>
-                <TabEmptyState
-                  fallback="Оцените фильм — мы подтянем основной cast с Кинопоиска."
-                  userId={userId}
-                  action={{ label: 'Добавить карточку', href: '/cards/new' }}
-                  className="py-4"
-                />
-              </div>
-            )}
-          </ProfileStatsSectionCard>
+          <PeopleDistributionSection stats={stats} userId={userId} />
 
           <ProfileStatsSectionCard title="По сериям">
             {franchiseDonutSegments.length > 0 ? (

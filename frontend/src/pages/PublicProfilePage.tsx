@@ -20,7 +20,6 @@ import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useRatedCardsQueryFromUrl } from '../hooks/useRatedCardsQueryFromUrl'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
 import { useProfileMoviesContent } from '../hooks/useProfileMoviesContent'
-import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
@@ -290,30 +289,27 @@ export function PublicProfilePage() {
           viewerId={myUserId}
           knowledgeByOwnerId={knowledgeByOwnerId}
           streakByUserId={streakByUserId}
+          metrics={{
+            followers_count: profile.followers_count,
+            following_count: profile.following_count,
+            cards_count: profile.cards_count,
+            watchlist_count: profile.watchlist_count,
+            favorites_count: profile.favorites_count,
+            onFollowersClick: () =>
+              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=followers`),
+            onFollowingClick: () =>
+              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=following`),
+            onRatedClick: drillToRatedSegment,
+            onWatchlistClick: drillToWatchlist,
+            onFavoritesClick: drillToRatedSegment,
+          }}
+          className="mb-3"
         />
-        <div className="mb-4">
-          <ProfileCompactMetrics
-            followers_count={profile.followers_count}
-            following_count={profile.following_count}
-            cards_count={profile.cards_count}
-            watchlist_count={profile.watchlist_count}
-            favorites_count={profile.favorites_count}
-            onFollowersClick={() =>
-              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=followers`)
-            }
-            onFollowingClick={() =>
-              void navigate(`/u/${encodeURIComponent(resolvedUserId)}/subscriptions?tab=following`)
-            }
-            onRatedClick={drillToRatedSegment}
-            onWatchlistClick={drillToWatchlist}
-            onFavoritesClick={drillToRatedSegment}
-          />
-        </div>
 
         {myUserId != null && profile.id !== myUserId ? (
-          <div className="mb-4 flex flex-col items-center gap-2">
+          <div className="mb-4 flex flex-col items-start gap-2">
             {followError != null ? (
-              <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">
+              <p className="filmony-text-panel text-left text-sm text-(--tgui--destructive_text_color)">
                 {followError}
               </p>
             ) : null}
@@ -332,7 +328,7 @@ export function PublicProfilePage() {
         ) : null}
 
         {profile.bio ? (
-          <p className="filmony-text-panel mb-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
+          <p className="filmony-text-panel mb-4 text-left text-sm leading-relaxed text-(--tgui--hint_color)">{profile.bio}</p>
         ) : null}
 
         <PublicProfilePinnedAchievements

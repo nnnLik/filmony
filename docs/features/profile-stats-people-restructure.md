@@ -11,7 +11,7 @@ Builds on [profile-directors-top20](./profile-directors-top20.md) and [profile-a
 | Gamification tabs | Separate **Коллекция** + **Достижения** | Single **«Награды»** tab (when achievements shown) |
 | **Социальность** | Repeated company/mood summary rows | Social-only content (mutual subs, taste quiz, similar profiles) |
 | **Вкус** | Company/mood donuts | Unchanged — donuts remain here |
-| **По режиссёрам / актёрам** | Vertical ranked lists | Horizontal scroll portrait cards |
+| **По режиссёрам / актёрам** | Vertical ranked lists | Single **«Люди»** section with toggle + horizontal portrait cards |
 | Director API | No `poster_url` on distribution | `director_distribution[].poster_url` (nullable) |
 
 ## Backend

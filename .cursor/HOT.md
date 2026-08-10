@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-10T233500Z
+Updated: 2026-08-10T235000Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -19,20 +19,21 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `profile-stats-people-restructure` — closed 2026-08-10T233500Z
+1. `profile-header-text-metrics` — closed 2026-08-10T235000Z
+   - Feature: `.cursor/features/profile-header-text-metrics/feature.md`
+   - Active: `.cursor/active/profile-header-text-metrics/`
+   - Docs: `docs/features/profile-header-text-metrics.md`
+2. `profile-stats-people-restructure` — closed 2026-08-10T233500Z
    - Feature: `.cursor/features/profile-stats-people-restructure/feature.md`
    - Active: `.cursor/active/profile-stats-people-restructure/`
    - Docs: `docs/features/profile-stats-people-restructure.md`
-2. `film-hls-playback` — closed 2026-08-10T224800Z
+3. `film-hls-playback` — closed 2026-08-10T224800Z
    - Feature: `.cursor/features/film-hls-playback/feature.md`
    - Active: `.cursor/active/film-hls-playback/`
    - Docs: `docs/features/film-hls-playback.md`
-3. `search-catalog-redesign` — closed 2026-08-10T173000Z
-   - Feature: `.cursor/features/search-catalog-redesign/feature.md`
-   - Active: `.cursor/active/search-catalog-redesign/`
-   - Docs: `docs/features/search-catalog-redesign.md`
 
 ## evicted (queue for archive)
+- `search-catalog-redesign` — evicted from recent_completed top-3 on 2026-08-10T235000Z (was #3)
 - `profile-directors-top20` — evicted from recent_completed top-3 on 2026-08-10T233500Z (was #3)
 - `profile-actors-top20` — evicted from recent_completed top-3 on 2026-08-10T224800Z (was #3)
 - `standalone-web-telegram-login` — evicted from recent_completed top-3 on 2026-08-10T173000Z (was #3)

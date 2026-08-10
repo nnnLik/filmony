@@ -1,4 +1,4 @@
-import { Avatar, Button, IconButton, Title } from '@telegram-apps/telegram-ui'
+import { Button, IconButton } from '@telegram-apps/telegram-ui'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Download, Settings } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
@@ -12,7 +12,7 @@ import type {
   PublicProfile,
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
-import { ProfileCompactMetrics } from '../components/profile/ProfileCompactMetrics'
+import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
@@ -22,7 +22,6 @@ import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPan
 import { PageHeader } from '../components/layout/PageHeader'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
-import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useMyProfileQuery } from '../hooks/useMyProfileQuery'
 import { useMyLatestMonthlyRecapQuery } from '../hooks/useMyLatestMonthlyRecapQuery'
@@ -33,7 +32,6 @@ import {
   isDefaultRatedCardsQuery,
   ratedCardsQueryKey,
 } from '../lib/ratedCardsListQuery'
-import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
 import {
   isTelegramChatUnavailableDetail,
   notificationFailureMessage,
@@ -305,7 +303,6 @@ export function ProfilePage() {
   }
 
   const pub = toPublicShape(profile)
-  const shownName = displayNameFromProfile(pub)
 
   return (
     <div className="min-h-full">
@@ -334,39 +331,27 @@ export function ProfilePage() {
       />
 
       <main className="px-4 py-6">
-        <div className="flex flex-col items-center text-center">
-          <Avatar
-            src={profile.photo_url ?? undefined}
-            acronym={profileInitials(pub)}
-            size={96}
-          />
-          <Title className="mt-3" level="2" weight="2">
-            {shownName}
-          </Title>
-          {profile != null ? (
-            <div className="mt-1 flex justify-center">
-              <RatingStreakAuthorBadge streakByUserId={streakByUserId} authorId={profile.id} />
-            </div>
-          ) : null}
-          <p className="mt-1 font-mono text-[11px] text-(--tgui--hint_color)">@{profile.profile_slug}</p>
-          <div className="mt-4 w-full max-w-sm">
-            <ProfileCompactMetrics
-              followers_count={profile.followers_count}
-              following_count={profile.following_count}
-              cards_count={profile.cards_count}
-              watchlist_count={profile.watchlist_count}
-              favorites_count={profile.favorites_count}
-              onFollowersClick={() => void navigate('/profile/subscriptions?tab=followers')}
-              onFollowingClick={() => void navigate('/profile/subscriptions?tab=following')}
-              onRatedClick={drillToRatedSegment}
-              onWatchlistClick={drillToWatchlist}
-              onFavoritesClick={drillToRatedSegment}
-            />
-          </div>
-        </div>
+        <ProfileHeader
+          profile={pub}
+          showTasteQuizBadge={false}
+          streakByUserId={streakByUserId}
+          metrics={{
+            followers_count: profile.followers_count,
+            following_count: profile.following_count,
+            cards_count: profile.cards_count,
+            watchlist_count: profile.watchlist_count,
+            favorites_count: profile.favorites_count,
+            onFollowersClick: () => void navigate('/profile/subscriptions?tab=followers'),
+            onFollowingClick: () => void navigate('/profile/subscriptions?tab=following'),
+            onRatedClick: drillToRatedSegment,
+            onWatchlistClick: drillToWatchlist,
+            onFavoritesClick: drillToRatedSegment,
+          }}
+          className="mb-3"
+        />
 
         {profile.bio ? (
-          <p className="filmony-text-panel mt-4 text-center text-sm leading-relaxed text-(--tgui--hint_color)">
+          <p className="filmony-text-panel mt-3 text-left text-sm leading-relaxed text-(--tgui--hint_color)">
             {profile.bio}
           </p>
         ) : null}
@@ -402,7 +387,7 @@ export function ProfilePage() {
           </div>
         ) : null}
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4">
           <Button mode="gray" onClick={() => void navigate('/taste-quiz/invite')}>
             Пригласить угадать
           </Button>
