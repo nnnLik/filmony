@@ -28,7 +28,7 @@ import {
 } from '../components/watchparty/WatchPartyChatSheet'
 import { WatchPartyEndSheet } from '../components/watchparty/WatchPartyEndSheet'
 import { WatchPartyHeader } from '../components/watchparty/WatchPartyHeader'
-import { WatchPartyHostBar } from '../components/watchparty/WatchPartyHostBar'
+import { WatchPartyHostSyncBar } from '../components/watchparty/WatchPartyHostSyncBar'
 import { WatchPartyInlineChat } from '../components/watchparty/WatchPartyInlineChat'
 import { WatchPartyInviteSheet } from '../components/watchparty/WatchPartyInviteSheet'
 import { WatchPartyRoomPanel } from '../components/watchparty/WatchPartyRoomPanel'
@@ -119,9 +119,8 @@ export function FilmWatchPage() {
   const [endBusy, setEndBusy] = useState(false)
   const [syncHintOpen, setSyncHintOpen] = useState(false)
   const [driftSeconds, setDriftSeconds] = useState<number | null>(null)
-  const [seekDraftMs, setSeekDraftMs] = useState(0)
-  const [seekDraftDirty, setSeekDraftDirty] = useState(false)
   const [playbackBusy, setPlaybackBusy] = useState(false)
+  const [guestHostNotice, setGuestHostNotice] = useState<'pause' | 'play' | null>(null)
   const [guestAnchorMs, setGuestAnchorMs] = useState<number | null>(null)
   const [guestAnchorAt, setGuestAnchorAt] = useState<number | null>(null)
   const [typingByUserId, setTypingByUserId] = useState<Map<string, { name: string; expiresAt: number }>>(
@@ -132,6 +131,7 @@ export function FilmWatchPage() {
   const guestAnchoredRef = useRef(false)
   const guestAnchorMsRef = useRef<number | null>(null)
   const guestAnchorAtRef = useRef<number | null>(null)
+  const lastPlaybackVersionRef = useRef<number | null>(null)
 
   const snapshotRef = useRef<WatchPartySnapshot | null>(null)
 
@@ -165,13 +165,15 @@ export function FilmWatchPage() {
 
   const playbackVersion = playbackState?.version ?? 0
 
+  const partyId = snapshot?.id ?? null
+  const isHost = snapshot?.viewer_role === 'host'
+  const isGuest = snapshot?.viewer_role === 'guest'
+
   useEffect(() => {
     if (playbackState == null) {
       return
     }
     queueMicrotask(() => {
-      setSeekDraftMs(expectedPlaybackMs(playbackState, Date.now()))
-      setSeekDraftDirty(false)
       if (!guestAnchoredRef.current) {
         guestAnchoredRef.current = true
         setGuestAnchorMs(playbackState.position_ms)
@@ -180,9 +182,28 @@ export function FilmWatchPage() {
     })
   }, [playbackVersion, playbackState])
 
-  const partyId = snapshot?.id ?? null
-  const isHost = snapshot?.viewer_role === 'host'
-  const isGuest = snapshot?.viewer_role === 'guest'
+  useEffect(() => {
+    if (!isGuest || playbackState == null) {
+      return
+    }
+    const version = playbackState.version
+    if (lastPlaybackVersionRef.current == null) {
+      lastPlaybackVersionRef.current = version
+      return
+    }
+    if (lastPlaybackVersionRef.current === version) {
+      return
+    }
+    lastPlaybackVersionRef.current = version
+    const hostMs = expectedPlaybackMs(playbackState, Date.now())
+    queueMicrotask(() => {
+      setGuestAnchorMs(hostMs)
+      setGuestAnchorAt(Date.now())
+      setGuestHostNotice(playbackState.playing ? 'play' : 'pause')
+      setSyncHintOpen(true)
+      setDriftSeconds(null)
+    })
+  }, [isGuest, playbackState])
 
   const handleSseEvent = useCallback((event: WatchPartySseEvent) => {
     if (event.type === 'party_ended') {
@@ -454,21 +475,16 @@ export function FilmWatchPage() {
         )),
       }
     })
-    setSeekDraftMs(expectedPlaybackMs(state, Date.now()))
-    setSeekDraftDirty(false)
   }, [setSnapshot])
 
   const sendPlayback = useCallback(
-    async (action: 'play' | 'pause' | 'seek', positionMs?: number) => {
+    async (action: 'play' | 'pause') => {
       if (partyId == null) {
         return
       }
       setPlaybackBusy(true)
       try {
-        const state = await postWatchPartyPlayback(partyId, {
-          action,
-          position_ms: positionMs,
-        })
+        const state = await postWatchPartyPlayback(partyId, { action })
         applyPlaybackState(state)
       } finally {
         setPlaybackBusy(false)
@@ -476,11 +492,6 @@ export function FilmWatchPage() {
     },
     [applyPlaybackState, partyId],
   )
-
-  const handleSeekDraftChange = useCallback((ms: number) => {
-    setSeekDraftMs(ms)
-    setSeekDraftDirty(true)
-  }, [])
 
   const handleEndOnly = useCallback(async () => {
     if (partyId == null) {
@@ -581,16 +592,44 @@ export function FilmWatchPage() {
             allowFullScreen
             referrerPolicy="no-referrer-when-downgrade"
           />
-          {syncHintOpen ? (
+          {isGuest && syncHintOpen ? (
             <div className="absolute inset-x-4 bottom-4 rounded-lg bg-black/85 p-3 text-sm">
               <p className="mb-2">
-                Перемотайте плеер на
-                {' '}
-                <strong>{formatPlaybackMs(guestExpectedMs)}</strong>
-                {' '}
-                и нажмите play.
+                {guestHostNotice === 'pause'
+                  ? (
+                      <>
+                        Ведущий поставил на паузу. Перемотайте плеер на
+                        {' '}
+                        <strong>{formatPlaybackMs(guestExpectedMs)}</strong>
+                        {' '}
+                        и поставьте паузу.
+                      </>
+                    )
+                  : guestHostNotice === 'play'
+                    ? (
+                        <>
+                          Ведущий продолжает. Перемотайте плеер на
+                          {' '}
+                          <strong>{formatPlaybackMs(guestExpectedMs)}</strong>
+                          {' '}
+                          и нажмите play.
+                        </>
+                      )
+                    : (
+                        <>
+                          Перемотайте плеер на
+                          {' '}
+                          <strong>{formatPlaybackMs(guestExpectedMs)}</strong>
+                          {' '}
+                          и нажмите play.
+                        </>
+                      )}
               </p>
-              <Button mode="gray" size="s" onClick={() => setSyncHintOpen(false)}>
+              <Button mode="gray" size="s" onClick={() => {
+                setSyncHintOpen(false)
+                setGuestHostNotice(null)
+              }}
+              >
                 Понятно
               </Button>
             </div>
@@ -620,16 +659,11 @@ export function FilmWatchPage() {
         />
 
         {isHost ? (
-          <WatchPartyHostBar
+          <WatchPartyHostSyncBar
             busy={playbackBusy}
             playing={snapshot.playback_state.playing}
-            syncMs={syncMs}
-            seekDraftMs={seekDraftMs}
-            seekDraftDirty={seekDraftDirty}
-            onSeekDraftChange={handleSeekDraftChange}
-            onPlay={() => void sendPlayback('play')}
-            onPause={() => void sendPlayback('pause')}
-            onSeek={() => void sendPlayback('seek', seekDraftMs)}
+            onPauseAll={() => void sendPlayback('pause')}
+            onPlayAll={() => void sendPlayback('play')}
             onEndSession={() => setEndSheetOpen(true)}
           />
         ) : null}

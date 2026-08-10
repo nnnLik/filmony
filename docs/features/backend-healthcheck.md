@@ -67,10 +67,19 @@ Redis URL resolution order:
 - RustFS / S3-compatible object storage
 - Frontend or other compose services
 
-## Docker Compose
+## Docker
 
-The `backend` service in `docker-compose.yml` and `docker-compose.prod.yml` includes a `healthcheck` that probes `http://127.0.0.1:8000/health/ready`:
+The backend image installs `curl` in the `base` stage (`backend/Dockerfile`). Both `dev` and `prod` image stages define a `HEALTHCHECK` that runs:
 
+```text
+curl -fsS http://127.0.0.1:8000/health/ready
+```
+
+### Docker Compose
+
+The `backend` service in `docker-compose.yml` and `docker-compose.prod.yml` uses the same curl-based probe:
+
+- `test`: `CMD curl -fsS http://127.0.0.1:8000/health/ready`
 - `interval`: 30s
 - `timeout`: 5s
 - `retries`: 3

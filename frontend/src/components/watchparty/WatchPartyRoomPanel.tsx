@@ -4,7 +4,6 @@ import { useMemo } from 'react'
 
 import type { WatchPartyMember, WatchPartyPlaybackState } from '../../api/watchPartyTypes'
 import {
-  expectedPlaybackMs,
   formatPlaybackMs,
   memberDisplayPositionMs,
   memberPositionDeltaSeconds,
@@ -44,8 +43,18 @@ export function WatchPartyRoomPanel({
   )
 
   const syncMs = useMemo(
-    () => expectedPlaybackMs(playbackState, tickMs),
-    [playbackState, tickMs],
+    () => memberDisplayPositionMs(
+      {
+        user_id: hostUserId,
+        position_ms: playbackState.position_ms,
+        position_playing: playbackState.playing,
+        position_at: playbackState.updated_at,
+      },
+      hostUserId,
+      playbackState,
+      tickMs,
+    ),
+    [hostUserId, playbackState, tickMs],
   )
 
   if (visible.length === 0) {
@@ -57,18 +66,13 @@ export function WatchPartyRoomPanel({
       <button
         type="button"
         onClick={onMemberTap}
-        className="flex w-full items-center justify-between px-3 py-2 text-left"
+        className="flex w-full px-3 py-2 text-left"
         aria-label={`Участники: ${visible.length}`}
       >
         <span className="text-xs font-medium text-(--tgui--hint_color)">
           В комнате ·
           {' '}
           {visible.length}
-        </span>
-        <span className="font-mono text-xs tabular-nums text-(--tgui--hint_color)">
-          {formatPlaybackMs(syncMs)}
-          {' '}
-          {playbackState.playing ? '▶' : '⏸'}
         </span>
       </button>
 
@@ -93,25 +97,29 @@ export function WatchPartyRoomPanel({
                 ) : null}
               </div>
               <div className="shrink-0 text-right">
-                <p className="font-mono text-sm tabular-nums">
-                  {displayMs != null ? formatPlaybackMs(displayMs) : '—'}
-                </p>
-                <p className="text-[11px] text-(--tgui--hint_color)">
-                  {(member.user_id === hostUserId ? playbackState.playing : member.position_playing)
-                    ? '▶'
-                    : '⏸'}
-                  {deltaSec != null && member.role !== 'host' && deltaSec !== 0 ? (
-                    <>
-                      {' '}
-                      ·
-                      {' '}
-                      {deltaSec > 0 ? '+' : ''}
-                      {deltaSec}
-                      {' '}
-                      сек
-                    </>
-                  ) : null}
-                </p>
+                {member.user_id !== hostUserId ? (
+                  <>
+                    <p className="font-mono text-sm tabular-nums">
+                      {displayMs != null ? formatPlaybackMs(displayMs) : '—'}
+                    </p>
+                    <p className="text-[11px] text-(--tgui--hint_color)">
+                      {deltaSec != null && deltaSec !== 0 ? (
+                        <>
+                          {deltaSec > 0 ? '+' : ''}
+                          {deltaSec}
+                          {' '}
+                          сек
+                        </>
+                      ) : (
+                        'с вами'
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-(--tgui--hint_color)">
+                    {playbackState.playing ? '▶' : '⏸'}
+                  </p>
+                )}
               </div>
             </li>
           )
