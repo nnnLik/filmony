@@ -350,6 +350,11 @@ export function FilmDetailPage() {
   const watchlistActions =
     auth.kind === 'ready' && film != null ? (
       <>
+        {film.kinopoisk_id >= 1 ? (
+          <Link to={`/films/${encodeURIComponent(String(film.id))}/watch`} className="no-underline">
+            <Button stretched>Смотреть</Button>
+          </Link>
+        ) : null}
         {hasMyRatedCard ? (
           <>
             <p className="text-sm text-(--tgui--hint_color)">Эта тема уже в ваших оценённых карточках.</p>
