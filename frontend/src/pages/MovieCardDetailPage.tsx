@@ -877,6 +877,8 @@ function MovieCardDetailLoadedBody({
 
   const filmIdForCollections =
     card.film_id != null && card.film_id > 0 ? card.film_id : null
+  const filmIdForWatch =
+    filmIdForCollections != null && showKinopoiskLink ? filmIdForCollections : null
   const filmCollectionsQuery = useQuery<CollectionSummary[], Error>({
     queryKey: filmCollectionsQueryKey(filmIdForCollections ?? 0),
     queryFn: async () => {
@@ -1147,6 +1149,15 @@ function MovieCardDetailLoadedBody({
                 ) : null}
               </div>
             </div>
+
+            {filmIdForWatch != null ? (
+              <Link
+                to={`/films/${encodeURIComponent(String(filmIdForWatch))}/watch`}
+                className="filmony-card-detail-panel-enter block no-underline"
+              >
+                <Button stretched>Смотреть</Button>
+              </Link>
+            ) : null}
 
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-1 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">Теги</p>
