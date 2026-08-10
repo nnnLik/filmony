@@ -3,13 +3,19 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.schemas import TelegramAuthRequest, TelegramAuthResponse, UserResponse
+from api.auth.schemas import (
+    TelegramAuthRequest,
+    TelegramAuthResponse,
+    TelegramWidgetAuthRequest,
+    UserResponse,
+)
 from conf import settings
 from core.database import get_db
-from services.auth.errors import TelegramInitDataInvalidError
+from services.auth.errors import TelegramInitDataInvalidError, TelegramLoginWidgetInvalidError
 from services.auth.issue_session_jwt import IssueSessionJwtService
 from services.auth.upsert_telegram_user import UpsertTelegramUserService
 from services.auth.verify_telegram_init_data import VerifyTelegramInitDataService
+from services.auth.verify_telegram_login_widget import VerifyTelegramLoginWidgetService
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 
@@ -51,6 +57,36 @@ async def auth_telegram(
         profile = verifier.execute(body.init_data)
     except TelegramInitDataInvalidError:
         raise HTTPException(status_code=401, detail='invalid init data') from None
+
+    user = await UpsertTelegramUserService(db).execute(profile)
+    token = IssueSessionJwtService().execute(user.id)
+    _set_session_cookie(response, token)
+    base = UserResponse.model_validate(user)
+    return TelegramAuthResponse(**base.model_dump(), access_token=token)
+
+
+@router.post('/telegram-widget', response_model=TelegramAuthResponse)
+async def auth_telegram_widget(
+    body: TelegramWidgetAuthRequest,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> TelegramAuthResponse:
+    verifier = VerifyTelegramLoginWidgetService(bot_token=settings.telegram.bot_token)
+    try:
+        profile = verifier.execute(
+            user_id=body.id,
+            auth_date=body.auth_date,
+            hash_value=body.hash,
+            first_name=body.first_name,
+            last_name=body.last_name,
+            username=body.username,
+            photo_url=body.photo_url,
+        )
+    except TelegramLoginWidgetInvalidError:
+        raise HTTPException(
+            status_code=401,
+            detail='invalid telegram login widget data',
+        ) from None
 
     user = await UpsertTelegramUserService(db).execute(profile)
     token = IssueSessionJwtService().execute(user.id)

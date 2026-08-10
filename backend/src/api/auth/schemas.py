@@ -12,6 +12,16 @@ class TelegramAuthRequest(BaseModel):
     model_config = {'populate_by_name': True}
 
 
+class TelegramWidgetAuthRequest(BaseModel):
+    id: int
+    auth_date: int
+    hash: str
+    first_name: str | None = None
+    last_name: str | None = None
+    username: str | None = None
+    photo_url: str | None = None
+
+
 class UserResponse(BaseModel):
     id: UUID
     telegram_user_id: int
