@@ -144,3 +144,33 @@ class CatalogCommunityCardItemResponse(BaseModel):
 class CatalogCommunityCardsPageResponse(BaseModel):
     items: list[CatalogCommunityCardItemResponse] = Field(default_factory=list)
     next_cursor: str | None = None
+
+
+class CatalogFilmsSort(StrEnum):
+    popularity = 'popularity'
+    avg_rating = 'avg_rating'
+
+
+class CatalogFilmsPeriod(StrEnum):
+    all_time = 'all_time'
+    month = 'month'
+
+
+class CatalogFilmItemResponse(BaseModel):
+    film_id: int
+    title: str
+    year: int | None
+    poster_url: str | None
+    genres: list[str] = Field(default_factory=list)
+    community_avg_rating: float | None
+    ratings_count: int
+    my_card_id: int | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class CatalogFilmsPageResponse(BaseModel):
+    items: list[CatalogFilmItemResponse] = Field(default_factory=list)
+    next_cursor: str | None = None
+
+    model_config = ConfigDict(extra='forbid')

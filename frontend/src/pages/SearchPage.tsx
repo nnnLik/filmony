@@ -1,47 +1,71 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 
+import {
+  listCatalogFilms,
+  type CatalogFilmItem,
+  type CatalogFilmsPeriod,
+  type CatalogFilmsSort,
+} from '../api/catalogApi'
 import {
   searchCatalog,
   searchSuggestions,
-  type SearchCardItem,
-  type SearchCatalogItemHit,
-  type SearchFilmHit,
   type SearchSuggestionsResponse,
   type SearchUserItem,
 } from '../api/searchApi'
 import type { TasteQuizKnowledgeBatchItem } from '../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../api/streaksTypes'
 import { ApiError, formatApiDetail } from '../api/client'
-import { formatRating } from '../components/feed/feedCardUtils'
+import { CatalogFilmsSection } from '../components/catalog/CatalogFilmsSection'
+import type { CatalogRatedFilm } from '../components/catalog/CatalogRatedFilmRow'
 import { UserSuggestionChipsStrip } from '../components/search/UserSuggestionChipsStrip'
 import { SearchResultsSkeleton } from '../components/search/SearchResultsSkeleton'
 import { TasteQuizCommentAuthorBadge } from '../components/tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../components/streaks/RatingStreakAuthorBadge'
 import { InlineLoadingState } from '../components/ui/InlineLoadingState'
+import { ListErrorState } from '../components/ui/ListErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
 import { TabEmptyState } from '../components/ui/TabEmptyState'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { useCursorInfiniteList } from '../hooks/useCursorInfiniteList'
 import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUsers'
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { CATALOG_SEARCH_DEBOUNCE_MS } from '../lib/catalogSearchTiming'
-import { catalogCommunityPath, filmCommunityPath } from '../lib/catalogCommunityPath'
+import { formatQueryError } from '../lib/formatQueryError'
 import { getMyProfile } from '../api/profileApi'
-import { resolveApiMediaUrl } from '../lib/resolveApiMediaUrl'
 import { profileInitials } from '../lib/profileDisplay'
+import { PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS } from '../lib/profileRatedCardsFilterOptions'
 import { scheduleDeferredPepeDancingPrewarm, useHeaderPepeGifSrc } from '../lib/pepeGif'
 
 import './SearchPage.css'
 
-function posterSrc(url: string | null): string | undefined {
-  if (!url?.trim()) return undefined
-  const t = url.trim()
-  if (t.startsWith('http://') || t.startsWith('https://')) return t
-  return resolveApiMediaUrl(t)
+type SearchTab = 'cards' | 'people'
+
+const SELECT_CLASS = PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS
+
+const TAB_SEGMENTS: Array<{ value: SearchTab; label: string }> = [
+  { value: 'cards', label: 'Карточки' },
+  { value: 'people', label: 'Люди' },
+]
+
+const PERIOD_SEGMENTS: Array<{ value: CatalogFilmsPeriod; label: string }> = [
+  { value: 'all_time', label: 'За всё время' },
+  { value: 'month', label: 'За месяц' },
+]
+
+const SORT_OPTIONS: Array<{ value: CatalogFilmsSort; label: string }> = [
+  { value: 'popularity', label: 'Популярные' },
+  { value: 'avg_rating', label: 'Высший средний' },
+]
+
+function tabFromSearch(searchParams: URLSearchParams): SearchTab {
+  const tab = searchParams.get('tab')
+  return tab === 'people' ? 'people' : 'cards'
 }
 
 function userListLabel(u: SearchUserItem): string {
@@ -52,6 +76,18 @@ function userListLabel(u: SearchUserItem): string {
     return `@${u.username.trim()}`
   }
   return `@${u.profile_slug}`
+}
+
+function toCatalogRatedFilm(item: CatalogFilmItem): CatalogRatedFilm {
+  return {
+    film_id: item.film_id,
+    title: item.title,
+    year: item.year,
+    poster_url: item.poster_url,
+    genres: item.genres,
+    community_avg_rating: item.community_avg_rating,
+    ratings_count: item.ratings_count,
+  }
 }
 
 function UserSuggestionRow({
@@ -126,109 +162,6 @@ function SearchSuggestionsBlocks({ data }: { data: SearchSuggestionsResponse }) 
   )
 }
 
-function cardAuthorLabel(row: SearchCardItem): string {
-  if (row.author_display_name?.trim()) {
-    return row.author_display_name.trim()
-  }
-  if (row.author_username?.trim()) {
-    return `@${row.author_username.trim()}`
-  }
-  return `@${row.author_profile_slug}`
-}
-
-function CardCatalogSearchResultRow({ row }: { row: SearchCardItem }) {
-  const src = posterSrc(row.poster_url)
-  const title = row.title.trim() === '' ? 'Без названия' : row.title.trim()
-  const author = cardAuthorLabel(row)
-  const summary = row.summary?.trim() ?? ''
-  const metaParts: string[] = [author]
-  if (row.year != null) {
-    metaParts.push(String(row.year))
-  }
-  if (Number.isFinite(row.rating)) {
-    metaParts.push(formatRating(row.rating))
-  }
-  const meta = metaParts.join(' · ')
-  return (
-    <Link
-      to={`/cards/${encodeURIComponent(String(row.card_id))}`}
-      className="flex min-h-[56px] items-center gap-3 rounded-xl px-2.5 py-2 no-underline text-(--tgui--text_color) transition-colors hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] active:bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)]"
-    >
-      <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)] ring-1 ring-(--tgui--divider_color)">
-        {src ? (
-          <img src={src} alt="" className="size-full object-cover" loading="lazy" />
-        ) : null}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{title}</div>
-        <div className="truncate text-sm text-(--tgui--hint_color)">{meta}</div>
-        {summary ? (
-          <div className="line-clamp-2 text-[13px] leading-snug text-(--tgui--hint_color)">{summary}</div>
-        ) : null}
-      </div>
-    </Link>
-  )
-}
-
-function themeHitFilmId(hit: SearchCatalogItemHit | SearchFilmHit): number | null {
-  if (!('film_id' in hit)) return null
-  const filmId = hit.film_id
-  return filmId != null && filmId > 0 ? filmId : null
-}
-
-function catalogHitHref(hit: SearchCatalogItemHit | SearchFilmHit): string | null {
-  const catalogItemId = hit.catalog_item_id
-  if (catalogItemId != null && catalogItemId > 0) {
-    return catalogCommunityPath(catalogItemId, hit.kind)
-  }
-  if ('film_id' in hit) {
-    const filmId = hit.film_id
-    if (filmId != null && filmId > 0) {
-      return filmCommunityPath(filmId)
-    }
-  }
-  return null
-}
-
-function CatalogThemeSearchResultRow({ row }: { row: SearchCatalogItemHit | SearchFilmHit }) {
-  const href = catalogHitHref(row)
-  if (href == null) return null
-
-  const src = posterSrc(row.poster_url)
-  const title = row.title.trim() === '' ? 'Без названия' : row.title.trim()
-  const summary = row.summary?.trim() ?? ''
-  const metaParts: string[] = []
-  if (row.kind === 'game') {
-    metaParts.push('Игра')
-  } else if (row.kind === 'film') {
-    metaParts.push('Фильм')
-  }
-  if (row.year != null) {
-    metaParts.push(String(row.year))
-  }
-  const meta = metaParts.length > 0 ? metaParts.join(' · ') : 'Тема в каталоге'
-
-  return (
-    <Link
-      to={href}
-      className="flex min-h-[56px] items-center gap-3 rounded-xl px-2.5 py-2 no-underline text-(--tgui--text_color) transition-colors hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] active:bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)]"
-    >
-      <div className="size-11 shrink-0 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)] ring-1 ring-(--tgui--divider_color)">
-        {src ? (
-          <img src={src} alt="" className="size-full object-cover" loading="lazy" />
-        ) : null}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{title}</div>
-        <div className="truncate text-sm text-(--tgui--hint_color)">{meta}</div>
-        {summary ? (
-          <div className="line-clamp-2 text-[13px] leading-snug text-(--tgui--hint_color)">{summary}</div>
-        ) : null}
-      </div>
-    </Link>
-  )
-}
-
 function SearchTitleRow() {
   const headerPepeSrc = useHeaderPepeGifSrc()
   return (
@@ -245,6 +178,46 @@ function SearchTitleRow() {
         decoding="async"
         aria-hidden
       />
+    </div>
+  )
+}
+
+function SearchField({
+  id,
+  placeholder,
+  value,
+  onChange,
+}: {
+  id: string
+  placeholder: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="sr-only">
+        {placeholder}
+      </label>
+      <div className="flex items-center gap-2.5 rounded-2xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_24%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] px-3.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] transition-[border-color,box-shadow] duration-200 focus-within:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_12%,transparent)]">
+        <Search
+          className="pointer-events-none size-5 shrink-0 text-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_75%,var(--tgui--hint_color))]"
+          strokeWidth={2}
+          aria-hidden
+        />
+        <input
+          id={id}
+          type="search"
+          name="q"
+          enterKeyHint="search"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0 flex-1 border-0 bg-transparent py-0.5 text-[16px] text-(--tgui--text_color) outline-none placeholder:text-(--tgui--hint_color)"
+        />
+      </div>
     </div>
   )
 }
@@ -269,10 +242,233 @@ function ResultsSection({
   )
 }
 
+function SearchCardsPanel({
+  sort,
+  period,
+  cardsQuery,
+  debouncedCardsQuery,
+  onSortChange,
+  onPeriodChange,
+  onCardsQueryChange,
+  viewerId,
+}: {
+  sort: CatalogFilmsSort
+  period: CatalogFilmsPeriod
+  cardsQuery: string
+  debouncedCardsQuery: string
+  onSortChange: (sort: CatalogFilmsSort) => void
+  onPeriodChange: (period: CatalogFilmsPeriod) => void
+  onCardsQueryChange: (query: string) => void
+  viewerId: string | null
+}) {
+  const catalogQ = debouncedCardsQuery.length >= 2 ? debouncedCardsQuery : undefined
+  const isDebouncing = cardsQuery.trim().length >= 2 && cardsQuery.trim() !== debouncedCardsQuery
+
+  const filmsQuery = useCursorInfiniteList({
+    queryKey: ['catalog-films', sort, period, catalogQ ?? ''] as const,
+    queryFn: ({ cursor, limit }) =>
+      listCatalogFilms({ sort, period, q: catalogQ, cursor, limit }),
+    enabled: true,
+    limit: 20,
+  })
+
+  const films = useMemo(
+    () => filmsQuery.items.map(toCatalogRatedFilm),
+    [filmsQuery.items],
+  )
+
+  const filmsErr = formatQueryError(filmsQuery.error, 'Не удалось загрузить каталог фильмов')
+  const showInitialLoading =
+    (filmsQuery.isPending || isDebouncing) && films.length === 0 && filmsErr == null
+  const showFilteredEmpty =
+    catalogQ != null && filmsQuery.isSuccess && films.length === 0 && !filmsQuery.isFetching
+
+  return (
+    <div className="flex flex-col gap-4">
+      <SegmentedControl
+        value={period}
+        onChange={onPeriodChange}
+        segments={PERIOD_SEGMENTS}
+        ariaLabel="Период каталога"
+        layout="grid"
+        gridColsClassName="grid-cols-2"
+        size="sm"
+      />
+
+      <label className="block text-xs font-medium text-(--tgui--hint_color)">
+        Сортировка
+        <select
+          className={`${SELECT_CLASS} mt-1`}
+          value={sort}
+          onChange={(e) => onSortChange(e.currentTarget.value as CatalogFilmsSort)}
+          aria-label="Сортировка каталога"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <SearchField
+        id="search-cards-input"
+        placeholder="Название фильма…"
+        value={cardsQuery}
+        onChange={onCardsQueryChange}
+      />
+
+      {cardsQuery.trim().length > 0 && cardsQuery.trim().length < 2 ? (
+        <p className="px-0.5 text-[12px] text-(--tgui--hint_color)">Ещё один символ — и покажем результаты.</p>
+      ) : null}
+
+      {showInitialLoading ? <InlineLoadingState message="Загружаем каталог…" /> : null}
+
+      {filmsErr != null ? (
+        <ListErrorState
+          message={filmsErr}
+          onRetry={() => {
+            void filmsQuery.refetch()
+          }}
+        />
+      ) : null}
+
+      {showFilteredEmpty ? (
+        <TabEmptyState
+          fallback="Фильмов по этому запросу не нашли — попробуйте другое название."
+          userId={viewerId}
+          className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
+        />
+      ) : null}
+
+      {!showInitialLoading && filmsErr == null && !showFilteredEmpty ? (
+        <CatalogFilmsSection
+          films={films}
+          isPending={filmsQuery.isPending}
+          emptyMessage="Пока нет оценённых фильмов в каталоге"
+          hasNextPage={filmsQuery.hasNextPage}
+          isFetchingNextPage={filmsQuery.isFetchingNextPage}
+          onLoadMore={() => {
+            void filmsQuery.fetchNextPage()
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function SearchPeoplePanel({
+  peopleQuery,
+  debouncedPeopleQuery,
+  onPeopleQueryChange,
+  viewerId,
+  knowledgeByOwnerId,
+  streakByUserId,
+  suggestionsQuery,
+  searchQuery,
+}: {
+  peopleQuery: string
+  debouncedPeopleQuery: string
+  onPeopleQueryChange: (query: string) => void
+  viewerId: string | null
+  knowledgeByOwnerId: Record<string, TasteQuizKnowledgeBatchItem>
+  streakByUserId: Record<string, StreakBatchItem>
+  suggestionsQuery: UseQueryResult<SearchSuggestionsResponse>
+  searchQuery: UseQueryResult<Awaited<ReturnType<typeof searchCatalog>>>
+}) {
+  const canSearch = debouncedPeopleQuery.length >= 2
+  const isDebouncing = peopleQuery.trim().length >= 2 && peopleQuery.trim() !== debouncedPeopleQuery
+
+  const suggestionsError =
+    suggestionsQuery.isError && suggestionsQuery.error instanceof ApiError
+      ? formatApiDetail(suggestionsQuery.error.detail)
+      : suggestionsQuery.isError
+        ? 'Не удалось загрузить подсказки'
+        : null
+
+  const searchError =
+    searchQuery.isError && searchQuery.error instanceof ApiError
+      ? formatApiDetail(searchQuery.error.detail)
+      : searchQuery.isError
+        ? 'Ошибка поиска'
+        : null
+
+  const users = searchQuery.data?.users ?? []
+  const showSearchSkeleton =
+    canSearch &&
+    (isDebouncing || searchQuery.isPending || (searchQuery.isFetching && !searchQuery.isSuccess))
+  const showUserEmpty = canSearch && searchQuery.isSuccess && users.length === 0
+
+  return (
+    <div className="flex flex-col gap-5">
+      {!canSearch ? (
+        <>
+          {suggestionsQuery.isPending ? <InlineLoadingState message="Загружаем идеи для вас…" /> : null}
+          {suggestionsError ? (
+            <div className="rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-4">
+              <p className="text-[14px] text-(--tgui--destructive_text_color)">{suggestionsError}</p>
+            </div>
+          ) : null}
+          {suggestionsQuery.isSuccess && suggestionsQuery.data ? (
+            <SearchSuggestionsBlocks data={suggestionsQuery.data} />
+          ) : null}
+        </>
+      ) : null}
+
+      <SearchField
+        id="search-people-input"
+        placeholder="Имя или @username…"
+        value={peopleQuery}
+        onChange={onPeopleQueryChange}
+      />
+
+      {!canSearch && peopleQuery.trim().length > 0 ? (
+        <p className="px-0.5 text-[12px] text-(--tgui--hint_color)">Ещё один символ — и покажем результаты.</p>
+      ) : null}
+
+      {showSearchSkeleton ? <SearchResultsSkeleton /> : null}
+      {searchError ? (
+        <p className="px-0.5 text-[13px] text-(--tgui--destructive_text_color)">{searchError}</p>
+      ) : null}
+
+      {canSearch && searchQuery.isSuccess ? (
+        <ResultsSection title="Люди" subtitle="По имени, нику или адресу профиля">
+          {showUserEmpty ? (
+            <TabEmptyState
+              fallback="Пользователей с таким именем не нашли."
+              userId={viewerId}
+              className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
+            />
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {users.map((user) => (
+                <UserSuggestionRow
+                  key={user.id}
+                  user={user}
+                  knowledgeByOwnerId={knowledgeByOwnerId}
+                  streakByUserId={streakByUserId}
+                  viewerId={viewerId}
+                />
+              ))}
+            </div>
+          )}
+        </ResultsSection>
+      ) : null}
+    </div>
+  )
+}
+
 export function SearchPage() {
   const auth = useAuthStatus()
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = tabFromSearch(searchParams)
+
+  const [cardsQuery, setCardsQuery] = useState('')
+  const [peopleQuery, setPeopleQuery] = useState('')
+  const [debouncedCardsQuery, setDebouncedCardsQuery] = useState('')
+  const [debouncedPeopleQuery, setDebouncedPeopleQuery] = useState('')
+  const [sort, setSort] = useState<CatalogFilmsSort>('popularity')
+  const [period, setPeriod] = useState<CatalogFilmsPeriod>('all_time')
   const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
 
   useEffect(() => {
@@ -297,84 +493,46 @@ export function SearchPage() {
   }, [])
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedQuery(query.trim()), CATALOG_SEARCH_DEBOUNCE_MS)
+    const id = window.setTimeout(() => setDebouncedCardsQuery(cardsQuery.trim()), CATALOG_SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(id)
-  }, [query])
+  }, [cardsQuery])
 
-  const canSearch = debouncedQuery.length >= 2
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedPeopleQuery(peopleQuery.trim()), CATALOG_SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(id)
+  }, [peopleQuery])
 
   const suggestionsQuery = useQuery({
     queryKey: ['search-suggestions'],
     queryFn: searchSuggestions,
-    enabled: auth.kind === 'ready',
+    enabled: auth.kind === 'ready' && tab === 'people',
     staleTime: 5 * 60_000,
   })
 
-  const searchQuery = useQuery({
-    queryKey: ['search-catalog', debouncedQuery],
-    queryFn: () => searchCatalog(debouncedQuery),
-    enabled: auth.kind === 'ready' && canSearch,
+  const peopleSearchQuery = useQuery({
+    queryKey: ['search-catalog-users', debouncedPeopleQuery],
+    queryFn: () => searchCatalog(debouncedPeopleQuery, { limit_cards: 0, limit_films: 0 }),
+    enabled: auth.kind === 'ready' && tab === 'people' && debouncedPeopleQuery.length >= 2,
     staleTime: 30_000,
   })
 
-  const isSearchDebouncing = query.trim().length >= 2 && query.trim() !== debouncedQuery
-  const showSearchSkeleton =
-    canSearch &&
-    (isSearchDebouncing || searchQuery.isPending || (searchQuery.isFetching && !searchQuery.isSuccess))
-
-  const suggestionsError =
-    suggestionsQuery.isError && suggestionsQuery.error instanceof ApiError
-      ? formatApiDetail(suggestionsQuery.error.detail)
-      : suggestionsQuery.isError
-        ? 'Не удалось загрузить подсказки'
-        : null
-
-  const searchError =
-    searchQuery.isError && searchQuery.error instanceof ApiError
-      ? formatApiDetail(searchQuery.error.detail)
-      : searchQuery.isError
-        ? 'Ошибка поиска'
-        : null
-
-  const cardRows = useMemo(() => searchQuery.data?.cards ?? [], [searchQuery.data?.cards])
-  const catalogItemRows = useMemo(() => {
-    const explicit = searchQuery.data?.catalog_items ?? []
-    const legacyFilms = searchQuery.data?.films ?? []
-    const cardIds = new Set(cardRows.map((row) => row.card_id))
-    const fromLegacy = legacyFilms.filter((row) => {
-      const legacyCardId = row.card_id
-      return legacyCardId == null || !cardIds.has(legacyCardId)
-    })
-    const seen = new Set<number>()
-    const merged: Array<SearchCatalogItemHit | SearchFilmHit> = []
-    for (const row of [...explicit, ...fromLegacy]) {
-      const catalogKey = row.catalog_item_id != null && row.catalog_item_id > 0 ? row.catalog_item_id : null
-      const filmKey = themeHitFilmId(row)
-      const key = catalogKey ?? (filmKey != null ? -filmKey : null)
-      if (key == null || seen.has(key)) continue
-      seen.add(key)
-      merged.push(row)
-    }
-    return merged
-  }, [cardRows, searchQuery.data?.catalog_items, searchQuery.data?.films])
-  const users = searchQuery.data?.users ?? []
-
   const tasteQuizOwnerIds = useMemo(() => {
     const ids = new Set<string>()
-    const searchUsers = searchQuery.data?.users
+    const searchUsers = peopleSearchQuery.data?.users
     if (searchUsers != null) {
-      for (const u of searchUsers) {
-        ids.add(u.id)
+      for (const user of searchUsers) {
+        ids.add(user.id)
       }
     }
     const suggestions = suggestionsQuery.data
     if (suggestions != null) {
-      for (const u of suggestions.mutual_circle) ids.add(u.id)
-      for (const u of suggestions.popular_authors) ids.add(u.id)
-      for (const u of suggestions.random_with_cards) ids.add(u.id)
+      for (const user of suggestions.mutual_circle) ids.add(user.id)
+      for (const user of suggestions.popular_authors) ids.add(user.id)
+      for (const user of suggestions.random_with_cards) ids.add(user.id)
     }
     return [...ids]
-  }, [searchQuery.data, suggestionsQuery.data])
+  }, [peopleSearchQuery.data, suggestionsQuery.data])
+
   const { knowledgeByOwnerId } = useTasteQuizKnowledgeOfUsers(tasteQuizOwnerIds, {
     enabled: auth.kind === 'ready' && tasteQuizOwnerIds.length > 0,
   })
@@ -382,9 +540,18 @@ export function SearchPage() {
     enabled: auth.kind === 'ready' && tasteQuizOwnerIds.length > 0,
   })
 
-  const showCatalogEmpty = canSearch && searchQuery.isSuccess && cardRows.length === 0
-  const showCatalogThemesEmpty = canSearch && searchQuery.isSuccess && catalogItemRows.length === 0
-  const showUserEmpty = canSearch && searchQuery.isSuccess && users.length === 0
+  const setTab = (next: SearchTab) => {
+    const nextParams = new URLSearchParams(searchParams)
+    if (next === 'cards') {
+      nextParams.delete('tab')
+    } else {
+      nextParams.set('tab', next)
+    }
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  const headerSubtitle =
+    tab === 'cards' ? 'Каталог фильмов сообщества' : 'Кого найти в сообществе Filmony'
 
   if (auth.kind === 'loading') {
     return <PageLoadingState authPending className="min-h-full bg-(--tgui--bg_color)" />
@@ -410,129 +577,44 @@ export function SearchPage() {
       <header className="sticky top-0 z-20 border-b border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--bg_color)_88%,transparent)] backdrop-blur-md">
         <div className="px-4 py-3">
           <SearchTitleRow />
-          <p className="mt-1 text-[13px] leading-snug text-(--tgui--hint_color)">
-            Кого найти в сообществе и какие карточки уже есть в Filmony
-          </p>
+          <p className="mt-1 text-[13px] leading-snug text-(--tgui--hint_color)">{headerSubtitle}</p>
         </div>
       </header>
 
       <main className="max-w-full overflow-x-hidden px-4 pb-10 pt-4">
         <div className="flex flex-col gap-5">
-          {/* Подсказки сверху — как в продуктовой спецификации */}
-          {suggestionsQuery.isPending ? (
-            <InlineLoadingState message="Загружаем идеи для вас…" />
-          ) : null}
-          {suggestionsError ? (
-            <div className="rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_92%,transparent)] px-4 py-4">
-              <p className="text-[14px] text-(--tgui--destructive_text_color)">{suggestionsError}</p>
-            </div>
-          ) : null}
-          {suggestionsQuery.isSuccess && suggestionsQuery.data ? (
-            <SearchSuggestionsBlocks data={suggestionsQuery.data} />
-          ) : null}
+          <SegmentedControl
+            value={tab}
+            onChange={setTab}
+            segments={TAB_SEGMENTS}
+            ariaLabel="Раздел поиска"
+            layout="grid"
+            gridColsClassName="grid-cols-2"
+          />
 
-          {/* Строка поиска — одна «карточка», без вложенных Section */}
-          <div>
-            <label htmlFor="search-catalog-input" className="sr-only">
-              Поиск по каталогу
-            </label>
-            <div className="flex items-center gap-2.5 rounded-2xl border border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_24%,var(--tgui--divider_color))] bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] px-3.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] transition-[border-color,box-shadow] duration-200 focus-within:border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_12%,transparent)]">
-              <Search
-                className="pointer-events-none size-5 shrink-0 text-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_75%,var(--tgui--hint_color))]"
-                strokeWidth={2}
-                aria-hidden
-              />
-              <input
-                id="search-catalog-input"
-                type="search"
-                name="q"
-                enterKeyHint="search"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="Карточка, тема или человек…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="min-w-0 flex-1 border-0 bg-transparent py-0.5 text-[16px] text-(--tgui--text_color) outline-none placeholder:text-(--tgui--hint_color)"
-              />
-            </div>
-            {!canSearch && query.trim().length > 0 ? (
-              <p className="mt-2 px-0.5 text-[12px] text-(--tgui--hint_color)">Ещё один символ — и покажем результаты.</p>
-            ) : null}
-            {showSearchSkeleton ? (
-              <div className="mt-4">
-                <SearchResultsSkeleton />
-              </div>
-            ) : null}
-            {searchError ? (
-              <p className="mt-2 px-0.5 text-[13px] text-(--tgui--destructive_text_color)">{searchError}</p>
-            ) : null}
-          </div>
-
-          {canSearch && searchQuery.isSuccess ? (
-            <div className="flex flex-col gap-4">
-              <ResultsSection title="Карточки" subtitle="Оценки и заметки участников">
-                {showCatalogEmpty ? (
-                  <TabEmptyState
-                    poolKey="search_cards_empty"
-                    fallback="Пока нет карточек по этому запросу. Можете добавить первой — например по ссылке из внешнего каталога."
-                    userId={viewerId}
-                    action={{ label: 'Добавить карточку', href: '/cards/new' }}
-                    className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
-                  />
-                ) : (
-                  <div className="flex flex-col gap-0.5">
-                    {cardRows.map((row) => (
-                      <CardCatalogSearchResultRow key={row.card_id} row={row} />
-                    ))}
-                  </div>
-                )}
-              </ResultsSection>
-
-              <ResultsSection title="Темы в каталоге" subtitle="Фильмы и игры без вашей карточки">
-                {showCatalogThemesEmpty ? (
-                  <TabEmptyState
-                    fallback="Пока нет тем в каталоге по этому запросу."
-                    userId={viewerId}
-                    className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
-                  />
-                ) : (
-                  <div className="flex flex-col gap-0.5">
-                    {catalogItemRows.map((row) => {
-                      const catalogKey =
-                        row.catalog_item_id != null && row.catalog_item_id > 0 ? row.catalog_item_id : null
-                      const filmKey = themeHitFilmId(row)
-                      const key =
-                        catalogKey != null ? `catalog-${catalogKey}` : filmKey != null ? `film-${filmKey}` : row.title
-                      return <CatalogThemeSearchResultRow key={key} row={row} />
-                    })}
-                  </div>
-                )}
-              </ResultsSection>
-
-              <ResultsSection title="Люди" subtitle="По имени, нику или адресу профиля">
-                {showUserEmpty ? (
-                  <TabEmptyState
-                    fallback="Пользователей с таким именем не нашли."
-                    userId={viewerId}
-                    className="rounded-xl bg-[color-mix(in_srgb,var(--tgui--hint_color)_08%,transparent)] px-3 py-4"
-                  />
-                ) : (
-                  <div className="flex flex-col gap-0.5">
-                    {users.map((u) => (
-                      <UserSuggestionRow
-                        key={u.id}
-                        user={u}
-                        knowledgeByOwnerId={knowledgeByOwnerId}
-                        streakByUserId={streakByUserId}
-                        viewerId={viewerId}
-                      />
-                    ))}
-                  </div>
-                )}
-              </ResultsSection>
-            </div>
-          ) : null}
+          {tab === 'cards' ? (
+            <SearchCardsPanel
+              sort={sort}
+              period={period}
+              cardsQuery={cardsQuery}
+              debouncedCardsQuery={debouncedCardsQuery}
+              onSortChange={setSort}
+              onPeriodChange={setPeriod}
+              onCardsQueryChange={setCardsQuery}
+              viewerId={viewerId}
+            />
+          ) : (
+            <SearchPeoplePanel
+              peopleQuery={peopleQuery}
+              debouncedPeopleQuery={debouncedPeopleQuery}
+              onPeopleQueryChange={setPeopleQuery}
+              viewerId={viewerId}
+              knowledgeByOwnerId={knowledgeByOwnerId}
+              streakByUserId={streakByUserId}
+              suggestionsQuery={suggestionsQuery}
+              searchQuery={peopleSearchQuery}
+            />
+          )}
         </div>
       </main>
     </div>

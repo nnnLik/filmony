@@ -15,6 +15,10 @@ from api.catalog.schemas import (
     CatalogCommunityAuthorResponse,
     CatalogCommunityCardItemResponse,
     CatalogCommunityCardsPageResponse,
+    CatalogFilmItemResponse,
+    CatalogFilmsPageResponse,
+    CatalogFilmsPeriod,
+    CatalogFilmsSort,
     CatalogItemDetailResponse,
     CatalogResolveByUrlRequest,
     CatalogResolveByUrlResponse,
@@ -40,6 +44,15 @@ from services.catalog.catalog_candidate_dto import CatalogCandidateDTO
 from services.catalog.catalog_search_query_normalize import normalize_catalog_search_query
 from services.catalog.get_catalog_item_detail import GetCatalogItemDetailService
 from services.catalog.list_catalog_community_cards import ListCatalogCommunityCardsService
+from services.catalog.list_catalog_films import (
+    CatalogFilmsPeriod as ServiceCatalogFilmsPeriod,
+)
+from services.catalog.list_catalog_films import (
+    CatalogFilmsSort as ServiceCatalogFilmsSort,
+)
+from services.catalog.list_catalog_films import (
+    ListCatalogFilmsService,
+)
 from services.catalog.rawg_catalog_search_hit_dto import RawgCatalogSearchHitDTO
 from services.catalog.resolve_catalog_by_url_service import ResolveCatalogByUrlService
 from services.catalog.resolve_catalog_item_service import ResolveCatalogItemService
@@ -126,6 +139,49 @@ def _community_page_response(
                 custom_tags=list(item.custom_tags),
                 updated_at=item.updated_at,
                 is_favorite=item.is_favorite,
+            )
+            for item in page.items
+        ],
+        next_cursor=page.next_cursor,
+    )
+
+
+@router.get(
+    '/films',
+    response_model=CatalogFilmsPageResponse,
+    summary='Каталог фильмов с оценками сообщества',
+)
+async def list_catalog_films(
+    viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    sort: Annotated[CatalogFilmsSort, Query()] = CatalogFilmsSort.popularity,
+    period: Annotated[CatalogFilmsPeriod, Query()] = CatalogFilmsPeriod.all_time,
+    q: Annotated[str | None, Query(min_length=2, max_length=64)] = None,
+    cursor: str | None = None,
+    limit: int = Query(default=20, ge=1, le=50),
+) -> CatalogFilmsPageResponse:
+    try:
+        page = await ListCatalogFilmsService.build(db).execute(
+            cursor,
+            limit,
+            sort=ServiceCatalogFilmsSort(sort),
+            period=ServiceCatalogFilmsPeriod(period),
+            q=q,
+            viewer_user_id=viewer.id,
+        )
+    except ListCatalogFilmsService.InvalidCursor:
+        raise HTTPException(status_code=422, detail='invalid cursor') from None
+    return CatalogFilmsPageResponse(
+        items=[
+            CatalogFilmItemResponse(
+                film_id=item.film_id,
+                title=item.title,
+                year=item.year,
+                poster_url=item.poster_url,
+                genres=list(item.genres),
+                community_avg_rating=item.community_avg_rating,
+                ratings_count=item.ratings_count,
+                my_card_id=item.my_card_id,
             )
             for item in page.items
         ],

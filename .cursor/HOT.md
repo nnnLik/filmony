@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-10T180000Z
+Updated: 2026-08-10T173000Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -15,20 +15,21 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `profile-directors-top20` — closed 2026-08-10T180000Z
+1. `search-catalog-redesign` — closed 2026-08-10T173000Z
+   - Feature: `.cursor/features/search-catalog-redesign/feature.md`
+   - Active: `.cursor/active/search-catalog-redesign/`
+   - Docs: `docs/features/search-catalog-redesign.md`
+2. `profile-directors-top20` — closed 2026-08-10T180000Z
    - Feature: `.cursor/features/profile-directors-top20/feature.md`
    - Active: `.cursor/active/profile-directors-top20/`
    - Docs: `docs/features/profile-directors-top20.md`
-2. `profile-actors-top20` — closed 2026-08-10T134500Z
+3. `profile-actors-top20` — closed 2026-08-10T134500Z
    - Feature: `.cursor/features/profile-actors-top20/feature.md`
    - Active: `.cursor/active/profile-actors-top20/`
    - Docs: `docs/features/profile-actors-top20.md`
-3. `standalone-web-telegram-login` — closed 2026-08-10T120000Z
-   - Feature: `.cursor/features/standalone-web-telegram-login/feature.md`
-   - Active: `.cursor/active/standalone-web-telegram-login/`
-   - Docs: `docs/features/standalone-web-telegram-login.md`
 
 ## evicted (queue for archive)
+- `standalone-web-telegram-login` — evicted from recent_completed top-3 on 2026-08-10T173000Z (was #3)
 - `film-cast-store-all` — evicted from recent_completed top-3 on 2026-08-10T180000Z (was #3)
 - `personal-digest-redesign` — evicted from recent_completed top-3 on 2026-08-10T134500Z (was #3)
 - `actor-cast-profile-stats` — evicted from recent_completed top-3 on 2026-08-10T120000Z (was #3)

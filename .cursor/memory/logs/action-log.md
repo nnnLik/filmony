@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-10-search-catalog-redesign-closeout.md`
 - `2026-08-10-profile-directors-top20-closeout.md`
 - `2026-08-10-profile-actors-top20-closeout.md`
 - `2026-08-10-standalone-web-telegram-login-closeout.md`
@@ -42,5 +43,3 @@
 - `2026-08-04T011600Z-catalog-community-page-code.md`
 - `2026-07-29T014500Z-social-depth-pack-controversy-enrich-stored-code.md`
 - `2026-07-29T014200Z-pet-project-micro-fun-code.md`
-- `2026-07-29T013600Z-social-depth-pack-controversy-tg-upgrade-code.md`
-- `2026-07-29T012900Z-frontend-ui-boot-polish-code.md`

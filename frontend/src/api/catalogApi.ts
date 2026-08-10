@@ -53,6 +53,55 @@ export type CatalogCandidatesResponse = {
   meta: CatalogCandidatesMeta
 }
 
+export type CatalogFilmsSort = 'popularity' | 'avg_rating'
+
+export type CatalogFilmsPeriod = 'all_time' | 'month'
+
+export type CatalogFilmItem = {
+  film_id: number
+  title: string
+  year: number | null
+  poster_url: string | null
+  genres: string[]
+  community_avg_rating: number | null
+  ratings_count: number
+  my_card_id: number | null
+}
+
+export type CatalogFilmsPage = {
+  items: CatalogFilmItem[]
+  next_cursor: string | null
+}
+
+/** GET /api/catalog/films — browse community-rated films with sort, period, and optional title filter. */
+export async function listCatalogFilms(params: {
+  sort?: CatalogFilmsSort
+  period?: CatalogFilmsPeriod
+  q?: string
+  cursor?: string | null
+  limit?: number
+} = {}): Promise<CatalogFilmsPage> {
+  const sp = new URLSearchParams()
+  if (params.sort != null) {
+    sp.set('sort', params.sort)
+  }
+  if (params.period != null) {
+    sp.set('period', params.period)
+  }
+  const trimmedQ = params.q?.trim() ?? ''
+  if (trimmedQ.length >= 2) {
+    sp.set('q', trimmedQ)
+  }
+  if (params.cursor != null && params.cursor !== '') {
+    sp.set('cursor', params.cursor)
+  }
+  if (params.limit != null) {
+    sp.set('limit', String(params.limit))
+  }
+  const suffix = sp.toString() ? `?${sp.toString()}` : ''
+  return apiJson<CatalogFilmsPage>(`/api/catalog/films${suffix}`)
+}
+
 /** POST /api/catalog/resolve-by-url — provider определяется по host URL на сервере. */
 export type CatalogResolveByUrlResponse = {
   catalog_item_id: number | null
