@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import heapq
 from dataclasses import dataclass
 from math import floor
 from typing import Self
@@ -16,7 +17,7 @@ from models.person import Person
 from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
 from services.directors.get_director_summary import _rated_card_filters
-from services.franchises.franchise_label import resolve_franchise_label
+from services.franchises.franchise_label import franchise_fallback_label, resolve_franchise_labels
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
 ACTIVITY_WINDOW_DAYS = 180
@@ -339,16 +340,24 @@ class GetUserCardStatsService:
             )
             for kinopoisk_id, name, poster_url, count in actor_rows
         ]
+        sorted_franchise_items = sorted(
+            franchise_counts.items(),
+            key=lambda item: (-item[1], item[0]),
+        )
+        franchise_labels = await resolve_franchise_labels(
+            self._session,
+            (franchise_key for franchise_key, _ in sorted_franchise_items),
+        )
         franchise_distribution = [
             FranchiseDistributionItem(
                 franchise_key=franchise_key,
-                label=await resolve_franchise_label(self._session, franchise_key),
+                label=franchise_labels.get(
+                    franchise_key,
+                    franchise_fallback_label(franchise_key),
+                ),
                 count=count,
             )
-            for franchise_key, count in sorted(
-                franchise_counts.items(),
-                key=lambda item: (-item[1], item[0]),
-            )
+            for franchise_key, count in sorted_franchise_items
         ]
         watch_with_distribution = [
             ValueDistributionItem(value=value, count=count)
@@ -380,18 +389,6 @@ class GetUserCardStatsService:
 
         tag_rows = (
             await self._session.execute(
-                select(CardTag.tag, func.count(CardTag.id))
-                .join(UserCard, UserCard.id == CardTag.card_id)
-                .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
-                .group_by(CardTag.tag)
-                .order_by(desc(func.count(CardTag.id)), CardTag.tag)
-                .limit(10)
-            )
-        ).all()
-        popular_tags = [TagDistributionItem(tag=tag, count=int(count)) for tag, count in tag_rows]
-
-        tag_taste_rows = (
-            await self._session.execute(
                 select(
                     CardTag.tag,
                     func.count(CardTag.id),
@@ -404,17 +401,24 @@ class GetUserCardStatsService:
                 .limit(10)
             )
         ).all()
+        popular_tags = [
+            TagDistributionItem(tag=tag, count=int(count)) for tag, count, _ in tag_rows
+        ]
         tag_taste = [
             TagTasteItem(
                 tag=tag,
                 count=int(count),
                 average_rating=round(float(avg_rating), 1),
             )
-            for tag, count, avg_rating in tag_taste_rows
+            for tag, count, avg_rating in tag_rows
         ]
 
-        sorted_by_top = sorted(movies, key=lambda item: (-item.rating, item.card_id))
-        sorted_by_worst = sorted(movies, key=lambda item: (item.rating, item.card_id))
+        top_movies = heapq.nlargest(
+            5,
+            movies,
+            key=lambda item: (item.rating, -item.card_id),
+        )
+        worst_movies = heapq.nsmallest(5, movies, key=lambda item: (item.rating, item.card_id))
 
         activity_distribution = await self._load_activity_distribution(
             user_id=user_id,
@@ -462,8 +466,8 @@ class GetUserCardStatsService:
             watch_with_distribution=watch_with_distribution,
             mood_after_distribution=mood_after_distribution,
             category_distribution=category_distribution,
-            top_movies=sorted_by_top[:5],
-            worst_movies=sorted_by_worst[:5],
+            top_movies=top_movies,
+            worst_movies=worst_movies,
             activity_distribution=activity_distribution,
             activity_start=activity_start,
             activity_end=activity_end,
@@ -479,13 +483,19 @@ class GetUserCardStatsService:
     ) -> list[ActivityDistributionItem]:
         completion = _completion_timestamp()
         day_col = func.date(completion).label('day')
+        range_start = dt.datetime.combine(activity_start, dt.time.min, tzinfo=dt.UTC)
+        range_end_exclusive = dt.datetime.combine(
+            activity_end + dt.timedelta(days=1),
+            dt.time.min,
+            tzinfo=dt.UTC,
+        )
         query = (
             select(day_col, func.count(UserCard.id))
             .where(
                 UserCard.user_id == user_id,
                 UserCard.is_planned.is_(False),
-                func.date(completion) >= activity_start,
-                func.date(completion) <= activity_end,
+                completion >= range_start,
+                completion < range_end_exclusive,
             )
             .group_by(day_col)
             .order_by(day_col)
