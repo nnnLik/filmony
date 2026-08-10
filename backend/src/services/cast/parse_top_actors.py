@@ -4,8 +4,6 @@ from dataclasses import dataclass
 
 from providers.kinopoisk.kinopoisk_staff_dto import KinopoiskStaffMemberDTO
 
-MAX_TOP_ACTORS = 10
-
 
 @dataclass(frozen=True, slots=True)
 class ParsedTopActor:
@@ -17,7 +15,7 @@ class ParsedTopActor:
 
 
 def parse_top_actors(staff: tuple[KinopoiskStaffMemberDTO, ...]) -> tuple[ParsedTopActor, ...]:
-    """Return up to 10 ACTOR rows in Kinopoisk response order."""
+    """Return all named ACTOR rows in Kinopoisk response order."""
     actors: list[ParsedTopActor] = []
     billing_order = 0
     for member in staff:
@@ -27,8 +25,6 @@ def parse_top_actors(staff: tuple[KinopoiskStaffMemberDTO, ...]) -> tuple[Parsed
         if name is None:
             continue
         billing_order += 1
-        if billing_order > MAX_TOP_ACTORS:
-            break
         role: str | None = None
         if member.description is not None:
             trimmed = member.description.strip()

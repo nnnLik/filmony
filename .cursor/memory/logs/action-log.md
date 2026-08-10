@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-10-film-cast-store-all-closeout.md`
 - `2026-08-08T001000Z-personal-digest-redesign-closeout.md`
 - `2026-08-07T232200Z-actor-cast-profile-stats-closeout.md`
 - `2026-08-07T212500Z-profile-streak-stats-legend-ux-closeout.md`
@@ -42,6 +43,3 @@
 - `2026-07-29T012900Z-frontend-ui-boot-polish-code.md`
 - `2026-07-28T174500Z-social-depth-pack-code.md`
 - `2026-07-27T151100Z-taste-knowledge-badge-everywhere-test.md`
-- `2026-07-27T151000Z-taste-knowledge-badge-everywhere-docs.md`
-- `2026-07-27T150300Z-comment-header-actions-overflow-complete.md`
-- `2026-07-27T150200Z-comment-header-actions-overflow-docs.md`

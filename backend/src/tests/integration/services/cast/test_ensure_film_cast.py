@@ -109,6 +109,130 @@ async def test_ensure_film_cast_is_idempotent(prepare_db: None) -> None:
 
 
 @pytest.mark.asyncio
+async def test_ensure_film_cast_persists_all_actors(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=304, title='Large Cast', year=2020, poster_url=None, genres=[])
+        session.add(film)
+        await session.commit()
+        await session.refresh(film)
+        film_id = film.id
+
+    staff = tuple(
+        KinopoiskStaffMemberDTO(
+            staff_id=i,
+            name_ru=f'Actor {i}',
+            name_en=None,
+            profession_key='ACTOR',
+            poster_url=None,
+        )
+        for i in range(1, 13)
+    )
+    transport = FakeKinopoiskStaffTransport(staff=staff)
+
+    async with session_factory() as session:
+        await EnsureFilmCastService.build(session, transport=transport).execute(film_id)
+
+    async with session_factory() as session:
+        film_actors = (await session.execute(select(FilmActor))).scalars().all()
+        persons = (await session.execute(select(Person))).scalars().all()
+    assert len(film_actors) == 12
+    assert len(persons) == 12
+    billing_orders = sorted(fa.billing_order for fa in film_actors)
+    assert billing_orders == list(range(1, 13))
+
+
+@pytest.mark.asyncio
+async def test_ensure_film_cast_force_replaces_and_reuses_person(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=305, title='Force Cast', year=2020, poster_url=None, genres=[])
+        session.add(film)
+        await session.flush()
+        person = Person(kinopoisk_id=501, name='Original', poster_url=None)
+        session.add(person)
+        await session.flush()
+        session.add(FilmActor(film_id=film.id, person_id=person.id, billing_order=1))
+        await session.commit()
+        await session.refresh(film)
+        film_id = film.id
+        person_id = person.id
+
+    initial_staff = (
+        KinopoiskStaffMemberDTO(
+            staff_id=501,
+            name_ru='Updated Name',
+            name_en=None,
+            profession_key='ACTOR',
+            poster_url=None,
+        ),
+        KinopoiskStaffMemberDTO(
+            staff_id=502,
+            name_ru='New Actor',
+            name_en=None,
+            profession_key='ACTOR',
+            poster_url=None,
+        ),
+    )
+    transport = FakeKinopoiskStaffTransport(staff=initial_staff)
+
+    async with session_factory() as session:
+        await EnsureFilmCastService.build(session, transport=transport).execute(
+            film_id,
+            force=True,
+        )
+
+    async with session_factory() as session:
+        film_actors = (await session.execute(select(FilmActor))).scalars().all()
+        persons_501 = (
+            (await session.execute(select(Person).where(Person.kinopoisk_id == 501)))
+            .scalars()
+            .all()
+        )
+        persons_502 = (
+            (await session.execute(select(Person).where(Person.kinopoisk_id == 502)))
+            .scalars()
+            .all()
+        )
+        person_501 = (
+            await session.execute(select(Person).where(Person.id == person_id))
+        ).scalar_one()
+    assert len(film_actors) == 2
+    assert len(persons_501) == 1
+    assert len(persons_502) == 1
+    assert person_501.name == 'Updated Name'
+    assert transport.calls == [305]
+
+
+@pytest.mark.asyncio
+async def test_ensure_film_cast_force_fetch_failure_preserves_cast(prepare_db: None) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(kinopoisk_id=306, title='Protected Cast', year=2020, poster_url=None, genres=[])
+        session.add(film)
+        await session.flush()
+        person = Person(kinopoisk_id=601, name='Actor', poster_url=None)
+        session.add(person)
+        await session.flush()
+        session.add(FilmActor(film_id=film.id, person_id=person.id, billing_order=1))
+        await session.commit()
+        await session.refresh(film)
+        film_id = film.id
+
+    transport = FakeKinopoiskStaffTransport(should_fail=True)
+
+    async with session_factory() as session:
+        await EnsureFilmCastService.build(session, transport=transport).execute(
+            film_id,
+            force=True,
+        )
+
+    async with session_factory() as session:
+        film_actors = (await session.execute(select(FilmActor))).scalars().all()
+    assert len(film_actors) == 1
+
+
+@pytest.mark.asyncio
 async def test_ensure_film_cast_swallows_kp_errors(prepare_db: None) -> None:
     session_factory = get_session_factory()
     async with session_factory() as session:

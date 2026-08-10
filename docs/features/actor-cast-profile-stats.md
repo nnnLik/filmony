@@ -2,7 +2,7 @@
 
 ## Summary
 
-Top-10 Kinopoisk `ACTOR` cast for **rated** films only. Cast is synced on rated card create/upgrade and via backfill. Profile stats show actor distribution; users can open a user-scoped actor detail page and filter rated cards by actor.
+Full Kinopoisk `ACTOR` cast for **rated** films only (see [film-cast-store-all](./film-cast-store-all.md) — no longer capped at 10). Cast is synced on rated card create/upgrade and via backfill. Profile stats show actor distribution; users can open a user-scoped actor detail page and filter rated cards by actor.
 
 ## Backend
 
@@ -13,7 +13,7 @@ Top-10 Kinopoisk `ACTOR` cast for **rated** films only. Cast is synced on rated 
 
 ### Cast sync
 
-- **`EnsureFilmCastService`** — fetches Kinopoisk staff, parses top-10 `ACTOR` rows, upserts persons, inserts `film_actor`. Idempotent (skips if rows exist). KP errors logged, not propagated.
+- **`EnsureFilmCastService`** — fetches Kinopoisk staff, parses all `ACTOR` rows, upserts persons, inserts `film_actor`. Idempotent (skips if rows exist; `force=True` replaces cast). KP errors logged, not propagated.
 - Hooked in **`CreateUserCardService`** after meaningful rated create and planned→rated upgrade.
 - **`manage_backfill_film_cast.py`** — backfill historical rated films (`--dry-run`, `--limit`, `--sleep`, `--batch-size`).
 
