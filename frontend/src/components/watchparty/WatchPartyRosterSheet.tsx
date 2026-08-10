@@ -2,13 +2,20 @@ import { Avatar, IconButton } from '@telegram-apps/telegram-ui'
 import { Crown, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
-import type { WatchPartyMember } from '../../api/watchPartyTypes'
-import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
+import type {
+  WatchPartyMember,
+  WatchPartyPlaybackState,
+  WatchingNowBatchItem,
+} from '../../api/watchPartyTypes'
+import { formatPlaybackMs, memberDisplayPositionMs } from '../../lib/watchPartyTime'
 import { WatchingNowAuthorBadge } from './WatchingNowAuthorBadge'
 
 export type WatchPartyRosterSheetProps = {
   open: boolean
   members: WatchPartyMember[]
+  hostUserId: string
+  playbackState: WatchPartyPlaybackState
+  tickMs: number
   watchingByUserId?: Record<string, WatchingNowBatchItem>
   onClose: () => void
 }
@@ -16,6 +23,9 @@ export type WatchPartyRosterSheetProps = {
 export function WatchPartyRosterSheet({
   open,
   members,
+  hostUserId,
+  playbackState,
+  tickMs,
   watchingByUserId = {},
   onClose,
 }: WatchPartyRosterSheetProps) {
@@ -43,7 +53,9 @@ export function WatchPartyRosterSheet({
           </IconButton>
         </div>
         <ul className="max-h-[50dvh] space-y-2 overflow-y-auto">
-          {members.map((member) => (
+          {members.map((member) => {
+            const displayMs = memberDisplayPositionMs(member, hostUserId, playbackState, tickMs)
+            return (
             <li
               key={member.user_id}
               className="flex items-center gap-3 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-2"
@@ -70,10 +82,19 @@ export function WatchPartyRosterSheet({
                       : member.role === 'host'
                         ? 'Ведущий'
                         : 'Гость'}
+                  {displayMs != null ? (
+                    <>
+                      {' '}
+                      ·
+                      {' '}
+                      {formatPlaybackMs(displayMs)}
+                    </>
+                  ) : null}
                 </p>
               </div>
             </li>
-          ))}
+            )
+          })}
         </ul>
       </div>
     </div>,

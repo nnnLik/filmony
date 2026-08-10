@@ -119,8 +119,15 @@ export async function deleteWatchPartyMessage(partyId: string, messageId: number
   }
 }
 
-export async function sendWatchPartyHeartbeat(partyId: string): Promise<void> {
-  const res = await apiFetch(`/api/watch-parties/${partyId}/heartbeat`, { method: 'POST' })
+export async function sendWatchPartyHeartbeat(
+  partyId: string,
+  body?: { position_ms?: number; playing?: boolean },
+): Promise<void> {
+  const res = await apiFetch(`/api/watch-parties/${partyId}/heartbeat`, {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
   if (!res.ok) {
     throw new ApiError(res.status, await readErrorDetail(res))
   }

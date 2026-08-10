@@ -23,6 +23,14 @@ class WatchPartyMemberResponse(BaseModel):
     role: str
     status: str
     joined_at: str
+    position_ms: int | None = None
+    position_playing: bool | None = None
+    position_at: str | None = None
+
+
+class WatchPartyHeartbeatRequest(BaseModel):
+    position_ms: int | None = Field(default=None, ge=0)
+    playing: bool | None = None
 
 
 class WatchPartySnapshotResponse(BaseModel):

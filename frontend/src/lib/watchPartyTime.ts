@@ -23,3 +23,53 @@ export function expectedPlaybackMs(state: {
   }
   return state.position_ms + Math.max(0, Date.now() - updatedAt)
 }
+
+type MemberPositionSource = {
+  user_id: string
+  position_ms?: number | null
+  position_playing?: boolean | null
+  position_at?: string | null
+}
+
+export function memberDisplayPositionMs(
+  member: MemberPositionSource,
+  hostUserId: string,
+  hostPlaybackState: {
+    playing: boolean
+    position_ms: number
+    updated_at: string
+  },
+  nowMs: number = Date.now(),
+): number | null {
+  if (member.user_id === hostUserId) {
+    if (!hostPlaybackState.playing) {
+      return hostPlaybackState.position_ms
+    }
+    const updatedAt = Date.parse(hostPlaybackState.updated_at)
+    if (!Number.isFinite(updatedAt)) {
+      return hostPlaybackState.position_ms
+    }
+    return hostPlaybackState.position_ms + Math.max(0, nowMs - updatedAt)
+  }
+  if (member.position_ms == null || member.position_at == null) {
+    return null
+  }
+  if (!member.position_playing) {
+    return member.position_ms
+  }
+  const updatedAt = Date.parse(member.position_at)
+  if (!Number.isFinite(updatedAt)) {
+    return member.position_ms
+  }
+  return member.position_ms + Math.max(0, nowMs - updatedAt)
+}
+
+export function memberPositionDeltaSeconds(
+  memberMs: number | null,
+  hostMs: number | null,
+): number | null {
+  if (memberMs == null || hostMs == null) {
+    return null
+  }
+  return Math.round((memberMs - hostMs) / 1000)
+}

@@ -13,6 +13,9 @@ export type WatchPartyMember = {
   role: 'host' | 'guest'
   status: 'active' | 'away' | 'left'
   joined_at: string
+  position_ms?: number | null
+  position_playing?: boolean | null
+  position_at?: string | null
 }
 
 export type WatchPartyMessage = {
@@ -65,6 +68,7 @@ export type WatchPartySseEvent = {
     | 'chat_message'
     | 'chat_message_deleted'
     | 'presence'
+    | 'member_position'
     | 'party_ended'
     | 'ping'
     | 'typing'

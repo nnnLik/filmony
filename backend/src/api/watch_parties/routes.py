@@ -11,6 +11,7 @@ from api.watch_parties.schemas import (
     WatchPartyBridgeResponse,
     WatchPartyCreateRequest,
     WatchPartyCreateResponse,
+    WatchPartyHeartbeatRequest,
     WatchPartyInviteRequest,
     WatchPartyKickRequest,
     WatchPartyMemberResponse,
@@ -75,6 +76,9 @@ def _snapshot_response(dto: WatchPartySnapshotDTO) -> WatchPartySnapshotResponse
                 role=member.role,
                 status=member.status,
                 joined_at=member.joined_at,
+                position_ms=member.position_ms,
+                position_playing=member.position_playing,
+                position_at=member.position_at,
             )
             for member in dto.members
         ],
@@ -454,11 +458,18 @@ async def bridge_watch_party_to_watch_session(
 async def watch_party_heartbeat(
     party_id: UUID,
     user: CurrentUser,
+    body: WatchPartyHeartbeatRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     service = RecordWatchPartyHeartbeatService.build(db)
+    payload = body or WatchPartyHeartbeatRequest()
     try:
-        await service.execute(party_id=party_id, actor_user_id=user.id)
+        await service.execute(
+            party_id=party_id,
+            actor_user_id=user.id,
+            position_ms=payload.position_ms,
+            playing=payload.playing,
+        )
     except RecordWatchPartyHeartbeatService.PartyNotFound:
         raise HTTPException(status_code=404, detail='party_not_found') from None
     except RecordWatchPartyHeartbeatService.PartyEnded:

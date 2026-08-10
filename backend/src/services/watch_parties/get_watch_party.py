@@ -10,6 +10,7 @@ from daos.watch_party_dao import WatchPartyDAO
 from services.films.get_film_by_id import GetFilmByIdService
 from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
 from services.watch_parties.helpers import build_invite_url
+from services.watch_parties.watch_party_member_positions import build_member_payloads
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +21,9 @@ class WatchPartyMemberDTO:
     role: str
     status: str
     joined_at: str
+    position_ms: int | None
+    position_playing: bool | None
+    position_at: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,16 +97,20 @@ class GetWatchPartyService:
         film_poster = film.poster_url if film is not None else None
 
         member_rows = await self._dao.list_member_rows(party.id)
+        member_payloads = await build_member_payloads(party=party, member_rows=member_rows)
         members = [
             WatchPartyMemberDTO(
-                user_id=row.user_id,
-                display_name=row.display_name or 'Пользователь',
-                photo_url=row.photo_url,
-                role=row.role,
-                status=row.status,
-                joined_at=row.joined_at.isoformat(),
+                user_id=UUID(payload['user_id']),
+                display_name=str(payload['display_name']),
+                photo_url=payload['photo_url'],
+                role=str(payload['role']),
+                status=str(payload['status']),
+                joined_at=str(payload['joined_at']),
+                position_ms=payload['position_ms'],
+                position_playing=payload['position_playing'],
+                position_at=payload['position_at'],
             )
-            for row in member_rows
+            for payload in member_payloads
         ]
 
         return WatchPartySnapshotDTO(

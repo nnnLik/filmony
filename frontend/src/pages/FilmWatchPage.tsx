@@ -31,7 +31,7 @@ import { WatchPartyHeader } from '../components/watchparty/WatchPartyHeader'
 import { WatchPartyHostBar } from '../components/watchparty/WatchPartyHostBar'
 import { WatchPartyInlineChat } from '../components/watchparty/WatchPartyInlineChat'
 import { WatchPartyInviteSheet } from '../components/watchparty/WatchPartyInviteSheet'
-import { WatchPartyMemberStrip } from '../components/watchparty/WatchPartyMemberStrip'
+import { WatchPartyRoomPanel } from '../components/watchparty/WatchPartyRoomPanel'
 import { WatchPartyRosterSheet } from '../components/watchparty/WatchPartyRosterSheet'
 import { useEnsureWatchParty } from '../hooks/useEnsureWatchParty'
 import { useWatchPartyEvents } from '../hooks/useWatchPartyEvents'
@@ -127,7 +127,11 @@ export function FilmWatchPage() {
     () => new Map(),
   )
   const [typingNowMs, setTypingNowMs] = useState(() => Date.now())
+  const [positionTickMs, setPositionTickMs] = useState(() => Date.now())
   const guestAnchoredRef = useRef(false)
+  const hostPositionMsRef = useRef(0)
+  const guestAnchorMsRef = useRef<number | null>(null)
+  const guestAnchorAtRef = useRef<number | null>(null)
 
   const snapshotRef = useRef<WatchPartySnapshot | null>(null)
 
@@ -148,6 +152,15 @@ export function FilmWatchPage() {
   useEffect(() => {
     snapshotRef.current = snapshot
   }, [snapshot])
+
+  useEffect(() => {
+    hostPositionMsRef.current = hostPositionMs
+  }, [hostPositionMs])
+
+  useEffect(() => {
+    guestAnchorMsRef.current = guestAnchorMs
+    guestAnchorAtRef.current = guestAnchorAt
+  }, [guestAnchorAt, guestAnchorMs])
 
   useEffect(() => {
     if (snapshot == null) {
@@ -178,7 +191,27 @@ export function FilmWatchPage() {
     if (event.type === 'playback_state') {
       const raw = event.payload.playback_state
       if (typeof raw === 'object' && raw !== null) {
-        setSnapshot((prev) => (prev ? { ...prev, playback_state: raw as WatchPartyPlaybackState } : prev))
+        const state = raw as WatchPartyPlaybackState
+        setSnapshot((prev) => {
+          if (prev == null) {
+            return prev
+          }
+          const hostId = prev.host_user_id
+          return {
+            ...prev,
+            playback_state: state,
+            members: prev.members.map((member) => (
+              member.user_id === hostId
+                ? {
+                    ...member,
+                    position_ms: state.position_ms,
+                    position_playing: state.playing,
+                    position_at: state.updated_at,
+                  }
+                : member
+            )),
+          }
+        })
       }
       return
     }
@@ -230,6 +263,38 @@ export function FilmWatchPage() {
     }
     if (event.type === 'presence' && Array.isArray(event.payload.members)) {
       setSnapshot((prev) => (prev ? { ...prev, members: event.payload.members as WatchPartyMember[] } : prev))
+      return
+    }
+    if (event.type === 'member_position') {
+      const userId = event.payload.user_id
+      const positionMs = event.payload.position_ms
+      const positionPlaying = event.payload.position_playing
+      const positionAt = event.payload.position_at
+      if (
+        typeof userId === 'string'
+        && typeof positionMs === 'number'
+        && typeof positionPlaying === 'boolean'
+        && typeof positionAt === 'string'
+      ) {
+        setSnapshot((prev) => {
+          if (prev == null) {
+            return prev
+          }
+          return {
+            ...prev,
+            members: prev.members.map((member) => (
+              member.user_id === userId
+                ? {
+                    ...member,
+                    position_ms: positionMs,
+                    position_playing: positionPlaying,
+                    position_at: positionAt,
+                  }
+                : member
+            )),
+          }
+        })
+      }
     }
   }, [navigate, setSnapshot])
 
@@ -248,7 +313,23 @@ export function FilmWatchPage() {
       return undefined
     }
     const tick = () => {
-      void sendWatchPartyHeartbeat(partyId).catch(() => undefined)
+      const playback = snapshotRef.current?.playback_state
+      if (playback == null) {
+        void sendWatchPartyHeartbeat(partyId).catch(() => undefined)
+        return
+      }
+      let positionMs: number
+      if (snapshotRef.current?.viewer_role === 'host') {
+        positionMs = hostPositionMsRef.current
+      } else {
+        const anchorMs = guestAnchorMsRef.current ?? playback.position_ms
+        const anchorAt = guestAnchorAtRef.current ?? Date.now()
+        positionMs = anchorMs + (playback.playing ? Math.max(0, Date.now() - anchorAt) : 0)
+      }
+      void sendWatchPartyHeartbeat(partyId, {
+        position_ms: Math.max(0, Math.round(positionMs)),
+        playing: playback.playing,
+      }).catch(() => undefined)
     }
     tick()
     const id = window.setInterval(tick, HEARTBEAT_INTERVAL_MS)
@@ -261,6 +342,7 @@ export function FilmWatchPage() {
     const id = window.setInterval(() => {
       const now = Date.now()
       setTypingNowMs(now)
+      setPositionTickMs(now)
       setTypingByUserId((prev) => {
         let changed = false
         const next = new Map<string, { name: string; expiresAt: number }>()
@@ -457,11 +539,6 @@ export function FilmWatchPage() {
         onInvite={isHost ? () => setInviteOpen(true) : undefined}
       />
 
-      <WatchPartyMemberStrip
-        members={snapshot.members}
-        onTap={() => setRosterOpen(true)}
-      />
-
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-2 px-3 pb-3 pt-1">
         <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg bg-black">
           <iframe
@@ -502,6 +579,14 @@ export function FilmWatchPage() {
           </div>
         ) : null}
 
+        <WatchPartyRoomPanel
+          members={snapshot.members}
+          hostUserId={snapshot.host_user_id}
+          playbackState={snapshot.playback_state}
+          tickMs={positionTickMs}
+          onMemberTap={() => setRosterOpen(true)}
+        />
+
         {isHost ? (
           <WatchPartyHostBar
             busy={playbackBusy}
@@ -529,6 +614,9 @@ export function FilmWatchPage() {
       <WatchPartyRosterSheet
         open={rosterOpen}
         members={snapshot.members}
+        hostUserId={snapshot.host_user_id}
+        playbackState={snapshot.playback_state}
+        tickMs={positionTickMs}
         watchingByUserId={watchingByUserId}
         onClose={() => setRosterOpen(false)}
       />

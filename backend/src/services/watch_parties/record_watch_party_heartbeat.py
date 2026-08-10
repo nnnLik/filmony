@@ -13,6 +13,10 @@ from models.watch_party_enums import WatchPartyMemberStatus
 from services.films.get_film_by_id import GetFilmByIdService
 from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
 from services.watch_parties.watch_party_broker import publish_watch_party_event
+from services.watch_parties.watch_party_member_positions import (
+    build_member_payloads,
+    persist_member_position,
+)
 from services.watch_parties.watch_party_redis import (
     clear_user_watching,
     list_chat_messages,
@@ -64,7 +68,14 @@ class RecordWatchPartyHeartbeatService:
             _session=session,
         )
 
-    async def execute(self, *, party_id: UUID, actor_user_id: UUID) -> None:
+    async def execute(
+        self,
+        *,
+        party_id: UUID,
+        actor_user_id: UUID,
+        position_ms: int | None = None,
+        playing: bool | None = None,
+    ) -> None:
         try:
             party = await self._ensure_active.execute(party_id)
         except EnsureActiveWatchPartyService.PartyNotFound:
@@ -96,11 +107,35 @@ class RecordWatchPartyHeartbeatService:
             ttl_seconds=_watching_ttl_seconds(),
         )
 
+        position_payload: dict[str, object] | None = None
+        if member.role.value == 'host':
+            playback = party.playback_state or {}
+            position_payload = await persist_member_position(
+                party_id=party.id,
+                user_id=actor_user_id,
+                position_ms=int(playback.get('position_ms', 0)),
+                playing=bool(playback.get('playing', False)),
+            )
+        elif position_ms is not None:
+            position_payload = await persist_member_position(
+                party_id=party.id,
+                user_id=actor_user_id,
+                position_ms=position_ms,
+                playing=bool(playing),
+            )
+
         changed, left_user_ids = await self._sweep_presence(party_id=party.id, now=now)
         await self._session.commit()
 
         for user_id in left_user_ids:
             await clear_user_watching(user_id)
+
+        if position_payload is not None:
+            await publish_watch_party_event(
+                party.id,
+                event_type='member_position',
+                payload=position_payload,
+            )
 
         if changed:
             roster = await self._dao.list_member_rows(party.id)
@@ -108,14 +143,7 @@ class RecordWatchPartyHeartbeatService:
                 party.id,
                 event_type='presence',
                 payload={
-                    'members': [
-                        {
-                            'user_id': str(row.user_id),
-                            'role': row.role,
-                            'status': row.status,
-                        }
-                        for row in roster
-                    ],
+                    'members': await build_member_payloads(party=party, member_rows=roster),
                 },
             )
 
@@ -180,21 +208,12 @@ class BuildWatchPartySnapshotPayloadService:
             before_id=None,
             limit=settings.watch_party.chat_page_size,
         )
+        member_payloads = await build_member_payloads(party=party, member_rows=members)
         return {
             'party_id': str(party.id),
             'status': party.status.value,
             'playback_state': party.playback_state,
-            'members': [
-                {
-                    'user_id': str(row.user_id),
-                    'display_name': row.display_name or 'Пользователь',
-                    'photo_url': row.photo_url,
-                    'role': row.role,
-                    'status': row.status,
-                    'joined_at': row.joined_at.isoformat(),
-                }
-                for row in members
-            ],
+            'members': member_payloads,
             'messages': [
                 {
                     'id': int(message['id']),

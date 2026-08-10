@@ -24,6 +24,7 @@ _fake_seek_rl: dict[str, list[float]] = {}
 _fake_message_rl: dict[str, list[float]] = {}
 _fake_typing: dict[str, dict[str, Any]] = {}
 _fake_user_watching: dict[str, dict[str, Any]] = {}
+_fake_member_position: dict[str, dict[str, Any]] = {}
 _fake_typing_rl: dict[str, float] = {}
 
 
@@ -65,6 +66,10 @@ def _typing_rl_key(party_id: UUID, user_id: UUID) -> str:
 
 def _user_watching_key(user_id: UUID) -> str:
     return f'watch_party:user_watching:{user_id}'
+
+
+def _member_position_key(party_id: UUID, user_id: UUID) -> str:
+    return f'watch_party:member_position:{party_id}:{user_id}'
 
 
 def watch_party_redis_url() -> str | None:
@@ -112,6 +117,7 @@ def reset_watch_party_redis_for_tests() -> None:
     _fake_message_rl.clear()
     _fake_typing.clear()
     _fake_user_watching.clear()
+    _fake_member_position.clear()
     _fake_typing_rl.clear()
 
 
@@ -419,6 +425,52 @@ async def set_user_watching(
     )
 
 
+async def set_member_position(
+    party_id: UUID,
+    user_id: UUID,
+    payload: dict[str, Any],
+    *,
+    ttl_seconds: int,
+) -> None:
+    if _memory_only():
+        _fake_member_position[_member_position_key(party_id, user_id)] = dict(payload)
+        return
+    client = await get_redis()
+    assert client is not None
+    await client.set(
+        _member_position_key(party_id, user_id),
+        orjson.dumps(payload),
+        ex=ttl_seconds,
+    )
+
+
+async def batch_member_positions(
+    party_id: UUID,
+    user_ids: list[UUID],
+) -> dict[UUID, dict[str, Any]]:
+    unique = list(dict.fromkeys(user_ids))
+    if not unique:
+        return {}
+    if _memory_only():
+        out: dict[UUID, dict[str, Any]] = {}
+        for uid in unique:
+            raw = _fake_member_position.get(_member_position_key(party_id, uid))
+            if raw is not None:
+                out[uid] = dict(raw)
+        return out
+    client = await get_redis()
+    assert client is not None
+    keys = [_member_position_key(party_id, uid) for uid in unique]
+    values = await client.mget(keys)
+    out = {}
+    for uid, raw in zip(unique, values, strict=True):
+        if raw is None:
+            continue
+        parsed = orjson.loads(raw) if isinstance(raw, (bytes, bytearray)) else json.loads(str(raw))
+        out[uid] = dict(parsed)
+    return out
+
+
 async def clear_user_watching(user_id: UUID) -> None:
     if _memory_only():
         _fake_user_watching.pop(_user_watching_key(user_id), None)
@@ -475,6 +527,7 @@ async def clear_party_redis(party_id: UUID, member_user_ids: list[UUID]) -> None
                 _fake_typing.pop(k, None)
         for uid in member_user_ids:
             _fake_user_watching.pop(_user_watching_key(uid), None)
+            _fake_member_position.pop(_member_position_key(party_id, uid), None)
         return
 
     client = await get_redis()
@@ -489,6 +542,8 @@ async def clear_party_redis(party_id: UUID, member_user_ids: list[UUID]) -> None
     async for key in client.scan_iter(match=f'watch_party:message_rl:{party_id}:*'):
         await client.delete(key)
     async for key in client.scan_iter(match=f'watch_party:typing:{party_id}:*'):
+        await client.delete(key)
+    async for key in client.scan_iter(match=f'watch_party:member_position:{party_id}:*'):
         await client.delete(key)
     if member_user_ids:
         await client.delete(*[_user_watching_key(uid) for uid in member_user_ids])
