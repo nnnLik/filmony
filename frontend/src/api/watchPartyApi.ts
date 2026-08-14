@@ -1,4 +1,4 @@
-import { apiFetch, apiJson, ApiError, readErrorDetail } from './client'
+import { apiFetch, apiJson, ApiError, postJson, readErrorDetail } from './client'
 import type {
   WatchPartyBridgeResponse,
   WatchPartyCreateResponse,
@@ -83,10 +83,7 @@ export async function inviteWatchPartyMembers(
   partyId: string,
   userIds: string[],
 ): Promise<void> {
-  const res = await apiFetch(`/api/watch-parties/${partyId}/invite`, {
-    method: 'POST',
-    body: JSON.stringify({ user_ids: userIds }),
-  })
+  const res = await postJson(`/api/watch-parties/${partyId}/invite`, { user_ids: userIds })
   if (!res.ok) {
     throw new ApiError(res.status, await readErrorDetail(res))
   }
