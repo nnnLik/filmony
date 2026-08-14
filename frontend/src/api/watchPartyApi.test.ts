@@ -20,7 +20,7 @@ describe('inviteWatchPartyMembers', () => {
     expect(url).toContain('/api/watch-parties/party-1/invite')
     const headers = init.headers as Record<string, string>
     expect(headers['Content-Type']).toBe('application/json')
-    expect(JSON.parse(String(init.body))).toEqual({ user_ids: ['user-a'] })
+    expect(init.body).toEqual(JSON.stringify({ user_ids: ['user-a'] }))
   })
 
   it('throws ApiError when the API returns 422', async () => {

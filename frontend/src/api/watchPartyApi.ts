@@ -92,7 +92,7 @@ export async function inviteWatchPartyMembers(
 export async function bridgeWatchPartyToWatchSession(
   partyId: string,
 ): Promise<WatchPartyBridgeResponse> {
-  return apiJson<WatchPartyBridgeResponse>(`/api/watch-parties/${partyId}/bridge`, {
+  return apiJson<WatchPartyBridgeResponse>(`/api/watch-parties/${partyId}/bridge-watch-session`, {
     method: 'POST',
   })
 }

@@ -12,6 +12,7 @@ from api.collections.schemas import (
     UserCollectionProgressResponse,
 )
 from api.films.award_badges import film_award_badge_responses
+from api.films.mappers import film_passport_response_fields
 from api.films.schemas import (
     FilmCommunityAuthorResponse,
     FilmCommunityCardItemResponse,
@@ -102,6 +103,7 @@ async def _film_response(db: AsyncSession, film, viewer_id) -> FilmResponse:
         description=film.description,
         my_card_id=my_card_id,
         award_badges=award_badges,
+        **film_passport_response_fields(film),
     )
 
 

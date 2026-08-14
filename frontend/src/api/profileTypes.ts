@@ -141,6 +141,14 @@ export type WatchlistOverlapListResponse = {
   items: WatchlistOverlapItem[]
 }
 
+export type EveningForTwoPick = {
+  entry_id: number
+  film_id: number
+  title: string
+  poster_url: string | null
+  partner: WatchlistOverlapPartner
+}
+
 export type PlannedUserCard = {
   user_card_id: number
   company: CardCompany
@@ -405,6 +413,14 @@ export type Film = {
   poster_url: string | null
   short_description?: string | null
   description?: string | null
+  film_length?: number | null
+  slogan?: string | null
+  rating_kinopoisk?: number | null
+  rating_imdb?: number | null
+  rating_age_limits?: string | null
+  tmdb_recommendations?: string[]
+  trailer_youtube_url?: string | null
+  watch_providers_ru?: string[]
   /** Present when the API knows the viewer already has a card for this film. */
   my_card_id?: number | null
   award_badges?: FilmAwardBadge[]

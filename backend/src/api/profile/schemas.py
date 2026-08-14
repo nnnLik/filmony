@@ -28,6 +28,7 @@ from services.watchlist.list_watchlist_overlaps import (
     WatchlistOverlapPage,
     WatchlistOverlapPartner,
 )
+from services.watchlist.pick_evening_for_two_film import EveningForTwoPick
 
 
 class MyUserCardCategoryResponse(BaseModel):
@@ -175,6 +176,16 @@ class WatchlistOverlapItemResponse(BaseModel):
 
 class WatchlistOverlapListResponse(BaseModel):
     items: list[WatchlistOverlapItemResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class EveningForTwoPickResponse(BaseModel):
+    entry_id: int
+    film_id: int
+    title: str
+    poster_url: str | None
+    partner: WatchlistOverlapPartnerResponse
 
     model_config = ConfigDict(extra='forbid')
 
@@ -520,6 +531,16 @@ def build_watchlist_overlap_list_response(
 ) -> WatchlistOverlapListResponse:
     return WatchlistOverlapListResponse(
         items=[build_watchlist_overlap_item_response(it) for it in page.items],
+    )
+
+
+def build_evening_for_two_pick_response(pick: EveningForTwoPick) -> EveningForTwoPickResponse:
+    return EveningForTwoPickResponse(
+        entry_id=pick.entry_id,
+        film_id=pick.film_id,
+        title=pick.title,
+        poster_url=pick.poster_url,
+        partner=build_watchlist_overlap_partner_response(pick.partner),
     )
 
 

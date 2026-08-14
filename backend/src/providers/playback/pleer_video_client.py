@@ -20,6 +20,13 @@ class PleerVideoDtoParseError(Exception):
     pass
 
 
+def _is_embed_unavailable_error(exc: PleerVideoDtoParseError) -> bool:
+    message = str(exc)
+    if message in {'missing embeds', 'invalid iframe', 'invalid embed item'}:
+        return True
+    return message.startswith('missing field') and 'iframe' in message
+
+
 @dataclass(frozen=True, slots=True)
 class PleerVideoFilmDTO:
     kinopoisk_id: int
@@ -103,6 +110,8 @@ class PleerVideoClient:
         try:
             film = PleerVideoFilmDTO.from_dict(payload)
         except PleerVideoDtoParseError as exc:
+            if _is_embed_unavailable_error(exc):
+                return None
             raise self.UpstreamError(str(exc)) from exc
 
         expires_at = datetime.now(tz=UTC) + timedelta(seconds=self._cache_ttl_seconds)

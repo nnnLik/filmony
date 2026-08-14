@@ -55,9 +55,19 @@ class ListWatchlistOverlapsService:
     def build(cls, session: AsyncSession) -> Self:
         return cls(_session=session)
 
-    async def execute(self, actor_user_id: UUID, *, limit: int) -> WatchlistOverlapPage:
+    async def execute(
+        self,
+        actor_user_id: UUID,
+        *,
+        limit: int,
+        mutual_partner_ids: set[UUID] | None = None,
+    ) -> WatchlistOverlapPage:
         cap = max(1, min(limit, 50))
-        mutual_ids = await self._load_mutual_partner_ids(actor_user_id)
+        mutual_ids = (
+            mutual_partner_ids
+            if mutual_partner_ids is not None
+            else await self._load_mutual_partner_ids(actor_user_id)
+        )
         if not mutual_ids:
             return WatchlistOverlapPage(items=[])
 

@@ -46,6 +46,7 @@ import { computeShelfPhysicsFromCards } from '../lib/gamification/shelfPhysicsFa
 import type { MarathonAchievement } from '../api/gamificationTypes'
 import { myProfileQueryKey, userCardsQueryKey } from '../lib/profileQueryKeys'
 import { scheduleDeferredPepeDancingPrewarm } from '../lib/pepeGif'
+import { WatchingNowVitrineSection } from '../components/watchparty/WatchingNowVitrineSection'
 import './ProfilePage.css'
 
 function toPublicShape(p: MyProfile): PublicProfile {
@@ -356,6 +357,8 @@ export function ProfilePage() {
           }}
           className="mb-3"
         />
+
+        <WatchingNowVitrineSection className="mt-4" />
 
         {profile.bio ? (
           <p className="filmony-text-panel mt-3 text-left text-sm leading-relaxed text-(--tgui--hint_color)">

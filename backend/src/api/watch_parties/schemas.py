@@ -103,5 +103,21 @@ class WatchPartyWatchingBatchResponse(BaseModel):
     items: dict[str, WatchPartyWatchingItemResponse]
 
 
+class FollowingWatchingNowItemResponse(BaseModel):
+    user_id: UUID
+    display_name: str
+    photo_url: str | None
+    slug: str
+    film_id: int
+    film_title: str
+    film_poster_url: str | None
+    invite_slug: str | None = None
+    party_id: UUID | None = None
+
+
+class FollowingWatchingNowResponse(BaseModel):
+    items: list[FollowingWatchingNowItemResponse]
+
+
 class WatchPartyBridgeResponse(BaseModel):
     watch_session_id: UUID

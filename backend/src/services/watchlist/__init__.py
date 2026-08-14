@@ -7,6 +7,7 @@ from services.watchlist.delete_watchlist_entry import DeleteWatchlistEntryServic
 from services.watchlist.get_my_watchlist_presence import GetMyWatchlistPresenceService
 from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
 from services.watchlist.list_watchlist_overlaps import ListWatchlistOverlapsService
+from services.watchlist.pick_evening_for_two_film import PickEveningForTwoFilmService
 
 __all__ = (
     'CreateWatchlistEntryFromCatalogService',
@@ -16,4 +17,5 @@ __all__ = (
     'GetMyWatchlistPresenceService',
     'ListUserWatchlistEntriesService',
     'ListWatchlistOverlapsService',
+    'PickEveningForTwoFilmService',
 )

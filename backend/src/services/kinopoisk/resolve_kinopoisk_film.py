@@ -11,6 +11,14 @@ from services.kinopoisk.parse_url import KinopoiskUrlParseError, parse_kinopoisk
 from services.tmdb.sync_film_from_tmdb import SyncFilmFromTmdbService
 
 
+def _apply_kinopoisk_passport(film: Film, payload) -> None:
+    film.film_length = payload.film_length
+    film.slogan = payload.slogan
+    film.rating_kinopoisk = payload.rating_kinopoisk
+    film.rating_imdb = payload.rating_imdb
+    film.rating_age_limits = payload.rating_age_limits
+
+
 class ResolveKinopoiskFilmService:
     def __init__(self, session: AsyncSession, client: KinopoiskClient | None = None) -> None:
         self._session = session
@@ -34,6 +42,7 @@ class ResolveKinopoiskFilmService:
             film.short_description = payload.short_description
             film.description = payload.description
             film.imdb_id = payload.imdb_id
+            _apply_kinopoisk_passport(film, payload)
             await self._sync_metadata(film)
             await self._session.commit()
             await self._session.refresh(film)
@@ -49,6 +58,11 @@ class ResolveKinopoiskFilmService:
             short_description=payload.short_description,
             description=payload.description,
             imdb_id=payload.imdb_id,
+            film_length=payload.film_length,
+            slogan=payload.slogan,
+            rating_kinopoisk=payload.rating_kinopoisk,
+            rating_imdb=payload.rating_imdb,
+            rating_age_limits=payload.rating_age_limits,
         )
         self._session.add(film)
         await self._session.flush()

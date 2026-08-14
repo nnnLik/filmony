@@ -1,5 +1,6 @@
 import { isTMA } from '@telegram-apps/sdk'
 
+import { createWatchParty } from '../api/watchPartyApi'
 import { openExternalUrl } from './openExternalUrl'
 
 export const WATCH_IN_BROWSER_CONFIRM_MESSAGE =
@@ -22,28 +23,53 @@ export function filmWatchAbsoluteUrl(
   return `${base}${filmWatchPath(filmId, partySlug)}`
 }
 
-function confirmThen(onOk: () => void): void {
-  const wa = window.Telegram?.WebApp
-  if (wa?.showConfirm) {
-    wa.showConfirm(WATCH_IN_BROWSER_CONFIRM_MESSAGE, (ok) => {
-      if (ok) {
-        onOk()
-      }
-    })
+function confirmThen(onOk: () => void | Promise<void>): Promise<void> {
+  return new Promise((resolve) => {
+    const runOk = () => {
+      void Promise.resolve(onOk()).then(() => {
+        resolve()
+      })
+    }
+    const wa = window.Telegram?.WebApp
+    if (wa?.showConfirm) {
+      wa.showConfirm(WATCH_IN_BROWSER_CONFIRM_MESSAGE, (ok) => {
+        if (ok) {
+          runOk()
+        } else {
+          resolve()
+        }
+      })
+      return
+    }
+    if (window.confirm(WATCH_IN_BROWSER_CONFIRM_MESSAGE)) {
+      runOk()
+      return
+    }
+    resolve()
+  })
+}
+
+export async function openFilmWatchInBrowserAfterParty(
+  filmId: number | string,
+  partySlug?: string | null,
+): Promise<void> {
+  if (typeof partySlug === 'string' && partySlug !== '') {
+    openExternalUrl(filmWatchAbsoluteUrl(filmId, partySlug))
     return
   }
-  if (window.confirm(WATCH_IN_BROWSER_CONFIRM_MESSAGE)) {
-    onOk()
+  try {
+    const created = await createWatchParty(Number(filmId))
+    openExternalUrl(filmWatchAbsoluteUrl(filmId, created.invite_slug))
+  } catch {
+    openExternalUrl(filmWatchAbsoluteUrl(filmId))
   }
 }
 
-export function confirmAndOpenFilmWatchInBrowser(
+export async function confirmAndOpenFilmWatchInBrowser(
   filmId: number | string,
   partySlug?: string | null,
-): void {
-  confirmThen(() => {
-    openExternalUrl(filmWatchAbsoluteUrl(filmId, partySlug))
-  })
+): Promise<void> {
+  await confirmThen(() => openFilmWatchInBrowserAfterParty(filmId, partySlug))
 }
 
 export function onWatchCtaClick(
@@ -55,5 +81,5 @@ export function onWatchCtaClick(
     return
   }
   event.preventDefault()
-  confirmAndOpenFilmWatchInBrowser(filmId, partySlug)
+  void confirmAndOpenFilmWatchInBrowser(filmId, partySlug)
 }

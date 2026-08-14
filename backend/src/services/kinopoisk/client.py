@@ -24,6 +24,32 @@ class KinopoiskFilmPayload:
     short_description: str | None
     description: str | None
     imdb_id: str | None
+    film_length: int | None = None
+    slogan: str | None = None
+    rating_kinopoisk: float | None = None
+    rating_imdb: float | None = None
+    rating_age_limits: str | None = None
+
+
+def _optional_int_field(payload: dict[str, object], key: str) -> int | None:
+    raw = payload.get(key)
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str) and raw.isdigit():
+        return int(raw)
+    return None
+
+
+def _optional_float_field(payload: dict[str, object], key: str) -> float | None:
+    raw = payload.get(key)
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    if isinstance(raw, str):
+        try:
+            return float(raw)
+        except ValueError:
+            return None
+    return None
 
 
 def _optional_text_field(payload: dict[str, object], key: str) -> str | None:
@@ -129,4 +155,9 @@ class KinopoiskClient:
             short_description=short_description,
             description=description,
             imdb_id=imdb_id,
+            film_length=_optional_int_field(payload, 'filmLength'),
+            slogan=_optional_text_field(payload, 'slogan'),
+            rating_kinopoisk=_optional_float_field(payload, 'ratingKinopoisk'),
+            rating_imdb=_optional_float_field(payload, 'ratingImdb'),
+            rating_age_limits=_optional_text_field(payload, 'ratingAgeLimits'),
         )

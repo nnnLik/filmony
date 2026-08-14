@@ -9,6 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.profile.schemas import (
+    EveningForTwoPickResponse,
     MonthlyRecapResponse,
     MyProfileResponse,
     MyUserCardCategoryCreateRequest,
@@ -26,6 +27,7 @@ from api.profile.schemas import (
     WatchlistFilmCreateRequest,
     WatchlistMembershipResponse,
     WatchlistOverlapListResponse,
+    build_evening_for_two_pick_response,
     build_monthly_recap_response,
     build_my_profile_response,
     build_personal_digest_response,
@@ -68,6 +70,7 @@ from services.watchlist.delete_watchlist_entry import DeleteWatchlistEntryServic
 from services.watchlist.get_my_watchlist_presence import GetMyWatchlistPresenceService
 from services.watchlist.list_user_watchlist_entries import ListUserWatchlistEntriesService
 from services.watchlist.list_watchlist_overlaps import ListWatchlistOverlapsService
+from services.watchlist.pick_evening_for_two_film import PickEveningForTwoFilmService
 from services.watchlist.update_watchlist_entry import UpdateWatchlistEntryService
 from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
 
@@ -354,6 +357,28 @@ async def get_my_watchlist_overlaps(
 ) -> WatchlistOverlapListResponse:
     page = await ListWatchlistOverlapsService.build(db).execute(user.id, limit=limit)
     return build_watchlist_overlap_list_response(page)
+
+
+@router.get(
+    '/watchlist/evening-for-two',
+    response_model=EveningForTwoPickResponse,
+    summary='Подбор фильма на вечер для двоих из общего «Позже»',
+)
+async def get_evening_for_two_pick(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    partner_user_id: UUID = Query(...),
+) -> EveningForTwoPickResponse:
+    try:
+        pick = await PickEveningForTwoFilmService.build(db).execute(
+            actor_user_id=user.id,
+            partner_user_id=partner_user_id,
+        )
+    except PickEveningForTwoFilmService.PartnerNotMutual:
+        raise HTTPException(status_code=403, detail='not_mutual') from None
+    except PickEveningForTwoFilmService.NoEveningPick:
+        raise HTTPException(status_code=404, detail='no_evening_pick') from None
+    return build_evening_for_two_pick_response(pick)
 
 
 @router.get(

@@ -138,6 +138,28 @@ async def test_get_film_playback_unavailable(
 
 
 @pytest.mark.asyncio
+async def test_get_film_playback_empty_embed_returns_unavailable(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = await _create_user(telegram_user_id=910004)
+    film = await _create_film(kinopoisk_id=888888, title='Empty embed film')
+
+    async def fake_resolve(_self, kinopoisk_id: int):
+        assert kinopoisk_id == film.kinopoisk_id
+
+    monkeypatch.setattr(
+        'providers.playback.pleer_video_client.PleerVideoClient.resolve',
+        fake_resolve,
+    )
+
+    await _login(async_client, user.telegram_user_id)
+    response = await async_client.get(f'/api/films/{film.id}/playback')
+    assert response.status_code == 422
+    assert response.json()['detail'] == 'playback_unavailable'
+
+
+@pytest.mark.asyncio
 async def test_get_film_playback_requires_auth(async_client: AsyncClient) -> None:
     response = await async_client.get('/api/films/1/playback')
     assert response.status_code == 401

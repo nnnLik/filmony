@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.watch_parties.schemas import (
     ActivePartyConflictResponse,
+    FollowingWatchingNowItemResponse,
+    FollowingWatchingNowResponse,
     WatchPartyBridgeResponse,
     WatchPartyCreateRequest,
     WatchPartyCreateResponse,
@@ -39,6 +41,7 @@ from services.watch_parties.invite_watch_party_members import InviteWatchPartyMe
 from services.watch_parties.join_watch_party import JoinWatchPartyService
 from services.watch_parties.kick_watch_party_member import KickWatchPartyMemberService
 from services.watch_parties.leave_watch_party import LeaveWatchPartyService
+from services.watch_parties.list_following_watching_now import ListFollowingWatchingNowService
 from services.watch_parties.record_watch_party_heartbeat import (
     BuildWatchPartySnapshotPayloadService,
     RecordWatchPartyHeartbeatService,
@@ -136,6 +139,30 @@ async def batch_user_watching(
             )
             for user_id, item in items.items()
         },
+    )
+
+
+@router.get('/watching/following', response_model=FollowingWatchingNowResponse)
+async def list_following_watching_now(
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> FollowingWatchingNowResponse:
+    items = await ListFollowingWatchingNowService.build(db).execute(actor_user_id=user.id)
+    return FollowingWatchingNowResponse(
+        items=[
+            FollowingWatchingNowItemResponse(
+                user_id=item.user_id,
+                display_name=item.display_name,
+                photo_url=item.photo_url,
+                slug=item.slug,
+                film_id=item.film_id,
+                film_title=item.film_title,
+                film_poster_url=item.film_poster_url,
+                invite_slug=item.invite_slug,
+                party_id=item.party_id,
+            )
+            for item in items
+        ],
     )
 
 

@@ -5,12 +5,16 @@ import {
   filmWatchAbsoluteUrl,
   filmWatchPath,
   onWatchCtaClick,
+  openFilmWatchInBrowserAfterParty,
   WATCH_IN_BROWSER_CONFIRM_MESSAGE,
 } from '../openFilmWatchInBrowser'
 
 const mocks = vi.hoisted(() => ({
   isTMA: vi.fn<() => boolean>(),
   openExternalUrl: vi.fn<(url: string) => void>(),
+  createWatchParty: vi.fn<
+    (filmId: number) => Promise<{ id: string; invite_slug: string; invite_url: string }>
+  >(),
 }))
 
 vi.mock('@telegram-apps/sdk', () => ({
@@ -21,6 +25,10 @@ vi.mock('../openExternalUrl', () => ({
   openExternalUrl: mocks.openExternalUrl,
 }))
 
+vi.mock('../../api/watchPartyApi', () => ({
+  createWatchParty: mocks.createWatchParty,
+}))
+
 const originalTelegram = window.Telegram
 const originalConfirm = window.confirm
 
@@ -28,6 +36,12 @@ describe('openFilmWatchInBrowser', () => {
   beforeEach(() => {
     mocks.isTMA.mockReturnValue(false)
     mocks.openExternalUrl.mockReset()
+    mocks.createWatchParty.mockReset()
+    mocks.createWatchParty.mockResolvedValue({
+      id: 'party-1',
+      invite_slug: 'new-party-slug',
+      invite_url: 'https://example.com/party/new-party-slug',
+    })
   })
 
   afterEach(() => {
@@ -56,7 +70,16 @@ describe('openFilmWatchInBrowser', () => {
     )
   })
 
-  it('opens the watch url after TMA showConfirm OK', () => {
+  it('opens watch url with existing party slug without creating a party', async () => {
+    await openFilmWatchInBrowserAfterParty(7, 'existing-slug')
+
+    expect(mocks.createWatchParty).not.toHaveBeenCalled()
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith(
+      `${window.location.origin}/films/7/watch?party=existing-slug`,
+    )
+  })
+
+  it('creates watch party and opens url with party slug after TMA showConfirm OK', async () => {
     window.Telegram = {
       WebApp: {
         showConfirm: (_message, callback) => {
@@ -65,10 +88,29 @@ describe('openFilmWatchInBrowser', () => {
       },
     } as typeof window.Telegram
 
-    confirmAndOpenFilmWatchInBrowser(7, 'abc-slug')
+    await confirmAndOpenFilmWatchInBrowser(7)
 
+    expect(mocks.createWatchParty).toHaveBeenCalledWith(7)
     expect(mocks.openExternalUrl).toHaveBeenCalledWith(
-      `${window.location.origin}/films/7/watch?party=abc-slug`,
+      `${window.location.origin}/films/7/watch?party=new-party-slug`,
+    )
+  })
+
+  it('opens watch url without party slug when createWatchParty fails', async () => {
+    window.Telegram = {
+      WebApp: {
+        showConfirm: (_message, callback) => {
+          callback?.(true)
+        },
+      },
+    } as typeof window.Telegram
+    mocks.createWatchParty.mockRejectedValue(new Error('network'))
+
+    await confirmAndOpenFilmWatchInBrowser(7)
+
+    expect(mocks.createWatchParty).toHaveBeenCalledWith(7)
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith(
+      `${window.location.origin}/films/7/watch`,
     )
   })
 
@@ -81,20 +123,21 @@ describe('openFilmWatchInBrowser', () => {
       },
     } as typeof window.Telegram
 
-    confirmAndOpenFilmWatchInBrowser(7)
+    void confirmAndOpenFilmWatchInBrowser(7)
 
     expect(mocks.openExternalUrl).not.toHaveBeenCalled()
   })
 
-  it('falls back to window.confirm when showConfirm is missing', () => {
+  it('falls back to window.confirm when showConfirm is missing', async () => {
     window.Telegram = undefined
     window.confirm = vi.fn(() => true)
 
-    confirmAndOpenFilmWatchInBrowser(3)
+    await confirmAndOpenFilmWatchInBrowser(3)
 
     expect(window.confirm).toHaveBeenCalledWith(WATCH_IN_BROWSER_CONFIRM_MESSAGE)
+    expect(mocks.createWatchParty).toHaveBeenCalledWith(3)
     expect(mocks.openExternalUrl).toHaveBeenCalledWith(
-      `${window.location.origin}/films/3/watch`,
+      `${window.location.origin}/films/3/watch?party=new-party-slug`,
     )
   })
 
@@ -102,7 +145,7 @@ describe('openFilmWatchInBrowser', () => {
     mocks.isTMA.mockReturnValue(false)
     const preventDefault = vi.fn()
 
-    onWatchCtaClick({ preventDefault }, 9)
+    void onWatchCtaClick({ preventDefault }, 9)
 
     expect(preventDefault).not.toHaveBeenCalled()
     expect(mocks.openExternalUrl).not.toHaveBeenCalled()
@@ -117,7 +160,7 @@ describe('openFilmWatchInBrowser', () => {
     } as unknown as typeof window.Telegram
     const preventDefault = vi.fn()
 
-    onWatchCtaClick({ preventDefault }, 9)
+    void onWatchCtaClick({ preventDefault }, 9)
 
     expect(preventDefault).toHaveBeenCalled()
   })

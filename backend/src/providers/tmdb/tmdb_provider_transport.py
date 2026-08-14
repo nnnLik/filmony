@@ -94,7 +94,13 @@ class TmdbProviderTransport(BaseProviderHttpTransport):
         self,
         tmdb_id: int,
         *,
-        append: tuple[str, ...] = ('credits', 'external_ids'),
+        append: tuple[str, ...] = (
+            'credits',
+            'external_ids',
+            'videos',
+            'recommendations',
+            'watch/providers',
+        ),
     ) -> TmdbMovieDetailDTO:
         params: dict[str, Any] = {}
         if append:

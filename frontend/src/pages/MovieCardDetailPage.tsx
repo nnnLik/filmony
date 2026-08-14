@@ -891,6 +891,8 @@ function MovieCardDetailLoadedBody({
     card.film_id != null && card.film_id > 0 ? card.film_id : null
   const filmIdForWatch =
     filmIdForCollections != null && showKinopoiskLink ? filmIdForCollections : null
+  const filmIdForFollowingCommunity =
+    filmIdForWatch ?? (card.film_id != null && card.film_id > 0 ? card.film_id : null)
   const filmCollectionsQuery = useQuery<CollectionSummary[], Error>({
     queryKey: filmCollectionsQueryKey(filmIdForCollections ?? 0),
     queryFn: async () => {
@@ -1171,11 +1173,31 @@ function MovieCardDetailLoadedBody({
                 <Link
                   to={`/films/${encodeURIComponent(String(filmIdForWatch))}/watch`}
                   className="filmony-card-detail-panel-enter block no-underline"
-                  onClick={(event) => { onWatchCtaClick(event, filmIdForWatch) }}
+                  onClick={(event) => { void onWatchCtaClick(event, filmIdForWatch) }}
                 >
                   <Button stretched>Смотреть</Button>
                 </Link>
               </>
+            ) : null}
+
+            {!isPlannedCard ? (
+              <FollowingRatingsPanel
+                compact
+                className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-1"
+                rows={followingRatings}
+                communityLink={
+                  card.provider === 'rawg' && card.catalog_item_id != null && card.catalog_item_id > 0
+                    ? {
+                        to: `/catalog/${encodeURIComponent(String(card.catalog_item_id))}`,
+                      }
+                    : filmIdForFollowingCommunity != null
+                      ? {
+                          to: `/films/${encodeURIComponent(String(filmIdForFollowingCommunity))}`,
+                          label: 'Все оценки →',
+                        }
+                      : null
+                }
+              />
             ) : null}
 
             <section className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-1 rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4">
@@ -1243,23 +1265,9 @@ function MovieCardDetailLoadedBody({
               ) : null}
             </section>
 
-            {!isPlannedCard ? (
-            <FollowingRatingsPanel
-              className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2"
-              rows={followingRatings}
-              communityLink={
-                card.provider === 'rawg' && card.catalog_item_id != null && card.catalog_item_id > 0
-                  ? {
-                      to: `/catalog/${encodeURIComponent(String(card.catalog_item_id))}`,
-                    }
-                  : null
-              }
-            />
-            ) : null}
-
             {filmIdForCollections != null ? (
               <FilmCollectionsStrip
-                className={`filmony-card-detail-panel-enter ${isPlannedCard ? 'filmony-card-detail-panel-enter--delay-2' : 'filmony-card-detail-panel-enter--delay-3'} mt-3`}
+                className="filmony-card-detail-panel-enter filmony-card-detail-panel-enter--delay-2 mt-3"
                 items={filmCollectionsItems}
               />
             ) : null}

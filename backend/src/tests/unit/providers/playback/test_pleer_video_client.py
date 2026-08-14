@@ -60,6 +60,69 @@ async def test_pleer_video_client_resolve_not_found_returns_none(
 
 
 @pytest.mark.asyncio
+async def test_pleer_video_client_resolve_empty_embeds_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = {
+        'kp_id': 258687,
+        'title_ru': 'Интерстеллар',
+        'embeds': [],
+    }
+
+    async def fake_get(url: str, *, headers=None, params=None) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    monkeypatch.setattr(
+        'providers.playback.pleer_video_client.httpx_get_idempotent',
+        fake_get,
+    )
+    client = PleerVideoClient(_api_base_url='https://pleer.video', _cache_ttl_seconds=600)
+    assert await client.resolve(258687) is None
+
+
+@pytest.mark.asyncio
+async def test_pleer_video_client_resolve_empty_iframe_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = {
+        'kp_id': 258687,
+        'title_ru': 'Интерстеллар',
+        'embeds': [{'iframe': '   '}],
+    }
+
+    async def fake_get(url: str, *, headers=None, params=None) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    monkeypatch.setattr(
+        'providers.playback.pleer_video_client.httpx_get_idempotent',
+        fake_get,
+    )
+    client = PleerVideoClient(_api_base_url='https://pleer.video', _cache_ttl_seconds=600)
+    assert await client.resolve(258687) is None
+
+
+@pytest.mark.asyncio
+async def test_pleer_video_client_resolve_missing_iframe_field_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = {
+        'kp_id': 258687,
+        'title_ru': 'Интерстеллар',
+        'embeds': [{}],
+    }
+
+    async def fake_get(url: str, *, headers=None, params=None) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    monkeypatch.setattr(
+        'providers.playback.pleer_video_client.httpx_get_idempotent',
+        fake_get,
+    )
+    client = PleerVideoClient(_api_base_url='https://pleer.video', _cache_ttl_seconds=600)
+    assert await client.resolve(258687) is None
+
+
+@pytest.mark.asyncio
 async def test_pleer_video_client_upstream_error_on_5xx(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_get(url: str, *, headers=None, params=None) -> httpx.Response:
         return httpx.Response(503)

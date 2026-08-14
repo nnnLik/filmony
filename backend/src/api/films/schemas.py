@@ -35,6 +35,14 @@ class FilmResponse(BaseModel):
     poster_url: str | None
     short_description: str | None = None
     description: str | None = None
+    film_length: int | None = None
+    slogan: str | None = None
+    rating_kinopoisk: float | None = None
+    rating_imdb: float | None = None
+    rating_age_limits: str | None = None
+    tmdb_recommendations: list[str] = Field(default_factory=list)
+    trailer_youtube_url: str | None = None
+    watch_providers_ru: list[str] = Field(default_factory=list)
     my_card_id: int | None = Field(
         default=None,
         description='Id карточки текущего пользователя для этого фильма, если уже оценивал',

@@ -1,13 +1,15 @@
+import { isTMA } from '@telegram-apps/sdk'
 import { Button } from '@telegram-apps/telegram-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 
+import { getFilmById } from '../api/cardApi'
 import { getFilmPlayback, type FilmPlaybackResponse } from '../api/filmPlaybackApi'
+import type { Film } from '../api/profileTypes'
 import {
   bridgeWatchPartyToWatchSession,
   endWatchParty,
-  leaveWatchParty,
   postWatchPartyPlayback,
   sendWatchPartyHeartbeat,
 } from '../api/watchPartyApi'
@@ -24,8 +26,13 @@ import { readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import {
+  PLAYBACK_UNAVAILABLE_MESSAGE,
+  PlaybackUnavailableState,
+} from '../components/watchparty/PlaybackUnavailableState'
+import {
   WATCH_PARTY_TYPING_DISPLAY_MS,
 } from '../components/watchparty/WatchPartyChatSheet'
+import { WatchLeaveRateSheet } from '../components/watchparty/WatchLeaveRateSheet'
 import { WatchPartyEndSheet } from '../components/watchparty/WatchPartyEndSheet'
 import { WatchPartyHeader } from '../components/watchparty/WatchPartyHeader'
 import { WatchPartyHostSyncBar } from '../components/watchparty/WatchPartyHostSyncBar'
@@ -37,11 +44,18 @@ import { useEnsureWatchParty } from '../hooks/useEnsureWatchParty'
 import { useWatchPartyEvents } from '../hooks/useWatchPartyEvents'
 import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { mergeWatchPartyMessages } from '../lib/mergeWatchPartyMessages'
+import {
+  filmRateCardPath,
+  leaveWatchPartyQuietly,
+  promptWatchLeaveRate,
+  type WatchLeaveChoice,
+} from '../lib/watchLeaveRatePrompt'
 import { expectedPlaybackMs, formatPlaybackMs } from '../lib/watchPartyTime'
 
 const DRIFT_THRESHOLD_MS = 8000
 const DRIFT_CHECK_INTERVAL_MS = 5000
 const HEARTBEAT_INTERVAL_MS = 30_000
+const FILM_WATCH_HISTORY_STATE = { filmWatchPage: true } as const
 
 function parseSnapshotPayload(payload: Record<string, unknown>): Partial<WatchPartySnapshot> | null {
   const playbackRaw = payload.playback_state
@@ -92,15 +106,20 @@ function playbackErrorMessage(error: unknown): string {
     if (error.status === 404) {
       return 'Фильм не найден'
     }
-    if (error.status === 422 || error.detail === 'playback_unavailable') {
-      return 'Смотреть недоступно для этого фильма'
-    }
-    if (error.status >= 500) {
-      return 'Не удалось загрузить плеер. Попробуйте позже'
+    if (
+      error.status === 422
+      || error.status === 502
+      || error.detail === 'playback_unavailable'
+    ) {
+      return PLAYBACK_UNAVAILABLE_MESSAGE
     }
     return formatApiDetail(error.detail)
   }
   return 'Не удалось загрузить плеер. Попробуйте позже'
+}
+
+function isPlaybackUnavailableError(error: unknown): boolean {
+  return playbackErrorMessage(error) === PLAYBACK_UNAVAILABLE_MESSAGE
 }
 
 export function FilmWatchPage() {
@@ -117,6 +136,8 @@ export function FilmWatchPage() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [endSheetOpen, setEndSheetOpen] = useState(false)
   const [endBusy, setEndBusy] = useState(false)
+  const [leaveRateSheetOpen, setLeaveRateSheetOpen] = useState(false)
+  const [leaveBusy, setLeaveBusy] = useState(false)
   const [syncHintOpen, setSyncHintOpen] = useState(false)
   const [driftSeconds, setDriftSeconds] = useState<number | null>(null)
   const [playbackBusy, setPlaybackBusy] = useState(false)
@@ -142,12 +163,23 @@ export function FilmWatchPage() {
     retry: false,
   })
 
+  const filmQuery = useQuery<Film, Error>({
+    queryKey: ['film', filmId],
+    enabled: auth.kind === 'ready' && Number.isFinite(filmId) && filmId > 0,
+    queryFn: () => getFilmById(filmId),
+    staleTime: 60_000,
+  })
+
+  const playbackIframeUrl = playbackQuery.data?.iframe_url?.trim() ?? ''
+  const playbackReady = playbackQuery.isSuccess && playbackIframeUrl !== ''
+  const partyEnabled = auth.kind === 'ready' && playbackReady
+
   const {
     snapshot,
     setSnapshot,
     loading: partyLoading,
     error: partyError,
-  } = useEnsureWatchParty(filmId, partySlug, auth.kind === 'ready')
+  } = useEnsureWatchParty(filmId, partySlug, partyEnabled)
 
   useEffect(() => {
     snapshotRef.current = snapshot
@@ -443,16 +475,84 @@ export function FilmWatchPage() {
     return names
   }, [auth, typingByUserId, typingNowMs])
 
-  const handleBack = useCallback(async () => {
-    if (partyId != null) {
-      try {
-        await leaveWatchParty(partyId)
-      } catch {
-        /* ignore */
-      }
+  const leaveParty = useCallback(async () => {
+    await leaveWatchPartyQuietly(partyId, isHost)
+  }, [partyId, isHost])
+
+  const handleLeaveChoice = useCallback(async (choice: WatchLeaveChoice) => {
+    if (choice === 'cancel') {
+      return
     }
-    void navigate(`/films/${filmId}`, { replace: true })
-  }, [filmId, navigate, partyId])
+    setLeaveBusy(true)
+    try {
+      await leaveParty()
+      if (choice === 'rate') {
+        void navigate(
+          filmRateCardPath(filmId, filmQuery.data?.my_card_id),
+          { replace: true },
+        )
+      } else {
+        void navigate(`/films/${filmId}`, { replace: true })
+      }
+    } finally {
+      setLeaveBusy(false)
+      setLeaveRateSheetOpen(false)
+    }
+  }, [filmId, filmQuery.data?.my_card_id, leaveParty, navigate])
+
+  const requestLeaveFlow = useCallback(() => {
+    if (isTMA()) {
+      promptWatchLeaveRate((choice) => {
+        void handleLeaveChoice(choice)
+      })
+      return
+    }
+    setLeaveRateSheetOpen(true)
+  }, [handleLeaveChoice])
+
+  useEffect(() => {
+    if (!isTMA()) {
+      return undefined
+    }
+    const backButton = window.Telegram?.WebApp?.BackButton
+    if (backButton == null) {
+      return undefined
+    }
+    const handler = () => {
+      requestLeaveFlow()
+    }
+    backButton.show()
+    backButton.onClick(handler)
+    return () => {
+      backButton.offClick(handler)
+      backButton.hide()
+    }
+  }, [requestLeaveFlow])
+
+  useEffect(() => {
+    window.history.pushState(FILM_WATCH_HISTORY_STATE, '')
+    const onPopState = () => {
+      window.history.pushState(FILM_WATCH_HISTORY_STATE, '')
+      requestLeaveFlow()
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+    }
+  }, [requestLeaveFlow])
+
+  useEffect(() => {
+    if (partyId == null) {
+      return undefined
+    }
+    const onPageHide = () => {
+      void leaveWatchPartyQuietly(partyId, isHost)
+    }
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [partyId, isHost])
 
   const applyPlaybackState = useCallback((state: WatchPartyPlaybackState) => {
     setSnapshot((prev) => {
@@ -548,23 +648,26 @@ export function FilmWatchPage() {
     return <PageErrorState message="Фильм не найден" className="min-h-dvh bg-black" />
   }
 
-  if (playbackQuery.isLoading || partyLoading) {
+  if (playbackQuery.isLoading || (partyEnabled && partyLoading)) {
     return <PageLoadingState message="Загрузка плеера…" className="min-h-dvh bg-black" />
   }
 
   if (playbackQuery.isError) {
+    if (isPlaybackUnavailableError(playbackQuery.error)) {
+      return <PlaybackUnavailableState filmId={filmId} />
+    }
     return (
-      <div className="flex min-h-dvh flex-col bg-black text-white">
-        <WatchPartyHeader
-          title="Просмотр"
-          memberCount={1}
-          onBack={() => void navigate(`/films/${filmId}`, { replace: true })}
-          onMemberCountTap={() => undefined}
-          onChat={() => undefined}
-        />
-        <PageErrorState message={playbackErrorMessage(playbackQuery.error)} className="flex-1 bg-black" />
-      </div>
+      <PageErrorState
+        message={playbackErrorMessage(playbackQuery.error)}
+        backHref={`/films/${filmId}`}
+        backLabel="К фильму"
+        className="min-h-dvh bg-black"
+      />
     )
+  }
+
+  if (playbackQuery.isSuccess && playbackIframeUrl === '') {
+    return <PlaybackUnavailableState filmId={filmId} />
   }
 
   if (partyError != null || snapshot == null) {
@@ -576,7 +679,7 @@ export function FilmWatchPage() {
       <WatchPartyHeader
         title={title}
         memberCount={activeMembers.length}
-        onBack={() => void handleBack()}
+        onBack={() => requestLeaveFlow()}
         onMemberCountTap={() => setRosterOpen(true)}
         onChat={() => setChatOpen((v) => !v)}
         onInvite={isHost ? () => setInviteOpen(true) : undefined}
@@ -701,6 +804,14 @@ export function FilmWatchPage() {
         onClose={() => setEndSheetOpen(false)}
         onEndOnly={() => void handleEndOnly()}
         onEndAndRateTogether={() => void handleEndAndBridge()}
+      />
+
+      <WatchLeaveRateSheet
+        open={leaveRateSheetOpen}
+        busy={leaveBusy}
+        onClose={() => setLeaveRateSheetOpen(false)}
+        onRate={() => void handleLeaveChoice('rate')}
+        onCloseOnly={() => void handleLeaveChoice('close')}
       />
     </div>
   )

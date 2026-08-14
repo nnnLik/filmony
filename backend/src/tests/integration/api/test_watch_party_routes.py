@@ -11,7 +11,9 @@ from conf import settings
 from core.database import get_session_factory
 from models.film import Film
 from models.user import User
+from models.user_subscription import UserSubscription
 from services.films.resolve_film_playback import FilmPlaybackDTO, ResolveFilmPlaybackService
+from services.watch_parties.watch_party_redis import set_user_watching
 from tests.auth.telegram_init_data import build_init_data
 
 
@@ -236,3 +238,54 @@ async def test_kick_guest(
     await _login(async_client, guest.telegram_user_id)
     snapshot = await async_client.get(f'/api/watch-parties/{party_id}')
     assert snapshot.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_following_watching_now(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    viewer = await _create_user(telegram_user_id=920010, slug='wp-viewer-10')
+    friend = await _create_user(telegram_user_id=920011, slug='wp-friend-10')
+    film = await _create_film(kinopoisk_id=258693, title='Аватар')
+    _patch_playback(monkeypatch, film)
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        session.add(
+            UserSubscription(
+                follower_user_id=viewer.id,
+                following_user_id=friend.id,
+            ),
+        )
+        await session.commit()
+
+    await _login(async_client, friend.telegram_user_id)
+    created = await async_client.post('/api/watch-parties', json={'film_id': film.id})
+    assert created.status_code == 201
+    party_id = created.json()['id']
+    invite_slug = created.json()['invite_slug']
+
+    await set_user_watching(
+        friend.id,
+        {
+            'film_id': film.id,
+            'film_title': film.title,
+            'party_id': party_id,
+        },
+        ttl_seconds=120,
+    )
+
+    await _login(async_client, viewer.telegram_user_id)
+    response = await async_client.get('/api/watch-parties/watching/following')
+    assert response.status_code == 200
+    items = response.json()['items']
+    assert len(items) == 1
+    item = items[0]
+    assert item['user_id'] == str(friend.id)
+    assert item['slug'] == friend.profile_slug
+    assert item['film_id'] == film.id
+    assert item['film_title'] == film.title
+    assert item['film_poster_url'] == film.poster_url
+    assert item['invite_slug'] == invite_slug
+    assert item['party_id'] == party_id

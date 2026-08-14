@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { Link } from 'react-router'
 
 import type { WatchlistEntryItem } from '../../api/profileTypes'
+import { EveningForTwoSection } from '../watchlist/EveningForTwoSection'
 import { WatchlistOverlapSection } from '../watchlist/WatchlistOverlapSection'
 import { ProfileTabSkeleton } from './ProfileTabSkeleton'
 import { WatchlistPosterGrid } from './WatchlistPosterGrid'
@@ -38,7 +39,12 @@ export function ProfileWatchlistPanel({
 }: ProfileWatchlistPanelProps) {
   return (
     <>
-      {showOverlapSection ? <WatchlistOverlapSection enabled={!loading} /> : null}
+      {showOverlapSection ? (
+        <>
+          <EveningForTwoSection enabled={!loading} />
+          <WatchlistOverlapSection enabled={!loading} title="Оба хотите посмотреть" />
+        </>
+      ) : null}
       {error != null ? <p className={errorClassName}>{error}</p> : null}
       {loading ? <ProfileTabSkeleton /> : null}
       {!loading && watchlist != null && watchlist.items.length === 0 ? (

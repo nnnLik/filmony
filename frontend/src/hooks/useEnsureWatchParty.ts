@@ -85,6 +85,11 @@ export function useEnsureWatchParty(
 
   useEffect(() => {
     if (!enabled || !Number.isFinite(filmId) || filmId < 1) {
+      queueMicrotask(() => {
+        setLoading(false)
+        setError(null)
+        setSnapshot(null)
+      })
       return undefined
     }
 

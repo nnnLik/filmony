@@ -72,9 +72,12 @@ class ResolveFilmPlaybackService:
                 descriptor = await self._pleer_client.resolve(kinopoisk_id)
             except PleerVideoClient.UpstreamError as exc:
                 raise self.PlaybackProviderError from exc
-            if descriptor is None:
+            if descriptor is None or not descriptor.iframe_url.strip():
                 raise self.PlaybackUnavailable
             self._store_descriptor(kinopoisk_id, descriptor)
+
+        if not descriptor.iframe_url.strip():
+            raise self.PlaybackUnavailable
 
         return FilmPlaybackDTO(
             provider=descriptor.provider,

@@ -56,6 +56,7 @@ async function inviteOverlapPartners(item: WatchlistOverlapItem, partners: Watch
 
 export type WatchlistOverlapSectionProps = {
   enabled?: boolean
+  title?: string
 }
 
 function OverlapCard({
@@ -113,7 +114,7 @@ function OverlapCard({
   )
 }
 
-export function WatchlistOverlapSection({ enabled = true }: WatchlistOverlapSectionProps) {
+export function WatchlistOverlapSection({ enabled = true, title = 'Ещё хотят посмотреть' }: WatchlistOverlapSectionProps) {
   const queryClient = useQueryClient()
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -163,7 +164,7 @@ export function WatchlistOverlapSection({ enabled = true }: WatchlistOverlapSect
     <>
       <div className="mb-6 border-b border-[color-mix(in_srgb,var(--tgui--divider_color)_85%,transparent)] pb-5">
         <div className="mb-1 px-1">
-          <p className="text-sm font-semibold text-(--tgui--text_color)">С друзьями в «Позже»</p>
+          <p className="text-sm font-semibold text-(--tgui--text_color)">{title}</p>
           <p className="mt-0.5 text-xs text-(--tgui--hint_color)">
             Эти фильмы уже у вас в списке — можно пригласить друзей смотреть вместе
           </p>

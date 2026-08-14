@@ -41,20 +41,37 @@ export type FollowingRatingsPanelProps = {
   rows: FollowingRatingRow[] | null
   /** Optional link to full community ratings (e.g. catalog detail). */
   communityLink?: { to: string; label?: string } | null
+  /** Tighter layout for embedded surfaces (e.g. card detail above tags). */
+  compact?: boolean
   className?: string
 }
 
-export function FollowingRatingsPanel({ rows, communityLink = null, className = '' }: FollowingRatingsPanelProps) {
+export function FollowingRatingsPanel({
+  rows,
+  communityLink = null,
+  compact = false,
+  className = '',
+}: FollowingRatingsPanelProps) {
   return (
     <section
-      className={`rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4 ${className}`.trim()}
+      className={`rounded-2xl border border-(--tgui--divider_color) bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_94%,transparent)] ${compact ? 'p-3 sm:p-3.5' : 'p-3.5 sm:p-4'} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${className}`.trim()}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)">
+          <p
+            className={
+              compact
+                ? 'text-[9px] font-semibold uppercase tracking-[0.18em] text-(--tgui--hint_color)'
+                : 'text-[10px] font-semibold uppercase tracking-[0.2em] text-(--tgui--hint_color)'
+            }
+          >
             Друзья оценили
           </p>
-          <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">Сравнить с подписками.</p>
+          {!compact ? (
+            <p className="mt-1 text-[11px] leading-snug text-(--tgui--secondary_hint_color)">
+              Сравнить с подписками.
+            </p>
+          ) : null}
         </div>
         {communityLink != null ? (
           <Link
@@ -68,14 +85,16 @@ export function FollowingRatingsPanel({ rows, communityLink = null, className = 
       {rows == null ? (
         <FollowingRatingsSkeleton />
       ) : rows.length === 0 ? (
-        <div className="mt-3 space-y-2">
-          <p className="text-sm text-(--tgui--hint_color)">
-            Пока никто из подписок не оценил эту тему.
-          </p>
-          <Link to="/profile/subscriptions" className="text-sm font-semibold text-(--tgui--link_color) no-underline">
-            Найти друзей в подписках →
-          </Link>
-        </div>
+        compact ? null : (
+          <div className="mt-3 space-y-2">
+            <p className="text-sm text-(--tgui--hint_color)">
+              Пока никто из подписок не оценил эту тему.
+            </p>
+            <Link to="/profile/subscriptions" className="text-sm font-semibold text-(--tgui--link_color) no-underline">
+              Найти друзей в подписках →
+            </Link>
+          </div>
+        )
       ) : (
         <ul className="mt-3 list-none space-y-1.5 p-0">
           {rows.map((row) => {

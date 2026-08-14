@@ -64,7 +64,9 @@ async def test_get_movie_by_id_with_append(monkeypatch: pytest.MonkeyPatch) -> N
         _ = (self, headers)
         assert url.endswith('/movie/550')
         assert params is not None
-        assert params.get('append_to_response') == 'credits,external_ids'
+        assert params.get('append_to_response') == (
+            'credits,external_ids,videos,recommendations,watch/providers'
+        )
         return payload
 
     monkeypatch.setattr(TmdbProviderTransport, 'get', fake_get)

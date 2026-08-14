@@ -87,6 +87,22 @@ export type WatchingNowBatchResponse = {
   items: Record<string, WatchingNowBatchItem>
 }
 
+export type FollowingWatchingNowItem = {
+  user_id: string
+  display_name: string
+  photo_url: string | null
+  slug: string
+  film_id: number
+  film_title: string
+  film_poster_url: string | null
+  invite_slug: string | null
+  party_id: string | null
+}
+
+export type FollowingWatchingNowResponse = {
+  items: FollowingWatchingNowItem[]
+}
+
 export type WatchPartyBridgeResponse = {
   watch_session_id: string
 }
