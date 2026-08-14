@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, Float, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, DateTime, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
+
+if TYPE_CHECKING:
+    from .film_kinopoisk_passport import FilmKinopoiskPassport
 
 
 class Film(Base):
@@ -24,12 +27,13 @@ class Film(Base):
     franchise_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     short_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    film_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    slogan: Mapped[str | None] = mapped_column(Text, nullable=True)
-    rating_kinopoisk: Mapped[float | None] = mapped_column(Float, nullable=True)
-    rating_imdb: Mapped[float | None] = mapped_column(Float, nullable=True)
-    rating_age_limits: Mapped[str | None] = mapped_column(String(16), nullable=True)
     imdb_id: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     tmdb_id: Mapped[int | None] = mapped_column(Integer, nullable=True, unique=True, index=True)
     tmdb_detail_snapshot_json: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     tmdb_synced_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    kinopoisk_passport: Mapped[FilmKinopoiskPassport | None] = relationship(
+        back_populates='film',
+        uselist=False,
+        cascade='all, delete-orphan',
+        passive_deletes=True,
+    )
