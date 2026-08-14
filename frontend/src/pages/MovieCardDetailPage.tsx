@@ -71,6 +71,7 @@ import {
   movieCardReleasePrimaryLabel,
 } from '../lib/movieCardDisplay'
 import { kinopoiskTitleUrlFromCard, openExternalUrl } from '../lib/openExternalUrl'
+import { onWatchCtaClick } from '../lib/openFilmWatchInBrowser'
 import { markGlobalFeedCardDetailOpened } from '../lib/globalFeedViewedIds'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import { watchlistOverlapAnchorFromMovieCard } from '../lib/watchlistOverlapUtils'
@@ -1170,6 +1171,7 @@ function MovieCardDetailLoadedBody({
                 <Link
                   to={`/films/${encodeURIComponent(String(filmIdForWatch))}/watch`}
                   className="filmony-card-detail-panel-enter block no-underline"
+                  onClick={(event) => { onWatchCtaClick(event, filmIdForWatch) }}
                 >
                   <Button stretched>Смотреть</Button>
                 </Link>

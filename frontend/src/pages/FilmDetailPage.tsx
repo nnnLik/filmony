@@ -33,6 +33,7 @@ import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUs
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
+import { onWatchCtaClick } from '../lib/openFilmWatchInBrowser'
 import { formatRating } from '../components/feed/feedCardUtils'
 
 export function FilmDetailPage() {
@@ -358,7 +359,7 @@ export function FilmDetailPage() {
       <>
         {film.kinopoisk_id >= 1 ? (
           <>
-            <Link to={`/films/${encodeURIComponent(String(film.id))}/watch`} className="no-underline">
+            <Link to={`/films/${encodeURIComponent(String(film.id))}/watch`} className="no-underline" onClick={(event) => { onWatchCtaClick(event, film.id) }}>
               <Button stretched>Смотреть</Button>
             </Link>
           </>
