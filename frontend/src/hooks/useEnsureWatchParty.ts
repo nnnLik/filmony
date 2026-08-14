@@ -1,5 +1,5 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, type NavigateFunction } from 'react-router'
 
 import {
   createWatchParty,
@@ -17,6 +17,53 @@ function isActivePartyConflict(detail: unknown): detail is ActivePartyConflictDe
     && Reflect.get(detail, 'code') === 'already_in_active_party'
     && typeof Reflect.get(detail, 'invite_slug') === 'string'
   )
+}
+
+async function resolvePartyIdBySlug(slug: string): Promise<string> {
+  const resolved = await resolveWatchPartyBySlug(slug)
+  return resolved.party_id
+}
+
+async function resolvePartyIdBySlugOrNull(slug: string): Promise<string | null> {
+  try {
+    return await resolvePartyIdBySlug(slug)
+  } catch (resolveError) {
+    if (resolveError instanceof ApiError && resolveError.status === 404) {
+      return null
+    }
+    throw resolveError
+  }
+}
+
+async function createWatchPartyWithConflictHandling(
+  filmId: number,
+  navigate: NavigateFunction,
+  allowConflictRetry: boolean,
+): Promise<{ partyId: string; slug: string }> {
+  try {
+    const created = await createWatchParty(filmId)
+    const newSlug = created.invite_slug
+    void navigate(`/films/${filmId}/watch?party=${encodeURIComponent(newSlug)}`, { replace: true })
+    return { partyId: created.id, slug: newSlug }
+  } catch (createError) {
+    if (
+      createError instanceof ApiError
+      && createError.status === 409
+      && isActivePartyConflict(createError.detail)
+    ) {
+      const conflictSlug = createError.detail.invite_slug
+      void navigate(`/films/${filmId}/watch?party=${encodeURIComponent(conflictSlug)}`, { replace: true })
+      const conflictPartyId = await resolvePartyIdBySlugOrNull(conflictSlug)
+      if (conflictPartyId !== null) {
+        return { partyId: conflictPartyId, slug: conflictSlug }
+      }
+      if (allowConflictRetry) {
+        return createWatchPartyWithConflictHandling(filmId, navigate, false)
+      }
+      throw createError
+    }
+    throw createError
+  }
 }
 
 export type UseEnsureWatchPartyResult = {
@@ -48,31 +95,22 @@ export function useEnsureWatchParty(
       setError(null)
       try {
         let partyId: string
-        let slug = partySlug?.trim() ?? ''
+        const slug = partySlug?.trim() ?? ''
 
         if (slug !== '') {
-          const resolved = await resolveWatchPartyBySlug(slug)
-          partyId = resolved.party_id
-        } else {
           try {
-            const created = await createWatchParty(filmId)
-            partyId = created.id
-            slug = created.invite_slug
-            void navigate(`/films/${filmId}/watch?party=${encodeURIComponent(slug)}`, { replace: true })
-          } catch (createError) {
-            if (
-              createError instanceof ApiError
-              && createError.status === 409
-              && isActivePartyConflict(createError.detail)
-            ) {
-              slug = createError.detail.invite_slug
-              void navigate(`/films/${filmId}/watch?party=${encodeURIComponent(slug)}`, { replace: true })
-              const resolved = await resolveWatchPartyBySlug(slug)
-              partyId = resolved.party_id
+            partyId = await resolvePartyIdBySlug(slug)
+          } catch (resolveError) {
+            if (resolveError instanceof ApiError && resolveError.status === 404) {
+              const created = await createWatchPartyWithConflictHandling(filmId, navigate, true)
+              partyId = created.partyId
             } else {
-              throw createError
+              throw resolveError
             }
           }
+        } else {
+          const created = await createWatchPartyWithConflictHandling(filmId, navigate, true)
+          partyId = created.partyId
         }
 
         let snap: WatchPartySnapshot

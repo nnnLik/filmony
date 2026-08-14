@@ -15,6 +15,7 @@ from core.database import get_session_factory
 from models.film import Film
 from models.user import User
 from models.watch_party import WatchParty, WatchPartyWatchSessionLink
+from models.watch_party_enums import WatchPartyStatus
 from models.watch_session import WatchSession
 from services.films.resolve_film_playback import FilmPlaybackDTO, ResolveFilmPlaybackService
 from services.watch_parties.end_expired_watch_parties import EndExpiredWatchPartiesService
@@ -128,3 +129,77 @@ async def test_bridge_watch_party_to_watch_session(
         assert link.watch_party_id == UUID(party_id)
         assert str(host.id) in watch_session.participant_user_ids
         assert str(guest.id) in watch_session.participant_user_ids
+
+
+@pytest.mark.asyncio
+async def test_create_watch_party_after_ttl_expired(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = await _create_user(telegram_user_id=922010, slug='wp-ttl-create-host')
+    film = await _create_film(kinopoisk_id=260010, title='TTL Create Film')
+    _patch_playback(monkeypatch, film)
+    old_party_id = await _create_party(async_client, host, film)
+
+    session_factory = get_session_factory()
+    expired_at = (
+        datetime.now(tz=UTC) - timedelta(hours=settings.watch_party.ttl_hours + 1)
+    ).replace(
+        tzinfo=None,
+    )
+    async with session_factory() as session:
+        await session.execute(
+            update(WatchParty)
+            .where(WatchParty.id == UUID(old_party_id))
+            .values(created_at=expired_at),
+        )
+        await session.commit()
+
+    await _login(async_client, host.telegram_user_id)
+    created = await async_client.post('/api/watch-parties', json={'film_id': film.id})
+    assert created.status_code == 201
+    new_party_id = created.json()['id']
+    assert new_party_id != old_party_id
+
+    async with session_factory() as session:
+        old_party = await session.get(WatchParty, UUID(old_party_id))
+        assert old_party is not None
+        assert old_party.status == WatchPartyStatus.ended
+
+
+@pytest.mark.asyncio
+async def test_get_watch_party_by_slug_ttl_expired_persists_ended(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = await _create_user(telegram_user_id=922011, slug='wp-ttl-slug-host')
+    film = await _create_film(kinopoisk_id=260011, title='TTL Slug Film')
+    _patch_playback(monkeypatch, film)
+
+    await _login(async_client, host.telegram_user_id)
+    created = await async_client.post('/api/watch-parties', json={'film_id': film.id})
+    assert created.status_code == 201
+    body = created.json()
+    party_id = body['id']
+    slug = body['invite_slug']
+
+    session_factory = get_session_factory()
+    expired_at = (
+        datetime.now(tz=UTC) - timedelta(hours=settings.watch_party.ttl_hours + 1)
+    ).replace(
+        tzinfo=None,
+    )
+    async with session_factory() as session:
+        await session.execute(
+            update(WatchParty).where(WatchParty.id == UUID(party_id)).values(created_at=expired_at),
+        )
+        await session.commit()
+
+    resolved = await async_client.get(f'/api/watch-parties/by-slug/{slug}')
+    assert resolved.status_code == 404
+
+    async with session_factory() as session:
+        party = await session.get(WatchParty, UUID(party_id))
+        assert party is not None
+        assert party.status == WatchPartyStatus.ended
+        assert party.ended_at is not None

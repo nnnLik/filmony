@@ -18,6 +18,7 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-14T221500Z-tma-watch-open-browser-closeout.md`
 - `2026-08-11T023500Z-backend-healthcheck-closeout.md`
 - `2026-08-11T020000Z-film-watch-party-v2-closeout.md`
 - `2026-08-11T014500Z-film-watch-party-closeout.md`
@@ -41,5 +42,3 @@
 - `2026-08-04T120000Z-cursor-memory-hot-archive-closeout.md`
 - `2026-08-04T150000Z-feed-post-edit-unlimited-code.md`
 - `2026-08-04T120000Z-social-catalog-slices-abc-code.md`
-- `2026-08-04T104900Z-profile-gamification-stamps-docs.md`
-- `2026-08-04T095400Z-unlimited-watch-note-code.md`

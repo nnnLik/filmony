@@ -1,0 +1,24 @@
+# 2026-08-14T221500Z — watch-party-stale-ttl-404 closeout
+
+- Timestamp: 2026-08-14T221500Z
+- Feature slug: `watch-party-stale-ttl-404`
+- Action type: `docs`
+- Summary: Hotfix closeout — stale TTL watch parties no longer trap users on 404/409; prod cron documented and installed on homelab.
+- Files:
+  - `backend/src/daos/watch_party_dao.py`
+  - `backend/src/services/watch_parties/ensure_active_watch_party.py`
+  - `backend/src/services/watch_parties/create_watch_party.py`
+  - `backend/src/services/watch_parties/join_watch_party.py`
+  - `backend/src/tests/integration/services/test_watch_party_v2.py`
+  - `frontend/src/hooks/useEnsureWatchParty.ts`
+  - `frontend/src/hooks/__tests__/useEnsureWatchParty.test.tsx`
+  - `docs/engineering/prod-cron-filmony.md`
+  - `.cursor/features/watch-party-stale-ttl-404/feature.md`
+  - `.cursor/active/watch-party-stale-ttl-404/plan.md`
+  - `.cursor/active/watch-party-stale-ttl-404/progress.md`
+  - `.cursor/active/watch-party-stale-ttl-404/result.md`
+  - `docs/features/watch-party-stale-ttl-404.md`
+- Verification:
+  - `make backend-test-one target=src/tests/integration/services/test_watch_party_v2.py` → 5 passed
+  - `cd frontend && npm run lint` → ok
+  - `cd frontend && npx vitest run src/hooks/__tests__/useEnsureWatchParty.test.tsx` → 3/3 passed

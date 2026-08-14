@@ -11,6 +11,7 @@ from daos.watch_party_dao import WatchPartyDAO
 from models.watch_party import WatchParty, WatchPartyMember
 from models.watch_party_enums import WatchPartyMemberRole, WatchPartyMemberStatus, WatchPartyStatus
 from services.films.resolve_film_playback import ResolveFilmPlaybackService
+from services.watch_parties.ensure_active_watch_party import EnsureActiveWatchPartyService
 from services.watch_parties.helpers import (
     build_initial_playback_state,
     build_invite_url,
@@ -30,6 +31,7 @@ class CreateWatchPartyService:
     """Creates a live watch party after verifying playback is available."""
 
     _dao: WatchPartyDAO
+    _ensure_active: EnsureActiveWatchPartyService
     _playback_service: ResolveFilmPlaybackService
     _session: AsyncSession
 
@@ -47,8 +49,10 @@ class CreateWatchPartyService:
 
     @classmethod
     def build(cls, session: AsyncSession) -> Self:
+        dao = WatchPartyDAO(session)
         return cls(
-            _dao=WatchPartyDAO(session),
+            _dao=dao,
+            _ensure_active=EnsureActiveWatchPartyService.build(dao),
             _playback_service=ResolveFilmPlaybackService.build(session),
             _session=session,
         )
@@ -57,10 +61,17 @@ class CreateWatchPartyService:
         existing = await self._dao.find_active_membership_for_user(actor_user_id)
         if existing is not None:
             party, _member = existing
-            raise self.AlreadyInActiveParty(
-                active_party_id=party.id,
-                invite_slug=party.invite_slug,
-            )
+            try:
+                await self._ensure_active.execute(party.id)
+            except EnsureActiveWatchPartyService.PartyEnded:
+                pass
+            except EnsureActiveWatchPartyService.PartyNotFound:
+                pass
+            else:
+                raise self.AlreadyInActiveParty(
+                    active_party_id=party.id,
+                    invite_slug=party.invite_slug,
+                )
 
         try:
             playback = await self._playback_service.execute(film_id, actor_user_id)

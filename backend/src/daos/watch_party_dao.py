@@ -178,6 +178,9 @@ class WatchPartyDAO:
             update(WatchParty).where(WatchParty.id == party_id).values(**values),
         )
 
+    async def commit(self) -> None:
+        await self._session.commit()
+
     async def update_playback_state(self, *, party_id: UUID, playback_state: dict) -> None:
         await self._session.execute(
             update(WatchParty)

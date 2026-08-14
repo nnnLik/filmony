@@ -66,10 +66,17 @@ class JoinWatchPartyService:
         )
         if existing_elsewhere is not None:
             other_party, _member = existing_elsewhere
-            raise self.AlreadyInActiveParty(
-                active_party_id=other_party.id,
-                invite_slug=other_party.invite_slug,
-            )
+            try:
+                await self._ensure_active.execute(other_party.id)
+            except EnsureActiveWatchPartyService.PartyEnded:
+                pass
+            except EnsureActiveWatchPartyService.PartyNotFound:
+                pass
+            else:
+                raise self.AlreadyInActiveParty(
+                    active_party_id=other_party.id,
+                    invite_slug=other_party.invite_slug,
+                )
 
         member = await self._dao.get_member(party_id=party.id, user_id=actor_user_id)
         if member is None:
