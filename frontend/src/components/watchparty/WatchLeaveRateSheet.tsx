@@ -52,9 +52,6 @@ export function WatchLeaveRateSheet({
           <Button mode="gray" stretched disabled={busy} onClick={onCloseOnly}>
             Просто закрыть
           </Button>
-          <Button mode="plain" stretched disabled={busy} onClick={onClose}>
-            Отмена
-          </Button>
         </div>
       </div>
     </div>,
