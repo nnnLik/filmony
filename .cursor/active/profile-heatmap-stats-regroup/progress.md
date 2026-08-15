@@ -54,3 +54,33 @@
   - ruff `get_user_card_stats.py` clean
 - Notes:
   - Stats service stays O(1) queries vs card count (batched actors + franchise labels; grouped activity). No N+1.
+
+### 2026-08-15
+- Action type: perf
+- Summary: Slim `GET /activity-heatmap` for profile chrome; sessionStorage 5min placeholder; invalidate profile aggregates on card create/update/delete; full `/stats` only when the stats tab mounts.
+- Files:
+  - `backend/src/services/profile/user_card_activity.py`
+  - `backend/src/services/profile/get_user_activity_heatmap.py`
+  - `backend/src/api/profile/users_routes.py`
+  - `frontend/src/hooks/useUserActivityHeatmapQuery.ts`
+  - `frontend/src/lib/activityHeatmapCache.ts`
+  - `frontend/src/lib/invalidateProfileAggregates.ts`
+  - `frontend/src/components/profile/ProfileActivityHeatmapSection.tsx`
+- Verification:
+  - frontend lint/build + authBootstrap + heatmap grid tests
+  - 4 heatmap integration tests passed
+  - ruff on new heatmap modules
+- Notes:
+  - Opening profile no longer downloads full stats JSON.
+
+### 2026-08-15 ~01:45
+- Action type: code
+- Summary: Removed heatmap shelves; hover count; compact card; compact subscribe/guess/invite buttons.
+- Files:
+  - `frontend/src/components/profile/ProfileActivityHeatmap.tsx`
+  - `frontend/src/components/profile/ProfileActivityHeatmapSection.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+- Verification:
+  - `cd frontend && npx eslint src/components/profile/ProfileActivityHeatmap.tsx src/components/profile/ProfileActivityHeatmapSection.tsx src/pages/ProfilePage.tsx src/pages/PublicProfilePage.tsx` exit 0
+  - `npx vitest run src/lib/__tests__/activityHeatmapGrid.test.ts` 4/4

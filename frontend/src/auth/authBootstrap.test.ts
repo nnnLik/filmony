@@ -31,6 +31,10 @@ vi.mock('../lib/myProfileBundleCache', () => ({
   clearMyProfileBundleCache: vi.fn(),
 }))
 
+vi.mock('../lib/activityHeatmapCache', () => ({
+  clearActivityHeatmapSessionCaches: vi.fn(),
+}))
+
 vi.mock('../lib/movieCardTagStatsStorage', () => ({
   clearMovieCardTagStatsSessionCaches: vi.fn(),
 }))

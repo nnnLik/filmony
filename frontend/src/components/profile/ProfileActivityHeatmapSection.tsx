@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-
-import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQuery'
+import { useUserActivityHeatmapQuery } from '../../hooks/useUserActivityHeatmapQuery'
 
 import { ProfileActivityHeatmap } from './ProfileActivityHeatmap'
 
 export type ProfileActivityHeatmapSectionProps = {
   userId: string
-  onDaySelect: (isoDate: string, shelfId: string) => void
+  onDaySelect: (isoDate: string) => void
   className?: string
 }
 
@@ -15,65 +13,41 @@ export function ProfileActivityHeatmapSection({
   onDaySelect,
   className,
 }: ProfileActivityHeatmapSectionProps) {
-  const [activityShelfId, setActivityShelfId] = useState('')
-
-  const activityCategoryId = useMemo(() => {
-    if (activityShelfId === '') {
-      return null
-    }
-    const shelfNum = Number(activityShelfId)
-    return Number.isInteger(shelfNum) && shelfNum >= 1 ? shelfNum : null
-  }, [activityShelfId])
-
-  const statsQuery = useUserMovieCardStatsQuery(userId, activityCategoryId, {
+  const heatmapQuery = useUserActivityHeatmapQuery(userId, null, {
     enabled: userId.trim() !== '',
   })
-  const stats = statsQuery.data ?? null
-  const loading = statsQuery.isPending && stats == null
-  const activityLoading = statsQuery.isFetching && stats != null
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setActivityShelfId('')
-    })
-  }, [userId])
-
-  const shelfDistributionRows = useMemo(
-    () => (stats?.category_distribution ?? []).filter((row) => row.count > 0),
-    [stats?.category_distribution],
-  )
+  const heatmap = heatmapQuery.data ?? null
+  const loading = heatmapQuery.isPending && heatmap == null
+  const activityLoading = heatmapQuery.isFetching && heatmap != null
 
   if (userId.trim() === '') {
     return null
   }
 
-  if (statsQuery.isError && stats == null) {
+  if (heatmapQuery.isError && heatmap == null) {
     return null
   }
 
-  if (loading && stats == null) {
+  if (loading && heatmap == null) {
     return (
       <div className={className}>
-        <div className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-6 text-center">
+        <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-3 text-center">
           <p className="text-sm text-(--tgui--hint_color)">Загрузка активности…</p>
         </div>
       </div>
     )
   }
 
-  if (stats == null) {
+  if (heatmap == null) {
     return null
   }
 
   return (
     <div className={className}>
       <ProfileActivityHeatmap
-        activity={stats.activity_distribution}
-        activityStart={stats.activity_start}
-        activityEnd={stats.activity_end}
-        shelves={shelfDistributionRows}
-        selectedShelfId={activityShelfId}
-        onShelfChange={setActivityShelfId}
+        activity={heatmap.activity_distribution}
+        activityStart={heatmap.activity_start}
+        activityEnd={heatmap.activity_end}
         loading={activityLoading}
         onDaySelect={onDaySelect}
       />

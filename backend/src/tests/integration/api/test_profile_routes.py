@@ -1038,6 +1038,126 @@ async def test_user_stats_activity_heatmap_filters_by_shelf(async_client: AsyncC
     assert filtered_body['total_movies'] == 2
 
 
+@pytest.mark.asyncio
+async def test_user_activity_heatmap_excludes_planned_cards(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=5272)
+    user_id = UUID(str(me['id']))
+    today = datetime.now(tz=UTC).date()
+    yesterday = today - timedelta(days=1)
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5272001,
+        title='Completed today',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5272002,
+        title='Completed yesterday',
+        year=2024,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(yesterday, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5272003,
+        title='Planned later',
+        year=2024,
+        rating=0.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        is_planned=True,
+        completed_at=None,
+    )
+
+    r = await async_client.get(f'/api/users/{user_id}/activity-heatmap')
+    assert r.status_code == 200
+    body = r.json()
+    assert 'total_movies' not in body
+    assert 'rating_contrast' not in body
+    assert 'social' not in body
+    assert isinstance(body['category_distribution'], list)
+    assert 'activity_distribution' in body
+    assert 'activity_start' in body
+    assert 'activity_end' in body
+    start = datetime.fromisoformat(body['activity_start']).date()
+    end = datetime.fromisoformat(body['activity_end']).date()
+    assert end == today
+    assert (end - start).days == 29
+
+    by_day = {item['date']: item['count'] for item in body['activity_distribution']}
+    assert by_day.get(str(today)) == 1
+    assert by_day.get(str(yesterday)) == 1
+    assert sum(by_day.values()) == 2
+
+
+@pytest.mark.asyncio
+async def test_user_activity_heatmap_filters_by_shelf(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5273)
+    user_id = UUID(str(me['id']))
+    today = datetime.now(tz=UTC).date()
+
+    art = await async_client.post('/api/me/card-categories', json={'name': 'HeatmapShelf'})
+    assert art.status_code == 200
+    shelf_id = art.json()['id']
+
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5273001,
+        title='On shelf',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        category_id=shelf_id,
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5273002,
+        title='Default shelf',
+        year=2024,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=datetime.combine(today, datetime.min.time(), tzinfo=UTC),
+    )
+
+    all_activity = await async_client.get(f'/api/users/{user_id}/activity-heatmap')
+    assert all_activity.status_code == 200
+    assert sum(item['count'] for item in all_activity.json()['activity_distribution']) == 2
+
+    filtered = await async_client.get(
+        f'/api/users/{user_id}/activity-heatmap',
+        params={'activity_category_id': shelf_id},
+    )
+    assert filtered.status_code == 200
+    filtered_body = filtered.json()
+    assert len(filtered_body['activity_distribution']) == 1
+    assert filtered_body['activity_distribution'][0]['count'] == 1
+
+    invalid = await async_client.get(
+        f'/api/users/{user_id}/activity-heatmap',
+        params={'activity_category_id': 9999999},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()['detail'] == 'invalid category for user'
+
+
 async def _seed_movie_card_for_film(
     *,
     user_id: UUID,

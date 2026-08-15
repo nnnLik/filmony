@@ -23,10 +23,14 @@ from services.profile.compute_rating_contrast_insights import (
     RatingContrastRow,
     compute_rating_contrast_insights,
 )
+from services.profile.user_card_activity import (
+    HEATMAP_WINDOW_DAYS,
+    ActivityDistributionItem,
+    load_user_card_activity_distribution,
+)
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
 ACTIVITY_WINDOW_DAYS = 180
-HEATMAP_WINDOW_DAYS = 30
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,12 +85,6 @@ class ProfileInsights:
 class CategoryDistributionItem:
     category_id: int | None
     name: str
-    count: int
-
-
-@dataclass(frozen=True, slots=True)
-class ActivityDistributionItem:
-    date: dt.date
     count: int
 
 
@@ -152,10 +150,6 @@ class UserCardStats:
     activity_start: dt.date
     activity_end: dt.date
     rating_contrast: RatingContrastInsights
-
-
-def _completion_timestamp():
-    return func.coalesce(UserCard.completed_at, UserCard.created_at)
 
 
 @dataclass
@@ -460,7 +454,8 @@ class GetUserCardStatsService:
         )
         worst_movies = heapq.nsmallest(5, movies, key=lambda item: (item.rating, item.card_id))
 
-        insight_activity_distribution = await self._load_activity_distribution(
+        insight_activity_distribution = await load_user_card_activity_distribution(
+            self._session,
             user_id=user_id,
             activity_start=insight_start,
             activity_end=activity_end,
@@ -517,36 +512,3 @@ class GetUserCardStatsService:
             activity_end=activity_end,
             rating_contrast=rating_contrast,
         )
-
-    async def _load_activity_distribution(
-        self,
-        *,
-        user_id: UUID,
-        activity_start: dt.date,
-        activity_end: dt.date,
-        activity_category_id: int | None,
-    ) -> list[ActivityDistributionItem]:
-        completion = _completion_timestamp()
-        day_col = func.date(completion).label('day')
-        range_start = dt.datetime.combine(activity_start, dt.time.min, tzinfo=dt.UTC)
-        range_end_exclusive = dt.datetime.combine(
-            activity_end + dt.timedelta(days=1),
-            dt.time.min,
-            tzinfo=dt.UTC,
-        )
-        query = (
-            select(day_col, func.count(UserCard.id))
-            .where(
-                UserCard.user_id == user_id,
-                UserCard.is_planned.is_(False),
-                completion >= range_start,
-                completion < range_end_exclusive,
-            )
-            .group_by(day_col)
-            .order_by(day_col)
-        )
-        if activity_category_id is not None:
-            query = query.where(UserCard.category_id == activity_category_id)
-
-        rows = (await self._session.execute(query)).all()
-        return [ActivityDistributionItem(date=day, count=int(count)) for day, count in rows]

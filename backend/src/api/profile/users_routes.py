@@ -17,11 +17,13 @@ from api.profile.schemas import (
     MyUserCardTagStatsResponse,
     PublicProfileResponse,
     SubscriptionListResponse,
+    UserActivityHeatmapResponse,
     UserCardPageResponse,
     UserCardStatsApiResponse,
     WatchlistEntryPageResponse,
     build_public_profile_response,
     build_subscription_list_response,
+    build_user_activity_heatmap_response,
     build_user_card_page_response,
     build_user_card_stats_response,
     build_watchlist_entry_page_response,
@@ -33,6 +35,7 @@ from models.user import User
 from services.achievements.list_pinned_achievements import ListPinnedAchievementsService
 from services.catalog.card_community_fields import load_card_community_fields
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
+from services.profile.get_user_activity_heatmap import GetUserActivityHeatmapService
 from services.profile.get_user_card_stats import GetUserCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.get_user_profile_social_insights import GetUserProfileSocialInsightsService
@@ -331,6 +334,39 @@ async def list_user_feed_posts(
     return UserFeedPostsPageResponse(
         items=[feed_post_feed_item_to_response(it) for it in page.items],
         next_cursor=page.next_cursor,
+    )
+
+
+@router.get(
+    '/{user_id}/activity-heatmap',
+    response_model=UserActivityHeatmapResponse,
+    summary='Активность карточек (heatmap) и распределение по полкам',
+)
+async def get_user_activity_heatmap(
+    user_id: UUID,
+    _viewer: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    activity_category_id: int | None = Query(
+        default=None,
+        ge=1,
+        description='Фильтр активности heatmap по полке (id категории этого пользователя)',
+    ),
+) -> UserActivityHeatmapResponse:
+    exists = await GetPublicUserByIdService(db).execute(user_id)
+    if exists is None:
+        raise _not_found()
+    try:
+        heatmap = await GetUserActivityHeatmapService.build(db).execute(
+            user_id,
+            activity_category_id=activity_category_id,
+        )
+    except GetUserActivityHeatmapService.InvalidCategoryFilter:
+        raise HTTPException(status_code=422, detail='invalid category for user') from None
+    return build_user_activity_heatmap_response(
+        activity_distribution=heatmap.activity_distribution,
+        activity_start=heatmap.activity_start,
+        activity_end=heatmap.activity_end,
+        category_distribution=heatmap.category_distribution,
     )
 
 

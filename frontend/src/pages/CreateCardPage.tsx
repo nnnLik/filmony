@@ -33,6 +33,7 @@ import {
 } from '../feed/feedQueryKeys'
 import { useCatalogCandidates } from '../hooks/useCatalogCandidates'
 import { useResolveCatalogUrl } from '../hooks/useResolveCatalogUrl'
+import { invalidateProfileAggregates } from '../lib/invalidateProfileAggregates'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { recordRecentCardView } from '../lib/recentCardViews'
 import {
@@ -560,6 +561,7 @@ export function CreateCardPage() {
       }
       void queryClient.invalidateQueries({ queryKey: myMovieCardTagStatsQueryKey() })
       clearMyProfileBundleCache()
+      invalidateProfileAggregates(queryClient)
       safeHapticSuccess()
       void queryClient.invalidateQueries({ queryKey: globalFeedQueryRootKey })
       if (bundleUid != null && bundleUid !== '') {

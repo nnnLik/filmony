@@ -1,5 +1,6 @@
 import { apiFetch, apiFetchCredentialsOnly } from '../api/client'
 import { authTelegram } from '../api/profileApi'
+import { clearActivityHeatmapSessionCaches } from '../lib/activityHeatmapCache'
 import { clearMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { clearGlobalFeedCache } from '../lib/globalFeedCacheStorage'
 import { clearMovieCardTagStatsSessionCaches } from '../lib/movieCardTagStatsStorage'
@@ -100,6 +101,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
     writeAccessToken(null)
     clearMyProfileBundleCache()
     clearMovieCardTagStatsSessionCaches()
+    clearActivityHeatmapSessionCaches()
     clearUserCardCategoriesSessionCaches()
     void clearGlobalFeedCache()
     setState({
@@ -120,6 +122,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
       writeAccessToken(null)
       clearMyProfileBundleCache()
       clearMovieCardTagStatsSessionCaches()
+      clearActivityHeatmapSessionCaches()
       clearUserCardCategoriesSessionCaches()
       void clearGlobalFeedCache()
       setState({
@@ -143,6 +146,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
       writeAccessToken(null)
       clearMyProfileBundleCache()
       clearMovieCardTagStatsSessionCaches()
+      clearActivityHeatmapSessionCaches()
       clearUserCardCategoriesSessionCaches()
       void clearGlobalFeedCache()
       setState({
@@ -162,6 +166,7 @@ export async function runAuthBootstrap(deps: AuthBootstrapDeps): Promise<void> {
     writeAccessToken(null)
     clearMyProfileBundleCache()
     clearMovieCardTagStatsSessionCaches()
+    clearActivityHeatmapSessionCaches()
     clearUserCardCategoriesSessionCaches()
     void clearGlobalFeedCache()
     setState({

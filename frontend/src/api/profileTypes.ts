@@ -637,6 +637,13 @@ export type UserMovieCardStats = {
   rating_contrast?: RatingContrastInsights
 }
 
+export type UserActivityHeatmap = {
+  activity_distribution: ActivityDistributionItem[]
+  activity_start: string
+  activity_end: string
+  category_distribution: CategoryDistributionItem[]
+}
+
 export type MonthlyRecapTopFilm = {
   card_id: number
   film_id: number | null

@@ -434,6 +434,15 @@ class ActivityDistributionItemResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class UserActivityHeatmapResponse(BaseModel):
+    activity_distribution: list[ActivityDistributionItemResponse] = Field(default_factory=list)
+    activity_start: date
+    activity_end: date
+    category_distribution: list[CategoryDistributionItemResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class ProfileStatsMovieItemResponse(BaseModel):
     card_id: int
     film_id: int
@@ -886,6 +895,31 @@ def build_user_card_stats_response(
                 for peer in social.taste_peers
             ],
         ),
+    )
+
+
+def build_user_activity_heatmap_response(
+    *,
+    activity_distribution: list,
+    activity_start: date,
+    activity_end: date,
+    category_distribution: list,
+) -> UserActivityHeatmapResponse:
+    return UserActivityHeatmapResponse(
+        activity_distribution=[
+            ActivityDistributionItemResponse(date=item.date, count=item.count)
+            for item in activity_distribution
+        ],
+        activity_start=activity_start,
+        activity_end=activity_end,
+        category_distribution=[
+            CategoryDistributionItemResponse(
+                category_id=item.category_id,
+                name=item.name,
+                count=item.count,
+            )
+            for item in category_distribution
+        ],
     )
 
 

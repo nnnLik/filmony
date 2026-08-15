@@ -1,5 +1,5 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
@@ -10,11 +10,13 @@ import type { CardCompany, CardMoodAfter, CardMoodBefore, MovieCard, MyUserCardC
 import { CardFormFields } from '../components/create/CardFormFields'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
+import { invalidateProfileAggregates } from '../lib/invalidateProfileAggregates'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { myCardCategoriesQueryKey } from '../feed/feedQueryKeys'
 import { MAX_CUSTOM_TAG_LEN, normalizeRating } from '../lib/createCardBinding'
 
 export function EditMovieCardPage() {
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { cardId } = useParams<{ cardId?: string }>()
   const [viewerId, setViewerId] = useState<string | null>(() => readMyProfileBundleCache()?.profile.id ?? null)
@@ -219,6 +221,7 @@ export function EditMovieCardPage() {
         ...shelfPatch,
       })
       clearMyProfileBundleCache()
+      invalidateProfileAggregates(queryClient)
       void navigate(-1)
     } catch (e) {
       if (e instanceof ApiError) {

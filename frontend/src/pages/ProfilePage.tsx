@@ -285,8 +285,8 @@ export function ProfilePage() {
   )
 
   const handleHeatmapDaySelect = useCallback(
-    (isoDate: string, shelfId: string) => {
-      setRatedQuery((prev) => ({ ...prev, completedOn: isoDate, categoryId: shelfId, sort: 'recent' }))
+    (isoDate: string) => {
+      setRatedQuery((prev) => ({ ...prev, completedOn: isoDate, categoryId: '', sort: 'recent' }))
       drillToRatedCards()
     },
     [drillToRatedCards, setRatedQuery],
@@ -406,8 +406,8 @@ export function ProfilePage() {
           </div>
         ) : null}
 
-        <div className="mt-4">
-          <Button mode="gray" onClick={() => void navigate('/taste-quiz/invite')}>
+        <div className="mt-3">
+          <Button size="s" mode="gray" onClick={() => void navigate('/taste-quiz/invite')}>
             Пригласить угадать
           </Button>
         </div>

@@ -12,6 +12,7 @@ import type {
   PublicProfile,
   SubscriptionListResponse,
   SubscriptionListType,
+  UserActivityHeatmap,
   UserMovieCardStats,
   MonthlyRecap,
   PersonalDigest,
@@ -285,6 +286,20 @@ export async function getUserMovieCardStats(
   }
   const suffix = q.toString() ? `?${q.toString()}` : ''
   return apiJson<UserMovieCardStats>(`/api/users/${encodeURIComponent(userId)}/stats${suffix}`)
+}
+
+export async function getUserActivityHeatmap(
+  userId: string,
+  params?: { activityCategoryId?: number | null },
+): Promise<UserActivityHeatmap> {
+  const q = new URLSearchParams()
+  if (params?.activityCategoryId != null && params.activityCategoryId >= 1) {
+    q.set('activity_category_id', String(params.activityCategoryId))
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : ''
+  return apiJson<UserActivityHeatmap>(
+    `/api/users/${encodeURIComponent(userId)}/activity-heatmap${suffix}`,
+  )
 }
 
 export async function postCreateWatchlistEntry(body: CreateWatchlistEntryBody): Promise<WatchlistEntryItem> {

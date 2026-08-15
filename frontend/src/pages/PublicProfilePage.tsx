@@ -180,8 +180,8 @@ export function PublicProfilePage() {
   }, [])
 
   const handleHeatmapDaySelect = useCallback(
-    (isoDate: string, shelfId: string) => {
-      setRatedQuery((prev) => ({ ...prev, completedOn: isoDate, categoryId: shelfId, sort: 'recent' }))
+    (isoDate: string) => {
+      setRatedQuery((prev) => ({ ...prev, completedOn: isoDate, categoryId: '', sort: 'recent' }))
       drillToRatedCards()
     },
     [drillToRatedCards, setRatedQuery],
@@ -323,24 +323,34 @@ export function PublicProfilePage() {
         />
 
         {myUserId != null && profile.id !== myUserId ? (
-          <div className="mb-4 flex flex-col items-start gap-2">
+          <>
             {followError != null ? (
-              <p className="filmony-text-panel text-left text-sm text-(--tgui--destructive_text_color)">
+              <p className="filmony-text-panel mb-2 text-left text-sm text-(--tgui--destructive_text_color)">
                 {followError}
               </p>
             ) : null}
-            <Button mode={isFollowing ? 'gray' : 'filled'} disabled={followBusy} onClick={() => void toggleFollowing()}>
-              {followBusy ? '...' : isFollowing ? 'Отписаться' : 'Подписаться'}
-            </Button>
-            {isFollowing ? (
+            <div className="mb-3 flex gap-2">
               <Button
-                mode="filled"
-                onClick={() => void navigate(`/taste-quiz/play/${encodeURIComponent(profile.id)}`)}
+                size="s"
+                stretched
+                mode={isFollowing ? 'gray' : 'filled'}
+                disabled={followBusy}
+                onClick={() => void toggleFollowing()}
               >
-                Угадать вкус
+                {followBusy ? '…' : isFollowing ? 'Отписаться' : 'Подписаться'}
               </Button>
-            ) : null}
-          </div>
+              {isFollowing ? (
+                <Button
+                  size="s"
+                  stretched
+                  mode="filled"
+                  onClick={() => void navigate(`/taste-quiz/play/${encodeURIComponent(profile.id)}`)}
+                >
+                  Угадать вкус
+                </Button>
+              ) : null}
+            </div>
+          </>
         ) : null}
 
         {profile.bio ? (
