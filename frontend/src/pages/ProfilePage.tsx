@@ -504,7 +504,6 @@ export function ProfilePage() {
             userId={profile.id}
             cardsQuery={ratedQuery}
             onCardsQueryChange={setRatedQuery}
-            enableCategoryFilter
             showTasteQuizTeaser
             showPassportCollection
             showAchievements

@@ -35,3 +35,22 @@
   - `clipHeatmapWindow` unit tests; profile stats integration asserts 29-day heatmap span
 - Notes:
   - Stats insight **За 6 месяцев** still driven by `activity_total_180d`.
+
+### 2026-08-15
+- Action type: refactor
+- Summary: Cut extra heatmap category fetch; share stats query cache with the stats tab; hide redundant single-shelf chips; fetch shelf metadata only on Вкус.
+- Files:
+  - `frontend/src/components/profile/ProfileActivityHeatmapSection.tsx`
+  - `frontend/src/components/profile/ProfileActivityHeatmap.tsx`
+  - `frontend/src/components/profile/ProfileStatsPanel.tsx`
+  - `frontend/src/components/profile/ProfileStatsTab.tsx`
+  - `frontend/src/pages/ProfilePage.tsx`
+  - `frontend/src/pages/PublicProfilePage.tsx`
+- Verification:
+  - `cd frontend && npm run lint` exit 0 (pre-existing WatchPartyChatList warning only)
+  - `npx vitest run src/lib/__tests__/activityHeatmapGrid.test.ts` 4/4
+  - `cd frontend && npm run build` exit 0
+  - heatmap integration tests 2 passed (`make backend-test-one` both activity heatmap cases)
+  - ruff `get_user_card_stats.py` clean
+- Notes:
+  - Stats service stays O(1) queries vs card count (batched actors + franchise labels; grouped activity). No N+1.

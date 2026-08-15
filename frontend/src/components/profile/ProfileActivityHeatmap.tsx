@@ -100,7 +100,7 @@ export function ProfileActivityHeatmap({
           ) : null}
         </div>
 
-        {shelfOptions.length > 0 ? (
+        {shelfOptions.length > 1 ? (
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"

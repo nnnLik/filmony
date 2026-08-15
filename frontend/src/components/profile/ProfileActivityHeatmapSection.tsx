@@ -1,12 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 
-import { ApiError, formatApiDetail } from '../../api/client'
-import { getUserPublicCardCategories } from '../../api/profileApi'
-import type { MyUserCardCategoryListResponse } from '../../api/profileTypes'
-import { publicProfileCardCategoriesQueryKey } from '../../feed/feedQueryKeys'
 import { useUserMovieCardStatsQuery } from '../../hooks/useUserMovieCardStatsQuery'
-import { mergeShelfDistributionWithMetadata } from '../../lib/profileShelfDistribution'
 
 import { ProfileActivityHeatmap } from './ProfileActivityHeatmap'
 
@@ -38,13 +32,6 @@ export function ProfileActivityHeatmapSection({
   const loading = statsQuery.isPending && stats == null
   const activityLoading = statsQuery.isFetching && stats != null
 
-  const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
-    queryKey: publicProfileCardCategoriesQueryKey(userId),
-    queryFn: async (): Promise<MyUserCardCategoryListResponse> => getUserPublicCardCategories(userId),
-    enabled: userId !== '',
-    staleTime: 15 * 60_000,
-  })
-
   useEffect(() => {
     queueMicrotask(() => {
       setActivityShelfId('')
@@ -52,26 +39,15 @@ export function ProfileActivityHeatmapSection({
   }, [userId])
 
   const shelfDistributionRows = useMemo(
-    () =>
-      mergeShelfDistributionWithMetadata(
-        stats?.category_distribution ?? [],
-        shelvesQuery.data?.items ?? [],
-      ),
-    [stats?.category_distribution, shelvesQuery.data?.items],
+    () => (stats?.category_distribution ?? []).filter((row) => row.count > 0),
+    [stats?.category_distribution],
   )
 
   if (userId.trim() === '') {
     return null
   }
 
-  const error =
-    statsQuery.error instanceof ApiError
-      ? formatApiDetail(statsQuery.error.detail)
-      : statsQuery.error != null
-        ? 'Не удалось загрузить статистику'
-        : null
-
-  if (error != null && stats == null) {
+  if (statsQuery.isError && stats == null) {
     return null
   }
 

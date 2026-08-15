@@ -73,8 +73,6 @@ type ProfileStatsPanelProps = {
   userId: string
   cardsQuery: RatedCardsListQuery
   onCardsQueryChange: (next: RatedCardsListQuery) => void
-  /** Фильтр полок доступен только владельцу профиля на вкладке карточек. */
-  enableCategoryFilter?: boolean
   /** После действия из статистики — перейти к списку оценённых карточек (вкладка родителя). */
   onDrillToRatedCards?: () => void
   /** Блок «Угадай вкус» на вкладке «Сообщество» (только свой профиль). */
@@ -594,7 +592,7 @@ export function ProfileStatsPanel({
   const shelvesQuery = useQuery<MyUserCardCategoryListResponse>({
     queryKey: publicProfileCardCategoriesQueryKey(userId),
     queryFn: async (): Promise<MyUserCardCategoryListResponse> => getUserPublicCardCategories(userId),
-    enabled: userId !== '',
+    enabled: userId !== '' && statsSubTab === 'taste',
     staleTime: 15 * 60_000,
   })
 

@@ -12,7 +12,6 @@ type ProfileStatsTabProps = {
   userId: string
   cardsQuery: RatedCardsListQuery
   onCardsQueryChange: (next: RatedCardsListQuery) => void
-  enableCategoryFilter?: boolean
   showTasteQuizTeaser?: boolean
   showPassportCollection?: boolean
   showAchievements?: boolean
@@ -25,7 +24,6 @@ export function ProfileStatsTab({
   userId,
   cardsQuery,
   onCardsQueryChange,
-  enableCategoryFilter,
   showTasteQuizTeaser,
   showPassportCollection,
   showAchievements,
@@ -40,7 +38,6 @@ export function ProfileStatsTab({
           userId={userId}
           cardsQuery={cardsQuery}
           onCardsQueryChange={onCardsQueryChange}
-          enableCategoryFilter={enableCategoryFilter}
           showTasteQuizTeaser={showTasteQuizTeaser}
           showPassportCollection={showPassportCollection}
           showAchievements={showAchievements}

@@ -416,7 +416,6 @@ export function PublicProfilePage() {
             userId={profile.id}
             cardsQuery={ratedQuery}
             onCardsQueryChange={setRatedQuery}
-            enableCategoryFilter
             showPassportCollection
             onDrillToRatedCards={drillToRatedCards}
           />
