@@ -18,6 +18,8 @@
 - Links (опционально)
 
 ## Latest Entries
+- `2026-08-15T010600Z-profile-rating-contrast-stats-closeout.md`
+- `2026-08-15T010500Z-film-catalog-metadata-ui-closeout.md`
 - `2026-08-15-watch-ux-social-provider-slices-closeout.md`
 - `2026-08-14T221500Z-tma-watch-open-browser-closeout.md`
 - `2026-08-11T023500Z-backend-healthcheck-closeout.md`

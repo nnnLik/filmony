@@ -12,7 +12,7 @@ Four internal sub-tabs:
 
 | Tab | Content |
 |-----|---------|
-| **Обзор** | Activity heatmap, KPI strip, insight cards, taste polarity |
+| **Обзор** | Activity heatmap, KPI strip, insight cards, taste polarity, **Оценки vs КП и IMDb** (see [`profile-rating-contrast-stats.md`](profile-rating-contrast-stats.md)) |
 | **Вкус** | Rating bars, tag bubbles, company/mood flow, shelves, years |
 | **Социальность** | Mutual subscriptions, watch company, mood, similar profiles |
 | **Рейтинги** | Top/worst rated lists |

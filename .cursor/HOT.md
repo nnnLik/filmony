@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-14T221500Z
+Updated: 2026-08-15T010600Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -19,20 +19,22 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
 
 ## recent_completed
-1. `tma-watch-open-browser` — closed 2026-08-14T221500Z
+1. `profile-rating-contrast-stats` — closed 2026-08-15T010600Z
+   - Feature: `.cursor/features/profile-rating-contrast-stats/feature.md`
+   - Active: `.cursor/active/profile-rating-contrast-stats/`
+   - Docs: `docs/features/profile-rating-contrast-stats.md`
+2. `film-catalog-metadata-ui` — closed 2026-08-15T010500Z
+   - Feature: `.cursor/features/film-catalog-metadata-ui/feature.md`
+   - Active: `.cursor/active/film-catalog-metadata-ui/`
+   - Docs: `docs/features/film-catalog-metadata-ui.md`
+3. `tma-watch-open-browser` — closed 2026-08-14T221500Z
    - Feature: `.cursor/features/tma-watch-open-browser/feature.md`
    - Active: `.cursor/active/tma-watch-open-browser/`
    - Docs: `docs/features/tma-watch-open-browser.md`
-2. `backend-healthcheck` — closed 2026-08-11T023500Z
-   - Feature: `.cursor/features/backend-healthcheck/feature.md`
-   - Active: `.cursor/active/backend-healthcheck/`
-   - Docs: `docs/features/backend-healthcheck.md`
-3. `film-watch-party` — closed 2026-08-11T014500Z
-   - Feature: `.cursor/features/film-watch-party/feature.md`
-   - Active: `.cursor/active/film-watch-party/`
-   - Docs: `docs/features/film-watch-party.md`
 
 ## evicted (queue for archive)
+- `backend-healthcheck` — evicted from recent_completed top-3 on 2026-08-15T010600Z (was #2)
+- `film-watch-party` — evicted from recent_completed top-3 on 2026-08-15T010600Z (was #3)
 - `film-pleer-playback` — evicted from recent_completed top-3 on 2026-08-14T221500Z (was #3)
 - `profile-header-text-metrics` — evicted from recent_completed top-3 on 2026-08-11T023500Z (was #3)
 - `profile-stats-people-restructure` — evicted from recent_completed top-3 on 2026-08-11T014500Z (was #3)

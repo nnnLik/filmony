@@ -7,7 +7,8 @@ Product slices from the provider-backed film ideas plan: watch-room leave flow, 
 When leaving `/films/:id/watch` (header back, TMA BackButton, browser `popstate`, tab hide best-effort):
 
 - **Оценить фильм** → leave party quietly, navigate to `/cards/new?filmId=` or `/cards/{my_card_id}/edit`
-- **Не оценивать** → leave and return to `/films/:id`
+- **Просто закрыть** → leave and return to `/films/:id`
+- Cancel via ✕ or backdrop tap (no third «Отмена» button)
 
 Implementation: `frontend/src/lib/watchLeaveRatePrompt.ts`, `WatchLeaveRateSheet.tsx`, wired in `FilmWatchPage.tsx`.
 
@@ -55,9 +56,9 @@ Tests: covered by watch-party integration suite where applicable.
 
 **API (`FilmResponse`):** passport fields, `tmdb_recommendations` (titles), `trailer_youtube_url`, `watch_providers_ru`.
 
-**UI (`FilmDetailPage`):** slogan, `FilmPassportRow`, `FilmSimilarTitles`, `FilmTrailerLink`, `FilmWatchProvidersRow`.
+**UI (`FilmDetailPage`):** slogan, passport block — see [`film-catalog-metadata-ui.md`](film-catalog-metadata-ui.md) for compact/collapsible layout, trailer chip, and linked similar titles.
 
-Tests: `backend/src/tests/unit/api/films/test_film_passport_mapper.py`, `backend/src/tests/unit/providers/tmdb/*`, `frontend/src/lib/__tests__/filmPassportDisplay.test.ts`.
+Tests: `backend/src/tests/unit/api/films/test_film_passport_mapper.py`, `backend/src/tests/unit/providers/tmdb/*`, `frontend/src/lib/__tests__/filmCatalogMetadataDisplay.test.ts`.
 
 ## Verification
 
@@ -76,4 +77,5 @@ Telegram push on card reactions — `notify_reaction_added` Celery task; no dupl
 ## Follow-ups
 
 - KP premieres/tops browse, facts/images/awards (quota-aware lazy load).
-- Link TMDB recommendation titles to in-app film pages when matched.
+- ~~Link TMDB recommendation titles to in-app film pages when matched.~~ → shipped in `film-catalog-metadata-ui`.
+- Profile rating contrast vs KP/IMDb → `profile-rating-contrast-stats.md`.
