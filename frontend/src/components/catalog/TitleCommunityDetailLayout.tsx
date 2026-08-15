@@ -63,7 +63,7 @@ function DescriptionBlock({
       {shortText !== '' ? (
         <p className="text-[14px] leading-relaxed text-(--tgui--text_color)">{shortText}</p>
       ) : null}
-      {longText !== '' ? (
+      {longText !== '' && longText !== shortText ? (
         <div className={shortText !== '' ? 'mt-3' : ''}>
           <p
             className={`text-[14px] leading-relaxed text-(--tgui--text_color) ${
@@ -184,7 +184,7 @@ function CatalogHero({
             {shortDescription.trim()}
           </p>
         ) : null}
-        {longText !== '' ? (
+        {longText !== '' && longText !== (shortDescription?.trim() ?? '') ? (
           <div className="mt-2">
             <p
               className={

@@ -19,6 +19,7 @@ import './movieCardDetailAnimations.css'
 import {
   createMovieCardComment as submitMovieCardCommentApi,
   deleteMovieCardComment,
+  getFilmById,
   getFollowingRatingsForCard,
   getMovieCardById,
   getMovieCardComments,
@@ -87,6 +88,7 @@ import { MovieCardAudioPlayer } from '../components/cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRatingAudioVisualizer'
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
+import { FilmCatalogMetadata } from '../components/films/FilmCatalogMetadata'
 import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
 import { OscarReleaseYearLabel } from '../components/films/OscarReleaseYearLabel'
@@ -909,6 +911,14 @@ function MovieCardDetailLoadedBody({
         ? []
         : (filmCollectionsQuery.data ?? null)
 
+  const filmPassportQuery = useQuery({
+    queryKey: ['film-passport', filmIdForCollections],
+    queryFn: () => getFilmById(filmIdForCollections as number),
+    enabled: auth.kind === 'ready' && filmIdForCollections != null,
+    staleTime: 300_000,
+  })
+  const filmPassport = filmPassportQuery.data ?? null
+
   const posterFs = useFullscreenImageActivator({
     enabled: Boolean(primaryPoster),
     imageSrc: primaryPoster ?? '',
@@ -1066,6 +1076,14 @@ function MovieCardDetailLoadedBody({
                       ) : null}
                     </div>
                     <FilmGenreChips genres={card.film_genres} size="sm" className="mt-1.5" />
+                    {filmPassport ? (
+                      <FilmCatalogMetadata
+                        film={filmPassport}
+                        size="sm"
+                        className="mt-1.5"
+                        showSimilar={false}
+                      />
+                    ) : null}
                     <FilmSynopsisBlock
                       shortDescription={synopsisShort}
                       description={card.film_description ?? null}

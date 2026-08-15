@@ -20,13 +20,7 @@ import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { FollowingRatingsPanel } from '../components/social/FollowingRatingsPanel'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
-import {
-  FilmPassportRow,
-  FilmSlogan,
-  FilmSimilarTitles,
-  FilmTrailerLink,
-  FilmWatchProvidersRow,
-} from '../components/films/FilmPassportRow'
+import { FilmCatalogMetadata } from '../components/films/FilmCatalogMetadata'
 import { OscarReleaseYearRow } from '../components/films/OscarReleaseYearLabel'
 import { releaseYearLabel } from '../lib/filmAwardBadgeDisplay'
 import { DirectorChip } from '../components/films/DirectorChip'
@@ -350,17 +344,7 @@ export function FilmDetailPage() {
         <FranchiseChip franchiseKey={film.franchise_key} label={film.franchise_label} size="md" className="mt-2" />
       ) : null}
       <FilmGenreChips genres={film.genres} size="md" className="mt-2" />
-      <FilmSlogan slogan={film.slogan} className="mt-2" />
-      <FilmPassportRow
-        filmLength={film.film_length}
-        ratingAgeLimits={film.rating_age_limits}
-        ratingKinopoisk={film.rating_kinopoisk}
-        ratingImdb={film.rating_imdb}
-        className="mt-2"
-      />
-      <FilmTrailerLink trailerYoutubeUrl={film.trailer_youtube_url} className="mt-2" />
-      <FilmWatchProvidersRow providers={film.watch_providers_ru} className="mt-2" />
-      <FilmSimilarTitles titles={film.tmdb_recommendations} className="mt-2" />
+      <FilmCatalogMetadata film={film} size="md" className="mt-2" />
       {weeklyControversyForFilm != null ? (
         <span
           className="mt-2 inline-flex max-w-full items-center rounded-md border border-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_42%,transparent)] bg-[color-mix(in_srgb,var(--filmony-amber,#e8b86d)_12%,transparent)] px-2 py-1 text-[11px] font-semibold text-(--tgui--text_color)"
