@@ -65,7 +65,7 @@ def _decode_cursor(cursor: str | None) -> tuple[dt.datetime, int, int] | None:
                     sort_at = dt.datetime.fromisoformat(ts.replace('Z', '+00:00'))
                     kr = int(data['kr'])
                     eid = int(data['id'])
-                    result = (sort_at, kr, eid)
+                    result = (sort_at.replace(microsecond=0), kr, eid)
                 except (KeyError, TypeError, ValueError):
                     pass
     return result
@@ -83,7 +83,7 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
             literal('card', type_=String()).label('etype'),
             literal(0, type_=Integer()).label('kind_rank'),
             UserCard.id.label('eid'),
-            func.timezone('UTC', UserCard.completed_at).label('sort_at'),
+            func.date_trunc('second', func.timezone('UTC', UserCard.completed_at)).label('sort_at'),
         )
         .select_from(UserCard)
         .where(*card_filters)
@@ -92,7 +92,7 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
         literal('post', type_=String()).label('etype'),
         literal(1, type_=Integer()).label('kind_rank'),
         FeedPost.id.label('eid'),
-        FeedPost.created_at.label('sort_at'),
+        func.date_trunc('second', FeedPost.created_at).label('sort_at'),
     ).select_from(FeedPost)
     if exclude_own:
         post_branch = post_branch.where(FeedPost.user_id != viewer_user_id)

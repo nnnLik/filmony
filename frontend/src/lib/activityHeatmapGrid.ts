@@ -55,7 +55,7 @@ function sundayAlignedEnd(date: Date): Date {
 export function countToHeatLevel(count: number, maxCount: number): 0 | 1 | 2 | 3 | 4 {
   if (count <= 0) return 0
   if (maxCount <= 1) return 1
-  const ratio = count / maxCount
+  const ratio = Math.log1p(count) / Math.log1p(maxCount)
   if (ratio <= 0.25) return 1
   if (ratio <= 0.5) return 2
   if (ratio <= 0.75) return 3
