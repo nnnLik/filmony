@@ -26,6 +26,7 @@ from services.profile.compute_rating_contrast_insights import (
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
 ACTIVITY_WINDOW_DAYS = 180
+HEATMAP_WINDOW_DAYS = 30
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,7 +190,8 @@ class GetUserCardStatsService:
                 raise self.InvalidCategoryFilter
 
         activity_end = dt.datetime.now(dt.UTC).date()
-        activity_start = activity_end - dt.timedelta(days=ACTIVITY_WINDOW_DAYS - 1)
+        insight_start = activity_end - dt.timedelta(days=ACTIVITY_WINDOW_DAYS - 1)
+        activity_start = activity_end - dt.timedelta(days=HEATMAP_WINDOW_DAYS - 1)
 
         card_rows = (
             await self._session.execute(
@@ -458,14 +460,17 @@ class GetUserCardStatsService:
         )
         worst_movies = heapq.nsmallest(5, movies, key=lambda item: (item.rating, item.card_id))
 
-        activity_distribution = await self._load_activity_distribution(
+        insight_activity_distribution = await self._load_activity_distribution(
             user_id=user_id,
-            activity_start=activity_start,
+            activity_start=insight_start,
             activity_end=activity_end,
             activity_category_id=activity_category_id,
         )
 
-        activity_total_180d = sum(item.count for item in activity_distribution)
+        activity_total_180d = sum(item.count for item in insight_activity_distribution)
+        activity_distribution = [
+            item for item in insight_activity_distribution if item.date >= activity_start
+        ]
         dominant_company = watch_with_distribution[0].value if watch_with_distribution else None
         dominant_mood_after = mood_after_distribution[0].value if mood_after_distribution else None
         top_tag = tag_taste[0].tag if tag_taste else None

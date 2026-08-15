@@ -151,6 +151,21 @@ class UserCard(Base):
             postgresql_ops={'updated_at': 'DESC', 'id': 'DESC'},
         ),
         Index(
+            'ix_user_card_completed_at_id',
+            'completed_at',
+            'id',
+            postgresql_ops={'completed_at': 'DESC', 'id': 'DESC'},
+            postgresql_where=text('is_planned IS FALSE AND completed_at IS NOT NULL'),
+        ),
+        Index(
+            'ix_user_card_user_id_completed_at_id',
+            'user_id',
+            'completed_at',
+            'id',
+            postgresql_ops={'completed_at': 'DESC', 'id': 'DESC'},
+            postgresql_where=text('is_planned IS FALSE'),
+        ),
+        Index(
             'ix_user_card_user_favorites_order',
             'user_id',
             'favorite_marked_at',

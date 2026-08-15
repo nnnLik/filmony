@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -52,6 +53,7 @@ async def _seed_movie_card_for_user(
             company='alone',
             mood_before='relax',
             mood_after='enjoyed',
+            completed_at=datetime.now(tz=UTC),
         )
         session.add(card)
         await session.flush()
@@ -60,6 +62,22 @@ async def _seed_movie_card_for_user(
         await session.commit()
         await session.refresh(card)
         return card.id
+
+
+async def _create_film(*, kinopoisk_id: int) -> Film:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(
+            kinopoisk_id=kinopoisk_id,
+            title=f'Film {kinopoisk_id}',
+            year=2020,
+            poster_url='https://example.com/p.jpg',
+            genres=[],
+        )
+        session.add(film)
+        await session.commit()
+        await session.refresh(film)
+        return film
 
 
 async def _subscribe(follower_id: UUID, following_id: UUID) -> None:
@@ -247,3 +265,61 @@ async def test_feed_includes_viewer_own_cards_with_own_cards_source(
     ]
     assert any(it['id'] == own_cid for it in own_hits)
     assert all(it['feed_source'] == 'own_cards' for it in own_hits)
+
+
+@pytest.mark.asyncio
+async def test_feed_rating_patch_does_not_promote_older_card(async_client: AsyncClient) -> None:
+    viewer = await _login(async_client, telegram_user_id=9640)
+    author_a = await _login(async_client, telegram_user_id=9641)
+    author_b = await _login(async_client, telegram_user_id=9642)
+    v_id = UUID(str(viewer['id']))
+    a_id = UUID(str(author_a['id']))
+    b_id = UUID(str(author_b['id']))
+    await _subscribe(v_id, a_id)
+    await _subscribe(v_id, b_id)
+
+    await _login(async_client, telegram_user_id=9641)
+    film_a = await _create_film(kinopoisk_id=1964101)
+    card_a = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_a.id,
+            'kinopoisk_id': film_a.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert card_a.status_code == 200
+    card_a_id = card_a.json()['id']
+
+    await _login(async_client, telegram_user_id=9642)
+    film_b = await _create_film(kinopoisk_id=1964102)
+    card_b = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_b.id,
+            'kinopoisk_id': film_b.kinopoisk_id,
+            'genres': [],
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert card_b.status_code == 200
+    card_b_id = card_b.json()['id']
+
+    await _login(async_client, telegram_user_id=9641)
+    patched = await async_client.patch(f'/api/cards/{card_a_id}', json={'rating': 9.0})
+    assert patched.status_code == 200
+
+    await _login(async_client, telegram_user_id=9640)
+    feed = await async_client.get('/api/cards/feed?limit=10&mode=subscriptions_only')
+    assert feed.status_code == 200
+    feed_ids = [item['id'] for item in feed.json()['items']]
+    assert feed_ids[:2] == [card_b_id, card_a_id]

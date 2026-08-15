@@ -12,6 +12,7 @@ import type {
   PublicProfile,
 } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { ProfileActivityHeatmapSection } from '../components/profile/ProfileActivityHeatmapSection'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
 import { ProfileMainTabs, type ProfileMainTab } from '../components/profile/ProfileMainTabs'
 import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesSegmentToggle'
@@ -283,6 +284,14 @@ export function ProfilePage() {
     [drillToRatedCards, navigate, setRatedQuery],
   )
 
+  const handleHeatmapDaySelect = useCallback(
+    (isoDate: string, shelfId: string) => {
+      setRatedQuery((prev) => ({ ...prev, completedOn: isoDate, categoryId: shelfId, sort: 'recent' }))
+      drillToRatedCards()
+    },
+    [drillToRatedCards, setRatedQuery],
+  )
+
   const drillToWatchlist = useCallback(() => {
     setMainTab('movies')
     setMoviesSegment('watchlist')
@@ -437,6 +446,12 @@ export function ProfilePage() {
             {exportGenericErr}
           </p>
         ) : null}
+
+        <ProfileActivityHeatmapSection
+          userId={profile.id}
+          onDaySelect={handleHeatmapDaySelect}
+          className="mt-6"
+        />
 
         <ProfileMainTabs value={mainTab} onChange={setMainTab} className="mt-6" />
 

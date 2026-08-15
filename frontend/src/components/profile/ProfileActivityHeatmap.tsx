@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react'
 import type { ActivityDistributionItem, CategoryDistributionItem } from '../../api/profileTypes'
 import {
   buildActivityHeatmapGrid,
+  clipHeatmapWindow,
   formatActivityDayLabel,
-  sumActivityCounts,
 } from '../../lib/activityHeatmapGrid'
 
 import { ProfileStatsSectionCard } from './ProfileStatsSummaryCard'
@@ -42,12 +42,32 @@ export function ProfileActivityHeatmap({
 }: ProfileActivityHeatmapProps) {
   const [focusedDate, setFocusedDate] = useState<string | null>(null)
 
+  const clippedWindow = useMemo(
+    () => clipHeatmapWindow(activityStart, activityEnd),
+    [activityStart, activityEnd],
+  )
+
   const grid = useMemo(
-    () => buildActivityHeatmapGrid(activity, activityStart, activityEnd),
-    [activity, activityStart, activityEnd],
+    () =>
+      buildActivityHeatmapGrid(
+        activity,
+        clippedWindow.start,
+        clippedWindow.end,
+      ),
+    [activity, clippedWindow],
   )
   const weekCount = grid[0]?.length ?? 0
-  const totalCompleted = sumActivityCounts(activity)
+  const totalCompleted = useMemo(
+    () =>
+      activity.reduce(
+        (acc, bucket) =>
+          bucket.date >= clippedWindow.start && bucket.date <= clippedWindow.end
+            ? acc + bucket.count
+            : acc,
+        0,
+      ),
+    [activity, clippedWindow],
+  )
 
   const shelfOptions = useMemo(() => {
     const items = shelves
@@ -72,7 +92,7 @@ export function ProfileActivityHeatmap({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-(--tgui--hint_color)">
             {totalCompleted > 0
-              ? `${totalCompleted} завершённых за 6 месяцев`
+              ? `${totalCompleted} завершённых за последний месяц`
               : 'Пока нет завершённых просмотров'}
           </p>
           {loading ? (
@@ -128,7 +148,7 @@ export function ProfileActivityHeatmap({
                 gridTemplateColumns: `repeat(${weekCount}, 11px)`,
               }}
               role="grid"
-              aria-label="Сетка активности просмотров за 6 месяцев"
+              aria-label="Сетка активности просмотров за последний месяц"
             >
               {grid.flatMap((row) =>
                 row.map((cell) => (

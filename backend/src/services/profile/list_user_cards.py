@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
-from typing import cast
 from uuid import UUID
 
 from sqlalchemy import Select, and_, asc, desc, exists, func, or_, select
@@ -21,6 +20,8 @@ from services.cards.card_catalog_release_fields import universal_release_year_da
 from services.genres.resolve_genre_by_slug import ResolveGenreBySlugService
 
 _FAV_CURSOR_PREFIX = 'fav1'
+_RECENT_NULL_CURSOR_PREFIX = 'rec0'
+_RECENT_CURSOR_PREFIX = 'rec1'
 _RATING_DESC_PREFIX = 'rtd'
 _RATING_ASC_PREFIX = 'rta'
 
@@ -52,6 +53,31 @@ def _encode_favorites_cursor(marked_at: dt.datetime, card_id: int) -> str:
 def _decode_favorites_cursor(cursor: str) -> tuple[dt.datetime, int] | None:
     parts = cursor.split('.')
     if len(parts) != 3 or parts[0] != _FAV_CURSOR_PREFIX:
+        return None
+    try:
+        us = int(parts[1], 10)
+        cid = int(parts[2], 10)
+    except ValueError:
+        return None
+    return dt.datetime.fromtimestamp(us / 1_000_000, tz=dt.UTC), cid
+
+
+def _encode_recent_cursor(completed_at: dt.datetime | None, card_id: int) -> str:
+    if completed_at is None:
+        return f'{_RECENT_NULL_CURSOR_PREFIX}.{card_id}'
+    us = int(completed_at.timestamp() * 1_000_000)
+    return f'{_RECENT_CURSOR_PREFIX}.{us}.{card_id}'
+
+
+def _decode_recent_cursor(cursor: str) -> tuple[dt.datetime | None, int] | None:
+    parts = cursor.split('.')
+    if len(parts) == 2 and parts[0] == _RECENT_NULL_CURSOR_PREFIX:
+        try:
+            cid = int(parts[1], 10)
+        except ValueError:
+            return None
+        return None, cid
+    if len(parts) != 3 or parts[0] != _RECENT_CURSOR_PREFIX:
         return None
     try:
         us = int(parts[1], 10)
@@ -396,13 +422,33 @@ class ListUserCardsService:
         )
 
         if sort == 'recent':
-            query = query.order_by(desc(UserCard.id)).limit(limit + 1)
+            query = query.order_by(
+                desc(UserCard.completed_at).nulls_last(),
+                desc(UserCard.id),
+            ).limit(limit + 1)
             if cursor is not None and cursor != '':
-                try:
-                    cid = int(cursor, 10)
-                except ValueError as e:
-                    raise self.InvalidCursor from e
-                query = query.where(UserCard.id < cid)
+                decoded = _decode_recent_cursor(cursor)
+                if decoded is None:
+                    raise self.InvalidCursor
+                cursor_dt, cursor_id = decoded
+                if cursor_dt is None:
+                    query = query.where(
+                        and_(
+                            UserCard.completed_at.is_(None),
+                            UserCard.id < cursor_id,
+                        )
+                    )
+                else:
+                    query = query.where(
+                        or_(
+                            UserCard.completed_at < cursor_dt,
+                            and_(
+                                UserCard.completed_at == cursor_dt,
+                                UserCard.id < cursor_id,
+                            ),
+                            UserCard.completed_at.is_(None),
+                        )
+                    )
         elif sort == 'rating_desc':
             query = query.order_by(desc(UserCard.rating), desc(UserCard.id)).limit(limit + 1)
             if cursor is not None and cursor != '':
@@ -447,7 +493,7 @@ class ListUserCardsService:
         if has_more and visible_rows:
             last_card = visible_rows[-1][0]
             if sort == 'recent':
-                next_cursor = str(cast(int, last_card.id))
+                next_cursor = _encode_recent_cursor(last_card.completed_at, last_card.id)
             elif sort == 'rating_desc':
                 next_cursor = _encode_rating_desc_cursor(float(last_card.rating), last_card.id)
             else:

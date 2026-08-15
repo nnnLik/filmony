@@ -981,7 +981,7 @@ async def test_user_stats_activity_heatmap_excludes_planned_cards(
     start = datetime.fromisoformat(body['activity_start']).date()
     end = datetime.fromisoformat(body['activity_end']).date()
     assert end == today
-    assert (end - start).days == 179
+    assert (end - start).days == 29
 
     by_day = {item['date']: item['count'] for item in body['activity_distribution']}
     assert by_day.get(str(today)) == 1
@@ -1652,3 +1652,233 @@ async def test_public_user_card_categories_lists_committed_shelves(
     assert via_public.status_code == 200
     ids = {row['id'] for row in via_public.json()['items']}
     assert shelf_id in ids
+
+
+async def _post_rated_card(
+    async_client: AsyncClient,
+    *,
+    film_id: int,
+    kinopoisk_id: int,
+    rating: float,
+) -> int:
+    r = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_id,
+            'kinopoisk_id': kinopoisk_id,
+            'genres': [],
+            'rating': rating,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r.status_code == 200
+    return int(r.json()['id'])
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_recent_orders_by_completed_at_not_id(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=52120)
+    uid = UUID(str(me['id']))
+    now = datetime.now(tz=UTC)
+    older_id = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5212001,
+        title='Older id newer completed',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=now,
+    )
+    newer_id = await _seed_movie_card(
+        user_id=uid,
+        kinopoisk_id=5212002,
+        title='Newer id older completed',
+        year=2024,
+        rating=7.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        completed_at=now - timedelta(days=1),
+    )
+    assert newer_id > older_id
+
+    r = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params={'sort': 'recent', 'limit': 10},
+    )
+    assert r.status_code == 200
+    assert r.json()['items'][0]['id'] == older_id
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_recent_later_to_rated_surfaces(
+    async_client: AsyncClient,
+) -> None:
+    from tests.integration.api.test_cards_routes import _create_film as create_film
+
+    me = await _login(async_client, telegram_user_id=52121)
+    film_a = await create_film(kinopoisk_id=5212101, title='Film A later')
+    film_b = await create_film(kinopoisk_id=5212102, title='Film B rated')
+
+    watchlist = await async_client.post('/api/me/watchlist', json={'film_id': film_a.id})
+    assert watchlist.status_code == 201
+    planned = await async_client.get(f'/api/me/planned-card?film_id={film_a.id}')
+    assert planned.status_code == 200
+    planned_id = planned.json()['user_card_id']
+
+    await _post_rated_card(
+        async_client,
+        film_id=film_b.id,
+        kinopoisk_id=film_b.kinopoisk_id,
+        rating=8.0,
+    )
+
+    upgraded = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_a.id,
+            'kinopoisk_id': film_a.kinopoisk_id,
+            'genres': [],
+            'rating': 9.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert upgraded.status_code == 200
+    assert upgraded.json()['id'] == planned_id
+
+    listed = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'sort': 'recent', 'limit': 10},
+    )
+    assert listed.status_code == 200
+    assert listed.json()['items'][0]['id'] == planned_id
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_recent_rating_patch_does_not_bump(
+    async_client: AsyncClient,
+) -> None:
+    from tests.integration.api.test_cards_routes import _create_film as create_film
+
+    me = await _login(async_client, telegram_user_id=52122)
+    film_a = await create_film(kinopoisk_id=5212201, title='Patch rating A')
+    film_b = await create_film(kinopoisk_id=5212202, title='Patch rating B')
+    card_a = await _post_rated_card(
+        async_client,
+        film_id=film_a.id,
+        kinopoisk_id=film_a.kinopoisk_id,
+        rating=7.0,
+    )
+    card_b = await _post_rated_card(
+        async_client,
+        film_id=film_b.id,
+        kinopoisk_id=film_b.kinopoisk_id,
+        rating=8.0,
+    )
+
+    patched = await async_client.patch(f'/api/cards/{card_a}', json={'rating': 10.0})
+    assert patched.status_code == 200
+
+    listed = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'sort': 'recent', 'limit': 10},
+    )
+    assert listed.status_code == 200
+    assert listed.json()['items'][0]['id'] == card_b
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_recent_favorite_patch_does_not_bump(
+    async_client: AsyncClient,
+) -> None:
+    from tests.integration.api.test_cards_routes import _create_film as create_film
+
+    me = await _login(async_client, telegram_user_id=52123)
+    film_a = await create_film(kinopoisk_id=5212301, title='Patch fav A')
+    film_b = await create_film(kinopoisk_id=5212302, title='Patch fav B')
+    card_a = await _post_rated_card(
+        async_client,
+        film_id=film_a.id,
+        kinopoisk_id=film_a.kinopoisk_id,
+        rating=7.0,
+    )
+    card_b = await _post_rated_card(
+        async_client,
+        film_id=film_b.id,
+        kinopoisk_id=film_b.kinopoisk_id,
+        rating=8.0,
+    )
+
+    patched = await async_client.patch(f'/api/cards/{card_a}', json={'is_favorite': True})
+    assert patched.status_code == 200
+
+    listed = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'sort': 'recent', 'limit': 10},
+    )
+    assert listed.status_code == 200
+    assert listed.json()['items'][0]['id'] == card_b
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_recent_rejects_numeric_cursor(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=52124)
+    r = await async_client.get(
+        f'/api/users/{me["id"]}/cards',
+        params={'sort': 'recent', 'cursor': '12345'},
+    )
+    assert r.status_code == 422
+    assert r.json()['detail'] == 'invalid cursor'
+
+
+@pytest.mark.asyncio
+async def test_list_user_cards_recent_pagination_cursor(
+    async_client: AsyncClient,
+) -> None:
+    me = await _login(async_client, telegram_user_id=52125)
+    uid = UUID(str(me['id']))
+    now = datetime.now(tz=UTC)
+    for i in range(3):
+        await _seed_movie_card(
+            user_id=uid,
+            kinopoisk_id=5212501 + i,
+            title=f'Recent page {i}',
+            year=2024,
+            rating=8.0,
+            company='alone',
+            mood_after='enjoyed',
+            tags=[],
+            completed_at=now - timedelta(days=i),
+        )
+
+    first = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params={'sort': 'recent', 'limit': 2},
+    )
+    assert first.status_code == 200
+    body1 = first.json()
+    assert len(body1['items']) == 2
+    assert body1['next_cursor'] is not None
+    assert body1['next_cursor'].startswith('rec1.')
+
+    second = await async_client.get(
+        f'/api/users/{uid}/cards',
+        params={'sort': 'recent', 'limit': 2, 'cursor': body1['next_cursor']},
+    )
+    assert second.status_code == 200
+    ids_page1 = {item['id'] for item in body1['items']}
+    ids_page2 = {item['id'] for item in second.json()['items']}
+    assert ids_page2
+    assert ids_page1.isdisjoint(ids_page2)

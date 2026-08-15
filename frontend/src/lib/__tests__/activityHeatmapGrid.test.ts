@@ -2,11 +2,26 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildActivityHeatmapGrid,
+  clipHeatmapWindow,
   countToHeatLevel,
   sumActivityCounts,
 } from '../activityHeatmapGrid'
 
 describe('activityHeatmapGrid', () => {
+  it('clips heatmap window to last 30 days when range is longer', () => {
+    expect(clipHeatmapWindow('2026-01-01', '2026-08-15')).toEqual({
+      start: '2026-07-17',
+      end: '2026-08-15',
+    })
+  })
+
+  it('keeps activity start when API range is already shorter than 30 days', () => {
+    expect(clipHeatmapWindow('2026-08-10', '2026-08-15')).toEqual({
+      start: '2026-08-10',
+      end: '2026-08-15',
+    })
+  })
+
   it('maps counts to heat levels', () => {
     expect(countToHeatLevel(0, 10)).toBe(0)
     expect(countToHeatLevel(2, 8)).toBe(1)

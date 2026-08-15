@@ -1,4 +1,9 @@
-"""Глобальная публичная лента: карточки по updated_at, посты по created_at."""
+"""Глобальная публичная лента: карточки по completed_at, посты по created_at.
+
+Карточки сортируются по completed_at (момент создания rated-карточки / later→rated);
+запланированные и без completed_at в ветку карточек не входят. Посты — по created_at.
+PATCH оценки/избранного не двигает ленту.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +15,7 @@ from typing import Literal, Self
 from uuid import UUID
 
 import orjson
-from sqlalchemy import Integer, String, and_, or_, select, union_all
+from sqlalchemy import Integer, String, and_, func, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import literal
 
@@ -67,14 +72,22 @@ def _decode_cursor(cursor: str | None) -> tuple[dt.datetime, int, int] | None:
 
 
 def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: bool):
-    card_branch = select(
-        literal('card', type_=String()).label('etype'),
-        literal(0, type_=Integer()).label('kind_rank'),
-        UserCard.id.label('eid'),
-        UserCard.updated_at.label('sort_at'),
-    ).select_from(UserCard)
+    card_filters = [
+        UserCard.is_planned.is_(False),
+        UserCard.completed_at.isnot(None),
+    ]
     if exclude_own:
-        card_branch = card_branch.where(UserCard.user_id != viewer_user_id)
+        card_filters.append(UserCard.user_id != viewer_user_id)
+    card_branch = (
+        select(
+            literal('card', type_=String()).label('etype'),
+            literal(0, type_=Integer()).label('kind_rank'),
+            UserCard.id.label('eid'),
+            func.timezone('UTC', UserCard.completed_at).label('sort_at'),
+        )
+        .select_from(UserCard)
+        .where(*card_filters)
+    )
     post_branch = select(
         literal('post', type_=String()).label('etype'),
         literal(1, type_=Integer()).label('kind_rank'),
@@ -92,7 +105,11 @@ def _union_subquery(kind: GlobalFeedKind, viewer_user_id: UUID, *, exclude_own: 
 
 @dataclass
 class ListGlobalFeedService:
-    """Отдаёт глобальную ленту: карточки по updated_at, посты по created_at, без соцграфа."""
+    """Отдаёт глобальную ленту: карточки по completed_at, посты по created_at, без соцграфа.
+
+    Карточки — момент создания rated-карточки / later→rated; PATCH оценки/избранного
+    не двигает ленту. Запланированные карточки в глобальную ленту не входят.
+    """
 
     _session: AsyncSession
 

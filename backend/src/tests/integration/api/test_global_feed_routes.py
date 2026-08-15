@@ -38,13 +38,15 @@ async def _create_film(*, kinopoisk_id: int = 900001) -> Film:
         return film
 
 
-async def _card_updated_at_before_post(card_id: int, post_id: int) -> None:
+async def _card_completed_at_before_post(card_id: int, post_id: int) -> None:
     session_factory = get_session_factory()
     async with session_factory() as session:
         card = await session.get(UserCard, card_id)
         post = await session.get(FeedPost, post_id)
         assert card is not None and post is not None
-        card.updated_at = post.created_at - dt.timedelta(seconds=1)
+        earlier = post.created_at - dt.timedelta(seconds=1)
+        card.completed_at = earlier
+        card.updated_at = earlier
         await session.commit()
 
 
@@ -81,7 +83,7 @@ async def test_global_feed_cards_and_posts_chronology(async_client: AsyncClient)
     assert r_post.status_code == 200
     post_id = int(r_post.json()['id'])
 
-    await _card_updated_at_before_post(card_id, post_id)
+    await _card_completed_at_before_post(card_id, post_id)
 
     r_all = await async_client.get('/api/feed/global?limit=20&kind=all')
     assert r_all.status_code == 200
@@ -220,12 +222,12 @@ async def test_global_feed_includes_other_users_cards(async_client: AsyncClient)
 
 
 @pytest.mark.asyncio
-async def test_global_feed_all_resurfaces_updated_card_above_newer_post(
+async def test_global_feed_all_does_not_resurface_card_on_rating_patch(
     async_client: AsyncClient,
 ) -> None:
-    """Обновлённая карточка всплывает выше более нового поста в kind=all."""
-    await _login(async_client, telegram_user_id=71101)
-    film = await _create_film(kinopoisk_id=71102)
+    """PATCH рейтинга не поднимает карточку выше более нового поста в kind=all."""
+    await _login(async_client, telegram_user_id=71201)
+    film = await _create_film(kinopoisk_id=71210)
     r_card = await async_client.post(
         '/api/cards',
         json={
@@ -249,8 +251,6 @@ async def test_global_feed_all_resurfaces_updated_card_above_newer_post(
     assert r_post.status_code == 200
     post_id = int(r_post.json()['id'])
 
-    await _card_updated_at_before_post(card_id, post_id)
-
     before = await async_client.get('/api/feed/global?kind=all&limit=20')
     assert before.status_code == 200
     assert before.json()['items'][0]['kind'] == 'feed_post'
@@ -261,15 +261,17 @@ async def test_global_feed_all_resurfaces_updated_card_above_newer_post(
 
     after = await async_client.get('/api/feed/global?kind=all&limit=20')
     assert after.status_code == 200
-    assert after.json()['items'][0]['kind'] == 'movie_card'
-    assert after.json()['items'][0]['id'] == card_id
+    assert after.json()['items'][0]['kind'] == 'feed_post'
+    assert after.json()['items'][0]['id'] == post_id
 
 
 @pytest.mark.asyncio
-async def test_global_feed_cards_sort_by_updated_at(async_client: AsyncClient) -> None:
-    """В kind=cards более свежий updated_at выше, даже если карточка создана раньше."""
-    await _login(async_client, telegram_user_id=71103)
-    film_a = await _create_film(kinopoisk_id=71104)
+async def test_global_feed_cards_sort_by_completed_at_not_rating_patch(
+    async_client: AsyncClient,
+) -> None:
+    """В kind=cards порядок по completed_at; PATCH рейтинга не поднимает карточку."""
+    await _login(async_client, telegram_user_id=71202)
+    film_a = await _create_film(kinopoisk_id=71211)
     r_card_a = await async_client.post(
         '/api/cards',
         json={
@@ -286,7 +288,7 @@ async def test_global_feed_cards_sort_by_updated_at(async_client: AsyncClient) -
     assert r_card_a.status_code == 200
     card_a_id = int(r_card_a.json()['id'])
 
-    film_b = await _create_film(kinopoisk_id=71105)
+    film_b = await _create_film(kinopoisk_id=71212)
     r_card_b = await async_client.post(
         '/api/cards',
         json={
@@ -312,7 +314,122 @@ async def test_global_feed_cards_sort_by_updated_at(async_client: AsyncClient) -
 
     after = await async_client.get('/api/feed/global?kind=cards&limit=20')
     assert after.status_code == 200
-    assert after.json()['items'][0]['id'] == card_a_id
+    assert after.json()['items'][0]['id'] == card_b_id
+
+
+@pytest.mark.asyncio
+async def test_global_feed_cards_later_to_rated_surfaces_on_top(async_client: AsyncClient) -> None:
+    """Перевод later→rated выставляет completed_at и поднимает карточку в kind=cards."""
+    await _login(async_client, telegram_user_id=71203)
+    film_b = await _create_film(kinopoisk_id=71213)
+    r_card_b = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_b.id,
+            'kinopoisk_id': film_b.kinopoisk_id,
+            'genres': film_b.genres,
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r_card_b.status_code == 200
+    card_b_id = int(r_card_b.json()['id'])
+
+    film_a = await _create_film(kinopoisk_id=71214)
+    r_watch = await async_client.post('/api/me/watchlist', json={'film_id': film_a.id})
+    assert r_watch.status_code == 201
+
+    r_rate = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_a.id,
+            'kinopoisk_id': film_a.kinopoisk_id,
+            'genres': film_a.genres,
+            'rating': 8.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r_rate.status_code == 200
+    upgraded_id = int(r_rate.json()['id'])
+
+    r_cards = await async_client.get('/api/feed/global?kind=cards&limit=20')
+    assert r_cards.status_code == 200
+    assert r_cards.json()['items'][0]['id'] == upgraded_id
+    assert upgraded_id != card_b_id
+
+
+@pytest.mark.asyncio
+async def test_global_feed_cards_favorite_patch_does_not_bump(async_client: AsyncClient) -> None:
+    """PATCH is_favorite не поднимает карточку в kind=cards."""
+    await _login(async_client, telegram_user_id=71204)
+    film_a = await _create_film(kinopoisk_id=71215)
+    r_card_a = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_a.id,
+            'kinopoisk_id': film_a.kinopoisk_id,
+            'genres': film_a.genres,
+            'rating': 6.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r_card_a.status_code == 200
+    card_a_id = int(r_card_a.json()['id'])
+
+    film_b = await _create_film(kinopoisk_id=71216)
+    r_card_b = await async_client.post(
+        '/api/cards',
+        json={
+            'film_id': film_b.id,
+            'kinopoisk_id': film_b.kinopoisk_id,
+            'genres': film_b.genres,
+            'rating': 7.0,
+            'company': 'alone',
+            'mood_before': 'relax',
+            'mood_after': 'enjoyed',
+            'custom_tags': [],
+        },
+    )
+    assert r_card_b.status_code == 200
+    card_b_id = int(r_card_b.json()['id'])
+
+    before = await async_client.get('/api/feed/global?kind=cards&limit=20')
+    assert before.status_code == 200
+    assert before.json()['items'][0]['id'] == card_b_id
+
+    r_patch = await async_client.patch(f'/api/cards/{card_a_id}', json={'is_favorite': True})
+    assert r_patch.status_code == 200
+
+    after = await async_client.get('/api/feed/global?kind=cards&limit=20')
+    assert after.status_code == 200
+    assert after.json()['items'][0]['id'] == card_b_id
+
+
+@pytest.mark.asyncio
+async def test_global_feed_excludes_planned_cards(async_client: AsyncClient) -> None:
+    """kind=cards не включает planned-карточку из watchlist."""
+    await _login(async_client, telegram_user_id=71205)
+    film = await _create_film(kinopoisk_id=71217)
+    r_watch = await async_client.post('/api/me/watchlist', json={'film_id': film.id})
+    assert r_watch.status_code == 201
+
+    planned = await async_client.get(f'/api/me/planned-card?film_id={film.id}')
+    assert planned.status_code == 200
+    planned_id = int(planned.json()['user_card_id'])
+
+    r_cards = await async_client.get('/api/feed/global?kind=cards&limit=50')
+    assert r_cards.status_code == 200
+    ids = {it['id'] for it in r_cards.json()['items']}
+    assert planned_id not in ids
 
 
 @pytest.mark.asyncio

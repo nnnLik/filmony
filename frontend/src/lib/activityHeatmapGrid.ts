@@ -1,3 +1,5 @@
+export const HEATMAP_WINDOW_DAYS = 30
+
 export type ActivityBucket = {
   date: string
   count: number
@@ -21,6 +23,17 @@ function parseIsoDate(value: string): Date {
 
 function formatIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
+}
+
+export function clipHeatmapWindow(
+  activityStart: string,
+  activityEnd: string,
+): { start: string; end: string } {
+  const end = parseIsoDate(activityEnd)
+  const candidateStart = new Date(end.getTime() - (HEATMAP_WINDOW_DAYS - 1) * DAY_MS)
+  const parsedStart = parseIsoDate(activityStart)
+  const start = parsedStart > candidateStart ? parsedStart : candidateStart
+  return { start: formatIsoDate(start), end: formatIsoDate(end) }
 }
 
 function mondayAlignedStart(date: Date): Date {

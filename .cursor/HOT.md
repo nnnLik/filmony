@@ -1,22 +1,28 @@
 # HOT — Cursor session memory
-Updated: 2026-08-15T010600Z
+Updated: 2026-08-15T011600Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
 ## in_progress
-1. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
+1. `profile-heatmap-stats-regroup` — move heatmap to profile; regroup stats sub-tabs (Обзор / Вкус / Сообщество) without losing analytics blocks
+   - Feature: `.cursor/features/profile-heatmap-stats-regroup/feature.md`
+   - Active: `.cursor/active/profile-heatmap-stats-regroup/`
+2. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
    - Feature: `.cursor/features/film-radarr-playback/feature.md`
    - Active: `.cursor/active/film-radarr-playback/`
    - Spec: `docs/superpowers/specs/2026-08-10-film-radarr-torrent-stack-design.md`
-2. `collections-core` — curated film collections with rated-only progress tracking
+3. `collections-core` — curated film collections with rated-only progress tracking
    - Feature: `.cursor/features/collections-core/feature.md`
    - Active: `.cursor/active/collections-core/`
-3. `film-award-badges` — Oscar nominee/winner badges on films (independent of collections)
+4. `film-award-badges` — Oscar nominee/winner badges on films (independent of collections)
    - Feature: `.cursor/features/film-award-badges/feature.md`
    - Active: `.cursor/active/film-award-badges/`
-4. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
+5. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
    - Feature: `.cursor/features/achievements-rarity-profile-pins/feature.md`
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
+6. `feed-created-sort` — sort feed and profile by completed_at (rated-card creation), not updated_at
+   - Feature: `.cursor/features/feed-created-sort/feature.md`
+   - Active: `.cursor/active/feed-created-sort/`
 
 ## recent_completed
 1. `profile-rating-contrast-stats` — closed 2026-08-15T010600Z

@@ -27,6 +27,7 @@ import { ProfileMoviesSegmentToggle } from '../components/profile/ProfileMoviesS
 import { ProfileRatedPanel } from '../components/profile/ProfileRatedPanel'
 import { ProfileCollectionsPanel } from '../components/profile/ProfileCollectionsPanel'
 import { ProfileStatsTab } from '../components/profile/ProfileStatsTab'
+import { ProfileActivityHeatmapSection } from '../components/profile/ProfileActivityHeatmapSection'
 import { PublicProfilePinnedAchievements } from '../components/profile/PublicProfilePinnedAchievements'
 import { ProfileWatchlistPanel } from '../components/profile/ProfileWatchlistPanel'
 import { PageErrorState } from '../components/ui/PageErrorState'
@@ -177,6 +178,14 @@ export function PublicProfilePage() {
     setMainTab('movies')
     setMoviesSegment('rated')
   }, [])
+
+  const handleHeatmapDaySelect = useCallback(
+    (isoDate: string, shelfId: string) => {
+      setRatedQuery((prev) => ({ ...prev, completedOn: isoDate, categoryId: shelfId, sort: 'recent' }))
+      drillToRatedCards()
+    },
+    [drillToRatedCards, setRatedQuery],
+  )
 
   const handleNavigateBack = useCallback(() => {
     const st = location.state as { cardEntry?: string } | undefined
@@ -340,6 +349,12 @@ export function PublicProfilePage() {
 
         <PublicProfilePinnedAchievements
           items={profile.pinned_achievements ?? []}
+          className="mb-4"
+        />
+
+        <ProfileActivityHeatmapSection
+          userId={profile.id}
+          onDaySelect={handleHeatmapDaySelect}
           className="mb-4"
         />
 

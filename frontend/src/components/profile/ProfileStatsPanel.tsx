@@ -40,7 +40,6 @@ import {
   type RatedCardsListQuery,
 } from '../../lib/ratedCardsListQuery'
 
-import { ProfileActivityHeatmap } from './ProfileActivityHeatmap'
 import {
   ProfileInsightsGrid,
   SocialTastePeers,
@@ -61,14 +60,13 @@ import { ProfilePassportPanel } from './gamification/ProfilePassportPanel'
 import { AchievementsPanel } from './AchievementsPanel'
 import { SegmentedControl } from '../ui/SegmentedControl'
 
-type StatsSubTab = 'overview' | 'taste' | 'social' | 'rankings' | 'rewards'
+type StatsSubTab = 'overview' | 'taste' | 'community'
 type PeopleKind = 'directors' | 'actors'
 
 const BASE_STATS_SUB_TABS: { id: StatsSubTab; label: string }[] = [
   { id: 'overview', label: 'Обзор' },
   { id: 'taste', label: 'Вкус' },
-  { id: 'social', label: 'Социальность' },
-  { id: 'rankings', label: 'Рейтинги' },
+  { id: 'community', label: 'Сообщество' },
 ]
 
 type ProfileStatsPanelProps = {
@@ -79,7 +77,7 @@ type ProfileStatsPanelProps = {
   enableCategoryFilter?: boolean
   /** После действия из статистики — перейти к списку оценённых карточек (вкладка родителя). */
   onDrillToRatedCards?: () => void
-  /** Блок «Угадай вкус» на вкладке «Социальность» (только свой профиль). */
+  /** Блок «Угадай вкус» на вкладке «Сообщество» (только свой профиль). */
   showTasteQuizTeaser?: boolean
   /** Показывать коллекцию штампов (свой профиль — полная, чужой — только открытые). */
   showPassportCollection?: boolean
@@ -577,32 +575,15 @@ export function ProfileStatsPanel({
   showAchievements = false,
   onMarathonDrill,
 }: ProfileStatsPanelProps) {
-  const statsSubTabs = useMemo(() => {
-    const tabs = [...BASE_STATS_SUB_TABS]
-    if (showAchievements || showPassportCollection) {
-      tabs.push({ id: 'rewards', label: 'Награды' })
-    }
-    return tabs
-  }, [showAchievements, showPassportCollection])
   const [statsSubTab, setStatsSubTab] = useState<StatsSubTab>('overview')
-  const [activityShelfId, setActivityShelfId] = useState('')
   const [tasteQuizTeaserItems, setTasteQuizTeaserItems] = useState<TasteQuizKnowledgeItem[]>([])
   const [tasteQuizTeaserLoading, setTasteQuizTeaserLoading] = useState(false)
 
-  const activityCategoryId = useMemo(() => {
-    if (activityShelfId === '') {
-      return null
-    }
-    const shelfNum = Number(activityShelfId)
-    return Number.isInteger(shelfNum) && shelfNum >= 1 ? shelfNum : null
-  }, [activityShelfId])
-
-  const statsQuery = useUserMovieCardStatsQuery(userId, activityCategoryId, {
+  const statsQuery = useUserMovieCardStatsQuery(userId, null, {
     enabled: userId !== '',
   })
   const stats = statsQuery.data ?? null
   const loading = statsQuery.isPending && stats == null
-  const activityLoading = statsQuery.isFetching && stats != null
   const error =
     statsQuery.error instanceof ApiError
       ? formatApiDetail(statsQuery.error.detail)
@@ -618,13 +599,7 @@ export function ProfileStatsPanel({
   })
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setActivityShelfId('')
-    })
-  }, [userId])
-
-  useEffect(() => {
-    if (!showTasteQuizTeaser || statsSubTab !== 'social') {
+    if (!showTasteQuizTeaser || statsSubTab !== 'community') {
       return
     }
     let alive = true
@@ -872,16 +847,6 @@ export function ProfileStatsPanel({
     ? (rankingsQuery.data?.worst ?? [])
     : (stats?.worst_movies ?? [])
 
-  const handleActivityDaySelect = (isoDate: string, shelfId: string) => {
-    onCardsQueryChange({
-      ...cardsQuery,
-      completedOn: isoDate,
-      categoryId: shelfId,
-      sort: 'recent',
-    })
-    onDrillToRatedCards?.()
-  }
-
   if (loading && stats == null) {
     return <p className="filmony-text-panel py-8 text-center text-sm text-(--tgui--hint_color)">Загрузка статистики…</p>
   }
@@ -903,21 +868,10 @@ export function ProfileStatsPanel({
 
   return (
     <div className="space-y-4">
-      <StatsSubTabBar active={statsSubTab} onChange={setStatsSubTab} tabs={statsSubTabs} />
+      <StatsSubTabBar active={statsSubTab} onChange={setStatsSubTab} tabs={BASE_STATS_SUB_TABS} />
 
       {statsSubTab === 'overview' ? (
         <>
-          <ProfileActivityHeatmap
-            activity={stats.activity_distribution}
-            activityStart={stats.activity_start}
-            activityEnd={stats.activity_end}
-            shelves={shelfDistributionRows}
-            selectedShelfId={activityShelfId}
-            onShelfChange={setActivityShelfId}
-            loading={activityLoading}
-            onDaySelect={handleActivityDaySelect}
-          />
-
           <section className="rounded-2xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) p-2.5 sm:p-3">
             <ProfileStatsMetricStrip metrics={metricStripItems} />
           </section>
@@ -945,6 +899,18 @@ export function ProfileStatsPanel({
               <p className="text-sm text-(--tgui--hint_color)">Пока нет данных</p>
             )}
           </ProfileStatsSectionCard>
+
+          {rankingsErr != null ? (
+            <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">{rankingsErr}</p>
+          ) : null}
+
+          <ProfileStatsSectionCard title="Топ по оценке">
+            {rankingsLoading ? <StatsRatedCardSkeleton /> : <StatsRatedCardRows items={topMoviesDisplay} />}
+          </ProfileStatsSectionCard>
+
+          <ProfileStatsSectionCard title="Самые низкие оценки">
+            {rankingsLoading ? <StatsRatedCardSkeleton /> : <StatsRatedCardRows items={worstMoviesDisplay} />}
+          </ProfileStatsSectionCard>
         </>
       ) : null}
 
@@ -958,7 +924,7 @@ export function ProfileStatsPanel({
             )}
           </ProfileStatsSectionCard>
 
-          <ProfileStatsSectionCard title="Теги вкуса">
+          <ProfileStatsSectionCard title="Теги">
             <TagBubbleChart
               items={tagTasteItems}
               selectedTags={cardsQuery.tags}
@@ -969,32 +935,71 @@ export function ProfileStatsPanel({
                 onDrillToRatedCards?.()
               }}
             />
+            {prioritizedPopularTags.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">Популярные</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {prioritizedPopularTags.map((tag) => {
+                    const hilite = cardsQuery.tags.length > 0 && cardsQuery.tags.includes(tag.tag)
+                    const neutral = cardsQuery.tags.length === 0
+                    return (
+                      <button
+                        key={tag.tag}
+                        type="button"
+                        aria-pressed={hilite}
+                        aria-label={`Фильтр по тегу «${tag.tag}»`}
+                        className={`max-w-[min(100%,12rem)] truncate rounded-lg border px-2 py-0.5 text-left text-[11px] leading-snug tabular-nums outline-none transition-[opacity,background-color] focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) focus-visible:ring-offset-1 focus-visible:ring-offset-(--tgui--secondary_bg_color) active:opacity-90 ${
+                          hilite
+                            ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_16%,transparent)] text-(--tgui--text_color)'
+                            : neutral
+                              ? 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--text_color)'
+                              : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--text_color) opacity-60'
+                        }`}
+                        onClick={() => {
+                          const has = cardsQuery.tags.includes(tag.tag)
+                          const nextTags = has ? cardsQuery.tags.filter((t) => t !== tag.tag) : [...cardsQuery.tags, tag.tag]
+                          onCardsQueryChange({ ...cardsQuery, tags: nextTags })
+                          onDrillToRatedCards?.()
+                        }}
+                      >
+                        {tag.tag} <span className="text-(--tgui--hint_color)">({tag.count})</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
           </ProfileStatsSectionCard>
 
-          <ProfileStatsSectionCard title="Компания">
-            <StatsDonutChart
-              segments={companyDonutSegments}
-              activeValue={cardsQuery.company === '' ? undefined : cardsQuery.company}
-              onSegmentClick={(value) => {
-                const v = value as CardCompany
-                const nextCompany: CardCompany | '' = cardsQuery.company === v ? '' : v
-                onCardsQueryChange({ ...cardsQuery, company: nextCompany })
-                onDrillToRatedCards?.()
-              }}
-            />
-          </ProfileStatsSectionCard>
-
-          <ProfileStatsSectionCard title="После просмотра">
-            <StatsDonutChart
-              segments={moodDonutSegments}
-              activeValue={cardsQuery.moodAfter === '' ? undefined : cardsQuery.moodAfter}
-              onSegmentClick={(value) => {
-                const v = value as CardMoodAfter
-                const nextMood: CardMoodAfter | '' = cardsQuery.moodAfter === v ? '' : v
-                onCardsQueryChange({ ...cardsQuery, moodAfter: nextMood })
-                onDrillToRatedCards?.()
-              }}
-            />
+          <ProfileStatsSectionCard title="Как смотрю">
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">Компания</p>
+                <StatsDonutChart
+                  segments={companyDonutSegments}
+                  activeValue={cardsQuery.company === '' ? undefined : cardsQuery.company}
+                  onSegmentClick={(value) => {
+                    const v = value as CardCompany
+                    const nextCompany: CardCompany | '' = cardsQuery.company === v ? '' : v
+                    onCardsQueryChange({ ...cardsQuery, company: nextCompany })
+                    onDrillToRatedCards?.()
+                  }}
+                />
+              </div>
+              <div>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-(--tgui--hint_color)">После просмотра</p>
+                <StatsDonutChart
+                  segments={moodDonutSegments}
+                  activeValue={cardsQuery.moodAfter === '' ? undefined : cardsQuery.moodAfter}
+                  onSegmentClick={(value) => {
+                    const v = value as CardMoodAfter
+                    const nextMood: CardMoodAfter | '' = cardsQuery.moodAfter === v ? '' : v
+                    onCardsQueryChange({ ...cardsQuery, moodAfter: nextMood })
+                    onDrillToRatedCards?.()
+                  }}
+                />
+              </div>
+            </div>
           </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="По полкам">
@@ -1085,7 +1090,7 @@ export function ProfileStatsPanel({
         </>
       ) : null}
 
-      {statsSubTab === 'social' ? (
+      {statsSubTab === 'community' ? (
         <>
           {showTasteQuizTeaser ? (
             <ProfileStatsSectionCard title="Угадай вкус">
@@ -1113,61 +1118,7 @@ export function ProfileStatsPanel({
           <ProfileStatsSectionCard title="Похожие профили">
             <SocialTastePeers peers={tastePeers} />
           </ProfileStatsSectionCard>
-        </>
-      ) : null}
 
-      {statsSubTab === 'rankings' ? (
-        <>
-          {rankingsErr != null ? (
-            <p className="filmony-text-panel text-center text-sm text-(--tgui--destructive_text_color)">{rankingsErr}</p>
-          ) : null}
-
-          <ProfileStatsSectionCard title="Топ по оценке">
-            {rankingsLoading ? <StatsRatedCardSkeleton /> : <StatsRatedCardRows items={topMoviesDisplay} />}
-          </ProfileStatsSectionCard>
-
-          <ProfileStatsSectionCard title="Самые низкие оценки">
-            {rankingsLoading ? <StatsRatedCardSkeleton /> : <StatsRatedCardRows items={worstMoviesDisplay} />}
-          </ProfileStatsSectionCard>
-
-          {prioritizedPopularTags.length > 0 ? (
-            <ProfileStatsSectionCard title="Популярные теги">
-              <div className="flex flex-wrap gap-1.5">
-                {prioritizedPopularTags.map((tag) => {
-                  const hilite = cardsQuery.tags.length > 0 && cardsQuery.tags.includes(tag.tag)
-                  const neutral = cardsQuery.tags.length === 0
-                  return (
-                    <button
-                      key={tag.tag}
-                      type="button"
-                      aria-pressed={hilite}
-                      aria-label={`Фильтр по тегу «${tag.tag}»`}
-                      className={`max-w-[min(100%,12rem)] truncate rounded-lg border px-2 py-0.5 text-left text-[11px] leading-snug tabular-nums outline-none transition-[opacity,background-color] focus-visible:ring-2 focus-visible:ring-(--tgui--link_color) focus-visible:ring-offset-1 focus-visible:ring-offset-(--tgui--secondary_bg_color) active:opacity-90 ${
-                        hilite
-                          ? 'border-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_45%,transparent)] bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_16%,transparent)] text-(--tgui--text_color)'
-                          : neutral
-                            ? 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--text_color)'
-                            : 'border-(--tgui--divider_color) bg-(--tgui--bg_color) text-(--tgui--text_color) opacity-60'
-                      }`}
-                      onClick={() => {
-                        const has = cardsQuery.tags.includes(tag.tag)
-                        const nextTags = has ? cardsQuery.tags.filter((t) => t !== tag.tag) : [...cardsQuery.tags, tag.tag]
-                        onCardsQueryChange({ ...cardsQuery, tags: nextTags })
-                        onDrillToRatedCards?.()
-                      }}
-                    >
-                      {tag.tag} <span className="text-(--tgui--hint_color)">({tag.count})</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </ProfileStatsSectionCard>
-          ) : null}
-        </>
-      ) : null}
-
-      {statsSubTab === 'rewards' ? (
-        <>
           {showPassportCollection ? (
             <ProfilePassportPanel
               userId={userId}
