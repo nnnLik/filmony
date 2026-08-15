@@ -1,3 +1,4 @@
+import type { FilmRecommendationItem } from '../api/profileTypes'
 import { formatFilmsCount } from './formatRuPlural'
 
 export type FilmCatalogMetadataSize = 'sm' | 'md'
@@ -19,8 +20,20 @@ export function providersSummary(names: string[]): string {
   return remainder > 0 ? `${preview} +${remainder}` : preview
 }
 
-export function similarSummary(titles: string[]): string {
-  if (titles.length === 0) return ''
-  if (titles.length === 1) return titles[0] ?? ''
-  return formatFilmsCount(titles.length)
+export function normalizeFilmRecommendations(
+  items: FilmRecommendationItem[] | null | undefined,
+): FilmRecommendationItem[] {
+  return (items ?? [])
+    .map((item) => ({
+      title: item.title.trim(),
+      film_id: item.film_id,
+      in_catalog: item.in_catalog,
+    }))
+    .filter((item) => item.title !== '')
+}
+
+export function similarSummary(items: FilmRecommendationItem[]): string {
+  if (items.length === 0) return ''
+  if (items.length === 1) return items[0]?.title ?? ''
+  return formatFilmsCount(items.length)
 }

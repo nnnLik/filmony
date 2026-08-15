@@ -18,6 +18,11 @@ from models.user_card import UserCard
 from models.user_card_category import UserCardCategory
 from services.directors.get_director_summary import _rated_card_filters
 from services.franchises.franchise_label import franchise_fallback_label, resolve_franchise_labels
+from services.profile.compute_rating_contrast_insights import (
+    RatingContrastInsights,
+    RatingContrastRow,
+    compute_rating_contrast_insights,
+)
 
 UNCATEGORIZED_SHELF_NAME = 'Без полки'
 ACTIVITY_WINDOW_DAYS = 180
@@ -145,6 +150,7 @@ class UserCardStats:
     activity_distribution: list[ActivityDistributionItem]
     activity_start: dt.date
     activity_end: dt.date
+    rating_contrast: RatingContrastInsights
 
 
 def _completion_timestamp():
@@ -199,6 +205,8 @@ class GetUserCardStatsService:
                     Film.year,
                     Film.poster_url,
                     Film.genres,
+                    Film.rating_kinopoisk,
+                    Film.rating_imdb,
                     Film.primary_director_kinopoisk_id,
                     Film.primary_director_name,
                     Film.primary_director_poster_url,
@@ -229,6 +237,7 @@ class GetUserCardStatsService:
         director_counts: dict[int, tuple[str, str | None, int]] = {}
         franchise_counts: dict[str, int] = {}
         movies: list[ProfileMovieStatsItem] = []
+        contrast_rows: list[RatingContrastRow] = []
 
         for row in card_rows:
             rating_value = float(row.rating)
@@ -281,6 +290,18 @@ class GetUserCardStatsService:
                     film_poster_url=row.poster_url,
                     rating=rating_value,
                 )
+            )
+            contrast_rows.append(
+                RatingContrastRow(
+                    user_rating=rating_value,
+                    rating_kinopoisk=(
+                        float(row.rating_kinopoisk) if row.rating_kinopoisk is not None else None
+                    ),
+                    rating_imdb=(float(row.rating_imdb) if row.rating_imdb is not None else None),
+                    film_id=int(row.film_id),
+                    film_title=row.title,
+                    card_id=int(row.id),
+                ),
             )
 
         average_rating = round(rating_sum / total_movies, 1) if total_movies > 0 else 0.0
@@ -466,6 +487,7 @@ class GetUserCardStatsService:
             top_franchise_label=top_franchise.label if top_franchise else None,
             top_franchise_count=top_franchise.count if top_franchise else 0,
         )
+        rating_contrast = compute_rating_contrast_insights(contrast_rows)
 
         return UserCardStats(
             total_movies=total_movies,
@@ -488,6 +510,7 @@ class GetUserCardStatsService:
             activity_distribution=activity_distribution,
             activity_start=activity_start,
             activity_end=activity_end,
+            rating_contrast=rating_contrast,
         )
 
     async def _load_activity_distribution(

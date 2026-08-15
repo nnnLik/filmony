@@ -1,13 +1,28 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 
-def extract_tmdb_recommendation_titles(
+@dataclass(frozen=True, slots=True)
+class TmdbRecommendationEntry:
+    title: str
+    tmdb_id: int | None
+
+
+def _parse_tmdb_id(raw: object) -> int | None:
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str) and raw.isdigit():
+        return int(raw)
+    return None
+
+
+def extract_tmdb_recommendation_entries(
     snapshot: Any | None,
     *,
     limit: int = 6,
-) -> list[str]:
+) -> list[TmdbRecommendationEntry]:
     if not isinstance(snapshot, dict):
         return []
     recommendations = snapshot.get('recommendations')
@@ -16,7 +31,7 @@ def extract_tmdb_recommendation_titles(
     results = recommendations.get('results')
     if not isinstance(results, list):
         return []
-    titles: list[str] = []
+    entries: list[TmdbRecommendationEntry] = []
     for item in results:
         if not isinstance(item, dict):
             continue
@@ -26,10 +41,27 @@ def extract_tmdb_recommendation_titles(
         normalized = title.strip()
         if normalized == '':
             continue
-        titles.append(normalized)
-        if len(titles) >= limit:
+        entries.append(
+            TmdbRecommendationEntry(
+                title=normalized,
+                tmdb_id=_parse_tmdb_id(item.get('id')),
+            ),
+        )
+        if len(entries) >= limit:
             break
-    return titles
+    return entries
 
 
-__all__ = ('extract_tmdb_recommendation_titles',)
+def extract_tmdb_recommendation_titles(
+    snapshot: Any | None,
+    *,
+    limit: int = 6,
+) -> list[str]:
+    return [entry.title for entry in extract_tmdb_recommendation_entries(snapshot, limit=limit)]
+
+
+__all__ = (
+    'TmdbRecommendationEntry',
+    'extract_tmdb_recommendation_entries',
+    'extract_tmdb_recommendation_titles',
+)

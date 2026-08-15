@@ -29,7 +29,7 @@ from api.catalog.schemas import (
     CatalogSearchResponse,
 )
 from api.films.award_badges import film_award_badge_responses
-from api.films.mappers import film_passport_response_fields
+from api.films.mappers import build_film_passport_response_fields
 from api.films.schemas import FilmResponse
 from core.database import get_db
 from deps.auth import CurrentUser
@@ -414,7 +414,7 @@ async def resolve_catalog_item(
             description=film.description,
             my_card_id=my_card_id,
             award_badges=award_badges,
-            **film_passport_response_fields(film),
+            **await build_film_passport_response_fields(db, film),
         ),
     )
 
@@ -492,7 +492,7 @@ async def resolve_catalog_by_url(
             description=film.description,
             my_card_id=my_card_id,
             award_badges=award_badges,
-            **film_passport_response_fields(film),
+            **await build_film_passport_response_fields(db, film),
         ),
         source_url=None,
         my_card_id=None,

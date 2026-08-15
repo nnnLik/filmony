@@ -443,6 +443,32 @@ class ProfileStatsMovieItemResponse(BaseModel):
     rating: float
 
 
+class RatingContrastOutlierResponse(BaseModel):
+    card_id: int
+    film_id: int
+    film_title: str
+    user_rating: float
+    external_rating: float
+    delta: float
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class RatingContrastInsightsResponse(BaseModel):
+    kinopoisk_compared_count: int
+    kinopoisk_higher_count: int
+    kinopoisk_lower_count: int
+    kinopoisk_biggest_positive: RatingContrastOutlierResponse | None = None
+    kinopoisk_biggest_negative: RatingContrastOutlierResponse | None = None
+    imdb_compared_count: int
+    imdb_higher_count: int
+    imdb_lower_count: int
+    imdb_biggest_positive: RatingContrastOutlierResponse | None = None
+    imdb_biggest_negative: RatingContrastOutlierResponse | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class UserCardStatsApiResponse(BaseModel):
     total_movies: int
     average_rating: float
@@ -464,6 +490,7 @@ class UserCardStatsApiResponse(BaseModel):
     activity_distribution: list[ActivityDistributionItemResponse] = Field(default_factory=list)
     activity_start: date
     activity_end: date
+    rating_contrast: RatingContrastInsightsResponse
     social: ProfileSocialInsightsResponse
 
 
@@ -652,6 +679,19 @@ def build_subscription_list_response(items: list[SubscriptionListItem]) -> Subsc
     )
 
 
+def _rating_contrast_outlier_response(outlier) -> RatingContrastOutlierResponse | None:
+    if outlier is None:
+        return None
+    return RatingContrastOutlierResponse(
+        card_id=outlier.card_id,
+        film_id=outlier.film_id,
+        film_title=outlier.film_title,
+        user_rating=outlier.user_rating,
+        external_rating=outlier.external_rating,
+        delta=outlier.delta,
+    )
+
+
 def build_user_card_stats_response(
     stats: UserCardStats,
     *,
@@ -773,6 +813,26 @@ def build_user_card_stats_response(
         ],
         activity_start=stats.activity_start,
         activity_end=stats.activity_end,
+        rating_contrast=RatingContrastInsightsResponse(
+            kinopoisk_compared_count=stats.rating_contrast.kinopoisk_compared_count,
+            kinopoisk_higher_count=stats.rating_contrast.kinopoisk_higher_count,
+            kinopoisk_lower_count=stats.rating_contrast.kinopoisk_lower_count,
+            kinopoisk_biggest_positive=_rating_contrast_outlier_response(
+                stats.rating_contrast.kinopoisk_biggest_positive,
+            ),
+            kinopoisk_biggest_negative=_rating_contrast_outlier_response(
+                stats.rating_contrast.kinopoisk_biggest_negative,
+            ),
+            imdb_compared_count=stats.rating_contrast.imdb_compared_count,
+            imdb_higher_count=stats.rating_contrast.imdb_higher_count,
+            imdb_lower_count=stats.rating_contrast.imdb_lower_count,
+            imdb_biggest_positive=_rating_contrast_outlier_response(
+                stats.rating_contrast.imdb_biggest_positive,
+            ),
+            imdb_biggest_negative=_rating_contrast_outlier_response(
+                stats.rating_contrast.imdb_biggest_negative,
+            ),
+        ),
         social=ProfileSocialInsightsResponse(
             mutual_subscriptions_count=social.mutual_subscriptions_count,
             taste_peers=[

@@ -2,7 +2,7 @@ import { Avatar } from '@telegram-apps/telegram-ui'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 
 import {
   listCatalogFilms,
@@ -460,10 +460,19 @@ function SearchPeoplePanel({
 
 export function SearchPage() {
   const auth = useAuthStatus()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = tabFromSearch(searchParams)
 
-  const [cardsQuery, setCardsQuery] = useState('')
+  const initialCardsQuery =
+    typeof location.state === 'object' &&
+    location.state != null &&
+    'cardsQuery' in location.state &&
+    typeof (location.state as { cardsQuery?: unknown }).cardsQuery === 'string'
+      ? (location.state as { cardsQuery: string }).cardsQuery.trim()
+      : ''
+
+  const [cardsQuery, setCardsQuery] = useState(initialCardsQuery)
   const [peopleQuery, setPeopleQuery] = useState('')
   const [debouncedCardsQuery, setDebouncedCardsQuery] = useState('')
   const [debouncedPeopleQuery, setDebouncedPeopleQuery] = useState('')

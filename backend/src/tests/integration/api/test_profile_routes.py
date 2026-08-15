@@ -574,6 +574,59 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert social['mutual_subscriptions_count'] == 0
     assert social['taste_peers'] == []
 
+    contrast = body['rating_contrast']
+    assert contrast['kinopoisk_compared_count'] == 0
+    assert contrast['imdb_compared_count'] == 0
+    assert contrast['kinopoisk_higher_count'] == 0
+    assert contrast['kinopoisk_lower_count'] == 0
+    assert contrast['kinopoisk_biggest_positive'] is None
+    assert contrast['kinopoisk_biggest_negative'] is None
+
+
+@pytest.mark.asyncio
+async def test_user_stats_rating_contrast_with_external_ratings(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=5291)
+    user_id = UUID(str(me['id']))
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        film = Film(
+            kinopoisk_id=529101,
+            title='Contrast Film',
+            year=2020,
+            poster_url='https://example.com/poster.jpg',
+            genres=[],
+            rating_kinopoisk=6.0,
+            rating_imdb=7.0,
+        )
+        session.add(film)
+        await session.flush()
+        cat_id = await ensure_default_category(session, user_id)
+        session.add(
+            UserCard(
+                user_id=user_id,
+                film_id=film.id,
+                category_id=cat_id,
+                provider=CatalogProvider.kinopoisk,
+                external_id='529101',
+                rating=9.0,
+                company='alone',
+                mood_before='relax',
+                mood_after='enjoyed',
+                is_planned=False,
+            ),
+        )
+        await session.commit()
+
+    r = await async_client.get(f'/api/users/{user_id}/stats')
+    assert r.status_code == 200
+    contrast = r.json()['rating_contrast']
+    assert contrast['kinopoisk_compared_count'] == 1
+    assert contrast['kinopoisk_higher_count'] == 1
+    assert contrast['imdb_compared_count'] == 1
+    assert contrast['imdb_higher_count'] == 1
+    assert contrast['kinopoisk_biggest_positive']['delta'] == 3.0
+    assert contrast['imdb_biggest_positive']['delta'] == 2.0
+
 
 @pytest.mark.asyncio
 async def test_user_stats_director_and_franchise_distribution(

@@ -18,6 +18,12 @@ class FilmAwardBadgeResponse(BaseModel):
     ceremony_year: int
 
 
+class FilmRecommendationItemResponse(BaseModel):
+    title: str
+    film_id: int | None = None
+    in_catalog: bool = False
+
+
 class FilmResponse(BaseModel):
     id: int
     kinopoisk_id: int
@@ -40,7 +46,7 @@ class FilmResponse(BaseModel):
     rating_kinopoisk: float | None = None
     rating_imdb: float | None = None
     rating_age_limits: str | None = None
-    tmdb_recommendations: list[str] = Field(default_factory=list)
+    tmdb_recommendations: list[FilmRecommendationItemResponse] = Field(default_factory=list)
     trailer_youtube_url: str | None = None
     watch_providers_ru: list[str] = Field(default_factory=list)
     my_card_id: int | None = Field(

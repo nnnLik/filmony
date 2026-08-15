@@ -12,6 +12,7 @@ import type {
   ProfileInsightItem,
   ProfileStatsMovieItem,
   MyUserCardCategoryListResponse,
+  RatingContrastInsights,
   TagDistributionItem,
   TagTasteItem,
   UserMovieCardStats,
@@ -266,6 +267,82 @@ function formatRating(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
+function formatSignedDelta(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) return null
+  const rounded = Math.round(value * 10) / 10
+  const formatted = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
+  if (rounded > 0) return `+${formatted}`
+  return formatted
+}
+
+function hasRatingContrastData(contrast: RatingContrastInsights | undefined): contrast is RatingContrastInsights {
+  if (contrast == null) return false
+  return (
+    contrast.avg_delta_kinopoisk != null ||
+    contrast.avg_delta_imdb != null ||
+    contrast.biggest_gap != null ||
+    contrast.agreement_percent > 0 ||
+    contrast.contrarian_count > 0
+  )
+}
+
+function ratingContrastBiggestGapLink(contrast: RatingContrastInsights): string | undefined {
+  const gap = contrast.biggest_gap
+  if (gap == null) return undefined
+  if (gap.film_id != null && gap.film_id > 0) {
+    return `/films/${gap.film_id}`
+  }
+  if (gap.card_id > 0) {
+    return `/cards/${gap.card_id}`
+  }
+  return undefined
+}
+
+function RatingContrastSection({ contrast }: { contrast: RatingContrastInsights }) {
+  const avgKp = formatSignedDelta(contrast.avg_delta_kinopoisk)
+  const avgImdb = formatSignedDelta(contrast.avg_delta_imdb)
+  const biggestGap = contrast.biggest_gap
+  const biggestGapLink = ratingContrastBiggestGapLink(contrast)
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {avgKp != null ? (
+        <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2">
+          <p className="text-[10px] text-(--tgui--hint_color)">Средняя дельта КП</p>
+          <p className="text-lg font-semibold tabular-nums">{avgKp}</p>
+        </div>
+      ) : null}
+      {avgImdb != null ? (
+        <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2">
+          <p className="text-[10px] text-(--tgui--hint_color)">Средняя дельта IMDb</p>
+          <p className="text-lg font-semibold tabular-nums">{avgImdb}</p>
+        </div>
+      ) : null}
+      <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2">
+        <p className="text-[10px] text-(--tgui--hint_color)">Совпадение с агрегаторами</p>
+        <p className="text-lg font-semibold tabular-nums">{Math.round(contrast.agreement_percent)}%</p>
+      </div>
+      <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2">
+        <p className="text-[10px] text-(--tgui--hint_color)">Контр-культ</p>
+        <p className="text-lg font-semibold tabular-nums">{contrast.contrarian_count}</p>
+      </div>
+      {biggestGap != null ? (
+        <div className="rounded-xl border border-(--tgui--divider_color) bg-(--tgui--bg_color) px-3 py-2 sm:col-span-2">
+          <p className="text-[10px] text-(--tgui--hint_color)">Самый большой разрыв</p>
+          {biggestGapLink != null ? (
+            <Link to={biggestGapLink} className="mt-0.5 block truncate text-sm font-medium text-(--tgui--link_color) no-underline">
+              {biggestGap.film_title}
+            </Link>
+          ) : (
+            <p className="mt-0.5 truncate text-sm font-medium">{biggestGap.film_title}</p>
+          )}
+          <p className="mt-0.5 text-xs tabular-nums text-(--tgui--hint_color)">Δ {formatSignedDelta(biggestGap.gap) ?? '—'}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function movieCardToProfileStatsMovieItem(card: MovieCard): ProfileStatsMovieItem {
   return {
     card_id: card.id,
@@ -419,6 +496,42 @@ function deriveInsights(
         label: 'Топ-тег',
         value: topTag.tag,
         hint: `${topTag.count} раз`,
+      })
+    }
+  }
+  const contrast = stats.rating_contrast
+  if (hasRatingContrastData(contrast)) {
+    items.push({
+      key: 'rating_agreement',
+      label: 'Совпадение с КП/IMDb',
+      value: `${Math.round(contrast.agreement_percent)}%`,
+    })
+    const avgKp = formatSignedDelta(contrast.avg_delta_kinopoisk)
+    if (avgKp != null) {
+      items.push({
+        key: 'avg_delta_kp',
+        label: 'Средняя дельта КП',
+        value: avgKp,
+      })
+    }
+    if (contrast.contrarian_count > 0) {
+      items.push({
+        key: 'contrarian_count',
+        label: 'Контр-культ',
+        value: String(contrast.contrarian_count),
+        hint: 'оценок с разрывом ≥4',
+      })
+    }
+    const biggestGapLink = ratingContrastBiggestGapLink(contrast)
+    if (contrast.biggest_gap != null) {
+      items.push({
+        key: 'biggest_gap',
+        label: 'Макс. разрыв',
+        value: contrast.biggest_gap.film_title,
+        hint: formatSignedDelta(contrast.biggest_gap.gap) != null
+          ? `Δ ${formatSignedDelta(contrast.biggest_gap.gap)}`
+          : undefined,
+        to: biggestGapLink,
       })
     }
   }
@@ -818,6 +931,12 @@ export function ProfileStatsPanel({
           {insightItems.length > 0 ? (
             <ProfileStatsSectionCard title="Инсайты">
               <ProfileInsightsGrid items={insightItems} />
+            </ProfileStatsSectionCard>
+          ) : null}
+
+          {hasRatingContrastData(stats.rating_contrast) ? (
+            <ProfileStatsSectionCard title="Оценки vs КП и IMDb">
+              <RatingContrastSection contrast={stats.rating_contrast} />
             </ProfileStatsSectionCard>
           ) : null}
 

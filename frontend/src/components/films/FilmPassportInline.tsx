@@ -44,6 +44,7 @@ export type FilmPassportInlineProps = {
   ratingKinopoisk?: number | null
   ratingImdb?: number | null
   trailerYoutubeUrl?: string | null
+  showTrailerPlaceholder?: boolean
   size?: FilmCatalogMetadataSize
   variant?: FilmCatalogMetadataVariant
   className?: string
@@ -81,6 +82,7 @@ export function FilmPassportInline({
   ratingKinopoisk,
   ratingImdb,
   trailerYoutubeUrl,
+  showTrailerPlaceholder = true,
   size = 'md',
   variant: _variant = 'full',
   className = '',
@@ -144,6 +146,11 @@ export function FilmPassportInline({
             <Play className="size-3 shrink-0" aria-hidden strokeWidth={2.25} />
             <span>Трейлер</span>
           </a>
+        </span>
+      ) : showTrailerPlaceholder && (hasNeutral || hasRatings) ? (
+        <span className="inline-flex items-center gap-x-1.5">
+          {items.length > 0 ? <MetaSeparator /> : null}
+          <span className="text-(--tgui--hint_color)">Трейлер пока недоступен</span>
         </span>
       ) : null}
     </p>

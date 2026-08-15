@@ -400,6 +400,28 @@ export type FilmAwardBadge = {
   ceremony_year: number
 }
 
+export type FilmRecommendationItem = {
+  title: string
+  film_id?: number
+  in_catalog: boolean
+}
+
+export type RatingContrastBiggestGap = {
+  film_title: string
+  film_id: number | null
+  card_id: number
+  gap: number
+}
+
+export type RatingContrastInsights = {
+  avg_delta_kinopoisk: number | null
+  avg_delta_imdb: number | null
+  biggest_gap: RatingContrastBiggestGap | null
+  agreement_percent: number
+  contrarian_count: number
+  compared_count?: number
+}
+
 export type Film = {
   id: number
   kinopoisk_id: number
@@ -418,7 +440,7 @@ export type Film = {
   rating_kinopoisk?: number | null
   rating_imdb?: number | null
   rating_age_limits?: string | null
-  tmdb_recommendations?: string[]
+  tmdb_recommendations?: FilmRecommendationItem[]
   trailer_youtube_url?: string | null
   watch_providers_ru?: string[]
   /** Present when the API knows the viewer already has a card for this film. */
@@ -611,6 +633,8 @@ export type UserMovieCardStats = {
   insights?: ProfileInsightsSnapshot
   /** Социальные метрики и похожие профили. */
   social?: ProfileStatsSocial
+  /** Сравнение оценок пользователя с КП и IMDb. */
+  rating_contrast?: RatingContrastInsights
 }
 
 export type MonthlyRecapTopFilm = {
