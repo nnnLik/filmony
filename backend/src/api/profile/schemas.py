@@ -454,15 +454,30 @@ class RatingContrastOutlierResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+class RatingContrastBiggestGapResponse(BaseModel):
+    film_title: str
+    film_id: int | None = None
+    card_id: int
+    gap: float
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class RatingContrastInsightsResponse(BaseModel):
-    kinopoisk_compared_count: int
-    kinopoisk_higher_count: int
-    kinopoisk_lower_count: int
+    avg_delta_kinopoisk: float | None = None
+    avg_delta_imdb: float | None = None
+    biggest_gap: RatingContrastBiggestGapResponse | None = None
+    agreement_percent: float = 0
+    contrarian_count: int = 0
+    compared_count: int = 0
+    kinopoisk_compared_count: int = 0
+    kinopoisk_higher_count: int = 0
+    kinopoisk_lower_count: int = 0
     kinopoisk_biggest_positive: RatingContrastOutlierResponse | None = None
     kinopoisk_biggest_negative: RatingContrastOutlierResponse | None = None
-    imdb_compared_count: int
-    imdb_higher_count: int
-    imdb_lower_count: int
+    imdb_compared_count: int = 0
+    imdb_higher_count: int = 0
+    imdb_lower_count: int = 0
     imdb_biggest_positive: RatingContrastOutlierResponse | None = None
     imdb_biggest_negative: RatingContrastOutlierResponse | None = None
 
@@ -679,6 +694,17 @@ def build_subscription_list_response(items: list[SubscriptionListItem]) -> Subsc
     )
 
 
+def _rating_contrast_biggest_gap_response(gap) -> RatingContrastBiggestGapResponse | None:
+    if gap is None:
+        return None
+    return RatingContrastBiggestGapResponse(
+        film_title=gap.film_title,
+        film_id=gap.film_id,
+        card_id=gap.card_id,
+        gap=gap.gap,
+    )
+
+
 def _rating_contrast_outlier_response(outlier) -> RatingContrastOutlierResponse | None:
     if outlier is None:
         return None
@@ -814,6 +840,12 @@ def build_user_card_stats_response(
         activity_start=stats.activity_start,
         activity_end=stats.activity_end,
         rating_contrast=RatingContrastInsightsResponse(
+            avg_delta_kinopoisk=stats.rating_contrast.avg_delta_kinopoisk,
+            avg_delta_imdb=stats.rating_contrast.avg_delta_imdb,
+            biggest_gap=_rating_contrast_biggest_gap_response(stats.rating_contrast.biggest_gap),
+            agreement_percent=stats.rating_contrast.agreement_percent,
+            contrarian_count=stats.rating_contrast.contrarian_count,
+            compared_count=stats.rating_contrast.compared_count,
             kinopoisk_compared_count=stats.rating_contrast.kinopoisk_compared_count,
             kinopoisk_higher_count=stats.rating_contrast.kinopoisk_higher_count,
             kinopoisk_lower_count=stats.rating_contrast.kinopoisk_lower_count,

@@ -43,6 +43,11 @@ def test_compute_rating_contrast_insights_counts_and_outliers() -> None:
     assert insights.imdb_compared_count == 2
     assert insights.imdb_higher_count == 1
     assert insights.imdb_lower_count == 1
+    assert insights.compared_count == 3
+    assert insights.avg_delta_kinopoisk == -0.2
+    assert insights.avg_delta_imdb == -1.2
+    assert insights.agreement_percent == 33.3
+    assert insights.contrarian_count == 1
 
     assert insights.kinopoisk_biggest_positive is not None
     assert insights.kinopoisk_biggest_positive.film_title == 'Higher Than Both'
@@ -58,10 +63,20 @@ def test_compute_rating_contrast_insights_counts_and_outliers() -> None:
     assert insights.imdb_biggest_negative is not None
     assert insights.imdb_biggest_negative.delta == -4.5
 
+    assert insights.biggest_gap is not None
+    assert insights.biggest_gap.film_title == 'Lower Than Both'
+    assert insights.biggest_gap.gap == -4.5
+
 
 def test_compute_rating_contrast_insights_empty_rows() -> None:
     insights = compute_rating_contrast_insights([])
 
+    assert insights.compared_count == 0
+    assert insights.avg_delta_kinopoisk is None
+    assert insights.avg_delta_imdb is None
+    assert insights.biggest_gap is None
+    assert insights.agreement_percent == 0
+    assert insights.contrarian_count == 0
     assert insights.kinopoisk_compared_count == 0
     assert insights.kinopoisk_higher_count == 0
     assert insights.kinopoisk_lower_count == 0

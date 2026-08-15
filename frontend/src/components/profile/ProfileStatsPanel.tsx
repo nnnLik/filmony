@@ -277,13 +277,7 @@ function formatSignedDelta(value: number | null | undefined): string | null {
 
 function hasRatingContrastData(contrast: RatingContrastInsights | undefined): contrast is RatingContrastInsights {
   if (contrast == null) return false
-  return (
-    contrast.avg_delta_kinopoisk != null ||
-    contrast.avg_delta_imdb != null ||
-    contrast.biggest_gap != null ||
-    contrast.agreement_percent > 0 ||
-    contrast.contrarian_count > 0
-  )
+  return (contrast.compared_count ?? 0) > 0
 }
 
 function ratingContrastBiggestGapLink(contrast: RatingContrastInsights): string | undefined {
@@ -934,11 +928,15 @@ export function ProfileStatsPanel({
             </ProfileStatsSectionCard>
           ) : null}
 
-          {hasRatingContrastData(stats.rating_contrast) ? (
-            <ProfileStatsSectionCard title="Оценки vs КП и IMDb">
+          <ProfileStatsSectionCard title="Оценки vs КП и IMDb">
+            {hasRatingContrastData(stats.rating_contrast) ? (
               <RatingContrastSection contrast={stats.rating_contrast} />
-            </ProfileStatsSectionCard>
-          ) : null}
+            ) : (
+              <p className="text-sm text-(--tgui--hint_color)">
+                Пока нет рейтингов КП/IMDb на ваших фильмах — блок появится после синхронизации паспортов.
+              </p>
+            )}
+          </ProfileStatsSectionCard>
 
           <ProfileStatsSectionCard title="Полярность оценок">
             {sentiment.total > 0 ? (

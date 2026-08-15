@@ -575,6 +575,12 @@ async def test_user_stats_aggregates(async_client: AsyncClient) -> None:
     assert social['taste_peers'] == []
 
     contrast = body['rating_contrast']
+    assert contrast['compared_count'] == 0
+    assert contrast['avg_delta_kinopoisk'] is None
+    assert contrast['avg_delta_imdb'] is None
+    assert contrast['biggest_gap'] is None
+    assert contrast['agreement_percent'] == 0
+    assert contrast['contrarian_count'] == 0
     assert contrast['kinopoisk_compared_count'] == 0
     assert contrast['imdb_compared_count'] == 0
     assert contrast['kinopoisk_higher_count'] == 0
@@ -620,10 +626,16 @@ async def test_user_stats_rating_contrast_with_external_ratings(async_client: As
     r = await async_client.get(f'/api/users/{user_id}/stats')
     assert r.status_code == 200
     contrast = r.json()['rating_contrast']
+    assert contrast['compared_count'] == 1
     assert contrast['kinopoisk_compared_count'] == 1
     assert contrast['kinopoisk_higher_count'] == 1
     assert contrast['imdb_compared_count'] == 1
     assert contrast['imdb_higher_count'] == 1
+    assert contrast['avg_delta_kinopoisk'] == 3.0
+    assert contrast['avg_delta_imdb'] == 2.0
+    assert contrast['agreement_percent'] == 0
+    assert contrast['contrarian_count'] == 0
+    assert contrast['biggest_gap']['gap'] == 3.0
     assert contrast['kinopoisk_biggest_positive']['delta'] == 3.0
     assert contrast['imdb_biggest_positive']['delta'] == 2.0
 
