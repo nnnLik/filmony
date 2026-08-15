@@ -139,6 +139,42 @@ async def test_my_profile_returns_slug_and_counts(async_client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
+async def test_profile_cards_count_excludes_planned_cards(async_client: AsyncClient) -> None:
+    me = await _login(async_client, telegram_user_id=52130)
+    user_id = UUID(str(me['id']))
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5213001,
+        title='Rated film',
+        year=2024,
+        rating=8.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        is_planned=False,
+    )
+    await _seed_movie_card(
+        user_id=user_id,
+        kinopoisk_id=5213002,
+        title='Planned film',
+        year=2024,
+        rating=0.0,
+        company='alone',
+        mood_after='enjoyed',
+        tags=[],
+        is_planned=True,
+    )
+
+    mine = await async_client.get('/api/me/profile')
+    assert mine.status_code == 200
+    assert mine.json()['cards_count'] == 1
+
+    public = await async_client.get(f'/api/users/{user_id}')
+    assert public.status_code == 200
+    assert public.json()['cards_count'] == 1
+
+
+@pytest.mark.asyncio
 async def test_patch_my_profile_text_fields(async_client: AsyncClient) -> None:
     await _login(async_client, telegram_user_id=503)
     r = await async_client.patch(

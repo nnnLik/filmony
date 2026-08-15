@@ -22,14 +22,19 @@ class UserProfileCounts:
 
 
 class GetUserProfileCountsService:
-    """Aggregate counts for profile headers."""
+    """Aggregate counts for profile headers.
+
+    ``movie_cards`` counts rated UserCard rows only (excludes planned / later).
+    """
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def execute(self, user_id: UUID) -> UserProfileCounts:
         movie_cards = (
-            select(func.count(UserCard.id)).where(UserCard.user_id == user_id).scalar_subquery()
+            select(func.count(UserCard.id))
+            .where(UserCard.user_id == user_id, UserCard.is_planned.is_(False))
+            .scalar_subquery()
         )
         favorites = (
             select(func.count(UserCard.id))

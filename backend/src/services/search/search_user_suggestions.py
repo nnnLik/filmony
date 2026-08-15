@@ -184,6 +184,7 @@ class SearchUserSuggestionsService:
         stmt = (
             select(UserCard.user_id, sa_func.count().label('cnt'), sa_func.avg(UserCard.rating))
             .where(UserCard.user_id.in_(user_ids))
+            .where(UserCard.is_planned.is_(False))
             .group_by(UserCard.user_id)
         )
         res = await self._session.execute(stmt)
