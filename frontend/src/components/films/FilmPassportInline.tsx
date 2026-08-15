@@ -1,3 +1,4 @@
+import { IconButton } from '@telegram-apps/telegram-ui'
 import { Play } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -11,6 +12,7 @@ import {
   type FilmCatalogMetadataSize,
   type FilmCatalogMetadataVariant,
 } from '../../lib/filmCatalogMetadataDisplay'
+import { openExternalUrl } from '../../lib/openExternalUrl'
 import { ratingPalette } from '../../lib/ratingDisplay'
 
 function InlineRating({ label, value }: { label: string; value: number }) {
@@ -31,6 +33,11 @@ function MetaSeparator() {
   return <span className="text-(--tgui--hint_color) opacity-60">·</span>
 }
 
+const TRAILER_LINK: Record<FilmCatalogMetadataSize, string> = {
+  sm: 'inline-flex shrink-0 items-center gap-0.5 rounded-md border border-[color-mix(in_srgb,var(--tgui--link_color)_35%,transparent)] bg-[color-mix(in_srgb,var(--tgui--link_color)_10%,var(--tgui--secondary_bg_color))] px-1.5 py-0.5 font-semibold text-(--tgui--link_color) no-underline transition active:opacity-80',
+  md: 'inline-flex shrink-0 items-center gap-1 rounded-lg border border-[color-mix(in_srgb,var(--tgui--link_color)_35%,transparent)] bg-[color-mix(in_srgb,var(--tgui--link_color)_10%,var(--tgui--secondary_bg_color))] px-2 py-0.5 font-semibold text-(--tgui--link_color) no-underline transition active:opacity-80',
+}
+
 export type FilmPassportInlineProps = {
   filmLength?: number | null
   ratingAgeLimits?: string | null
@@ -42,6 +49,32 @@ export type FilmPassportInlineProps = {
   className?: string
 }
 
+export function FilmTrailerIconButton({
+  trailerYoutubeUrl,
+  className = '',
+}: {
+  trailerYoutubeUrl?: string | null
+  className?: string
+}) {
+  const url = trailerYoutubeUrl?.trim() ?? ''
+  if (url === '') {
+    return null
+  }
+
+  return (
+    <IconButton
+      type="button"
+      size="s"
+      mode="gray"
+      className={className}
+      aria-label="Открыть трейлер на YouTube"
+      onClick={() => openExternalUrl(url)}
+    >
+      <Play className="relative z-1 block size-[18px]" strokeWidth={1.75} aria-hidden />
+    </IconButton>
+  )
+}
+
 export function FilmPassportInline({
   filmLength,
   ratingAgeLimits,
@@ -49,7 +82,7 @@ export function FilmPassportInline({
   ratingImdb,
   trailerYoutubeUrl,
   size = 'md',
-  variant = 'full',
+  variant: _variant = 'full',
   className = '',
 }: FilmPassportInlineProps) {
   const duration = formatFilmDurationMinutes(filmLength)
@@ -87,7 +120,7 @@ export function FilmPassportInline({
   }
 
   return (
-    <p className={`flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 ${FILM_CATALOG_TEXT_SIZE[size]} ${className}`.trim()}>
+    <p className={`flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 ${FILM_CATALOG_TEXT_SIZE[size]} ${className}`.trim()}>
       {items.map((item, index) => (
         <span key={index} className="inline-flex items-center gap-x-1.5">
           {index > 0 ? <MetaSeparator /> : null}
@@ -101,11 +134,15 @@ export function FilmPassportInline({
             href={trailerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-(--tgui--link_color) no-underline transition active:opacity-80"
+            className={TRAILER_LINK[size]}
             aria-label="Открыть трейлер на YouTube"
+            onClick={(event) => {
+              event.preventDefault()
+              openExternalUrl(trailerUrl)
+            }}
           >
             <Play className="size-3 shrink-0" aria-hidden strokeWidth={2.25} />
-            {variant === 'full' ? <span>Трейлер</span> : null}
+            <span>Трейлер</span>
           </a>
         </span>
       ) : null}

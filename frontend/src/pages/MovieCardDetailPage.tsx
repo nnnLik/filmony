@@ -89,6 +89,7 @@ import { MovieCardRatingAudioVisualizer } from '../components/cards/MovieCardRat
 import { CardCategoryChip } from '../components/cards/CardCategoryChip'
 import { FilmGenreChips } from '../components/films/FilmGenreChips'
 import { FilmCatalogMetadata } from '../components/films/FilmCatalogMetadata'
+import { FilmTrailerIconButton } from '../components/films/FilmPassportInline'
 import { DirectorChip } from '../components/films/DirectorChip'
 import { FranchiseChip } from '../components/films/FranchiseChip'
 import { OscarReleaseYearLabel } from '../components/films/OscarReleaseYearLabel'
@@ -1092,6 +1093,9 @@ function MovieCardDetailLoadedBody({
                     />
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
+                    {filmPassport?.trailer_youtube_url ? (
+                      <FilmTrailerIconButton trailerYoutubeUrl={filmPassport.trailer_youtube_url} />
+                    ) : null}
                     {showKinopoiskLink ? (
                       <IconButton
                         type="button"
