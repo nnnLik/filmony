@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 type FilmSynopsisBlockProps = {
   shortDescription?: string | null
   description?: string | null
+  maxLines?: 2 | 4
   className?: string
 }
 
@@ -11,6 +12,7 @@ type FilmSynopsisBlockProps = {
 export function FilmSynopsisBlock({
   shortDescription,
   description,
+  maxLines = 4,
   className = '',
 }: FilmSynopsisBlockProps) {
   const [expanded, setExpanded] = useState(false)
@@ -37,13 +39,15 @@ export function FilmSynopsisBlock({
   const showToggle = canExpand && !expanded
   const showCollapse = canExpand && expanded
 
+  const clampClass = maxLines === 2 ? 'line-clamp-2' : 'line-clamp-4'
+
   return (
     <div className={`space-y-1.5 ${className}`.trim()}>
       <p
         className={
           expanded
             ? 'whitespace-pre-wrap text-sm leading-relaxed text-(--tgui--hint_color)'
-            : 'line-clamp-4 text-sm leading-relaxed text-(--tgui--hint_color)'
+            : `${clampClass} text-sm leading-relaxed text-(--tgui--hint_color)`
         }
       >
         {expanded && fullText ? fullText : shortText}

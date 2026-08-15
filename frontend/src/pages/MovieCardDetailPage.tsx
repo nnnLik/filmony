@@ -1080,13 +1080,14 @@ function MovieCardDetailLoadedBody({
                       <FilmCatalogMetadata
                         film={filmPassport}
                         size="sm"
+                        variant="compact"
                         className="mt-1.5"
-                        showSimilar={false}
                       />
                     ) : null}
                     <FilmSynopsisBlock
                       shortDescription={synopsisShort}
                       description={card.film_description ?? null}
+                      maxLines={2}
                       className="mt-2"
                     />
                   </div>
