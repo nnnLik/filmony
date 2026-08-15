@@ -11,7 +11,6 @@ from .feed_post_comment import FeedPostComment
 from .film import Film
 from .film_actor import FilmActor
 from .film_award_badge import FilmAwardBadge, FilmAwardBadgeKind
-from .film_kinopoisk_passport import FilmKinopoiskPassport
 from .game import Game
 from .monthly_recap_nudge_state import MonthlyRecapNudgeState
 from .person import Person
@@ -59,7 +58,6 @@ __all__ = (
     'FilmActor',
     'FilmAwardBadge',
     'FilmAwardBadgeKind',
-    'FilmKinopoiskPassport',
     'Game',
     'MonthlyRecapNudgeState',
     'Person',

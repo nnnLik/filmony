@@ -4,7 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.film import Film
-from models.film_kinopoisk_passport import FilmKinopoiskPassport
 from providers.kinopoisk.kinopoisk_provider_transport import KinopoiskProviderTransport
 from services.gamification.enrich_film_gamification_metadata import _first_director
 from services.kinopoisk.client import KinopoiskClient, KinopoiskClientError
@@ -12,21 +11,12 @@ from services.kinopoisk.parse_url import KinopoiskUrlParseError, parse_kinopoisk
 from services.tmdb.sync_film_from_tmdb import SyncFilmFromTmdbService
 
 
-def _ensure_kinopoisk_passport(film: Film) -> FilmKinopoiskPassport:
-    passport = film.kinopoisk_passport
-    if passport is None:
-        passport = FilmKinopoiskPassport(film_id=film.id)
-        film.kinopoisk_passport = passport
-    return passport
-
-
 def _apply_kinopoisk_passport(film: Film, payload) -> None:
-    passport = _ensure_kinopoisk_passport(film)
-    passport.film_length = payload.film_length
-    passport.slogan = payload.slogan
-    passport.rating_kinopoisk = payload.rating_kinopoisk
-    passport.rating_imdb = payload.rating_imdb
-    passport.rating_age_limits = payload.rating_age_limits
+    film.film_length = payload.film_length
+    film.slogan = payload.slogan
+    film.rating_kinopoisk = payload.rating_kinopoisk
+    film.rating_imdb = payload.rating_imdb
+    film.rating_age_limits = payload.rating_age_limits
 
 
 class ResolveKinopoiskFilmService:
@@ -68,13 +58,11 @@ class ResolveKinopoiskFilmService:
             short_description=payload.short_description,
             description=payload.description,
             imdb_id=payload.imdb_id,
-            kinopoisk_passport=FilmKinopoiskPassport(
-                film_length=payload.film_length,
-                slogan=payload.slogan,
-                rating_kinopoisk=payload.rating_kinopoisk,
-                rating_imdb=payload.rating_imdb,
-                rating_age_limits=payload.rating_age_limits,
-            ),
+            film_length=payload.film_length,
+            slogan=payload.slogan,
+            rating_kinopoisk=payload.rating_kinopoisk,
+            rating_imdb=payload.rating_imdb,
+            rating_age_limits=payload.rating_age_limits,
         )
         self._session.add(film)
         await self._session.flush()

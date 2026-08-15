@@ -49,7 +49,7 @@ Tests: covered by watch-party integration suite where applicable.
 
 ## Provider catalog (passport, trailer, similars, where-to-watch)
 
-**Persisted in `film_kinopoisk_passport` (migration `h6i7j8k9l012`):** Kinopoisk passport fields; sidecar avoids ALTER on legacy `film` table in prod.
+**Persisted on `film` (migrations `h6i7j8k9l012` sidecar → `i7j8k9l0m123` columns):** Kinopoisk passport fields. Prod DB objects owned by app role `filmony`.
 
 **TMDB snapshot append:** `videos,recommendations,watch/providers` in `tmdb_provider_transport.py`.
 

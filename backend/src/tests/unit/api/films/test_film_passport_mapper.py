@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from api.films.mappers import film_passport_response_fields
 from models.film import Film
-from models.film_kinopoisk_passport import FilmKinopoiskPassport
 
 
 def test_film_passport_response_fields_maps_model_and_snapshot() -> None:
@@ -12,13 +11,11 @@ def test_film_passport_response_fields_maps_model_and_snapshot() -> None:
         year=1999,
         poster_url=None,
         genres=[],
-        kinopoisk_passport=FilmKinopoiskPassport(
-            film_length=136,
-            slogan='Welcome to the real world',
-            rating_kinopoisk=8.5,
-            rating_imdb=8.7,
-            rating_age_limits='age16',
-        ),
+        film_length=136,
+        slogan='Welcome to the real world',
+        rating_kinopoisk=8.5,
+        rating_imdb=8.7,
+        rating_age_limits='age16',
         tmdb_detail_snapshot_json={
             'recommendations': {
                 'results': [
