@@ -1,0 +1,32 @@
+---
+description: After production deploy or user-facing ship, offer a product feed post (пост в ленте)
+alwaysApply: true
+---
+
+# Product release feed posts
+
+After a **successful production deploy** or when summarizing **shipped user-facing features**, follow this workflow.
+
+## Offer
+
+- **ALWAYS** offer: «Опубликовать пост в ленте об обновлениях?»
+- **Skip** the offer when the ship is infra, docs, tests, or tooling only — no user-visible change.
+
+## If the user agrees
+
+1. Follow [`.cursor/skills/product-release-feed-post/SKILL.md`](../skills/product-release-feed-post/SKILL.md) for publish steps.
+2. Use [reference.md](../skills/product-release-feed-post/reference.md) for voice and wording.
+3. Show a **full draft** first; publish only after explicit confirmation.
+4. Default announcement account: profile slug `u83128ffb7116`.
+5. **Never** auto-publish.
+
+## Post voice
+
+- Simple product **Russian** — what the user sees and can do.
+- **Do not** mention commits, files, APIs, endpoints, uncommitted work, in-progress tasks, or infra.
+
+## Examples
+
+❌ «Закоммитили feed-created-sort: лента по completed_at»
+
+✅ «Лента теперь показывает оценки по дате, когда вы их поставили, а не когда правили карточку»
