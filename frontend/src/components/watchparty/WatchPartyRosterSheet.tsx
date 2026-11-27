@@ -9,6 +9,7 @@ import type {
 } from '../../api/watchPartyTypes'
 import { formatPlaybackMs, memberDisplayPositionMs } from '../../lib/watchPartyTime'
 import { WatchingNowAuthorBadge } from './WatchingNowAuthorBadge'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 export type WatchPartyRosterSheetProps = {
   open: boolean
@@ -61,7 +62,7 @@ export function WatchPartyRosterSheet({
               className="flex items-center gap-3 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-2"
             >
               <div className="relative shrink-0">
-                <Avatar size={40} src={member.photo_url ?? undefined} />
+                <Avatar size={40} src={userPhotoSrc(member.photo_url)} />
                 {member.role === 'host' ? (
                   <Crown className="absolute -right-1 -top-1 size-3.5 text-amber-300" />
                 ) : null}

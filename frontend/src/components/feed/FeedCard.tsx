@@ -52,6 +52,7 @@ import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVis
 import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
 import { useFullscreenImageActivator } from '../../hooks/useFullscreenImageActivator'
 import { useReactionShortcodePicker } from '../../hooks/useReactionShortcodePicker'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -473,7 +474,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
             >
               <Avatar
                 size={22}
-                src={card.card_author.photo_url ?? undefined}
+                src={userPhotoSrc(card.card_author.photo_url)}
                 acronym={(name.slice(0, 1) || '?').toUpperCase()}
               />
             </Link>

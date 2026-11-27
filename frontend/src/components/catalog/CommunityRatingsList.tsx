@@ -18,8 +18,8 @@ import {
 } from '../feed/feedCardUtils'
 import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
 import { profileInitials } from '../../lib/profileDisplay'
-import { resolveApiMediaUrl } from '../../lib/resolveApiMediaUrl'
 import type { CardCompany, CardMoodAfter, CardMoodBefore } from '../../api/profileTypes'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 function companyLabel(c: string): string {
   return c in COMPANY_SHORT ? COMPANY_SHORT[c as CardCompany] : c
@@ -93,7 +93,6 @@ export function CommunityRatingsList({
         <ul className="flex flex-col gap-3">
           {displayItems.map((row) => {
             const name = displayNameFromAuthorFields(row.author)
-            const photo = row.author.photo_url != null ? resolveApiMediaUrl(row.author.photo_url) : null
             const meta = `${formatRating(row.rating)} · ${companyLabel(row.company)} · ${moodBeforeLabel(row.mood_before)} → ${moodAfterLabel(row.mood_after)}`
             const isFriend = followingUserIds?.has(row.author.id) === true
             return (
@@ -109,7 +108,7 @@ export function CommunityRatingsList({
                   >
                     <Avatar
                       size={40}
-                      src={photo ?? undefined}
+                      src={userPhotoSrc(row.author.photo_url)}
                       acronym={profileInitials(row.author)}
                     />
                   </Link>

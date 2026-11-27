@@ -1,6 +1,7 @@
 import { Avatar } from '@telegram-apps/telegram-ui'
 import { Link } from 'react-router'
 
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 import {
   followingRowDisplayName,
   followingRowInitials,
@@ -107,7 +108,7 @@ export function FollowingRatingsPanel({
                   className="flex items-center gap-3 rounded-xl px-1 py-1.5 no-underline outline-none transition-colors duration-200 motion-safe:hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_06%,transparent)] ring-(--tgui--link_color) focus-visible:ring-2"
                 >
                   <Avatar
-                    src={row.photo_url ?? undefined}
+                    src={userPhotoSrc(row.photo_url)}
                     acronym={followingRowInitials(row)}
                     size={40}
                   />

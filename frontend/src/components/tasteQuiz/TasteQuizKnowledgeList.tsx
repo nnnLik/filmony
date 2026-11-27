@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import type { TasteQuizKnowledgeItem } from '../../api/tasteQuizTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
 import { tasteQuizAccuracyColor } from '../../lib/tasteQuizAccuracyColor'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 export type TasteQuizKnowledgeListProps = {
   items: TasteQuizKnowledgeItem[]
@@ -64,7 +65,7 @@ export function TasteQuizKnowledgeList({
                 className="flex items-center gap-3 px-3 py-3 no-underline transition hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)]"
               >
                 <Avatar
-                  src={item.avatar_url ?? undefined}
+                  src={userPhotoSrc(item.avatar_url)}
                   acronym={profileInitials(profile)}
                   size={40}
                 />

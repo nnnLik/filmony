@@ -21,6 +21,7 @@ import { profileInitials } from '../../lib/profileDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
 
 import { WatchTogetherConfirmSheet } from './WatchTogetherConfirmSheet'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 function partnerDisplayName(partner: WatchlistOverlapPartner): string {
   if (partner.display_name?.trim()) {
@@ -96,7 +97,7 @@ function OverlapCard({
             {partnerPreview.map((partner) => (
               <Avatar
                 key={partner.user_id}
-                src={partner.avatar_url ?? undefined}
+                src={userPhotoSrc(partner.avatar_url)}
                 acronym={partnerInitials(partner)}
                 size={24}
               />
@@ -305,7 +306,7 @@ export function WatchlistOverlapAnchorBanner({
             {overlap.partners.slice(0, 4).map((partner) => (
               <Avatar
                 key={partner.user_id}
-                src={partner.avatar_url ?? undefined}
+                src={userPhotoSrc(partner.avatar_url)}
                 acronym={partnerInitials(partner)}
                 size={28}
               />

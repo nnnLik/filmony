@@ -27,6 +27,7 @@ import { useTasteQuizKnowledgeOfUsers } from '../hooks/useTasteQuizKnowledgeOfUs
 import { useRatingStreaksOfUsers } from '../hooks/useRatingStreaksOfUsers'
 import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
+import { userPhotoSrc } from '../lib/userPhotoSrc'
 
 type SubscriptionsTab = 'following' | 'followers'
 
@@ -265,7 +266,7 @@ export function SubscriptionsPage() {
       <main className="mx-auto max-w-md px-4 py-5">
         <div className="mb-4 flex flex-col items-center text-center">
           <Avatar
-            src={targetProfile.photo_url ?? undefined}
+            src={userPhotoSrc(targetProfile.photo_url)}
             acronym={profileInitials(targetProfile)}
             size={72}
           />
@@ -324,7 +325,7 @@ export function SubscriptionsPage() {
                       className="flex min-w-0 flex-1 items-center gap-3 no-underline outline-none ring-(--tgui--link_color) focus-visible:ring-2"
                       aria-label={profileLabel}
                     >
-                      <Avatar src={item.photo_url ?? undefined} acronym={profileInitials(item)} size={40} />
+                      <Avatar src={userPhotoSrc(item.photo_url)} acronym={profileInitials(item)} size={40} />
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                           <p className="truncate text-sm font-medium text-(--tgui--text_color)">

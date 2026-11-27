@@ -5,9 +5,11 @@ import type { StreakBatchItem } from '../../api/streaksTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
+import { OwnProfileAvatar } from './OwnProfileAvatar'
 import { ProfileCompactMetrics, type ProfileCompactMetricsProps } from './ProfileCompactMetrics'
 
 type ProfileHeaderProps = {
@@ -20,6 +22,7 @@ type ProfileHeaderProps = {
   showTasteQuizBadge?: boolean
   metrics?: ProfileCompactMetricsProps
   avatarSize?: number
+  avatarEditable?: boolean
   className?: string
 }
 
@@ -33,6 +36,7 @@ export function ProfileHeader({
   showTasteQuizBadge = true,
   metrics,
   avatarSize = 76,
+  avatarEditable = false,
   className = '',
 }: ProfileHeaderProps) {
   const name = displayNameFromProfile(profile)
@@ -40,11 +44,19 @@ export function ProfileHeader({
   return (
     <div className={`flex items-start gap-3.5 py-2 ${className}`.trim()}>
       <div className="shrink-0">
-        <Avatar
-          src={profile.photo_url ?? undefined}
-          acronym={profileInitials(profile)}
-          size={avatarSize}
-        />
+        {avatarEditable ? (
+          <OwnProfileAvatar
+            photoUrl={profile.photo_url}
+            acronym={profileInitials(profile)}
+            size={avatarSize}
+          />
+        ) : (
+          <Avatar
+            src={userPhotoSrc(profile.photo_url)}
+            acronym={profileInitials(profile)}
+            size={avatarSize}
+          />
+        )}
       </div>
       <div className="min-w-0 flex-1 text-left">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">

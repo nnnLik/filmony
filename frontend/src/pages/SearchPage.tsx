@@ -43,6 +43,7 @@ import { PROFILE_RATED_FILTERS_NATIVE_CONTROL_CLASS } from '../lib/profileRatedC
 import { scheduleDeferredPepeDancingPrewarm, useHeaderPepeGifSrc } from '../lib/pepeGif'
 
 import './SearchPage.css'
+import { userPhotoSrc } from '../lib/userPhotoSrc'
 
 type SearchTab = 'cards' | 'people'
 
@@ -112,7 +113,7 @@ function UserSuggestionRow({
       to={`/u/${encodeURIComponent(user.id)}`}
       className="flex min-h-[52px] items-center gap-3 rounded-xl px-2.5 py-2 no-underline text-(--tgui--text_color) transition-colors hover:bg-[color-mix(in_srgb,var(--tgui--hint_color)_10%,transparent)] active:bg-[color-mix(in_srgb,var(--tgui--hint_color)_14%,transparent)]"
     >
-      <Avatar size={40} src={user.photo_url ?? undefined} acronym={initials} />
+      <Avatar size={40} src={userPhotoSrc(user.photo_url)} acronym={initials} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           <div className="truncate font-medium">{label}</div>

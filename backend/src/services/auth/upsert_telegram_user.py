@@ -8,10 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from services.auth.dto import TelegramWebAppUser
 from services.profile.allocate_default_profile_slug import AllocateDefaultProfileSlugService
+from utils.avatar_photo_url import is_custom_avatar_photo_url
 
 
 class UpsertTelegramUserService:
-    """Create or update a user row from verified Telegram Web App user data."""
+    """Create or update a user row from verified Telegram Web App user data.
+
+    A custom avatar stored in ``photo_url`` is left in place. Telegram's photo
+    is written only when the user is still showing the Telegram avatar.
+    """
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -38,7 +43,8 @@ class UpsertTelegramUserService:
             user.username = profile.username
             user.first_name = profile.first_name
             user.last_name = profile.last_name
-            user.photo_url = profile.photo_url
+            if not is_custom_avatar_photo_url(user.photo_url):
+                user.photo_url = profile.photo_url
             user.language_code = profile.language_code
             user.updated_at = now
             if not user.profile_slug:

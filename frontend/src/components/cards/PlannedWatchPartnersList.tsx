@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import type { PlannedWatchPartner } from '../../api/profileTypes'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
 import { formatRating, ratingPalette } from '../../lib/ratingDisplay'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 type PlannedWatchPartnersListProps = {
   partners: PlannedWatchPartner[]
@@ -44,7 +45,7 @@ export function PlannedWatchPartnersList({ partners, className = '' }: PlannedWa
                 className="flex items-center gap-3 rounded-xl px-1 py-1.5 no-underline outline-none transition-colors duration-200 motion-safe:hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_06%,transparent)] ring-(--tgui--link_color) focus-visible:ring-2"
               >
                 <Avatar
-                  src={partner.photo_url ?? undefined}
+                  src={userPhotoSrc(partner.photo_url)}
                   acronym={profileInitials(partner)}
                   size={40}
                 />

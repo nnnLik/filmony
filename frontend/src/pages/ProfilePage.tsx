@@ -349,6 +349,7 @@ export function ProfilePage() {
       <main className="px-4 py-6">
         <ProfileHeader
           profile={pub}
+          avatarEditable
           showTasteQuizBadge={false}
           streakByUserId={streakByUserId}
           watchingByUserId={watchingByUserId}

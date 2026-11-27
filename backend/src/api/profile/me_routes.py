@@ -4,7 +4,7 @@ import datetime as dt
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,9 +45,11 @@ from services.profile.build_monthly_recap import (
     BuildMonthlyRecapService,
     previous_complete_month,
 )
+from services.profile.clear_my_avatar import ClearMyAvatarService
 from services.profile.export_my_user_cards_csv_telegram import ExportMyUserCardsCsvTelegramService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
 from services.profile.list_my_user_card_tag_stats import ListMyUserCardTagStatsService
+from services.profile.set_my_avatar import SetMyAvatarService
 from services.profile.update_my_profile import UpdateMyProfileService
 from services.telegram.send_bot_message import SendTelegramBotMessageService
 from services.user_card_categories.create_user_card_category import (
@@ -73,6 +75,7 @@ from services.watchlist.list_watchlist_overlaps import ListWatchlistOverlapsServ
 from services.watchlist.pick_evening_for_two_film import PickEveningForTwoFilmService
 from services.watchlist.update_watchlist_entry import UpdateWatchlistEntryService
 from services.watchlist.watchlist_card_id import watchlist_card_id_for_provider
+from utils.avatar_photo_url import AVATAR_MAX_BYTES
 
 router = APIRouter(prefix='/me', tags=['profile'])
 
@@ -195,6 +198,69 @@ async def patch_my_profile(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
+    counts = await GetUserProfileCountsService(db).execute(updated.id)
+    return build_my_profile_response(updated, counts)
+
+
+async def _read_avatar_upload(file: UploadFile, max_bytes: int) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(64 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(status_code=413, detail='file too large') from None
+        chunks.append(chunk)
+    return b''.join(chunks)
+
+
+@router.post(
+    '/avatar',
+    response_model=MyProfileResponse,
+    summary='Поставить свою аватарку',
+)
+async def post_my_avatar(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(...),
+) -> MyProfileResponse:
+    content_type = (file.content_type or '').strip()
+    try:
+        data = await _read_avatar_upload(file, AVATAR_MAX_BYTES)
+        updated = await SetMyAvatarService.build(db).execute(user.id, content_type, data)
+    except HTTPException:
+        raise
+    except SetMyAvatarService.AvatarValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SetMyAvatarService.AvatarStorageError as exc:
+        msg = str(exc).lower()
+        status = 503 if 'not configured' in msg else 502
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    except SetMyAvatarService.UserNotFound:
+        raise HTTPException(status_code=404, detail='user not found') from None
+    counts = await GetUserProfileCountsService(db).execute(updated.id)
+    return build_my_profile_response(updated, counts)
+
+
+@router.delete(
+    '/avatar',
+    response_model=MyProfileResponse,
+    summary='Убрать свою аватарку и вернуть фото из Telegram',
+)
+async def delete_my_avatar(
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MyProfileResponse:
+    try:
+        updated = await ClearMyAvatarService.build(db).execute(user.id)
+    except ClearMyAvatarService.AvatarStorageError as exc:
+        msg = str(exc).lower()
+        status = 503 if 'not configured' in msg else 502
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    except ClearMyAvatarService.UserNotFound:
+        raise HTTPException(status_code=404, detail='user not found') from None
     counts = await GetUserProfileCountsService(db).execute(updated.id)
     return build_my_profile_response(updated, counts)
 

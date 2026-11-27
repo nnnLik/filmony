@@ -34,7 +34,9 @@ from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.user import User
 from services.achievements.list_pinned_achievements import ListPinnedAchievementsService
 from services.catalog.card_community_fields import load_card_community_fields
+from services.profile.get_avatar_media import GetAvatarMediaService
 from services.profile.get_public_user_by_id import GetPublicUserByIdService
+from services.profile.get_telegram_avatar_bytes import GetTelegramAvatarBytesService
 from services.profile.get_user_activity_heatmap import GetUserActivityHeatmapService
 from services.profile.get_user_card_stats import GetUserCardStatsService
 from services.profile.get_user_profile_counts import GetUserProfileCountsService
@@ -112,6 +114,46 @@ async def _public_profile_or_404(
     counts = await GetUserProfileCountsService(db).execute(target.id)
     pinned = await ListPinnedAchievementsService.build(db).execute(target.id)
     return build_public_profile_response(target, counts, pinned_achievements=pinned)
+
+
+@router.get(
+    '/avatar-media/{media_key:path}',
+    summary='Своя аватарка из RustFS',
+)
+async def get_user_avatar_media(media_key: str) -> Response:
+    try:
+        result = await GetAvatarMediaService.build().execute(media_key)
+    except GetAvatarMediaService.NotFound:
+        raise HTTPException(status_code=404, detail='not found') from None
+    except GetAvatarMediaService.NotConfigured:
+        raise HTTPException(status_code=503, detail='media proxy not configured') from None
+    except GetAvatarMediaService.Unreachable:
+        raise HTTPException(status_code=502, detail='storage unreachable') from None
+    media = result.content_type or 'application/octet-stream'
+    return Response(
+        content=result.body,
+        media_type=media,
+        headers={'Cache-Control': 'public, max-age=86400'},
+    )
+
+
+@router.get(
+    '/{user_id}/telegram-avatar',
+    summary='Текущее фото профиля Telegram без токена бота в ссылке',
+)
+async def get_user_telegram_avatar(
+    user_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    try:
+        photo = await GetTelegramAvatarBytesService.build(db).execute(user_id)
+    except GetTelegramAvatarBytesService.NotFound:
+        raise HTTPException(status_code=404, detail='not found') from None
+    return Response(
+        content=photo.body,
+        media_type=photo.content_type,
+        headers={'Cache-Control': 'public, max-age=300'},
+    )
 
 
 @router.get(

@@ -10,6 +10,7 @@ import type { EveningForTwoPick, SubscriptionListItem } from '../../api/profileT
 import { filterMutualSubscriptions } from '../../lib/mutualSubscriptionFilter'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
 import { onWatchCtaClick } from '../../lib/openFilmWatchInBrowser'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 function toPublicFromSubscription(row: SubscriptionListItem) {
   return {
@@ -154,7 +155,7 @@ export function EveningForTwoSection({ enabled = true }: EveningForTwoSectionPro
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-(--tgui--divider_color) bg-(--tgui--bg_color)">
                       {selected ? <span className="text-xs text-(--tgui--link_color)">✓</span> : null}
                     </span>
-                    <Avatar src={row.photo_url ?? undefined} acronym={profileInitials(pub)} size={36} />
+                    <Avatar src={userPhotoSrc(row.photo_url)} acronym={profileInitials(pub)} size={36} />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
                   </button>
                 </li>

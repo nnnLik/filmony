@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 
 import type { WatchlistOverlapPartner } from '../../api/profileTypes'
 import { profileInitials } from '../../lib/profileDisplay'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 function partnerDisplayName(partner: WatchlistOverlapPartner): string {
   if (partner.display_name?.trim()) {
@@ -110,7 +111,7 @@ export function WatchTogetherConfirmSheet({
                   className="flex items-center gap-2.5 rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) px-3 py-2"
                 >
                   <Avatar
-                    src={partner.avatar_url ?? undefined}
+                    src={userPhotoSrc(partner.avatar_url)}
                     acronym={partnerInitials(partner)}
                     size={36}
                   />

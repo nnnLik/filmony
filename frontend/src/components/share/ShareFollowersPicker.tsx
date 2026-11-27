@@ -4,6 +4,7 @@ import type { PublicProfile, SubscriptionListItem } from '../../api/profileTypes
 import { copyTextToClipboard } from '../../lib/copyTextToClipboard'
 import { displayNameFromProfile, profileInitials } from '../../lib/profileDisplay'
 import { safeHapticSuccess } from '../../lib/safeHaptic'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 function toPublicFromSubscription(row: SubscriptionListItem): PublicProfile {
   return {
@@ -117,7 +118,7 @@ export function ShareFollowersPicker({
                   <span className="flex size-5 shrink-0 items-center justify-center rounded border border-(--tgui--divider_color) bg-(--tgui--bg_color)">
                     {checked ? <span className="text-xs text-(--tgui--link_color)">✓</span> : null}
                   </span>
-                  <Avatar src={row.photo_url ?? undefined} acronym={profileInitials(pub)} size={40} />
+                  <Avatar src={userPhotoSrc(row.photo_url)} acronym={profileInitials(pub)} size={40} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
                 </button>
               </li>

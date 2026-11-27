@@ -6,6 +6,7 @@ import { Link } from 'react-router'
 import type { ReactionActor } from '../../../api/profileTypes'
 import { displayActorName } from './displayActorName'
 import { ReactionThumb } from './ReactionThumb'
+import { userPhotoSrc } from '../../../lib/userPhotoSrc'
 
 function reactionActorsTooltipContainer(): HTMLElement {
   const insideThemedTree = document.getElementById('root')?.firstElementChild
@@ -129,7 +130,7 @@ export function CountPill({
                     onClick={stopBubbling}
                   >
                     {a.photo_url ? (
-                      <Avatar src={a.photo_url} acronym={label.slice(0, 1)} size={28} />
+                      <Avatar src={userPhotoSrc(a.photo_url)} acronym={label.slice(0, 1)} size={28} />
                     ) : (
                       <Avatar acronym={label.slice(0, 2)} size={28} />
                     )}

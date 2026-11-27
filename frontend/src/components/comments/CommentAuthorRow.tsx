@@ -10,6 +10,7 @@ import type { ThreadCommentAuthor } from '../../lib/commentThreadTypes'
 import { TasteQuizCommentAuthorBadge } from '../tasteQuiz/TasteQuizCommentAuthorBadge'
 import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 export type CommentAuthorRowProps = {
   author: ThreadCommentAuthor
@@ -53,7 +54,7 @@ export function CommentAuthorRow({
         onMouseDown={onMouseDown}
       >
         <Avatar
-          src={author.photo_url ?? undefined}
+          src={userPhotoSrc(author.photo_url)}
           acronym={label.slice(0, 2).toUpperCase()}
           size={avatarSize}
         />

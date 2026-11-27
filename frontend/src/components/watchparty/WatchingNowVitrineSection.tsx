@@ -7,6 +7,7 @@ import { getFollowingWatchingNow } from '../../api/watchPartyWatchingApi'
 import type { FollowingWatchingNowItem } from '../../api/watchPartyTypes'
 import { filmWatchPath } from '../../lib/openFilmWatchInBrowser'
 import { profileInitials } from '../../lib/profileDisplay'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 const followingWatchingNowQueryKey = ['following-watching-now'] as const
 
@@ -41,7 +42,7 @@ function WatchingNowCard({ item }: { item: FollowingWatchingNowItem }) {
         </span>
         <span className="absolute bottom-1.5 right-1.5">
           <Avatar
-            src={item.photo_url ?? undefined}
+            src={userPhotoSrc(item.photo_url)}
             acronym={cardInitials(item)}
             size={28}
           />

@@ -16,10 +16,13 @@ def build_init_data(
     user_id: int = 42,
     auth_date: int | None = None,
     username: str | None = 'tester',
+    photo_url: str | None = None,
 ) -> str:
     if auth_date is None:
         auth_date = int(time.time())
     user_obj: dict = {'id': user_id, 'first_name': 'Test', 'username': username}
+    if photo_url is not None:
+        user_obj['photo_url'] = photo_url
     user_json = orjson.dumps(user_obj).decode()
     pairs = [('auth_date', str(auth_date)), ('user', user_json)]
     pairs.sort(key=lambda x: x[0])

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 
 import type { SearchUserItem } from '../../api/searchApi'
 import { profileInitials } from '../../lib/profileDisplay'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 function userListLabel(u: SearchUserItem): string {
   if (u.display_name?.trim()) {
@@ -71,7 +72,7 @@ export function UserSuggestionChipsStrip({ title, hint, users }: UserSuggestionC
               className="group flex w-[4.75rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl px-1 py-1 no-underline text-(--tgui--text_color) transition-[background,transform] duration-200 ease-out active:scale-[0.98] hover:bg-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_08%,transparent)]"
             >
               <div className="relative flex size-[52px] shrink-0 items-center justify-center rounded-full bg-(--tgui--bg_color) shadow-[0_0_0_1px_color-mix(in_srgb,var(--tgui--divider_color)_80%,transparent)] transition-shadow duration-200 group-hover:shadow-[0_0_0_2px_color-mix(in_srgb,var(--filmony-mint,#5eead4)_35%,transparent)]">
-                <Avatar size={48} src={u.photo_url ?? undefined} acronym={initials} />
+                <Avatar size={48} src={userPhotoSrc(u.photo_url)} acronym={initials} />
               </div>
               <span className="line-clamp-2 w-full text-center text-[11px] font-medium leading-tight">{label}</span>
               <span className="line-clamp-2 w-full text-center text-[10px] leading-tight text-(--tgui--hint_color)">

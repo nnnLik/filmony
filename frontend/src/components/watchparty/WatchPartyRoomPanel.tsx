@@ -3,6 +3,7 @@ import { Crown } from 'lucide-react'
 import { useMemo } from 'react'
 
 import type { WatchPartyMember, WatchPartyPlaybackState } from '../../api/watchPartyTypes'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 import {
   formatPlaybackMs,
   memberDisplayPositionMs,
@@ -85,7 +86,7 @@ export function WatchPartyRoomPanel({
           return (
             <li key={member.user_id} className="flex items-center gap-2.5 px-3 py-2">
               <div className="relative shrink-0">
-                <Avatar size={28} src={member.photo_url ?? undefined} />
+                <Avatar size={28} src={userPhotoSrc(member.photo_url)} />
                 {member.role === 'host' ? (
                   <Crown className="absolute -right-0.5 -top-0.5 size-3 text-amber-300" strokeWidth={2.5} />
                 ) : null}

@@ -2,6 +2,7 @@ import { Avatar } from '@telegram-apps/telegram-ui'
 import { Crown } from 'lucide-react'
 
 import type { WatchPartyMember } from '../../api/watchPartyTypes'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 export type WatchPartyMemberStripProps = {
   members: WatchPartyMember[]
@@ -23,7 +24,7 @@ export function WatchPartyMemberStrip({ members, onTap }: WatchPartyMemberStripP
     >
       {visible.map((member) => (
         <div key={member.user_id} className="relative shrink-0">
-          <Avatar size={32} src={member.photo_url ?? undefined} />
+          <Avatar size={32} src={userPhotoSrc(member.photo_url)} />
           {member.role === 'host' ? (
             <Crown className="absolute -right-0.5 -top-0.5 size-3 text-amber-300" strokeWidth={2.5} />
           ) : null}

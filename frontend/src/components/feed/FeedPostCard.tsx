@@ -48,6 +48,7 @@ import { CoViewSplitRatings } from './CoViewSplitRatings'
 import { PostHeaderActions } from './PostHeaderActions'
 import { formatCommentTime, formatRating } from './feedCardUtils'
 import { FeedExplainabilityChip } from './FeedExplainabilityChip'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 import {
   FeedOpenableContainedImage,
   FeedOpenableContainedImageThumbnail,
@@ -745,7 +746,7 @@ export function FeedPostCard({
             >
               <Avatar
                 size={22}
-                src={author.photo_url ?? undefined}
+                src={userPhotoSrc(author.photo_url)}
                 acronym={(name.slice(0, 1) || '?').toUpperCase()}
               />
             </Link>

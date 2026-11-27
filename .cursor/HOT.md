@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-11-27T203800Z
+Updated: 2026-11-27T214500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -31,20 +31,21 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
    - Active: `.cursor/active/watch-leave-rate-create-flow/`
 
 ## recent_completed
-1. `profile-rating-contrast-stats` — closed 2026-08-15T010600Z
+1. `profile-custom-avatar` — closed 2026-11-27T214500Z
+   - Feature: `.cursor/features/profile-custom-avatar/feature.md`
+   - Active: `.cursor/active/profile-custom-avatar/`
+   - Docs: `docs/features/profile-custom-avatar.md`
+2. `profile-rating-contrast-stats` — closed 2026-08-15T010600Z
    - Feature: `.cursor/features/profile-rating-contrast-stats/feature.md`
    - Active: `.cursor/active/profile-rating-contrast-stats/`
    - Docs: `docs/features/profile-rating-contrast-stats.md`
-2. `film-catalog-metadata-ui` — closed 2026-08-15T010500Z
+3. `film-catalog-metadata-ui` — closed 2026-08-15T010500Z
    - Feature: `.cursor/features/film-catalog-metadata-ui/feature.md`
    - Active: `.cursor/active/film-catalog-metadata-ui/`
    - Docs: `docs/features/film-catalog-metadata-ui.md`
-3. `tma-watch-open-browser` — closed 2026-08-14T221500Z
-   - Feature: `.cursor/features/tma-watch-open-browser/feature.md`
-   - Active: `.cursor/active/tma-watch-open-browser/`
-   - Docs: `docs/features/tma-watch-open-browser.md`
 
 ## evicted (queue for archive)
+- `tma-watch-open-browser` — evicted from recent_completed top-3 on 2026-11-27T214500Z (was #3)
 - `backend-healthcheck` — evicted from recent_completed top-3 on 2026-08-15T010600Z (was #2)
 - `film-watch-party` — evicted from recent_completed top-3 on 2026-08-15T010600Z (was #3)
 - `film-pleer-playback` — evicted from recent_completed top-3 on 2026-08-14T221500Z (was #3)

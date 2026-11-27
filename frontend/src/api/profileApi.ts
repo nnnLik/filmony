@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, apiJson } from './client'
+import { ApiError, apiFetch, apiJson, readErrorDetail } from './client'
 import { normalizeFeedPostInFeed } from './feedPostApi'
 import type {
   CardCompany,
@@ -110,6 +110,20 @@ function normalizeWatchlistPage(body: WatchlistEntryPage): WatchlistEntryPage {
 
 export async function getMyProfile(): Promise<MyProfile> {
   return apiJson<MyProfile>('/api/me/profile')
+}
+
+export async function uploadMyAvatar(file: File): Promise<MyProfile> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await apiFetch('/api/me/avatar', { method: 'POST', body: form })
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorDetail(res))
+  }
+  return (await res.json()) as MyProfile
+}
+
+export async function deleteMyAvatar(): Promise<MyProfile> {
+  return apiJson<MyProfile>('/api/me/avatar', { method: 'DELETE' })
 }
 
 export async function getMyMovieCardTagStats(): Promise<MyMovieCardTagStatsResponse> {

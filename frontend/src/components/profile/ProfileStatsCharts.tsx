@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 
 import type { ProfileInsightItem, SocialTastePeerItem, TagTasteItem } from '../../api/profileTypes'
 import { buildConicGradient, type DonutSegmentInput } from '../../lib/statsDonutChart'
+import { userPhotoSrc } from '../../lib/userPhotoSrc'
 
 type BarItem = { label: string; count: number }
 
@@ -516,7 +517,7 @@ export function SocialTastePeers({ peers }: { peers: SocialTastePeerItem[] }) {
             to={`/u/${encodeURIComponent(peer.id)}`}
             className="flex items-center gap-3 px-3 py-2.5 no-underline outline-none transition-[background-color] hover:bg-[color-mix(in_srgb,var(--tgui--secondary_bg_color)_88%,transparent)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--tgui--link_color)"
           >
-            <Avatar src={peer.photo_url ?? undefined} acronym={peerInitials(peer)} size={36} />
+            <Avatar src={userPhotoSrc(peer.photo_url)} acronym={peerInitials(peer)} size={36} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-(--tgui--text_color)">{peerDisplayName(peer)}</p>
               <p className="font-mono text-[10px] text-(--tgui--hint_color)">@{peer.profile_slug}</p>

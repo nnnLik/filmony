@@ -107,6 +107,26 @@ class TelegramBotApiClient:
         payload = _telegram_payload_from_response(response)
         return TelegramSendMessageResult(ok=bool(payload.get('ok')), payload=payload)
 
+    async def get_user_profile_photos(self, user_id: int) -> TelegramSendMessageResult:
+        url = f'https://api.telegram.org/bot{self._token}/getUserProfilePhotos'
+        return await self._post_json(url, {'user_id': user_id, 'limit': 1})
+
+    async def get_file(self, file_id: str) -> TelegramSendMessageResult:
+        url = f'https://api.telegram.org/bot{self._token}/getFile'
+        return await self._post_json(url, {'file_id': file_id})
+
+    async def download_file(self, file_path: str) -> bytes | None:
+        """Download a file_path from getFile. The bot token stays on this request."""
+        safe = file_path.strip().lstrip('/')
+        if safe == '' or '..' in safe.split('/'):
+            return None
+        url = f'https://api.telegram.org/file/bot{self._token}/{safe}'
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+        if response.status_code != 200 or not response.content:
+            return None
+        return response.content
+
     async def _post_json(self, url: str, payload: dict[str, object]) -> TelegramSendMessageResult:
         async with httpx.AsyncClient(timeout=45.0) as client:
             response = await client.post(url, json=payload)

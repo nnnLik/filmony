@@ -116,6 +116,7 @@ import { movieCardCommentDerivedFields } from '../lib/movieCardCommentDerivedFie
 import type { OpenComposeFeedPostPayload } from '../compose/feedComposeTypes'
 import { useComposeFeedPost } from '../compose/useComposeFeedPost'
 import { useFullscreenImageActivator } from '../hooks/useFullscreenImageActivator'
+import { userPhotoSrc } from '../lib/userPhotoSrc'
 
 const COMPANY_LABELS: Record<CardCompany, string> = {
   alone: 'Один',
@@ -161,7 +162,7 @@ function CardAuthorAvatarLink({ author }: { author: MovieCardCommentAuthor }) {
       className="shrink-0 no-underline transition-opacity motion-safe:hover:opacity-90"
       aria-label={displayNameFromProfile(author)}
     >
-      <Avatar src={author.photo_url ?? undefined} acronym={profileInitials(author)} size={28} />
+      <Avatar src={userPhotoSrc(author.photo_url)} acronym={profileInitials(author)} size={28} />
     </Link>
   )
 }

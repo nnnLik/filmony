@@ -1,4 +1,4 @@
-import { Avatar, Button, Input, Section, Title } from '@telegram-apps/telegram-ui'
+import { Button, Input, Section, Title } from '@telegram-apps/telegram-ui'
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
@@ -7,6 +7,7 @@ import { postNotificationPing } from '../api/notificationApi'
 import { getMyProfile, patchMyProfile } from '../api/profileApi'
 import type { MyProfile, PublicProfile } from '../api/profileTypes'
 import { useAuthStatus } from '../auth/useAuthStatus'
+import { OwnProfileAvatar } from '../components/profile/OwnProfileAvatar'
 import { PageErrorState } from '../components/ui/PageErrorState'
 import { PageLoadingState } from '../components/ui/PageLoadingState'
 import { displayNameFromProfile, profileInitials } from '../lib/profileDisplay'
@@ -179,7 +180,16 @@ export function ProfileEditPage() {
 
       <main className="px-4 py-6">
         <div className="mb-5 flex flex-col items-center text-center">
-          <Avatar src={profile.photo_url ?? undefined} acronym={profileInitials(pub)} size={72} />
+          <OwnProfileAvatar
+            photoUrl={profile.photo_url}
+            acronym={profileInitials(pub)}
+            size={72}
+            onUpdated={(next) => {
+              setProfile(next)
+              const bundle = readMyProfileBundleCache()
+              writeMyProfileBundleCache(next, bundle?.cards ?? null)
+            }}
+          />
           <Title className="mt-3" level="2" weight="2">
             {displayNameFromProfile(pub)}
           </Title>
