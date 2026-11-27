@@ -1,5 +1,5 @@
 # HOT — Cursor session memory
-Updated: 2026-08-15T011600Z
+Updated: 2026-08-15T013500Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
@@ -23,6 +23,9 @@ Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `
 6. `feed-created-sort` — sort feed and profile by completed_at (rated-card creation), not updated_at
    - Feature: `.cursor/features/feed-created-sort/feature.md`
    - Active: `.cursor/active/feed-created-sort/`
+7. `watch-leave-rate-create-flow` — after watch, Rate goes to create unless a rated card already exists; planned later cards use fromCard+intent=rate
+   - Feature: `.cursor/features/watch-leave-rate-create-flow/feature.md`
+   - Active: `.cursor/active/watch-leave-rate-create-flow/`
 
 ## recent_completed
 1. `profile-rating-contrast-stats` — closed 2026-08-15T010600Z

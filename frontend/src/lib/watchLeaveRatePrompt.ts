@@ -6,9 +6,20 @@ export const WATCH_LEAVE_RATE_MESSAGE = 'Оценить фильм?'
 
 export type WatchLeaveChoice = 'rate' | 'close' | 'cancel'
 
-export function filmRateCardPath(filmId: number, myCardId: number | null | undefined): string {
-  if (myCardId != null && myCardId > 0) {
-    return `/cards/${myCardId}/edit`
+export function filmRateCardPath(
+  filmId: number,
+  opts?: {
+    myCardId?: number | null
+    plannedCardId?: number | null
+  },
+): string {
+  const mine = opts?.myCardId != null && opts.myCardId > 0 ? opts.myCardId : null
+  const planned = opts?.plannedCardId != null && opts.plannedCardId > 0 ? opts.plannedCardId : null
+  if (mine != null && (planned == null || mine !== planned)) {
+    return `/cards/${mine}/edit`
+  }
+  if (planned != null) {
+    return `/cards/new?fromCard=${encodeURIComponent(String(planned))}&intent=rate`
   }
   return `/cards/new?filmId=${encodeURIComponent(String(filmId))}`
 }

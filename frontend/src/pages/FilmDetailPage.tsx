@@ -36,6 +36,7 @@ import { useWatchingNowOfUsers } from '../hooks/useWatchingNowOfUsers'
 import { clearMyProfileBundleCache, readMyProfileBundleCache } from '../lib/myProfileBundleCache'
 import { onWatchCtaClick } from '../lib/openFilmWatchInBrowser'
 import { formatRating } from '../components/feed/feedCardUtils'
+import { filmRateCardPath } from '../lib/watchLeaveRatePrompt'
 
 export function FilmDetailPage() {
   const auth = useAuthStatus()
@@ -249,7 +250,11 @@ export function FilmDetailPage() {
     [film],
   )
 
-  const hasMyRatedCard = film != null && film.my_card_id != null && film.my_card_id > 0
+  const hasMyRatedCard =
+    film != null &&
+    film.my_card_id != null &&
+    film.my_card_id > 0 &&
+    (plannedUserCardId == null || plannedUserCardId !== film.my_card_id)
 
   const onAddToWatchlist = useCallback(() => {
     if (filmId < 1 || film == null) return
@@ -380,7 +385,10 @@ export function FilmDetailPage() {
           </>
         ) : (
           <>
-            <Link to={`/cards/new?filmId=${encodeURIComponent(String(film.id))}`} className="no-underline">
+            <Link
+              to={filmRateCardPath(film.id, { myCardId: film.my_card_id, plannedCardId: plannedUserCardId })}
+              className="no-underline"
+            >
               <Button stretched>Добавить карточку с оценкой</Button>
             </Link>
             {inWatchlist === false ? (

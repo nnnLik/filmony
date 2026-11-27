@@ -6,7 +6,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { getFilmById } from '../api/cardApi'
 import { getFilmPlayback, type FilmPlaybackResponse } from '../api/filmPlaybackApi'
-import type { Film } from '../api/profileTypes'
+import { getMyPlannedCard } from '../api/profileApi'
+import type { Film, PlannedUserCard } from '../api/profileTypes'
 import {
   bridgeWatchPartyToWatchSession,
   endWatchParty,
@@ -168,6 +169,19 @@ export function FilmWatchPage() {
     enabled: auth.kind === 'ready' && Number.isFinite(filmId) && filmId > 0,
     queryFn: () => getFilmById(filmId),
     staleTime: 60_000,
+  })
+
+  const plannedQuery = useQuery<PlannedUserCard | null, Error>({
+    queryKey: ['planned-card', filmId],
+    enabled: auth.kind === 'ready' && Number.isFinite(filmId) && filmId > 0,
+    queryFn: async () => {
+      try {
+        return await getMyPlannedCard({ film_id: filmId })
+      } catch {
+        return null
+      }
+    },
+    retry: false,
   })
 
   const playbackIframeUrl = playbackQuery.data?.iframe_url?.trim() ?? ''
@@ -487,8 +501,19 @@ export function FilmWatchPage() {
     try {
       await leaveParty()
       if (choice === 'rate') {
+        let plannedId = plannedQuery.isSuccess ? (plannedQuery.data?.user_card_id ?? null) : null
+        if (!plannedQuery.isSuccess) {
+          try {
+            plannedId = (await getMyPlannedCard({ film_id: filmId })).user_card_id
+          } catch {
+            plannedId = null
+          }
+        }
         void navigate(
-          filmRateCardPath(filmId, filmQuery.data?.my_card_id),
+          filmRateCardPath(filmId, {
+            myCardId: filmQuery.data?.my_card_id,
+            plannedCardId: plannedId,
+          }),
           { replace: true },
         )
       } else {
@@ -498,7 +523,14 @@ export function FilmWatchPage() {
       setLeaveBusy(false)
       setLeaveRateSheetOpen(false)
     }
-  }, [filmId, filmQuery.data?.my_card_id, leaveParty, navigate])
+  }, [
+    filmId,
+    filmQuery.data?.my_card_id,
+    leaveParty,
+    navigate,
+    plannedQuery.data,
+    plannedQuery.isSuccess,
+  ])
 
   const requestLeaveFlow = useCallback(() => {
     if (isTMA()) {
