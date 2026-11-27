@@ -251,7 +251,7 @@ async def test_get_my_monthly_recap_not_found_when_empty(async_client: AsyncClie
 async def test_get_my_latest_monthly_recap(async_client: AsyncClient) -> None:
     me = await _login(async_client, telegram_user_id=54003)
     user_id = UUID(str(me['id']))
-    year, month = previous_complete_month(now=datetime(2026, 8, 4, tzinfo=UTC))
+    year, month = previous_complete_month()
     completed_at = datetime(year, month, 10, 12, 0, tzinfo=UTC)
 
     await _seed_movie_card(
