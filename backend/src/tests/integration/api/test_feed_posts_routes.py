@@ -454,6 +454,7 @@ async def test_feed_post_comment_reply_and_reaction(async_client: AsyncClient) -
             image_url='https://example.com/fpc_rx.png',
             category_slug='feed_post_test',
             asset_key='reactions/feed_post_test/x.png',
+            shortcode='fpcx',
         )
         session.add(rt)
         await session.commit()
@@ -484,6 +485,7 @@ async def test_feed_post_reaction_on_post(async_client: AsyncClient) -> None:
             image_url='https://example.com/fp_rx.png',
             category_slug='feed_post_rx2',
             asset_key='reactions/feed_post_rx2/x.png',
+            shortcode='fprx2',
         )
         session.add(rt)
         await session.commit()
@@ -918,6 +920,54 @@ async def test_feed_post_create_long_body(async_client: AsyncClient) -> None:
     r = await async_client.post('/api/feed-posts', json={'body': long_body})
     assert r.status_code == 200
     assert r.json()['body'] == long_body
+
+
+@pytest.mark.asyncio
+async def test_feed_post_body_canonicalizes_legacy_reaction_tokens(
+    async_client: AsyncClient,
+) -> None:
+    await _login(async_client, telegram_user_id=8905)
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        rt = ReactionType(
+            image_url='https://example.com/gasp.png',
+            category_slug='pepe',
+            asset_key='reactions/pepe/9137-gasp.png',
+            shortcode='gasp',
+        )
+        session.add(rt)
+        await session.commit()
+        await session.refresh(rt)
+        rid = int(rt.id)
+
+    ok = await async_client.post('/api/feed-posts', json={'body': f'вау ⟦r{rid}⟧ класс'})
+    assert ok.status_code == 200
+    assert ok.json()['body'] == 'вау :gasp: класс'
+
+    pipe_combo = await async_client.post(
+        '/api/feed-posts',
+        json={'body': '||секрет|| вау :gasp: класс'},
+    )
+    assert pipe_combo.status_code == 200
+    assert pipe_combo.json()['body'] == '||секрет|| вау :gasp: класс'
+
+    legacy_combo = await async_client.post(
+        '/api/feed-posts',
+        json={'body': f'⟦S⟧секрет⟦/S⟧ вау ⟦r{rid}⟧ класс'},
+    )
+    assert legacy_combo.status_code == 200
+    assert legacy_combo.json()['body'] == '||секрет|| вау :gasp: класс'
+
+    unknown_shortcode = await async_client.post(
+        '/api/feed-posts',
+        json={'body': 'hello :foo: there'},
+    )
+    assert unknown_shortcode.status_code == 200
+    assert unknown_shortcode.json()['body'] == 'hello :foo: there'
+
+    bad = await async_client.post('/api/feed-posts', json={'body': '⟦r999999999⟧ нет'})
+    assert bad.status_code == 400
+    assert 'unknown reaction type' in str(bad.json()['detail']).lower()
 
 
 @pytest.mark.asyncio

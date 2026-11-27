@@ -14,12 +14,20 @@ from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
+from models.reaction_type import ReactionType
 from models.user_card import UserCard
 from models.watchlist_entry import WatchlistEntry
 from services.cast.ensure_film_cast import EnsureFilmCastService
 from services.collections.meaningful_rated_card import is_meaningful_rated_card
 from services.collections.refresh_progress_for_film import RefreshProgressForFilmService
 from services.kinopoisk.resolve_kinopoisk_film import ResolveKinopoiskFilmService
+from services.text.reaction_shortcodes import (
+    LEGACY_ASCII_REACTION_RE,
+    LEGACY_UNICODE_REACTION_RE,
+    SHORTCODE_TOKEN_RE,
+    UnknownReactionTokenError,
+    rewrite_reaction_tokens,
+)
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -101,11 +109,27 @@ def _normalize_tags(tags: Sequence[str]) -> list[str]:
     return normalized
 
 
-def _normalize_watch_note(raw: str) -> str:
+def _watch_note_may_contain_reaction_tokens(text: str) -> bool:
+    return (
+        SHORTCODE_TOKEN_RE.search(text) is not None
+        or LEGACY_UNICODE_REACTION_RE.search(text) is not None
+        or LEGACY_ASCII_REACTION_RE.search(text) is not None
+    )
+
+
+async def _normalize_watch_note(session: AsyncSession, raw: str) -> str:
     s = (raw or '').strip()
     try:
+        if _watch_note_may_contain_reaction_tokens(s):
+            rows = (await session.execute(select(ReactionType.id, ReactionType.shortcode))).all()
+            id_to_shortcode = {int(rid): str(code) for rid, code in rows}
+            s = rewrite_reaction_tokens(
+                s,
+                id_to_shortcode=id_to_shortcode,
+                known_shortcodes=set(id_to_shortcode.values()),
+            )
         return validate_spoiler_tokens(s)
-    except SpoilerTokenValidationError as e:
+    except (SpoilerTokenValidationError, UnknownReactionTokenError) as e:
         raise UserCardValidationError(str(e)) from e
 
 
@@ -264,7 +288,7 @@ class CreateUserCardService:
     async def execute(self, user_id: UUID, payload: CreateUserCardInput) -> UserCard:
         rating = _normalize_rating(payload.rating)
         custom_tags = _normalize_tags(payload.custom_tags)
-        watch_note = _normalize_watch_note(payload.watch_note)
+        watch_note = await _normalize_watch_note(self._session, payload.watch_note)
         genres = _normalize_genres(payload.genres)
         cover_url = _normalize_optional_url(payload.display_cover_url, field='display_cover_url')
         summary = _normalize_display_summary(payload.display_summary)

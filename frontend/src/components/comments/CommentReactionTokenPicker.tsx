@@ -16,14 +16,14 @@ import { POPOVER_W_COMPACT } from '../reactions/reactionStrip/constants'
 import { usePopoverPosition } from '../reactions/reactionStrip/usePopoverPosition'
 
 export type CommentReactionTokenPickerProps = {
-  onPickReactionTypeId: (reactionTypeId: number) => void
+  onPickReactionType: (reactionTypeId: number, shortcode: string) => void
   disabled?: boolean
   /** When false, picker does not open (e.g. at max length). */
   allowInsert?: boolean
 }
 
 export function CommentReactionTokenPicker({
-  onPickReactionTypeId,
+  onPickReactionType,
   disabled = false,
   allowInsert = true,
 }: CommentReactionTokenPickerProps) {
@@ -86,13 +86,13 @@ export function CommentReactionTokenPicker({
   }, [catalog, recentRevision])
 
   const apply = useCallback(
-    (reactionTypeId: number) => {
+    (reactionTypeId: number, shortcode: string) => {
       recordRecentReactionTypeId(reactionTypeId)
       setRecentRevision((n) => n + 1)
-      onPickReactionTypeId(reactionTypeId)
+      onPickReactionType(reactionTypeId, shortcode)
       closePicker()
     },
-    [closePicker, onPickReactionTypeId],
+    [closePicker, onPickReactionType],
   )
 
   const pickerPortal =

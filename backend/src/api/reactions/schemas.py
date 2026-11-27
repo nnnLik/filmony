@@ -39,6 +39,7 @@ class ReactionCatalogItemResponse(BaseModel):
     image_url: str
     category_slug: str
     asset_key: str
+    shortcode: str
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -12,7 +12,15 @@ from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.catalog_item import CatalogItem, CatalogProvider
 from models.film import Film
 from models.game import Game
+from models.reaction_type import ReactionType
 from models.user_card import UserCard
+from services.text.reaction_shortcodes import (
+    LEGACY_ASCII_REACTION_RE,
+    LEGACY_UNICODE_REACTION_RE,
+    SHORTCODE_TOKEN_RE,
+    UnknownReactionTokenError,
+    rewrite_reaction_tokens,
+)
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -42,11 +50,27 @@ def _optional_str(value: object) -> str | None:
     return text if text != '' else None
 
 
-def _normalize_watch_note(raw: str) -> str:
+def _watch_note_may_contain_reaction_tokens(text: str) -> bool:
+    return (
+        SHORTCODE_TOKEN_RE.search(text) is not None
+        or LEGACY_UNICODE_REACTION_RE.search(text) is not None
+        or LEGACY_ASCII_REACTION_RE.search(text) is not None
+    )
+
+
+async def _normalize_watch_note(session: AsyncSession, raw: str) -> str:
     s = (raw or '').strip()
     try:
+        if _watch_note_may_contain_reaction_tokens(s):
+            rows = (await session.execute(select(ReactionType.id, ReactionType.shortcode))).all()
+            id_to_shortcode = {int(rid): str(code) for rid, code in rows}
+            s = rewrite_reaction_tokens(
+                s,
+                id_to_shortcode=id_to_shortcode,
+                known_shortcodes=set(id_to_shortcode.values()),
+            )
         return validate_spoiler_tokens(s)
-    except SpoilerTokenValidationError as e:
+    except (SpoilerTokenValidationError, UnknownReactionTokenError) as e:
         raise ValueError(str(e)) from e
 
 
@@ -79,7 +103,7 @@ class CreatePlannedUserCardService:
             self._session
         ).execute(user_id, category_id)
 
-        normalized_note = _normalize_watch_note(watch_note)
+        normalized_note = await _normalize_watch_note(self._session, watch_note)
 
         if provider == CatalogProvider.kinopoisk.value:
             return await self._upsert_kinopoisk(

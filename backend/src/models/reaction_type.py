@@ -9,4 +9,5 @@ from .base import Base
 class ReactionType(Base):
     category_slug: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     asset_key: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
+    shortcode: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
     image_url: Mapped[str] = mapped_column(String(2048), nullable=False)

@@ -72,14 +72,13 @@ def _default_rustfs_endpoint() -> str:
     return "http://127.0.0.1:7900"
 
 
-def _load_reaction_tab_order() -> tuple[Any, ...]:
-    """Импорт каталога вкладок: в контейнере backend достаточно PYTHONPATH=/opt/app/src."""
+def _ensure_backend_src_on_path() -> None:
+    """Импорт из backend/src: в контейнере достаточно PYTHONPATH=/opt/app/src."""
     try:
-        from const.reaction_packs import REACTION_TAB_ORDER
+        import const.reaction_packs as _reaction_packs  # noqa: F401
+        return
     except ImportError:
         pass
-    else:
-        return REACTION_TAB_ORDER
     roots: list[Path] = []
     env_root = (os.environ.get("FILMONY_REPO_ROOT") or "").strip()
     if env_root:
@@ -87,16 +86,56 @@ def _load_reaction_tab_order() -> tuple[Any, ...]:
     roots.append(Path(__file__).resolve().parents[1] / "backend" / "src")
     for src in roots:
         if src.is_dir():
-            sys.path.insert(0, str(src))
-            from const.reaction_packs import REACTION_TAB_ORDER
-
-            return REACTION_TAB_ORDER
+            src_str = str(src)
+            if src_str not in sys.path:
+                sys.path.insert(0, src_str)
+            return
     print(
-        "Не удалось импортировать const.reaction_packs: запустите из образа backend "
+        "Не удалось импортировать backend/src: запустите из образа backend "
         "или задайте FILMONY_REPO_ROOT на корень клона filmony.",
         file=sys.stderr,
     )
     raise SystemExit(1)
+
+
+def _load_reaction_tab_order() -> tuple[Any, ...]:
+    """Импорт каталога вкладок: в контейнере backend достаточно PYTHONPATH=/opt/app/src."""
+    _ensure_backend_src_on_path()
+    from const.reaction_packs import REACTION_TAB_ORDER
+
+    return REACTION_TAB_ORDER
+
+
+def _load_reaction_shortcode_helpers() -> tuple[Any, Any, Any]:
+    """derive_shortcode_stem, allocate_unique_shortcodes, _first_unused_shortcode."""
+    _ensure_backend_src_on_path()
+    from services.text.reaction_shortcodes import (
+        _first_unused_shortcode,
+        allocate_unique_shortcodes,
+        derive_shortcode_stem,
+    )
+
+    return derive_shortcode_stem, allocate_unique_shortcodes, _first_unused_shortcode
+
+
+def _allocate_unique_shortcodes_avoiding(
+    rows: list[tuple[int, str, str]],
+    used: set[str],
+    *,
+    derive_shortcode_stem: Any,
+    allocate_unique_shortcodes: Any,
+    first_unused_shortcode: Any,
+) -> dict[int, str]:
+    """Like allocate_unique_shortcodes, skipping shortcodes already in `used`."""
+    if not used:
+        return allocate_unique_shortcodes(rows)
+    allocated: dict[int, str] = {}
+    for row_id, asset_key, category_slug in rows:
+        stem = derive_shortcode_stem(asset_key)
+        chosen = first_unused_shortcode(stem, category_slug, row_id, used)
+        used.add(chosen)
+        allocated[row_id] = chosen
+    return allocated
 
 
 def postgres_dsn_for_native_asyncpg(raw: str) -> str:
@@ -134,23 +173,75 @@ async def upsert_reaction_rows(
         )
         raise SystemExit(1) from None
 
+    derive_shortcode_stem, allocate_unique_shortcodes, first_unused_shortcode = (
+        _load_reaction_shortcode_helpers()
+    )
+
     conn = await asyncpg.connect(postgres_dsn_for_native_asyncpg(dsn))
     try:
+        existing_rows = await conn.fetch(
+            """
+            SELECT id, asset_key, shortcode
+            FROM reaction_type
+            """
+        )
+        used: set[str] = {
+            str(row["shortcode"]) for row in existing_rows if row["shortcode"]
+        }
+        existing_by_asset: dict[str, Any] = {
+            str(row["asset_key"]): row for row in existing_rows
+        }
+
+        new_meta: list[tuple[str, str]] = []
+        seen_new: set[str] = set()
+        for category_slug, _fname, asset_key in uploaded:
+            existing = existing_by_asset.get(asset_key)
+            if existing is not None and existing["shortcode"]:
+                continue
+            if asset_key in seen_new:
+                continue
+            seen_new.add(asset_key)
+            new_meta.append((asset_key, category_slug))
+
+        allocated_by_asset: dict[str, str] = {}
+        if new_meta:
+            indexed = [
+                (index, asset_key, slug)
+                for index, (asset_key, slug) in enumerate(new_meta, start=1)
+            ]
+            allocated = _allocate_unique_shortcodes_avoiding(
+                indexed,
+                used,
+                derive_shortcode_stem=derive_shortcode_stem,
+                allocate_unique_shortcodes=allocate_unique_shortcodes,
+                first_unused_shortcode=first_unused_shortcode,
+            )
+            for index, asset_key, _slug in indexed:
+                allocated_by_asset[asset_key] = allocated[index]
+
         sql = """
             INSERT INTO reaction_type (
-                image_url, category_slug, asset_key
+                image_url, category_slug, asset_key, shortcode
             )
-            VALUES ($1, $2, $3)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (asset_key) DO UPDATE SET
                 image_url = EXCLUDED.image_url,
-                category_slug = EXCLUDED.category_slug
+                category_slug = EXCLUDED.category_slug,
+                shortcode = EXCLUDED.shortcode
         """
         for category_slug, _fname, asset_key in uploaded:
             if image_url_template:
                 image_url = image_url_template.format(asset_key=asset_key)
             else:
                 image_url = asset_key
-            await conn.execute(sql, image_url, category_slug, asset_key)
+            existing = existing_by_asset.get(asset_key)
+            if existing is not None and existing["shortcode"]:
+                shortcode = str(existing["shortcode"])
+            else:
+                shortcode = allocated_by_asset[asset_key]
+            await conn.execute(
+                sql, image_url, category_slug, asset_key, shortcode
+            )
     finally:
         await conn.close()
 

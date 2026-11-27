@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from uuid import UUID
 
 from sqlalchemy import select
@@ -15,6 +14,10 @@ from services.profile.validate_inline_mention_tokens import (
     MentionTokenValidationError,
     validate_and_canonicalize_mentions,
 )
+from services.text.reaction_shortcodes import (
+    UnknownReactionTokenError,
+    rewrite_reaction_tokens,
+)
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -22,7 +25,6 @@ from services.text.spoiler_tokens import (
 
 # High safety cap for DoS protection; no product-facing character limit.
 FEED_POST_BODY_MAX_LEN = 100_000
-_REACTION_TOKEN_RE = re.compile(r'⟦r(\d+)⟧')
 
 
 class FeedPostBodyValidationError(Exception):
@@ -32,7 +34,7 @@ class FeedPostBodyValidationError(Exception):
 async def validate_feed_post_body(
     text: str, session: AsyncSession, *, author_user_id: UUID
 ) -> tuple[str, tuple[UUID, ...]]:
-    """Strip body, max length; validate ⟦r{id}⟧, ⟦c{card_id}⟧ (own cards), ⟦@slug⟧ mentions.
+    """Strip body, max length; canonicalize reaction tokens; validate card refs and mentions.
 
     Returns canonical body and deduplicated mentioned user ids (for notifications).
     """
@@ -42,26 +44,20 @@ async def validate_feed_post_body(
     if len(body) > FEED_POST_BODY_MAX_LEN:
         raise FeedPostBodyValidationError(f'body max length is {FEED_POST_BODY_MAX_LEN}')
 
-    matches = list(_REACTION_TOKEN_RE.finditer(body))
-    ids: list[int] = []
-    for m in matches:
+    if ':' in body or '⟦r' in body or '[[r' in body:
+        rows = (await session.execute(select(ReactionType.id, ReactionType.shortcode))).all()
+        id_to_shortcode = {int(row_id): str(shortcode) for row_id, shortcode in rows}
+        known_shortcodes = set(id_to_shortcode.values())
         try:
-            rid = int(m.group(1))
-        except ValueError as e:
-            raise FeedPostBodyValidationError('invalid reaction token') from e
-        if rid < 1:
-            raise FeedPostBodyValidationError('invalid reaction token')
-        ids.append(rid)
-
-    if ids:
-        rows = (
-            (await session.execute(select(ReactionType.id).where(ReactionType.id.in_(ids))))
-            .scalars()
-            .all()
-        )
-        found = {int(x) for x in rows}
-        if not set(ids).issubset(found):
-            raise FeedPostBodyValidationError('unknown reaction type in body')
+            body = rewrite_reaction_tokens(
+                body,
+                id_to_shortcode=id_to_shortcode,
+                known_shortcodes=known_shortcodes,
+            )
+        except UnknownReactionTokenError as e:
+            raise FeedPostBodyValidationError('unknown reaction type in body') from e
+        if len(body) > FEED_POST_BODY_MAX_LEN:
+            raise FeedPostBodyValidationError(f'body max length is {FEED_POST_BODY_MAX_LEN}')
 
     try:
         await validate_inline_user_card_refs_for_author(

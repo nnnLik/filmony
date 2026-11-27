@@ -17,6 +17,7 @@ class ReactionCatalogItem:
     image_url: str
     category_slug: str
     asset_key: str
+    shortcode: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +43,7 @@ def _row(rt: ReactionType) -> ReactionCatalogItem:
         ),
         category_slug=rt.category_slug,
         asset_key=rt.asset_key,
+        shortcode=rt.shortcode,
     )
 
 

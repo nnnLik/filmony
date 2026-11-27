@@ -5,6 +5,18 @@ export function reactionTokenFromId(reactionTypeId: number): string {
   return `⟦r${reactionTypeId}⟧`
 }
 
+export function reactionTokenFromShortcode(shortcode: string): string {
+  return `:${shortcode}:`
+}
+
+/** Prefer `:shortcode:` when the catalog name is known; otherwise legacy `⟦r{id}⟧`. */
+export function reactionTokenForInsert(id: number, shortcode: string | undefined): string {
+  if (shortcode != null && shortcode !== '') {
+    return reactionTokenFromShortcode(shortcode)
+  }
+  return reactionTokenFromId(id)
+}
+
 /** Inline reference to viewer's card (matches backend `inline_movie_card_ref_tokens`). */
 export function movieCardRefTokenFromId(movieCardId: number): string {
   const id = Math.floor(movieCardId)
@@ -36,6 +48,8 @@ export type CommentTextSegmentWithRange =
 const UNICODE_TOKEN_RE = /⟦r(\d+)⟧/g
 /** Legacy / mistyped ASCII bracket form sometimes stored or pasted as `[[r12]]`. */
 const ASCII_TOKEN_RE = /\[\[r(\d+)\]\]/g
+/** Readable `:shortcode:` (matches backend `SHORTCODE_TOKEN_RE`); reaction only if in catalog map. */
+const SHORTCODE_TOKEN_RE = /:([a-z][a-z0-9_+-]{0,31}):/g
 /** Feed @mention token `⟦@profile_slug⟧` (matches backend). */
 const UNICODE_MENTION_RE = /⟦@([^⟧]+)⟧/g
 /** Own card ref `⟦c{id}⟧` (matches backend). */
@@ -46,9 +60,31 @@ type SegmentHit =
   | { index: number; len: number; kind: 'mention'; profileSlug: string }
   | { index: number; len: number; kind: 'card_ref'; movieCardId: number }
 
-function collectSegmentHits(text: string): SegmentHit[] {
+function collectSegmentHits(
+  text: string,
+  shortcodeToId?: ReadonlyMap<string, number>,
+): SegmentHit[] {
   const hits: SegmentHit[] = []
   let m: RegExpExecArray | null
+
+  if (shortcodeToId != null) {
+    SHORTCODE_TOKEN_RE.lastIndex = 0
+    while ((m = SHORTCODE_TOKEN_RE.exec(text)) != null) {
+      const name = m[1]
+      if (name == null) {
+        continue
+      }
+      const id = shortcodeToId.get(name)
+      if (id != null && Number.isInteger(id) && id > 0) {
+        hits.push({
+          index: m.index,
+          len: m[0].length,
+          kind: 'reaction',
+          reactionTypeId: id,
+        })
+      }
+    }
+  }
 
   UNICODE_TOKEN_RE.lastIndex = 0
   while ((m = UNICODE_TOKEN_RE.exec(text)) != null) {
@@ -106,12 +142,15 @@ function collectSegmentHits(text: string): SegmentHit[] {
   return hits
 }
 
-function splitCommentTextIntoSegmentsWithRangesImpl(text: string): CommentTextSegmentWithRange[] {
+function splitCommentTextIntoSegmentsWithRangesImpl(
+  text: string,
+  shortcodeToId?: ReadonlyMap<string, number>,
+): CommentTextSegmentWithRange[] {
   if (text === '') {
     return []
   }
 
-  const hits = collectSegmentHits(text)
+  const hits = collectSegmentHits(text, shortcodeToId)
   const segments: CommentTextSegmentWithRange[] = []
   let lastIndex = 0
   for (const hit of hits) {
@@ -176,13 +215,40 @@ function segmentToPlain(s: CommentTextSegmentWithRange): CommentTextSegment {
 }
 
 /** Split stored comment (or watch note) text into plain text, reaction, and feed mention segments. */
-export function splitCommentTextIntoSegments(text: string): CommentTextSegment[] {
-  return splitCommentTextIntoSegmentsWithRangesImpl(text).map(segmentToPlain)
+export function splitCommentTextIntoSegments(
+  text: string,
+  shortcodeToId?: ReadonlyMap<string, number>,
+): CommentTextSegment[] {
+  return splitCommentTextIntoSegmentsWithRangesImpl(text, shortcodeToId).map(segmentToPlain)
 }
 
 /** Same as {@link splitCommentTextIntoSegments} plus UTF-16 half-open `[rangeStart, rangeEnd)` spans in the source string. */
-export function splitCommentTextIntoSegmentsWithRanges(text: string): CommentTextSegmentWithRange[] {
-  return splitCommentTextIntoSegmentsWithRangesImpl(text)
+export function splitCommentTextIntoSegmentsWithRanges(
+  text: string,
+  shortcodeToId?: ReadonlyMap<string, number>,
+): CommentTextSegmentWithRange[] {
+  return splitCommentTextIntoSegmentsWithRangesImpl(text, shortcodeToId)
+}
+
+const UNICODE_EXPAND_RE = /⟦r(\d+)⟧/g
+const ASCII_EXPAND_RE = /\[\[r(\d+)\]\]/g
+
+/** Replace legacy `⟦r{id}⟧` / `[[r{id}]]` with `:shortcode:` when the id is in the map. */
+export function expandLegacyReactionTokens(
+  text: string,
+  idToShortcode: ReadonlyMap<number, string>,
+): string {
+  const replaceKnown = (full: string, idRaw: string): string => {
+    const id = Number(idRaw)
+    const shortcode = idToShortcode.get(id)
+    if (shortcode == null || shortcode === '') {
+      return full
+    }
+    return `:${shortcode}:`
+  }
+  UNICODE_EXPAND_RE.lastIndex = 0
+  ASCII_EXPAND_RE.lastIndex = 0
+  return text.replace(UNICODE_EXPAND_RE, replaceKnown).replace(ASCII_EXPAND_RE, replaceKnown)
 }
 
 export function insertSnippetAtCaret(

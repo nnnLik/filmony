@@ -1,5 +1,5 @@
 import { Avatar, Button } from '@telegram-apps/telegram-ui'
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEventHandler } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type KeyboardEventHandler, type MouseEventHandler } from 'react'
 import { Link, useNavigate } from 'react-router'
 
 import { ApiError, formatApiDetail, resolveApiUrl } from '../../api/client'
@@ -21,10 +21,14 @@ import { MentionProfileLookupProvider } from '../../context/MentionProfileLookup
 import { displayNameFromAuthorFields } from '../../lib/authorDisplayName'
 import {
   COMMENT_BODY_MAX_LEN,
+  expandLegacyReactionTokens,
   insertSnippetAtCaret,
   movieCardRefTokenFromId,
-  reactionTokenFromId,
+  reactionTokenForInsert,
 } from '../../lib/commentReactionTokens'
+import { idToShortcodeMapFromCatalog } from '../../lib/commentShortcodeCompose'
+import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
+import { useReactionShortcodePicker } from '../../hooks/useReactionShortcodePicker'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { inlineMovieCardRefMapFromSnippets, type InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import { authorLikeToMentionRow } from '../../lib/mentionProfileLookupUtils'
@@ -37,6 +41,7 @@ import { RatingStreakAuthorBadge } from '../streaks/RatingStreakAuthorBadge'
 import { WatchingNowAuthorBadge } from '../watchparty/WatchingNowAuthorBadge'
 import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReactionTokens'
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
+import { ReactionShortcodeSuggestPortal } from '../comments/ReactionShortcodeSuggestPortal'
 import { EngagementCommentsRow } from './EngagementCommentsRow'
 import { PlannedCardBadge } from '../cards/PlannedCardBadge'
 import { CoViewSplitRatings } from './CoViewSplitRatings'
@@ -226,6 +231,7 @@ export function FeedPostCard({
     [sourceCommentQuote?.referenced_movie_cards],
   )
   const draftInputRef = useRef<HTMLInputElement>(null)
+  const editBodyRef = useRef<HTMLTextAreaElement>(null)
   const [draft, setDraft] = useState('')
   const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
     () => new Map<number, { film_title: string; film_year: number | null }>(),
@@ -326,6 +332,86 @@ export function FeedPostCard({
     setDeleteError(null)
   }, [displayBody])
 
+  const wasEditingRef = useRef(false)
+  useEffect(() => {
+    const entering = editingPost && !wasEditingRef.current
+    wasEditingRef.current = editingPost
+    if (!entering) {
+      return
+    }
+    const original = displayBody
+    let alive = true
+    void loadReactionCatalog()
+      .then((catalog) => {
+        if (!alive) return
+        const expanded = expandLegacyReactionTokens(original, idToShortcodeMapFromCatalog(catalog))
+        if (expanded === original) return
+        queueMicrotask(() => {
+          if (alive) setEditBody(expanded)
+        })
+      })
+      .catch(() => {
+        /* leave legacy tokens; overlay still renders them */
+      })
+    return () => {
+      alive = false
+    }
+  }, [displayBody, editingPost])
+
+  const applyDraftShortcodePick = useCallback((nextValue: string, caret: number) => {
+    setDraft(nextValue)
+    const el = draftInputRef.current
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [])
+
+  const {
+    anchorRef: draftShortcodeAnchorRef,
+    picker: draftShortcodePicker,
+    highlightIdx: draftShortcodeHighlightIdx,
+    filtered: draftShortcodeFiltered,
+    popoverLayout: draftShortcodePopoverLayout,
+    syncFromValue: syncDraftShortcodeFromValue,
+    pick: pickDraftShortcode,
+    dismiss: dismissDraftShortcode,
+    handleKeyDown: handleDraftShortcodeKeyDown,
+    catalogPending: draftShortcodeCatalogPending,
+  } = useReactionShortcodePicker({
+    value: draft,
+    fieldRef: draftInputRef,
+    maxLen: COMMENT_BODY_MAX_LEN,
+    onApply: applyDraftShortcodePick,
+  })
+
+  const applyEditShortcodePick = useCallback((nextValue: string, caret: number) => {
+    setEditBody(nextValue)
+    const el = editBodyRef.current
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [])
+
+  const {
+    anchorRef: editShortcodeAnchorRef,
+    picker: editShortcodePicker,
+    highlightIdx: editShortcodeHighlightIdx,
+    filtered: editShortcodeFiltered,
+    popoverLayout: editShortcodePopoverLayout,
+    syncFromValue: syncEditShortcodeFromValue,
+    pick: pickEditShortcode,
+    dismiss: dismissEditShortcode,
+    handleKeyDown: handleEditShortcodeKeyDown,
+    catalogPending: editShortcodeCatalogPending,
+  } = useReactionShortcodePicker({
+    enabled: editingPost,
+    value: editBody,
+    fieldRef: editBodyRef,
+    onApply: applyEditShortcodePick,
+  })
+
   const handleDeletePost = useCallback(async () => {
     if (deleteBusy) return
     const confirmed = window.confirm('Удалить пост? Комментарии тоже будут удалены.')
@@ -384,17 +470,55 @@ export function FeedPostCard({
       mergedPreviewAfterCreate(created)
       setDraft('')
       setDraftInlineCardRefs(new Map())
+      dismissDraftShortcode()
       safeHapticSuccess()
     } catch (e) {
       setSubmitError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось отправить')
     } finally {
       setSubmitBusy(false)
     }
-  }, [draft, mergedPreviewAfterCreate, post.id])
+  }, [dismissDraftShortcode, draft, mergedPreviewAfterCreate, post.id])
+
+  const handleDraftChange = useCallback(
+    (value: string) => {
+      const next = value.slice(0, COMMENT_BODY_MAX_LEN)
+      setDraft(next)
+      queueMicrotask(() => {
+        syncDraftShortcodeFromValue(next)
+      })
+    },
+    [syncDraftShortcodeFromValue],
+  )
+
+  const handleDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement | HTMLInputElement> = useCallback(
+    (event) => {
+      if (draftShortcodePicker != null) {
+        handleDraftShortcodeKeyDown(event)
+        return
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        void send()
+      }
+    },
+    [draftShortcodePicker, handleDraftShortcodeKeyDown, send],
+  )
+
+  const handleEditBodyChange = useCallback(
+    (value: string, meta?: { caret: number }) => {
+      setEditBody(value)
+      const caret = meta?.caret ?? value.length
+      queueMicrotask(() => {
+        syncEditShortcodeFromValue(value, caret)
+      })
+    },
+    [syncEditShortcodeFromValue],
+  )
 
   const insertReactionToken = useCallback(
-    (reactionTypeId: number) => {
-      const token = reactionTokenFromId(reactionTypeId)
+    (reactionTypeId: number, shortcode: string) => {
+      dismissDraftShortcode()
+      const token = reactionTokenForInsert(reactionTypeId, shortcode)
       const el = draftInputRef.current
       const inserted = insertSnippetAtCaret(
         draft,
@@ -411,11 +535,12 @@ export function FeedPostCard({
         el?.setSelectionRange(caret, caret)
       })
     },
-    [draft],
+    [dismissDraftShortcode, draft],
   )
 
   const insertMovieCardInline = useCallback(
     (row: WatchedInlinePickerItem) => {
+      dismissDraftShortcode()
       const token = movieCardRefTokenFromId(row.movie_card_id)
       const el = draftInputRef.current
       const inserted = insertSnippetAtCaret(
@@ -438,10 +563,11 @@ export function FeedPostCard({
         el?.setSelectionRange(caret, caret)
       })
     },
-    [draft],
+    [dismissDraftShortcode, draft],
   )
 
   const toggleSpoilerInDraft = useCallback(() => {
+    dismissDraftShortcode()
     const el = draftInputRef.current
     const toggled = toggleSpoilerAtSelection(
       draft,
@@ -456,7 +582,7 @@ export function FeedPostCard({
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [draft])
+  }, [dismissDraftShortcode, draft])
 
   const stopPostNav: MouseEventHandler = (e) => {
     e.preventDefault()
@@ -551,15 +677,10 @@ export function FeedPostCard({
       onJumpToParent={handleJumpToParent}
       onReply={handleInlineReply}
       draft={draft}
-      onDraftChange={setDraft}
+      onDraftChange={handleDraftChange}
       draftInputRef={draftInputRef}
       draftInlineCardRefs={draftInlineCardRefs}
-      onDraftKeyDown={(e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault()
-          void send()
-        }
-      }}
+      onDraftKeyDown={handleDraftKeyDown}
       onInsertReaction={insertReactionToken}
       onToggleSpoiler={toggleSpoilerInDraft}
       onInsertMovieCard={insertMovieCardInline}
@@ -573,6 +694,14 @@ export function FeedPostCard({
       linkToDetail={linkToDetail}
       detailFallbackLabel="Открыть пост"
       inlineCommentsEnabled={inlineComments === true}
+      shortcodeAnchorRef={draftShortcodeAnchorRef}
+      shortcodePicker={draftShortcodePicker}
+      shortcodeHighlightIdx={draftShortcodeHighlightIdx}
+      shortcodeFiltered={draftShortcodeFiltered}
+      shortcodePopoverLayout={draftShortcodePopoverLayout}
+      shortcodeCatalogPending={draftShortcodeCatalogPending}
+      onPickShortcode={pickDraftShortcode}
+      onDismissShortcode={dismissDraftShortcode}
     />
   )
 
@@ -712,14 +841,38 @@ export function FeedPostCard({
               onMouseDown={linkToDetail ? stopPostNav : undefined}
               onClick={linkToDetail ? stopPostNavClick : undefined}
             >
-              <CommentDraftMultiline
-                value={editBody}
-                onChange={setEditBody}
-                disabled={editBusy}
-                rows={4}
-                placeholder="Редактировать пост"
-                inlineMovieCardRefs={bodyInlineRefMap}
-              />
+              <div ref={editShortcodeAnchorRef} className="relative">
+                <CommentDraftMultiline
+                  ref={editBodyRef}
+                  value={editBody}
+                  onChange={handleEditBodyChange}
+                  onKeyDown={handleEditShortcodeKeyDown}
+                  onKeyUp={() => {
+                    const el = editBodyRef.current
+                    if (el == null) return
+                    syncEditShortcodeFromValue(el.value, el.selectionStart ?? el.value.length)
+                  }}
+                  onSelect={() => {
+                    const el = editBodyRef.current
+                    if (el == null) return
+                    syncEditShortcodeFromValue(el.value, el.selectionStart ?? el.value.length)
+                  }}
+                  disabled={editBusy}
+                  rows={4}
+                  placeholder="Редактировать пост"
+                  inlineMovieCardRefs={bodyInlineRefMap}
+                />
+                {editShortcodePicker != null && editShortcodePopoverLayout != null ? (
+                  <ReactionShortcodeSuggestPortal
+                    layout={editShortcodePopoverLayout}
+                    items={editShortcodeFiltered}
+                    highlightIdx={editShortcodeHighlightIdx}
+                    catalogPending={editShortcodeCatalogPending}
+                    onPick={pickEditShortcode}
+                    onDismiss={dismissEditShortcode}
+                  />
+                ) : null}
+              </div>
               {editError != null ? (
                 <p className="text-xs text-(--tgui--destructive_text_color)">{editError}</p>
               ) : null}

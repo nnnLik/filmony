@@ -10,10 +10,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.card_enums import CardCompany
+from models.reaction_type import ReactionType
 from models.watchlist_entry import WatchlistEntry
 from services.cards.create_planned_user_card import CreatePlannedUserCardService
 from services.telegram.send_watchlist_invite_notification import (
     SendWatchlistInviteNotificationService,
+)
+from services.text.reaction_shortcodes import (
+    LEGACY_ASCII_REACTION_RE,
+    LEGACY_UNICODE_REACTION_RE,
+    SHORTCODE_TOKEN_RE,
+    UnknownReactionTokenError,
+    rewrite_reaction_tokens,
 )
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
@@ -28,11 +36,27 @@ from services.watchlist.normalize_watch_with_partners import (
 )
 
 
-def _normalize_watch_note(raw: str) -> str:
+def _watch_note_may_contain_reaction_tokens(text: str) -> bool:
+    return (
+        SHORTCODE_TOKEN_RE.search(text) is not None
+        or LEGACY_UNICODE_REACTION_RE.search(text) is not None
+        or LEGACY_ASCII_REACTION_RE.search(text) is not None
+    )
+
+
+async def _normalize_watch_note(session: AsyncSession, raw: str) -> str:
     s = (raw or '').strip()
     try:
+        if _watch_note_may_contain_reaction_tokens(s):
+            rows = (await session.execute(select(ReactionType.id, ReactionType.shortcode))).all()
+            id_to_shortcode = {int(rid): str(code) for rid, code in rows}
+            s = rewrite_reaction_tokens(
+                s,
+                id_to_shortcode=id_to_shortcode,
+                known_shortcodes=set(id_to_shortcode.values()),
+            )
         return validate_spoiler_tokens(s)
-    except SpoilerTokenValidationError as e:
+    except (SpoilerTokenValidationError, UnknownReactionTokenError) as e:
         raise ValueError(str(e)) from e
 
 
@@ -98,7 +122,7 @@ class CreateWatchlistEntryService:
             effective_company = CardCompany.friends
         primary_partner_id = primary_watch_with_user_id(partner_ids)
         stored_ids_json = watch_with_user_ids_as_json(partner_ids)
-        normalized_note = _normalize_watch_note(watch_note)
+        normalized_note = await _normalize_watch_note(self._session, watch_note)
 
         for invitee_id in partner_ids:
             await self._assert_mutual_watch_partner_service.execute(

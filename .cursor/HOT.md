@@ -1,29 +1,32 @@
 # HOT — Cursor session memory
-Updated: 2026-08-15T013500Z
+Updated: 2026-11-27T203800Z
 
 Agents: read this file first. Do not glob/read `.cursor/archive/**`. Deep-read `active/`, `memory/logs/`, or `plans/` only for slugs listed below (or named by the user).
 
 ## in_progress
-1. `profile-heatmap-stats-regroup` — move heatmap to profile; regroup stats sub-tabs (Обзор / Вкус / Сообщество) without losing analytics blocks
+1. `colon-shortcode-markup` — readable `:shortcode:` emoji syntax and `||spoiler||` in comments, feed posts, and watch notes
+   - Feature: `.cursor/features/colon-shortcode-markup/feature.md`
+   - Active: `.cursor/active/colon-shortcode-markup/`
+2. `profile-heatmap-stats-regroup` — move heatmap to profile; regroup stats sub-tabs (Обзор / Вкус / Сообщество) without losing analytics blocks
    - Feature: `.cursor/features/profile-heatmap-stats-regroup/feature.md`
    - Active: `.cursor/active/profile-heatmap-stats-regroup/`
-2. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
+3. `film-radarr-playback` — rework playback via Prowlarr + Radarr + qBittorrent + Jellyfin (RU 4K prod stack)
    - Feature: `.cursor/features/film-radarr-playback/feature.md`
    - Active: `.cursor/active/film-radarr-playback/`
    - Spec: `docs/superpowers/specs/2026-08-10-film-radarr-torrent-stack-design.md`
-3. `collections-core` — curated film collections with rated-only progress tracking
+4. `collections-core` — curated film collections with rated-only progress tracking
    - Feature: `.cursor/features/collections-core/feature.md`
    - Active: `.cursor/active/collections-core/`
-4. `film-award-badges` — Oscar nominee/winner badges on films (independent of collections)
+5. `film-award-badges` — Oscar nominee/winner badges on films (independent of collections)
    - Feature: `.cursor/features/film-award-badges/feature.md`
    - Active: `.cursor/active/film-award-badges/`
-5. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
+6. `achievements-rarity-profile-pins` — sticky collection achievements, rarity stats, profile pins
    - Feature: `.cursor/features/achievements-rarity-profile-pins/feature.md`
    - Active: `.cursor/active/achievements-rarity-profile-pins/`
-6. `feed-created-sort` — sort feed and profile by completed_at (rated-card creation), not updated_at
+7. `feed-created-sort` — sort feed and profile by completed_at (rated-card creation), not updated_at
    - Feature: `.cursor/features/feed-created-sort/feature.md`
    - Active: `.cursor/active/feed-created-sort/`
-7. `watch-leave-rate-create-flow` — after watch, Rate goes to create unless a rated card already exists; planned later cards use fromCard+intent=rate
+8. `watch-leave-rate-create-flow` — after watch, Rate goes to create unless a rated card already exists; planned later cards use fromCard+intent=rate
    - Feature: `.cursor/features/watch-leave-rate-create-flow/feature.md`
    - Active: `.cursor/active/watch-leave-rate-create-flow/`
 

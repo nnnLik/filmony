@@ -27,16 +27,19 @@ async def _seed_reaction_catalog() -> tuple[int, int, int]:
                     image_url='https://example.com/a.png',
                     category_slug='pepe',
                     asset_key='reactions/pepe/a.png',
+                    shortcode='a',
                 ),
                 ReactionType(
                     image_url='https://example.com/b.png',
                     category_slug='meme_pt1',
                     asset_key='reactions/meme_pt1/b.png',
+                    shortcode='b',
                 ),
                 ReactionType(
                     image_url='https://example.com/c.png',
                     category_slug='cats',
                     asset_key='reactions/cats/c.png',
+                    shortcode='c',
                 ),
             ]
         )
@@ -110,6 +113,9 @@ async def test_reactions_catalog_ordered_tabs(async_client: AsyncClient) -> None
     body = resp.json()
     assert len(body['tabs']) == 5
     assert sum(len(t['items']) for t in body['tabs']) == 3
+    items = [item for tab in body['tabs'] for item in tab['items']]
+    assert {item['shortcode'] for item in items} == {'a', 'b', 'c'}
+    assert all(isinstance(item['shortcode'], str) and item['shortcode'] for item in items)
 
 
 @pytest.mark.asyncio
@@ -121,6 +127,7 @@ async def test_reactions_catalog_misc_tab_includes_unknown_slug(async_client: As
                 image_url='https://example.com/s.png',
                 category_slug='misc',
                 asset_key='reactions/misc/solo.png',
+                shortcode='solo',
             )
         )
         await session.commit()
@@ -132,6 +139,7 @@ async def test_reactions_catalog_misc_tab_includes_unknown_slug(async_client: As
     assert misc is not None
     assert len(misc['items']) == 1
     assert misc['items'][0]['asset_key'] == 'reactions/misc/solo.png'
+    assert misc['items'][0]['shortcode'] == 'solo'
 
 
 @pytest.mark.asyncio

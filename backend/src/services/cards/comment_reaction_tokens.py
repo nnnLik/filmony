@@ -15,6 +15,10 @@ from services.profile.validate_inline_mention_tokens import (
     MentionTokenValidationError,
     validate_and_canonicalize_mentions,
 )
+from services.text.reaction_shortcodes import (
+    UnknownReactionTokenError,
+    rewrite_reaction_tokens,
+)
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -41,27 +45,20 @@ async def validate_comment_text_with_reaction_tokens(
     if len(body) > COMMENT_TEXT_MAX_LEN:
         raise CommentReactionTokenError(f'comment text max length is {COMMENT_TEXT_MAX_LEN}')
 
-    matches = list(REACTION_TOKEN_RE.finditer(body))
-
-    ids: list[int] = []
-    for m in matches:
+    if ':' in body or '⟦r' in body or '[[r' in body:
+        rows = (await session.execute(select(ReactionType.id, ReactionType.shortcode))).all()
+        id_to_shortcode = {int(row_id): str(shortcode) for row_id, shortcode in rows}
+        known_shortcodes = set(id_to_shortcode.values())
         try:
-            rid = int(m.group(1))
-        except ValueError as e:
-            raise CommentReactionTokenError('invalid reaction token') from e
-        if rid < 1:
-            raise CommentReactionTokenError('invalid reaction token')
-        ids.append(rid)
-
-    if ids:
-        rows = (
-            (await session.execute(select(ReactionType.id).where(ReactionType.id.in_(ids))))
-            .scalars()
-            .all()
-        )
-        found = {int(x) for x in rows}
-        if not set(ids).issubset(found):
-            raise CommentReactionTokenError('unknown reaction type in comment')
+            body = rewrite_reaction_tokens(
+                body,
+                id_to_shortcode=id_to_shortcode,
+                known_shortcodes=known_shortcodes,
+            )
+        except UnknownReactionTokenError as e:
+            raise CommentReactionTokenError('unknown reaction type in comment') from e
+        if len(body) > COMMENT_TEXT_MAX_LEN:
+            raise CommentReactionTokenError(f'comment text max length is {COMMENT_TEXT_MAX_LEN}')
 
     try:
         await validate_inline_user_card_refs_for_author(

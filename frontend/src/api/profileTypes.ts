@@ -200,6 +200,7 @@ export type ReactionCatalogItem = {
   image_url: string
   category_slug: string
   asset_key: string
+  shortcode: string
 }
 
 export type ReactionCatalogTab = {

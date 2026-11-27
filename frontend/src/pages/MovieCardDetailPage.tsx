@@ -28,7 +28,7 @@ import {
 import { uploadMovieCardCommentImage } from '../api/movieCardCommentImageApi'
 import type { WatchedInlinePickerItem } from '../api/watchedInlinePickerTypes'
 import { getUserSubscriptions } from '../api/profileApi'
-import type { SubscriptionListItem } from '../api/profileTypes'
+import type { ReactionCatalogItem, SubscriptionListItem } from '../api/profileTypes'
 import { ApiError, formatApiDetail } from '../api/client'
 import { useAuthStatus } from '../auth/useAuthStatus'
 import { getMyProfile } from '../api/profileApi'
@@ -63,6 +63,7 @@ import {
 } from '../lib/mentionProfileLookupUtils'
 import { subscriptionToMentionRow } from '../lib/subscriptionToMentionRow'
 import type { ActiveMentionQuery } from '../lib/feedMentionCompose'
+import type { ActiveShortcodeQuery } from '../lib/commentShortcodeCompose'
 import { buildMiniAppCardDeepLink } from '../lib/miniAppCardDeepLink'
 import {
   movieCardHasKinopoiskLink,
@@ -263,12 +264,21 @@ export function MovieCardDetailPage() {
     commentMentionHighlightIdx,
     commentMentionFiltered,
     commentMentionPopoverLayout,
+    commentShortcodeAnchorRef,
+    commentShortcodePicker,
+    commentShortcodeHighlightIdx,
+    commentShortcodeFiltered,
+    commentShortcodePopoverLayout,
+    commentShortcodeCatalogPending,
     charsLeft,
     handleCommentTextChange,
     handleCommentDraftKeyDown,
     syncCommentMentionFromValue,
+    syncCommentShortcodeFromValue,
     pickCommentMention,
+    pickCommentShortcode,
     dismissCommentMention,
+    dismissCommentShortcode,
     insertReactionIntoComment,
     insertMovieCardIntoComment,
     toggleSpoilerInComment,
@@ -675,18 +685,18 @@ export function MovieCardDetailPage() {
             onCommentKeyUp={() => {
               const el = commentTextAreaRef.current
               if (el == null) return
-              syncCommentMentionFromValue(
-                el.value.slice(0, COMMENT_BODY_MAX_LEN),
-                el.selectionStart ?? el.value.length,
-              )
+              const next = el.value.slice(0, COMMENT_BODY_MAX_LEN)
+              const caret = el.selectionStart ?? el.value.length
+              syncCommentMentionFromValue(next, caret)
+              syncCommentShortcodeFromValue(next, caret)
             }}
             onCommentSelect={() => {
               const el = commentTextAreaRef.current
               if (el == null) return
-              syncCommentMentionFromValue(
-                el.value.slice(0, COMMENT_BODY_MAX_LEN),
-                el.selectionStart ?? el.value.length,
-              )
+              const next = el.value.slice(0, COMMENT_BODY_MAX_LEN)
+              const caret = el.selectionStart ?? el.value.length
+              syncCommentMentionFromValue(next, caret)
+              syncCommentShortcodeFromValue(next, caret)
             }}
             commentMentionPicker={commentMentionPicker}
             commentMentionHighlightIdx={commentMentionHighlightIdx}
@@ -696,6 +706,14 @@ export function MovieCardDetailPage() {
             followingMentionQueryError={followingForMentionsQuery.isError}
             onPickCommentMention={pickCommentMention}
             onDismissCommentMention={dismissCommentMention}
+            commentShortcodeAnchorRef={commentShortcodeAnchorRef}
+            commentShortcodePicker={commentShortcodePicker}
+            commentShortcodeHighlightIdx={commentShortcodeHighlightIdx}
+            commentShortcodeFiltered={commentShortcodeFiltered}
+            commentShortcodePopoverLayout={commentShortcodePopoverLayout}
+            commentShortcodeCatalogPending={commentShortcodeCatalogPending}
+            onPickCommentShortcode={pickCommentShortcode}
+            onDismissCommentShortcode={dismissCommentShortcode}
             setReplyTo={setReplyTo}
             setCard={setCard}
             setComments={setComments}
@@ -755,7 +773,7 @@ type MovieCardDetailLoadedBodyProps = {
   commentTextAreaRef: RefObject<HTMLTextAreaElement | null>
   commentMentionAnchorRef: RefObject<HTMLDivElement | null>
   commentMentionPopoverLayout: { top: number; left: number; width: number; maxHeight: number } | null
-  insertReactionIntoComment: (reactionTypeId: number) => void
+  insertReactionIntoComment: (reactionTypeId: number, shortcode: string) => void
   toggleSpoilerInComment: () => void
   insertMovieCardIntoComment: (row: WatchedInlinePickerItem) => void
   commentDraftInlineCardRefs: ReadonlyMap<number, { film_title: string; film_year: number | null }>
@@ -774,6 +792,14 @@ type MovieCardDetailLoadedBodyProps = {
   followingMentionQueryError: boolean
   onPickCommentMention: (slug: string) => void
   onDismissCommentMention: () => void
+  commentShortcodeAnchorRef: RefObject<HTMLDivElement | null>
+  commentShortcodePicker: ActiveShortcodeQuery | null
+  commentShortcodeHighlightIdx: number
+  commentShortcodeFiltered: ReactionCatalogItem[]
+  commentShortcodePopoverLayout: { top: number; left: number; width: number; maxHeight: number } | null
+  commentShortcodeCatalogPending: boolean
+  onPickCommentShortcode: (item: ReactionCatalogItem) => void
+  onDismissCommentShortcode: () => void
   setReplyTo: Dispatch<SetStateAction<{ id: number; label: string } | null>>
   setCard: Dispatch<SetStateAction<MovieCard | null>>
   setComments: Dispatch<SetStateAction<MovieCardComment[]>>
@@ -838,6 +864,14 @@ function MovieCardDetailLoadedBody({
   followingMentionQueryError,
   onPickCommentMention,
   onDismissCommentMention,
+  commentShortcodeAnchorRef,
+  commentShortcodePicker,
+  commentShortcodeHighlightIdx,
+  commentShortcodeFiltered,
+  commentShortcodePopoverLayout,
+  commentShortcodeCatalogPending,
+  onPickCommentShortcode,
+  onDismissCommentShortcode,
   setReplyTo,
   setCard,
   setComments,
@@ -1332,6 +1366,14 @@ function MovieCardDetailLoadedBody({
               followingMentionQueryError={followingMentionQueryError}
               onPickCommentMention={onPickCommentMention}
               onDismissCommentMention={onDismissCommentMention}
+              commentShortcodeAnchorRef={commentShortcodeAnchorRef}
+              commentShortcodePicker={commentShortcodePicker}
+              commentShortcodeHighlightIdx={commentShortcodeHighlightIdx}
+              commentShortcodeFiltered={commentShortcodeFiltered}
+              commentShortcodePopoverLayout={commentShortcodePopoverLayout}
+              commentShortcodeCatalogPending={commentShortcodeCatalogPending}
+              onPickCommentShortcode={onPickCommentShortcode}
+              onDismissCommentShortcode={onDismissCommentShortcode}
               tasteQuizKnowledgeByAuthor={tasteQuizKnowledgeByAuthor}
               streakByUserId={streakByUserId}
               watchingByUserId={watchingByUserId}

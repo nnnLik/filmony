@@ -1,12 +1,13 @@
 import type { ChangeEvent, Dispatch, KeyboardEventHandler, RefObject, SetStateAction } from 'react'
 
 import type { WatchedInlinePickerItem } from '../../api/watchedInlinePickerTypes'
-import type { SubscriptionListItem } from '../../api/profileTypes'
+import type { ReactionCatalogItem, SubscriptionListItem } from '../../api/profileTypes'
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
 import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import type { ThreadComment, ReplyToState } from '../../lib/commentThreadTypes'
 import type { ActiveMentionQuery } from '../../lib/feedMentionCompose'
+import type { ActiveShortcodeQuery } from '../../lib/commentShortcodeCompose'
 import { commentAuthorLabel } from '../../lib/commentDisplay'
 import { PlayfulHint } from '../ui/PlayfulHint'
 import { CommentComposeBar } from './CommentComposeBar'
@@ -35,7 +36,7 @@ export type CommentThreadSectionProps<T extends ThreadComment> = {
   onCommentSelect: () => void
   commentTextAreaRef: RefObject<HTMLTextAreaElement | null>
   commentDraftInlineCardRefs: ReadonlyMap<number, { film_title: string; film_year: number | null }>
-  insertReactionIntoComment: (reactionTypeId: number) => void
+  insertReactionIntoComment: (reactionTypeId: number, shortcode: string) => void
   toggleSpoilerInComment: () => void
   insertMovieCardIntoComment: (row: WatchedInlinePickerItem) => void
   charsLeft: number
@@ -49,6 +50,14 @@ export type CommentThreadSectionProps<T extends ThreadComment> = {
   followingMentionQueryError: boolean
   onPickCommentMention: (slug: string) => void
   onDismissCommentMention: () => void
+  commentShortcodeAnchorRef?: RefObject<HTMLDivElement | null>
+  commentShortcodePicker?: ActiveShortcodeQuery | null
+  commentShortcodeHighlightIdx?: number
+  commentShortcodeFiltered?: ReactionCatalogItem[]
+  commentShortcodePopoverLayout?: { top: number; left: number; width: number; maxHeight: number } | null
+  commentShortcodeCatalogPending?: boolean
+  onPickCommentShortcode?: (item: ReactionCatalogItem) => void
+  onDismissCommentShortcode?: () => void
   tasteQuizKnowledgeByAuthor: Record<string, TasteQuizKnowledgeBatchItem>
   streakByUserId: Record<string, StreakBatchItem>
   watchingByUserId?: Record<string, WatchingNowBatchItem>
@@ -111,6 +120,14 @@ export function CommentThreadSection<T extends ThreadComment>({
   followingMentionQueryError,
   onPickCommentMention,
   onDismissCommentMention,
+  commentShortcodeAnchorRef,
+  commentShortcodePicker = null,
+  commentShortcodeHighlightIdx = 0,
+  commentShortcodeFiltered = [],
+  commentShortcodePopoverLayout = null,
+  commentShortcodeCatalogPending = false,
+  onPickCommentShortcode,
+  onDismissCommentShortcode,
   tasteQuizKnowledgeByAuthor,
   streakByUserId,
   watchingByUserId = {},
@@ -178,6 +195,14 @@ export function CommentThreadSection<T extends ThreadComment>({
         followingMentionItemsCount={followingMentionItems.length}
         onPickMention={onPickCommentMention}
         onDismissMention={onDismissCommentMention}
+        shortcodeAnchorRef={commentShortcodeAnchorRef ?? commentMentionAnchorRef}
+        shortcodePicker={commentShortcodePicker}
+        shortcodeHighlightIdx={commentShortcodeHighlightIdx}
+        shortcodeFiltered={commentShortcodeFiltered}
+        shortcodePopoverLayout={commentShortcodePopoverLayout}
+        shortcodeCatalogPending={commentShortcodeCatalogPending}
+        onPickShortcode={onPickCommentShortcode}
+        onDismissShortcode={onDismissCommentShortcode}
         imageUrl={commentImageUrl}
         imageUploadBusy={commentImageUploadBusy}
         onPickImage={handlePickCommentImage}

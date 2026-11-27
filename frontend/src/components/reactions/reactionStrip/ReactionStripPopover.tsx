@@ -23,7 +23,7 @@ export type ReactionStripPopoverProps = {
   contentDensity?: 'default' | 'dense'
   myReactionIds: Set<number>
   countsById: Map<number, ReactionCountItem>
-  apply: (reactionTypeId: number) => void
+  apply: (reactionTypeId: number, shortcode: string) => void
   recentItems: ReactionCatalogItem[]
   gridItems: ReactionCatalogItem[]
   activeTab: ReactionCatalogTab | null
@@ -128,7 +128,7 @@ export function ReactionStripPopover({
                               key={`r-${item.id}`}
                               type="button"
                               disabled={busy}
-                              onClick={() => void apply(item.id)}
+                              onClick={() => void apply(item.id, item.shortcode)}
                               className={`relative shrink-0 rounded-lg transition-[transform,opacity] active:scale-95 disabled:opacity-50 ${
                                 dense ? 'p-[1px]' : 'p-[2px]'
                               } ${
@@ -183,7 +183,7 @@ export function ReactionStripPopover({
                               key={item.id}
                               type="button"
                               disabled={busy}
-                              onClick={() => void apply(item.id)}
+                              onClick={() => void apply(item.id, item.shortcode)}
                               title={
                                 item.asset_key.includes('/')
                                   ? item.asset_key.split('/').filter(Boolean).pop() ?? item.asset_key

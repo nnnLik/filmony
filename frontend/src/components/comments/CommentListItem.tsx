@@ -1,11 +1,13 @@
 import { Button } from '@telegram-apps/telegram-ui'
-import type { MouseEventHandler, ReactNode } from 'react'
+import { useEffect, useRef, type MouseEventHandler, type ReactNode } from 'react'
 
 import type { TasteQuizKnowledgeBatchItem } from '../../api/tasteQuizTypes'
 import type { StreakBatchItem } from '../../api/streaksTypes'
 import type { WatchingNowBatchItem } from '../../api/watchPartyTypes'
 import type { ReactionSummary } from '../../api/profileTypes'
-import { COMMENT_BODY_MAX_LEN } from '../../lib/commentReactionTokens'
+import { COMMENT_BODY_MAX_LEN, expandLegacyReactionTokens } from '../../lib/commentReactionTokens'
+import { idToShortcodeMapFromCatalog } from '../../lib/commentShortcodeCompose'
+import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { commentAuthorLabel, snippetPreview } from '../../lib/commentDisplay'
 import type { ThreadComment } from '../../lib/commentThreadTypes'
 import { inlineMovieCardRefMapFromSnippets } from '../../lib/inlineMovieCardRefMap'
@@ -90,6 +92,32 @@ export function CommentListItem({
   const canManage = viewerId != null && comment.author.id === viewerId
   const derived =
     'image_url' in comment ? movieCardCommentDerivedFields(comment) : null
+  const wasEditingRef = useRef(false)
+
+  useEffect(() => {
+    const entering = isEditing && !wasEditingRef.current
+    wasEditingRef.current = isEditing
+    if (!entering) {
+      return
+    }
+    const original = comment.text
+    let alive = true
+    void loadReactionCatalog()
+      .then((catalog) => {
+        if (!alive) return
+        const expanded = expandLegacyReactionTokens(original, idToShortcodeMapFromCatalog(catalog))
+        if (expanded === original) return
+        queueMicrotask(() => {
+          if (alive) onEditTextChange?.(expanded)
+        })
+      })
+      .catch(() => {
+        /* leave legacy tokens; overlay still renders them */
+      })
+    return () => {
+      alive = false
+    }
+  }, [isEditing, comment.text, onEditTextChange])
 
   const shellClass =
     layout === 'detail'

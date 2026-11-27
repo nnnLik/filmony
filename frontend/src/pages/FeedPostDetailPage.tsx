@@ -123,12 +123,21 @@ export function FeedPostDetailPage() {
     commentMentionHighlightIdx,
     commentMentionFiltered,
     commentMentionPopoverLayout,
+    commentShortcodeAnchorRef,
+    commentShortcodePicker,
+    commentShortcodeHighlightIdx,
+    commentShortcodeFiltered,
+    commentShortcodePopoverLayout,
+    commentShortcodeCatalogPending,
     charsLeft,
     handleCommentTextChange,
     handleCommentDraftKeyDown,
     syncCommentMentionFromValue,
+    syncCommentShortcodeFromValue,
     pickCommentMention,
+    pickCommentShortcode,
     dismissCommentMention,
+    dismissCommentShortcode,
     insertReactionIntoComment,
     insertMovieCardIntoComment,
     toggleSpoilerInComment,
@@ -381,18 +390,18 @@ export function FeedPostDetailPage() {
               onCommentKeyUp={() => {
                 const el = commentTextAreaRef.current
                 if (el == null) return
-                syncCommentMentionFromValue(
-                  el.value.slice(0, COMMENT_BODY_MAX_LEN),
-                  el.selectionStart ?? el.value.length,
-                )
+                const next = el.value.slice(0, COMMENT_BODY_MAX_LEN)
+                const caret = el.selectionStart ?? el.value.length
+                syncCommentMentionFromValue(next, caret)
+                syncCommentShortcodeFromValue(next, caret)
               }}
               onCommentSelect={() => {
                 const el = commentTextAreaRef.current
                 if (el == null) return
-                syncCommentMentionFromValue(
-                  el.value.slice(0, COMMENT_BODY_MAX_LEN),
-                  el.selectionStart ?? el.value.length,
-                )
+                const next = el.value.slice(0, COMMENT_BODY_MAX_LEN)
+                const caret = el.selectionStart ?? el.value.length
+                syncCommentMentionFromValue(next, caret)
+                syncCommentShortcodeFromValue(next, caret)
               }}
               commentTextAreaRef={commentTextAreaRef}
               commentDraftInlineCardRefs={commentDraftInlineCardRefs}
@@ -410,6 +419,14 @@ export function FeedPostDetailPage() {
               followingMentionQueryError={followingForMentionsQuery.isError}
               onPickCommentMention={pickCommentMention}
               onDismissCommentMention={dismissCommentMention}
+              commentShortcodeAnchorRef={commentShortcodeAnchorRef}
+              commentShortcodePicker={commentShortcodePicker}
+              commentShortcodeHighlightIdx={commentShortcodeHighlightIdx}
+              commentShortcodeFiltered={commentShortcodeFiltered}
+              commentShortcodePopoverLayout={commentShortcodePopoverLayout}
+              commentShortcodeCatalogPending={commentShortcodeCatalogPending}
+              onPickCommentShortcode={pickCommentShortcode}
+              onDismissCommentShortcode={dismissCommentShortcode}
               tasteQuizKnowledgeByAuthor={knowledgeByOwnerId}
               streakByUserId={streakByUserId}
               editingCommentId={editingCommentId}

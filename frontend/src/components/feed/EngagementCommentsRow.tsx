@@ -1,8 +1,10 @@
 import { Link } from 'react-router'
-import type { MouseEventHandler, RefObject } from 'react'
+import type { KeyboardEventHandler, MouseEventHandler, RefObject } from 'react'
 
-import type { ReactionSummary } from '../../api/profileTypes'
+import type { ReactionCatalogItem, ReactionSummary } from '../../api/profileTypes'
 import type { ThreadComment } from '../../lib/commentThreadTypes'
+import type { ActiveShortcodeQuery } from '../../lib/commentShortcodeCompose'
+import type { MentionPopoverLayout } from '../../lib/useMentionPopoverLayout'
 import { PlayfulHint } from '../ui/PlayfulHint'
 import { ReactionStrip } from '../reactions/ReactionStrip'
 import { IconChevronDown } from './FeedCardIcons'
@@ -42,8 +44,8 @@ export type EngagementCommentsRowProps<T extends ThreadComment> = {
   onDraftChange: (value: string) => void
   draftInputRef?: RefObject<HTMLInputElement | null>
   draftInlineCardRefs?: ReadonlyMap<number, { film_title: string; film_year: number | null }>
-  onDraftKeyDown?: React.KeyboardEventHandler<HTMLInputElement>
-  onInsertReaction?: (reactionTypeId: number) => void
+  onDraftKeyDown?: KeyboardEventHandler<HTMLTextAreaElement | HTMLInputElement>
+  onInsertReaction?: (reactionTypeId: number, shortcode: string) => void
   onToggleSpoiler?: () => void
   onInsertMovieCard?: (row: WatchedInlinePickerItem) => void
   onSubmit: () => void
@@ -56,6 +58,14 @@ export type EngagementCommentsRowProps<T extends ThreadComment> = {
   linkToDetail?: boolean
   detailFallbackLabel?: string
   inlineCommentsEnabled?: boolean
+  shortcodeAnchorRef?: RefObject<HTMLDivElement | null>
+  shortcodePicker?: ActiveShortcodeQuery | null
+  shortcodeHighlightIdx?: number
+  shortcodeFiltered?: ReactionCatalogItem[]
+  shortcodePopoverLayout?: MentionPopoverLayout | null
+  onPickShortcode?: (item: ReactionCatalogItem) => void
+  onDismissShortcode?: () => void
+  shortcodeCatalogPending?: boolean
 }
 
 export function EngagementCommentsRow<T extends ThreadComment>({
@@ -101,6 +111,14 @@ export function EngagementCommentsRow<T extends ThreadComment>({
   linkToDetail = false,
   detailFallbackLabel = 'Открыть',
   inlineCommentsEnabled = true,
+  shortcodeAnchorRef,
+  shortcodePicker = null,
+  shortcodeHighlightIdx = 0,
+  shortcodeFiltered = [],
+  shortcodePopoverLayout = null,
+  onPickShortcode,
+  onDismissShortcode,
+  shortcodeCatalogPending = false,
 }: EngagementCommentsRowProps<T>) {
   return (
     <div
@@ -243,6 +261,14 @@ export function EngagementCommentsRow<T extends ThreadComment>({
             onToggleSpoiler={onToggleSpoiler}
             onInsertMovieCard={onInsertMovieCard}
             onMouseDown={stopNavKeepFocus}
+            shortcodeAnchorRef={shortcodeAnchorRef}
+            shortcodePicker={shortcodePicker}
+            shortcodeHighlightIdx={shortcodeHighlightIdx}
+            shortcodeFiltered={shortcodeFiltered}
+            shortcodePopoverLayout={shortcodePopoverLayout}
+            shortcodeCatalogPending={shortcodeCatalogPending}
+            onPickShortcode={onPickShortcode}
+            onDismissShortcode={onDismissShortcode}
           />
         </div>
       ) : null}

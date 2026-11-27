@@ -109,6 +109,7 @@ def _catalog_item_response(row: ReactionCatalogItem) -> ReactionCatalogItemRespo
         image_url=row.image_url,
         category_slug=row.category_slug,
         asset_key=row.asset_key,
+        shortcode=row.shortcode,
     )
 
 

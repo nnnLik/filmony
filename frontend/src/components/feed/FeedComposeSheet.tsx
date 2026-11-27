@@ -22,8 +22,10 @@ import { CommentBodyWithReactionTokens } from '../comments/CommentBodyWithReacti
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { MovieCardInlinePickerButton } from '../comments/MovieCardInlinePickerButton'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
+import { ReactionShortcodeSuggestPortal } from '../comments/ReactionShortcodeSuggestPortal'
 import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
-import { insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenFromId } from '../../lib/commentReactionTokens'
+import { insertSnippetAtCaret, movieCardRefTokenFromId, reactionTokenForInsert } from '../../lib/commentReactionTokens'
+import { useReactionShortcodePicker } from '../../hooks/useReactionShortcodePicker'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import {
   applyMentionPick,
@@ -68,6 +70,7 @@ export function FeedComposeSheet({
   const mentionAnchorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mentionOpenRef = useRef(false)
+  const shortcodeOpenRef = useRef(false)
 
   const [body, setBody] = useState('')
   const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
@@ -88,6 +91,38 @@ export function FeedComposeSheet({
   const [error, setError] = useState<string | null>(null)
   const [mentionPicker, setMentionPicker] = useState<ActiveMentionQuery | null>(null)
   const [mentionHighlightIdx, setMentionHighlightIdx] = useState(0)
+
+  const dismissMentionPicker = useCallback(() => {
+    setMentionPicker(null)
+    setMentionHighlightIdx(0)
+  }, [])
+
+  const applyShortcodePick = useCallback((nextValue: string, caret: number) => {
+    setBody(nextValue)
+    const el = bodyRef.current
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [])
+
+  const {
+    anchorRef: shortcodeAnchorRef,
+    picker: shortcodePicker,
+    highlightIdx: shortcodeHighlightIdx,
+    filtered: shortcodeFiltered,
+    popoverLayout: shortcodePopoverLayout,
+    syncFromValue: syncShortcodeFromValue,
+    pick: pickShortcode,
+    dismiss: dismissShortcode,
+    handleKeyDown: handleShortcodeKeyDown,
+    catalogPending: shortcodeCatalogPending,
+  } = useReactionShortcodePicker({
+    value: body,
+    fieldRef: bodyRef,
+    onApply: applyShortcodePick,
+    dismissMention: dismissMentionPicker,
+  })
 
   const [subscriptionsUserId, setSubscriptionsUserId] = useState<string | null>(
     () => readMyProfileBundleCache()?.profile.id ?? null,
@@ -141,6 +176,10 @@ export function FeedComposeSheet({
     mentionOpenRef.current = mentionPicker != null
   }, [mentionPicker])
 
+  useEffect(() => {
+    shortcodeOpenRef.current = shortcodePicker != null
+  }, [shortcodePicker])
+
   const mentionHighlightSafe = useMemo(() => {
     if (mentionFiltered.length === 0) return 0
     return Math.min(mentionHighlightIdx, mentionFiltered.length - 1)
@@ -156,13 +195,13 @@ export function FeedComposeSheet({
         : Math.min(el?.selectionStart ?? value.length, value.length)
     const active = parseActiveMentionQuery(value, caret)
     if (active == null) {
-      setMentionPicker(null)
-      setMentionHighlightIdx(0)
+      dismissMentionPicker()
       return
     }
+    dismissShortcode()
     setMentionPicker(active)
     setMentionHighlightIdx(0)
-  }, [])
+  }, [dismissMentionPicker, dismissShortcode])
 
   const fromComment = sourceCommentId != null
   const allowImageUpload = !fromComment
@@ -184,20 +223,21 @@ export function FeedComposeSheet({
       const res = applyMentionPick(body, caret, mentionPicker.atIndex, token)
       if (res == null) return
       setBody(res.nextValue)
-      setMentionPicker(null)
-      setMentionHighlightIdx(0)
+      dismissMentionPicker()
+      dismissShortcode()
       queueMicrotask(() => {
         el.focus()
         el.setSelectionRange(res.caret, res.caret)
       })
     },
-    [body, mentionPicker],
+    [body, dismissMentionPicker, dismissShortcode, mentionPicker],
   )
 
   const insertReactionToken = useCallback(
-    (reactionTypeId: number) => {
-      setMentionPicker(null)
-      const token = reactionTokenFromId(reactionTypeId)
+    (reactionTypeId: number, shortcode: string) => {
+      dismissMentionPicker()
+      dismissShortcode()
+      const token = reactionTokenForInsert(reactionTypeId, shortcode)
       const el = bodyRef.current
       const inserted = insertSnippetAtCaret(
         body,
@@ -213,11 +253,12 @@ export function FeedComposeSheet({
         el?.setSelectionRange(caret, caret)
       })
     },
-    [body],
+    [body, dismissMentionPicker, dismissShortcode],
   )
 
   const insertMovieCardInline = useCallback((row: WatchedInlinePickerItem) => {
-    setMentionPicker(null)
+    dismissMentionPicker()
+    dismissShortcode()
     const token = movieCardRefTokenFromId(row.movie_card_id)
     const el = bodyRef.current
     const inserted = insertSnippetAtCaret(
@@ -238,10 +279,11 @@ export function FeedComposeSheet({
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [body])
+  }, [body, dismissMentionPicker, dismissShortcode])
 
   const toggleSpoilerInBody = useCallback(() => {
-    setMentionPicker(null)
+    dismissMentionPicker()
+    dismissShortcode()
     const el = bodyRef.current
     const toggled = toggleSpoilerAtSelection(
       body,
@@ -255,38 +297,44 @@ export function FeedComposeSheet({
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [body])
+  }, [body, dismissMentionPicker, dismissShortcode])
 
   const handleBodyChange = useCallback(
     (v: string, meta?: { caret: number }) => {
       setBody(v)
       const caret = meta?.caret ?? v.length
-      queueMicrotask(() => syncMentionFromValue(v, caret))
+      queueMicrotask(() => {
+        syncMentionFromValue(v, caret)
+        syncShortcodeFromValue(v, caret)
+      })
     },
-    [syncMentionFromValue],
+    [syncMentionFromValue, syncShortcodeFromValue],
   )
 
   const handleDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
     (e) => {
-      if (mentionPicker == null) return
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setMentionHighlightIdx((i) => {
-          const max = Math.max(0, mentionFiltered.length - 1)
-          return Math.min(max, i + 1)
-        })
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setMentionHighlightIdx((i) => Math.max(0, i - 1))
-      } else if (e.key === 'Enter' && mentionFiltered.length > 0) {
-        e.preventDefault()
-        const row = mentionFiltered[mentionHighlightSafe] ?? mentionFiltered[0]
-        if (row != null) {
-          pickMentionSlug(row.profile_slug)
+      if (mentionPicker != null) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setMentionHighlightIdx((i) => {
+            const max = Math.max(0, mentionFiltered.length - 1)
+            return Math.min(max, i + 1)
+          })
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setMentionHighlightIdx((i) => Math.max(0, i - 1))
+        } else if (e.key === 'Enter' && mentionFiltered.length > 0) {
+          e.preventDefault()
+          const row = mentionFiltered[mentionHighlightSafe] ?? mentionFiltered[0]
+          if (row != null) {
+            pickMentionSlug(row.profile_slug)
+          }
         }
+        return
       }
+      handleShortcodeKeyDown(e)
     },
-    [mentionFiltered, mentionHighlightSafe, mentionPicker, pickMentionSlug],
+    [handleShortcodeKeyDown, mentionFiltered, mentionHighlightSafe, mentionPicker, pickMentionSlug],
   )
 
   const handlePickFile = useCallback(() => {
@@ -321,15 +369,19 @@ export function FeedComposeSheet({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && mentionOpenRef.current) {
         e.preventDefault()
-        setMentionPicker(null)
-        setMentionHighlightIdx(0)
+        dismissMentionPicker()
+        return
+      }
+      if (e.key === 'Escape' && shortcodeOpenRef.current) {
+        e.preventDefault()
+        dismissShortcode()
         return
       }
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [dismissMentionPicker, dismissShortcode, onClose])
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || submitBusy) return
@@ -424,7 +476,13 @@ export function FeedComposeSheet({
             </p>
           ) : null}
 
-          <div ref={mentionAnchorRef} className="relative">
+          <div
+            ref={(el) => {
+              mentionAnchorRef.current = el
+              shortcodeAnchorRef.current = el
+            }}
+            className="relative"
+          >
             <CommentDraftMultiline
               ref={bodyRef}
               value={body}
@@ -432,18 +490,16 @@ export function FeedComposeSheet({
               onKeyUp={() => {
                 const el = bodyRef.current
                 if (el == null) return
-                syncMentionFromValue(
-                  el.value,
-                  el.selectionStart ?? el.value.length,
-                )
+                const caret = el.selectionStart ?? el.value.length
+                syncMentionFromValue(el.value, caret)
+                syncShortcodeFromValue(el.value, caret)
               }}
               onSelect={() => {
                 const el = bodyRef.current
                 if (el == null) return
-                syncMentionFromValue(
-                  el.value,
-                  el.selectionStart ?? el.value.length,
-                )
+                const caret = el.selectionStart ?? el.value.length
+                syncMentionFromValue(el.value, caret)
+                syncShortcodeFromValue(el.value, caret)
               }}
               onKeyDown={handleDraftKeyDown}
               placeholder="Мысль, ссылка, упоминание…"
@@ -465,10 +521,7 @@ export function FeedComposeSheet({
                       tabIndex={-1}
                       aria-hidden
                       className="fixed inset-0 z-200 cursor-default bg-black/0"
-                      onClick={() => {
-                        setMentionPicker(null)
-                        setMentionHighlightIdx(0)
-                      }}
+                      onClick={dismissMentionPicker}
                     />
                     <div
                       className="filmony-theme fixed z-201 overflow-y-auto rounded-xl border border-(--tgui--divider_color) bg-(--tgui--secondary_bg_color) py-1 shadow-[0_10px_36px_rgba(0,0,0,0.45)] ring-1 ring-[color-mix(in_srgb,var(--filmony-mint,#5eead4)_10%,transparent)]"
@@ -522,12 +575,22 @@ export function FeedComposeSheet({
                   document.body,
                 )
               : null}
+            {shortcodePicker != null && shortcodePopoverLayout != null ? (
+              <ReactionShortcodeSuggestPortal
+                layout={shortcodePopoverLayout}
+                items={shortcodeFiltered}
+                highlightIdx={shortcodeHighlightIdx}
+                catalogPending={shortcodeCatalogPending}
+                onPick={pickShortcode}
+                onDismiss={dismissShortcode}
+              />
+            ) : null}
           </div>
 
           <div className="flex items-center justify-end gap-2 text-[12px] text-(--tgui--hint_color)">
             <div className="flex shrink-0 items-center gap-1">
               <CommentReactionTokenPicker
-                onPickReactionTypeId={insertReactionToken}
+                onPickReactionType={insertReactionToken}
                 disabled={submitBusy || uploadBusy}
               />
               <CommentSpoilerToggleButton

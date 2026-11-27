@@ -4,13 +4,15 @@ import { createPortal } from 'react-dom'
 import type { ChangeEvent, KeyboardEventHandler, MouseEventHandler, RefObject } from 'react'
 
 import type { WatchedInlinePickerItem } from '../../api/watchedInlinePickerTypes'
-import type { SubscriptionListItem } from '../../api/profileTypes'
+import type { ReactionCatalogItem, SubscriptionListItem } from '../../api/profileTypes'
 import { COMMENT_BODY_MAX_LEN } from '../../lib/commentReactionTokens'
 import type { InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import type { ActiveMentionQuery } from '../../lib/feedMentionCompose'
+import type { ActiveShortcodeQuery } from '../../lib/commentShortcodeCompose'
 import { displayNameFromProfile } from '../../lib/profileDisplay'
 import { CommentDraftMultiline, CommentDraftSingleLineInput } from './CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from './CommentReactionTokenPicker'
+import { ReactionShortcodeSuggestPortal } from './ReactionShortcodeSuggestPortal'
 import { CommentSpoilerToggleButton } from './CommentSpoilerToggleButton'
 import { MovieCardInlinePickerButton } from './MovieCardInlinePickerButton'
 import { FeedOpenableContainedImageThumbnail } from '../feed/FeedOpenableContainedImage'
@@ -42,7 +44,7 @@ export type CommentComposeBarProps = {
   onSelect?: () => void
   inputRef?: RefObject<HTMLInputElement | null>
   textareaRef?: RefObject<HTMLTextAreaElement | null>
-  onInsertReaction?: (reactionTypeId: number) => void
+  onInsertReaction?: (reactionTypeId: number, shortcode: string) => void
   onToggleSpoiler?: () => void
   onInsertMovieCard?: (row: WatchedInlinePickerItem) => void
   onMouseDown?: MouseEventHandler
@@ -56,6 +58,14 @@ export type CommentComposeBarProps = {
   followingMentionItemsCount?: number
   onPickMention?: (slug: string) => void
   onDismissMention?: () => void
+  shortcodeAnchorRef?: RefObject<HTMLDivElement | null>
+  shortcodePicker?: ActiveShortcodeQuery | null
+  shortcodeHighlightIdx?: number
+  shortcodeFiltered?: ReactionCatalogItem[]
+  shortcodePopoverLayout?: MentionPopoverLayout | null
+  onPickShortcode?: (item: ReactionCatalogItem) => void
+  onDismissShortcode?: () => void
+  shortcodeCatalogPending?: boolean
   imageUrl?: string | null
   imageUploadBusy?: boolean
   onPickImage?: () => void
@@ -95,6 +105,14 @@ export function CommentComposeBar({
   followingMentionItemsCount = 0,
   onPickMention,
   onDismissMention,
+  shortcodeAnchorRef,
+  shortcodePicker = null,
+  shortcodeHighlightIdx = 0,
+  shortcodeFiltered = [],
+  shortcodePopoverLayout = null,
+  onPickShortcode,
+  onDismissShortcode,
+  shortcodeCatalogPending = false,
   imageUrl = null,
   imageUploadBusy = false,
   onPickImage,
@@ -108,24 +126,41 @@ export function CommentComposeBar({
   const defaultSubmitDisabled =
     submitDisabled ?? (value.trim() === '' && (imageUrl ?? '').trim() === '')
 
+  const shortcodePortal =
+    shortcodePicker != null &&
+    shortcodePopoverLayout != null &&
+    onDismissShortcode != null &&
+    onPickShortcode != null ? (
+      <ReactionShortcodeSuggestPortal
+        layout={shortcodePopoverLayout}
+        items={shortcodeFiltered}
+        highlightIdx={shortcodeHighlightIdx}
+        catalogPending={shortcodeCatalogPending}
+        onPick={onPickShortcode}
+        onDismiss={onDismissShortcode}
+      />
+    ) : null
+
   if (mode === 'singleLine') {
     return (
       <div className="flex min-w-0 flex-col gap-1" onMouseDown={onMouseDown}>
         <div className="relative z-10 flex min-w-0 items-stretch gap-1.5">
-          <CommentDraftSingleLineInput
-            ref={inputRef}
-            value={value}
-            onChange={onChange}
-            disabled={controlsDisabled}
-            maxLength={COMMENT_BODY_MAX_LEN}
-            placeholder={placeholder}
-            ariaLabel="Текст комментария"
-            inlineMovieCardRefs={inlineMovieCardRefs}
-            onKeyDown={onKeyDown}
-          />
+          <div ref={shortcodeAnchorRef} className="relative min-w-0 flex-1">
+            <CommentDraftSingleLineInput
+              ref={inputRef}
+              value={value}
+              onChange={onChange}
+              disabled={controlsDisabled}
+              maxLength={COMMENT_BODY_MAX_LEN}
+              placeholder={placeholder}
+              ariaLabel="Текст комментария"
+              inlineMovieCardRefs={inlineMovieCardRefs}
+              onKeyDown={onKeyDown}
+            />
+          </div>
           {onInsertReaction != null ? (
             <CommentReactionTokenPicker
-              onPickReactionTypeId={onInsertReaction}
+              onPickReactionType={onInsertReaction}
               disabled={controlsDisabled}
               allowInsert={canInsert}
             />
@@ -162,6 +197,7 @@ export function CommentComposeBar({
             <span className="text-right text-(--tgui--destructive_text_color,#ef4444)">{submitError}</span>
           ) : null}
         </div>
+        {shortcodePortal}
       </div>
     )
   }
@@ -169,7 +205,13 @@ export function CommentComposeBar({
   return (
     <div className="mt-3">
       <div className="flex gap-2">
-        <div ref={mentionAnchorRef} className="relative min-w-0 flex-1">
+        <div
+          ref={(el) => {
+            if (mentionAnchorRef != null) mentionAnchorRef.current = el
+            if (shortcodeAnchorRef != null) shortcodeAnchorRef.current = el
+          }}
+          className="relative min-w-0 flex-1"
+        >
           <CommentDraftMultiline
             ref={textareaRef}
             value={value}
@@ -247,11 +289,12 @@ export function CommentComposeBar({
                 document.body,
               )
             : null}
+          {shortcodePortal}
         </div>
         <div className="flex shrink-0 flex-col items-center justify-start gap-1 pt-1">
           {onInsertReaction != null ? (
             <CommentReactionTokenPicker
-              onPickReactionTypeId={onInsertReaction}
+              onPickReactionType={onInsertReaction}
               disabled={controlsDisabled}
               allowInsert={canInsert}
             />

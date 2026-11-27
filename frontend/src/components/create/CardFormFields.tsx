@@ -1,5 +1,5 @@
 import { Button, Section } from '@telegram-apps/telegram-ui'
-import { useCallback, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type KeyboardEventHandler, type ReactNode } from 'react'
 
 import type {
   CardCompany,
@@ -11,6 +11,8 @@ import type {
 import { CommentDraftMultiline } from '../comments/CommentDraftMirrorField'
 import { CommentReactionTokenPicker } from '../comments/CommentReactionTokenPicker'
 import { CommentSpoilerToggleButton } from '../comments/CommentSpoilerToggleButton'
+import { ReactionShortcodeSuggestPortal } from '../comments/ReactionShortcodeSuggestPortal'
+import { useReactionShortcodePicker } from '../../hooks/useReactionShortcodePicker'
 import { InlineLoadingState } from '../ui/InlineLoadingState'
 import { PepeExtremeRatingBubble } from '../ui/PepeExtremeRatingBubble'
 import {
@@ -24,7 +26,9 @@ import {
   formatRating,
   normalizeRating,
 } from '../../lib/createCardBinding'
-import { insertSnippetAtCaret, reactionTokenFromId } from '../../lib/commentReactionTokens'
+import { expandLegacyReactionTokens, insertSnippetAtCaret, reactionTokenForInsert } from '../../lib/commentReactionTokens'
+import { idToShortcodeMapFromCatalog } from '../../lib/commentShortcodeCompose'
+import { loadReactionCatalog } from '../../lib/reactionCatalogCache'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { useMicroFunLine } from '../../lib/microFun'
 import { usePepeExtremeRatingJudge } from '../../hooks/usePepeExtremeRatingJudge'
@@ -480,15 +484,88 @@ function CardWatchNoteContent({
   watchNoteDisabled: disabled,
 }: Pick<CardFormFieldsProps, 'variant' | 'watchNote' | 'onWatchNoteChange' | 'viewerUserId' | 'watchNoteDisabled'>) {
   const watchNoteRef = useRef<HTMLTextAreaElement>(null)
+  const skipNextLegacyExpandRef = useRef(false)
   const watchNotePlaceholder = useMicroFunLine(
     'watch_note_placeholder',
     'Например: неожиданно тихий финал…',
     viewerUserId ?? null,
   )
 
+  const applyShortcodePick = useCallback((nextValue: string, caret: number) => {
+    onWatchNoteChange(nextValue)
+    const el = watchNoteRef.current
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [onWatchNoteChange])
+
+  const {
+    anchorRef: shortcodeAnchorRef,
+    picker: shortcodePicker,
+    highlightIdx: shortcodeHighlightIdx,
+    filtered: shortcodeFiltered,
+    popoverLayout: shortcodePopoverLayout,
+    syncFromValue: syncShortcodeFromValue,
+    pick: pickShortcode,
+    dismiss: dismissShortcode,
+    handleKeyDown: handleShortcodeKeyDown,
+    catalogPending: shortcodeCatalogPending,
+  } = useReactionShortcodePicker({
+    enabled: !disabled,
+    value: watchNote,
+    fieldRef: watchNoteRef,
+    onApply: applyShortcodePick,
+  })
+
+  useEffect(() => {
+    if (skipNextLegacyExpandRef.current) {
+      skipNextLegacyExpandRef.current = false
+      return
+    }
+    if (!watchNote.includes('⟦r') && !watchNote.includes('[[r')) return
+    const snapshot = watchNote
+    let alive = true
+    void loadReactionCatalog()
+      .then((catalog) => {
+        if (!alive) return
+        const expanded = expandLegacyReactionTokens(snapshot, idToShortcodeMapFromCatalog(catalog))
+        if (expanded === snapshot) return
+        skipNextLegacyExpandRef.current = true
+        queueMicrotask(() => {
+          if (alive) onWatchNoteChange(expanded)
+        })
+      })
+      .catch(() => {
+        /* leave legacy tokens; overlay still renders them */
+      })
+    return () => {
+      alive = false
+    }
+  }, [onWatchNoteChange, watchNote])
+
+  const handleWatchNoteChange = useCallback(
+    (value: string, meta?: { caret: number }) => {
+      onWatchNoteChange(value)
+      const caret = meta?.caret ?? value.length
+      queueMicrotask(() => {
+        syncShortcodeFromValue(value, caret)
+      })
+    },
+    [onWatchNoteChange, syncShortcodeFromValue],
+  )
+
+  const handleWatchNoteKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
+    (event) => {
+      handleShortcodeKeyDown(event)
+    },
+    [handleShortcodeKeyDown],
+  )
+
   const insertReactionIntoWatchNote = useCallback(
-    (id: number) => {
-      const token = reactionTokenFromId(id)
+    (id: number, shortcode: string) => {
+      dismissShortcode()
+      const token = reactionTokenForInsert(id, shortcode)
       const el = watchNoteRef.current
       const inserted = insertSnippetAtCaret(
         watchNote,
@@ -505,10 +582,11 @@ function CardWatchNoteContent({
         target.setSelectionRange(inserted.caret, inserted.caret)
       })
     },
-    [watchNote, onWatchNoteChange],
+    [dismissShortcode, watchNote, onWatchNoteChange],
   )
 
   const toggleSpoilerInWatchNote = useCallback(() => {
+    dismissShortcode()
     const el = watchNoteRef.current
     const toggled = toggleSpoilerAtSelection(
       watchNote,
@@ -523,7 +601,7 @@ function CardWatchNoteContent({
       target.focus()
       target.setSelectionRange(toggled.caret, toggled.caret)
     })
-  }, [watchNote, onWatchNoteChange])
+  }, [dismissShortcode, watchNote, onWatchNoteChange])
 
   const noteBody = (
     <>
@@ -531,22 +609,45 @@ function CardWatchNoteContent({
         {variant === 'edit' ? 'По желанию.' : 'По желанию. Реакции можно вставить кнопкой справа.'}
       </p>
       <div className="mt-2 flex gap-2">
-        <CommentDraftMultiline
-          ref={watchNoteRef}
-          value={watchNote}
-          onChange={onWatchNoteChange}
-          placeholder={variant === 'edit' ? 'Коротко о впечатлении…' : watchNotePlaceholder}
-          ariaLabel="Заметка к карточке"
-          disabled={disabled}
-          rows={variant === 'edit' ? 5 : 4}
-          wrapperClassName={
-            variant === 'edit'
-              ? 'min-h-28 flex-1 focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]'
-              : `min-h-24 flex-1 ${CREATE_CARD_TEXT_FIELD_CLASS}`
-          }
-        />
+        <div ref={shortcodeAnchorRef} className="relative min-w-0 flex-1">
+          <CommentDraftMultiline
+            ref={watchNoteRef}
+            value={watchNote}
+            onChange={handleWatchNoteChange}
+            onKeyDown={handleWatchNoteKeyDown}
+            onKeyUp={() => {
+              const el = watchNoteRef.current
+              if (el == null) return
+              syncShortcodeFromValue(el.value, el.selectionStart ?? el.value.length)
+            }}
+            onSelect={() => {
+              const el = watchNoteRef.current
+              if (el == null) return
+              syncShortcodeFromValue(el.value, el.selectionStart ?? el.value.length)
+            }}
+            placeholder={variant === 'edit' ? 'Коротко о впечатлении…' : watchNotePlaceholder}
+            ariaLabel="Заметка к карточке"
+            disabled={disabled}
+            rows={variant === 'edit' ? 5 : 4}
+            wrapperClassName={
+              variant === 'edit'
+                ? 'min-h-28 focus-within:border-(--tgui--link_color) focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--tgui--link_color)_32%,transparent)]'
+                : `min-h-24 ${CREATE_CARD_TEXT_FIELD_CLASS}`
+            }
+          />
+          {shortcodePicker != null && shortcodePopoverLayout != null ? (
+            <ReactionShortcodeSuggestPortal
+              layout={shortcodePopoverLayout}
+              items={shortcodeFiltered}
+              highlightIdx={shortcodeHighlightIdx}
+              catalogPending={shortcodeCatalogPending}
+              onPick={pickShortcode}
+              onDismiss={dismissShortcode}
+            />
+          ) : null}
+        </div>
         <div className="flex shrink-0 flex-col justify-start gap-1 pt-1">
-          <CommentReactionTokenPicker disabled={disabled} onPickReactionTypeId={insertReactionIntoWatchNote} />
+          <CommentReactionTokenPicker disabled={disabled} onPickReactionType={insertReactionIntoWatchNote} />
           <CommentSpoilerToggleButton disabled={disabled} onToggleSpoiler={toggleSpoilerInWatchNote} />
         </div>
       </div>

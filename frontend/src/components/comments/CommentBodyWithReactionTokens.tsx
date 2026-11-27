@@ -9,7 +9,7 @@ import {
   splitCommentTextIntoSegmentsWithRanges,
   type CommentTextSegmentWithRange,
 } from '../../lib/commentReactionTokens'
-import { splitTextWithSpoilers, SPOILER_OPEN } from '../../lib/spoilerTokens'
+import { splitTextWithSpoilers } from '../../lib/spoilerTokens'
 import type { InlineMovieCardRefMeta } from '../../lib/inlineMovieCardRefMap'
 import { mentionChipLabelFromRow } from '../../lib/mentionChipDisplayLabel'
 import { mentionProfileKeyFromSlug, type MentionProfileRow } from '../../lib/mentionProfileLookupUtils'
@@ -44,14 +44,21 @@ type CommentBodyWithReactionTokensProps = {
   rangeOffset?: number
 }
 
-function buildImageUrlMap(catalog: ReactionGroupedCatalog): Map<number, string> {
-  const m = new Map<number, string>()
+function buildCatalogMaps(catalog: ReactionGroupedCatalog): {
+  urlById: Map<number, string>
+  shortcodeToId: Map<string, number>
+} {
+  const urlById = new Map<number, string>()
+  const shortcodeToId = new Map<string, number>()
   for (const tab of catalog.tabs) {
     for (const it of tab.items) {
-      m.set(it.id, it.image_url)
+      urlById.set(it.id, it.image_url)
+      if (it.shortcode !== '') {
+        shortcodeToId.set(it.shortcode, it.id)
+      }
     }
   }
-  return m
+  return { urlById, shortcodeToId }
 }
 
 function segmentDomAttrs(
@@ -80,7 +87,12 @@ export function CommentBodyWithReactionTokens({
 }: CommentBodyWithReactionTokensProps) {
   const mentionProfiles = useMentionProfileLookup()
   const spoilerParts = useMemo(() => splitTextWithSpoilers(text), [text])
-  const segments = useMemo(() => splitCommentTextIntoSegmentsWithRanges(text), [text])
+  const [urlById, setUrlById] = useState<Map<number, string>>(() => new Map())
+  const [shortcodeToId, setShortcodeToId] = useState<Map<string, number>>(() => new Map())
+  const segments = useMemo(
+    () => splitCommentTextIntoSegmentsWithRanges(text, shortcodeToId),
+    [text, shortcodeToId],
+  )
   const textHasMentionTokens = useMemo(
     () => segments.some((s) => s.type === 'mention'),
     [segments],
@@ -108,10 +120,9 @@ export function CommentBodyWithReactionTokens({
     return m
   }, [mentionProfiles, referencedMentions, textHasMentionTokens])
   const needsCatalog = useMemo(
-    () => segments.some((s) => s.type === 'reaction'),
-    [segments],
+    () => text.includes(':') || segments.some((s) => s.type === 'reaction'),
+    [segments, text],
   )
-  const [urlById, setUrlById] = useState<Map<number, string>>(() => new Map())
   const [catalogError, setCatalogError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -123,7 +134,9 @@ export function CommentBodyWithReactionTokens({
       try {
         const cat = await loadReactionCatalog()
         if (!alive) return
-        setUrlById(buildImageUrlMap(cat))
+        const maps = buildCatalogMaps(cat)
+        setUrlById(maps.urlById)
+        setShortcodeToId(maps.shortcodeToId)
         setCatalogError(null)
       } catch (e) {
         if (!alive) return
@@ -159,25 +172,36 @@ export function CommentBodyWithReactionTokens({
                 annotateCharRanges={annotateCharRanges}
                 inlineMovieCardRefs={inlineMovieCardRefs}
                 referencedMentions={referencedMentions}
-                rangeOffset={part.rangeStart}
+                rangeOffset={part.rangeStart + rangeOffset}
               />
             )
           }
-          return (
-            <span
-              key={`spoiler-${i}`}
-              className="inline"
-              {...segmentDomAttrs(part, 'spoiler', annotateCharRanges, rangeOffset)}
+          const innerOffset = part.rangeStart + part.openMarker.length + rangeOffset
+          const innerBody = (
+            <CommentBodyWithReactionTokens
+              text={part.value}
+              inlineMovieCardRefs={inlineMovieCardRefs}
+              referencedMentions={referencedMentions}
+              annotateCharRanges={annotateCharRanges}
+              rangeOffset={innerOffset}
+            />
+          )
+          if (annotateCharRanges) {
+            return (
+              <span
+                key={`spoiler-${i}`}
+                className="inline rounded-md bg-[color-mix(in_srgb,var(--tgui--hint_color)_12%,transparent)] px-0.5"
+                {...segmentDomAttrs(part, 'spoiler', true, rangeOffset)}
               >
-              <SpoilerRevealBlock>
-                <CommentBodyWithReactionTokens
-                  text={part.value}
-                  inlineMovieCardRefs={inlineMovieCardRefs}
-                  referencedMentions={referencedMentions}
-                  annotateCharRanges={annotateCharRanges}
-                  rangeOffset={part.rangeStart + SPOILER_OPEN.length + rangeOffset}
-                />
-              </SpoilerRevealBlock>
+                {part.openMarker}
+                {innerBody}
+                {part.closeMarker}
+              </span>
+            )
+          }
+          return (
+            <span key={`spoiler-${i}`} className="inline">
+              <SpoilerRevealBlock>{innerBody}</SpoilerRevealBlock>
             </span>
           )
         })}

@@ -1,6 +1,6 @@
 import { Avatar, Title } from '@telegram-apps/telegram-ui'
 import { Music } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState, type MouseEventHandler } from 'react'
+import { useCallback, useMemo, useRef, useState, type KeyboardEventHandler, type MouseEventHandler } from 'react'
 import { Link, useNavigate } from 'react-router'
 
 import { createMovieCardComment, listAllMovieCardComments, type WatchedInlinePickerItem } from '../../api/cardApi'
@@ -19,7 +19,7 @@ import {
   COMMENT_BODY_MAX_LEN,
   insertSnippetAtCaret,
   movieCardRefTokenFromId,
-  reactionTokenFromId,
+  reactionTokenForInsert,
 } from '../../lib/commentReactionTokens'
 import { toggleSpoilerAtSelection } from '../../lib/spoilerTokens'
 import { hasMeaningfulCardRating } from '../../lib/ratingDisplay'
@@ -51,6 +51,7 @@ import { MovieCardAudioPlayer } from '../cards/MovieCardAudioPlayer'
 import { MovieCardRatingAudioVisualizer } from '../cards/MovieCardRatingAudioVisualizer'
 import { useFeedCardGlobalAudio } from '../../hooks/useFeedCardGlobalAudio'
 import { useFullscreenImageActivator } from '../../hooks/useFullscreenImageActivator'
+import { useReactionShortcodePicker } from '../../hooks/useReactionShortcodePicker'
 
 export type FeedCardProps = {
   card: FeedMovieCard
@@ -69,6 +70,33 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
   const [draftInlineCardRefs, setDraftInlineCardRefs] = useState(
     () => new Map<number, { film_title: string; film_year: number | null }>(),
   )
+
+  const applyDraftShortcodePick = useCallback((nextValue: string, caret: number) => {
+    setDraft(nextValue)
+    const el = draftInputRef.current
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [])
+
+  const {
+    anchorRef: draftShortcodeAnchorRef,
+    picker: draftShortcodePicker,
+    highlightIdx: draftShortcodeHighlightIdx,
+    filtered: draftShortcodeFiltered,
+    popoverLayout: draftShortcodePopoverLayout,
+    syncFromValue: syncDraftShortcodeFromValue,
+    pick: pickDraftShortcode,
+    dismiss: dismissDraftShortcode,
+    handleKeyDown: handleDraftShortcodeKeyDown,
+    catalogPending: draftShortcodeCatalogPending,
+  } = useReactionShortcodePicker({
+    value: draft,
+    fieldRef: draftInputRef,
+    maxLen: COMMENT_BODY_MAX_LEN,
+    onApply: applyDraftShortcodePick,
+  })
   const [submitBusy, setSubmitBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [commentsPreviewOpen, setCommentsPreviewOpen] = useState(false)
@@ -183,13 +211,14 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       mergedPreviewAfterCreate(created)
       setDraft('')
       setDraftInlineCardRefs(new Map())
+      dismissDraftShortcode()
       safeHapticSuccess()
     } catch (e) {
       setSubmitError(e instanceof ApiError ? formatApiDetail(e.detail) : 'Не удалось отправить')
     } finally {
       setSubmitBusy(false)
     }
-  }, [card.id, draft, mergedPreviewAfterCreate])
+  }, [card.id, dismissDraftShortcode, draft, mergedPreviewAfterCreate])
 
   const remainder =
     !isPlannedCard && card.custom_tags.length > 2 ? card.custom_tags.length - 2 : 0
@@ -207,8 +236,34 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
     return rows
   }, [card.card_author, card.comments_preview, panelComments])
 
-  const insertReactionToken = useCallback((reactionTypeId: number) => {
-    const token = reactionTokenFromId(reactionTypeId)
+  const handleDraftChange = useCallback(
+    (value: string) => {
+      const next = value.slice(0, COMMENT_BODY_MAX_LEN)
+      setDraft(next)
+      queueMicrotask(() => {
+        syncDraftShortcodeFromValue(next)
+      })
+    },
+    [syncDraftShortcodeFromValue],
+  )
+
+  const handleDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement | HTMLInputElement> = useCallback(
+    (event) => {
+      if (draftShortcodePicker != null) {
+        handleDraftShortcodeKeyDown(event)
+        return
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        void send()
+      }
+    },
+    [draftShortcodePicker, handleDraftShortcodeKeyDown, send],
+  )
+
+  const insertReactionToken = useCallback((reactionTypeId: number, shortcode: string) => {
+    dismissDraftShortcode()
+    const token = reactionTokenForInsert(reactionTypeId, shortcode)
     const el = draftInputRef.current
     const inserted = insertSnippetAtCaret(
       draft,
@@ -224,9 +279,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [draft])
+  }, [dismissDraftShortcode, draft])
 
   const insertMovieCardInline = useCallback((row: WatchedInlinePickerItem) => {
+    dismissDraftShortcode()
     const token = movieCardRefTokenFromId(row.movie_card_id)
     const el = draftInputRef.current
     const inserted = insertSnippetAtCaret(
@@ -248,9 +304,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [draft])
+  }, [dismissDraftShortcode, draft])
 
   const toggleSpoilerInDraft = useCallback(() => {
+    dismissDraftShortcode()
     const el = draftInputRef.current
     const toggled = toggleSpoilerAtSelection(
       draft,
@@ -265,7 +322,7 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [draft])
+  }, [dismissDraftShortcode, draft])
 
   const stopCardNav: MouseEventHandler = (e) => {
     e.preventDefault()
@@ -516,15 +573,10 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           onJumpToParent={handleJumpToParent}
           onReply={handleInlineReply}
           draft={draft}
-          onDraftChange={setDraft}
+          onDraftChange={handleDraftChange}
           draftInputRef={draftInputRef}
           draftInlineCardRefs={draftInlineCardRefs}
-          onDraftKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              void send()
-            }
-          }}
+          onDraftKeyDown={handleDraftKeyDown}
           onInsertReaction={insertReactionToken}
           onToggleSpoiler={toggleSpoilerInDraft}
           onInsertMovieCard={insertMovieCardInline}
@@ -535,6 +587,14 @@ export function FeedCard({ card, viewerUserId = null, onCommentsState }: FeedCar
           stopNav={stopCardNav}
           stopNavKeepFocus={stopCardNavKeepFocus}
           detailFallbackLabel="Открыть карточку"
+          shortcodeAnchorRef={draftShortcodeAnchorRef}
+          shortcodePicker={draftShortcodePicker}
+          shortcodeHighlightIdx={draftShortcodeHighlightIdx}
+          shortcodeFiltered={draftShortcodeFiltered}
+          shortcodePopoverLayout={draftShortcodePopoverLayout}
+          shortcodeCatalogPending={draftShortcodeCatalogPending}
+          onPickShortcode={pickDraftShortcode}
+          onDismissShortcode={dismissDraftShortcode}
         />
       </div>
     </article>

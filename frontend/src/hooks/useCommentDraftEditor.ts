@@ -10,12 +10,12 @@ import {
 } from 'react'
 
 import type { WatchedInlinePickerItem } from '../api/watchedInlinePickerTypes'
-import type { SubscriptionListItem } from '../api/profileTypes'
+import type { ReactionCatalogItem, SubscriptionListItem } from '../api/profileTypes'
 import {
   COMMENT_BODY_MAX_LEN,
   insertSnippetAtCaret,
   movieCardRefTokenFromId,
-  reactionTokenFromId,
+  reactionTokenForInsert,
 } from '../lib/commentReactionTokens'
 import {
   applyMentionPick,
@@ -27,6 +27,8 @@ import { filterFollowingForMentionQuery } from '../lib/mentionFollowingFilter'
 import type { InlineMovieCardRefMeta } from '../lib/inlineMovieCardRefMap'
 import { toggleSpoilerAtSelection } from '../lib/spoilerTokens'
 import { useMentionPopoverLayout } from '../lib/useMentionPopoverLayout'
+import { useReactionShortcodePicker } from './useReactionShortcodePicker'
+import type { ActiveShortcodeQuery } from '../lib/commentShortcodeCompose'
 
 type UseCommentDraftEditorArgs = {
   followingMentionItems: SubscriptionListItem[]
@@ -44,13 +46,22 @@ type UseCommentDraftEditorResult = {
   commentMentionHighlightIdx: number
   commentMentionFiltered: SubscriptionListItem[]
   commentMentionPopoverLayout: ReturnType<typeof useMentionPopoverLayout>
+  commentShortcodeAnchorRef: RefObject<HTMLDivElement | null>
+  commentShortcodePicker: ActiveShortcodeQuery | null
+  commentShortcodeHighlightIdx: number
+  commentShortcodeFiltered: ReactionCatalogItem[]
+  commentShortcodePopoverLayout: ReturnType<typeof useMentionPopoverLayout>
+  commentShortcodeCatalogPending: boolean
   charsLeft: number
   handleCommentTextChange: (value: string, meta?: { caret: number }) => void
   handleCommentDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement>
   syncCommentMentionFromValue: (value: string, caretOverride?: number | null) => void
+  syncCommentShortcodeFromValue: (value: string, caretOverride?: number | null) => void
   pickCommentMention: (slug: string) => void
+  pickCommentShortcode: (item: ReactionCatalogItem) => void
   dismissCommentMention: () => void
-  insertReactionIntoComment: (reactionTypeId: number) => void
+  dismissCommentShortcode: () => void
+  insertReactionIntoComment: (reactionTypeId: number, shortcode: string) => void
   insertMovieCardIntoComment: (row: WatchedInlinePickerItem) => void
   toggleSpoilerInComment: () => void
   resetDraft: () => void
@@ -67,7 +78,42 @@ export function useCommentDraftEditor({
   const [commentMentionPicker, setCommentMentionPicker] = useState<ActiveMentionQuery | null>(null)
   const [commentMentionHighlightIdx, setCommentMentionHighlightIdx] = useState(0)
   const commentTextAreaRef = useRef<HTMLTextAreaElement>(null)
-  const commentMentionAnchorRef = useRef<HTMLDivElement>(null)
+
+  const applyShortcodePick = useCallback((nextValue: string, caret: number) => {
+    setCommentText(nextValue)
+    const el = commentTextAreaRef.current
+    queueMicrotask(() => {
+      el?.focus()
+      el?.setSelectionRange(caret, caret)
+    })
+  }, [])
+
+  const dismissCommentMention = useCallback(() => {
+    setCommentMentionPicker(null)
+    setCommentMentionHighlightIdx(0)
+  }, [])
+
+  const {
+    anchorRef: commentShortcodeAnchorRef,
+    picker: commentShortcodePicker,
+    highlightIdx: commentShortcodeHighlightIdx,
+    filtered: commentShortcodeFiltered,
+    popoverLayout: commentShortcodePopoverLayout,
+    syncFromValue: syncCommentShortcodeFromValue,
+    pick: pickCommentShortcode,
+    dismiss: dismissCommentShortcode,
+    handleKeyDown: handleCommentShortcodeKeyDown,
+    catalogPending: commentShortcodeCatalogPending,
+  } = useReactionShortcodePicker({
+    enabled: !disabled,
+    value: commentText,
+    fieldRef: commentTextAreaRef,
+    maxLen: COMMENT_BODY_MAX_LEN,
+    onApply: applyShortcodePick,
+    dismissMention: dismissCommentMention,
+  })
+
+  const commentMentionAnchorRef = commentShortcodeAnchorRef
 
   const commentMentionFiltered = useMemo(
     () =>
@@ -86,11 +132,6 @@ export function useCommentDraftEditor({
     commentMentionPicker != null,
     commentMentionAnchorRef,
   )
-
-  const dismissCommentMention = useCallback(() => {
-    setCommentMentionPicker(null)
-    setCommentMentionHighlightIdx(0)
-  }, [])
 
   const syncCommentMentionFromValue = useCallback((value: string, caretOverride?: number | null) => {
     const el = commentTextAreaRef.current
@@ -112,9 +153,12 @@ export function useCommentDraftEditor({
       const next = value.slice(0, COMMENT_BODY_MAX_LEN)
       setCommentText(next)
       const caret = meta?.caret ?? next.length
-      queueMicrotask(() => syncCommentMentionFromValue(next, caret))
+      queueMicrotask(() => {
+        syncCommentMentionFromValue(next, caret)
+        syncCommentShortcodeFromValue(next, caret)
+      })
     },
-    [syncCommentMentionFromValue],
+    [syncCommentMentionFromValue, syncCommentShortcodeFromValue],
   )
 
   const pickCommentMention = useCallback(
@@ -128,41 +172,54 @@ export function useCommentDraftEditor({
       if (res == null) return
       setCommentText(res.nextValue)
       dismissCommentMention()
+      dismissCommentShortcode()
       queueMicrotask(() => {
         el.focus()
         el.setSelectionRange(res.caret, res.caret)
       })
     },
-    [commentMentionPicker, commentText, dismissCommentMention],
+    [commentMentionPicker, commentText, dismissCommentMention, dismissCommentShortcode],
   )
 
   const handleCommentDraftKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
     (event) => {
-      if (commentMentionPicker == null || disabled) return
-      if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        setCommentMentionHighlightIdx((index) => {
-          const max = Math.max(0, commentMentionFiltered.length - 1)
-          return Math.min(max, index + 1)
-        })
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        setCommentMentionHighlightIdx((index) => Math.max(0, index - 1))
-      } else if (event.key === 'Enter' && commentMentionFiltered.length > 0) {
-        event.preventDefault()
-        const row = commentMentionFiltered[commentMentionHighlightSafe] ?? commentMentionFiltered[0]
-        if (row != null) {
-          pickCommentMention(row.profile_slug)
+      if (disabled) return
+      if (commentMentionPicker != null) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          setCommentMentionHighlightIdx((index) => {
+            const max = Math.max(0, commentMentionFiltered.length - 1)
+            return Math.min(max, index + 1)
+          })
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          setCommentMentionHighlightIdx((index) => Math.max(0, index - 1))
+        } else if (event.key === 'Enter' && commentMentionFiltered.length > 0) {
+          event.preventDefault()
+          const row = commentMentionFiltered[commentMentionHighlightSafe] ?? commentMentionFiltered[0]
+          if (row != null) {
+            pickCommentMention(row.profile_slug)
+          }
         }
+        return
       }
+      handleCommentShortcodeKeyDown(event)
     },
-    [commentMentionFiltered, commentMentionHighlightSafe, commentMentionPicker, disabled, pickCommentMention],
+    [
+      commentMentionFiltered,
+      commentMentionHighlightSafe,
+      commentMentionPicker,
+      disabled,
+      handleCommentShortcodeKeyDown,
+      pickCommentMention,
+    ],
   )
 
   const insertReactionIntoComment = useCallback(
-    (reactionTypeId: number) => {
+    (reactionTypeId: number, shortcode: string) => {
       dismissCommentMention()
-      const token = reactionTokenFromId(reactionTypeId)
+      dismissCommentShortcode()
+      const token = reactionTokenForInsert(reactionTypeId, shortcode)
       const el = commentTextAreaRef.current
       const inserted = insertSnippetAtCaret(
         commentText,
@@ -179,12 +236,13 @@ export function useCommentDraftEditor({
         el?.setSelectionRange(caret, caret)
       })
     },
-    [commentText, dismissCommentMention],
+    [commentText, dismissCommentMention, dismissCommentShortcode],
   )
 
   const insertMovieCardIntoComment = useCallback(
     (row: WatchedInlinePickerItem) => {
       dismissCommentMention()
+      dismissCommentShortcode()
       const token = movieCardRefTokenFromId(row.movie_card_id)
       const el = commentTextAreaRef.current
       const inserted = insertSnippetAtCaret(
@@ -207,11 +265,12 @@ export function useCommentDraftEditor({
         el?.setSelectionRange(caret, caret)
       })
     },
-    [commentText, dismissCommentMention],
+    [commentText, dismissCommentMention, dismissCommentShortcode],
   )
 
   const toggleSpoilerInComment = useCallback(() => {
     dismissCommentMention()
+    dismissCommentShortcode()
     const el = commentTextAreaRef.current
     const toggled = toggleSpoilerAtSelection(
       commentText,
@@ -226,13 +285,14 @@ export function useCommentDraftEditor({
       el?.focus()
       el?.setSelectionRange(caret, caret)
     })
-  }, [commentText, dismissCommentMention])
+  }, [commentText, dismissCommentMention, dismissCommentShortcode])
 
   const resetDraft = useCallback(() => {
     setCommentText('')
     setCommentDraftInlineCardRefs(new Map())
     dismissCommentMention()
-  }, [dismissCommentMention])
+    dismissCommentShortcode()
+  }, [dismissCommentMention, dismissCommentShortcode])
 
   const charsLeft = COMMENT_BODY_MAX_LEN - commentText.length
 
@@ -247,12 +307,21 @@ export function useCommentDraftEditor({
     commentMentionHighlightIdx: commentMentionHighlightSafe,
     commentMentionFiltered,
     commentMentionPopoverLayout,
+    commentShortcodeAnchorRef,
+    commentShortcodePicker,
+    commentShortcodeHighlightIdx,
+    commentShortcodeFiltered,
+    commentShortcodePopoverLayout,
+    commentShortcodeCatalogPending,
     charsLeft,
     handleCommentTextChange,
     handleCommentDraftKeyDown,
     syncCommentMentionFromValue,
+    syncCommentShortcodeFromValue,
     pickCommentMention,
+    pickCommentShortcode,
     dismissCommentMention,
+    dismissCommentShortcode,
     insertReactionIntoComment,
     insertMovieCardIntoComment,
     toggleSpoilerInComment,

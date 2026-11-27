@@ -11,8 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.card_enums import CardCompany, CardMoodAfter, CardMoodBefore
 from models.card_tag import CardTag
+from models.reaction_type import ReactionType
 from models.user_card import UserCard
 from services.collections.refresh_progress_for_film import RefreshProgressForFilmService
+from services.text.reaction_shortcodes import (
+    LEGACY_ASCII_REACTION_RE,
+    LEGACY_UNICODE_REACTION_RE,
+    SHORTCODE_TOKEN_RE,
+    UnknownReactionTokenError,
+    rewrite_reaction_tokens,
+)
 from services.text.spoiler_tokens import (
     SpoilerTokenValidationError,
     validate_spoiler_tokens,
@@ -57,11 +65,27 @@ def _normalize_rating(value: float) -> float:
     return snapped
 
 
-def _normalize_watch_note(raw: str) -> str:
+def _watch_note_may_contain_reaction_tokens(text: str) -> bool:
+    return (
+        SHORTCODE_TOKEN_RE.search(text) is not None
+        or LEGACY_UNICODE_REACTION_RE.search(text) is not None
+        or LEGACY_ASCII_REACTION_RE.search(text) is not None
+    )
+
+
+async def _normalize_watch_note(session: AsyncSession, raw: str) -> str:
     s = raw.strip()
     try:
+        if _watch_note_may_contain_reaction_tokens(s):
+            rows = (await session.execute(select(ReactionType.id, ReactionType.shortcode))).all()
+            id_to_shortcode = {int(rid): str(code) for rid, code in rows}
+            s = rewrite_reaction_tokens(
+                s,
+                id_to_shortcode=id_to_shortcode,
+                known_shortcodes=set(id_to_shortcode.values()),
+            )
         return validate_spoiler_tokens(s)
-    except SpoilerTokenValidationError as e:
+    except (SpoilerTokenValidationError, UnknownReactionTokenError) as e:
         raise UserCardValidationError(str(e)) from e
 
 
@@ -153,7 +177,7 @@ class UpdateUserCardService:
                 self._session.add_all([CardTag(card_id=card.id, tag=tag) for tag in tags])
 
         if payload.watch_note is not None:
-            card.watch_note = _normalize_watch_note(payload.watch_note)
+            card.watch_note = await _normalize_watch_note(self._session, payload.watch_note)
 
         await self._session.commit()
         await self._session.refresh(card)
