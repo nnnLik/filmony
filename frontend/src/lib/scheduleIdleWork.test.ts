@@ -11,7 +11,10 @@ describe('scheduleIdleWork', () => {
   it('runs work via setTimeout fallback when requestIdleCallback is unavailable', () => {
     vi.useFakeTimers()
     const work = vi.fn()
-    const original = window.requestIdleCallback
+    const hadIdleCallback = 'requestIdleCallback' in window
+    const originalIdleCallback = hadIdleCallback
+      ? window.requestIdleCallback.bind(window)
+      : undefined
     // @ts-expect-error test override
     window.requestIdleCallback = undefined
 
@@ -21,6 +24,11 @@ describe('scheduleIdleWork', () => {
     vi.advanceTimersByTime(500)
     expect(work).toHaveBeenCalledTimes(1)
 
-    window.requestIdleCallback = original
+    if (hadIdleCallback && originalIdleCallback != null) {
+      window.requestIdleCallback = originalIdleCallback
+    } else {
+      // @ts-expect-error restore missing API
+      delete window.requestIdleCallback
+    }
   })
 })

@@ -30,7 +30,7 @@ vi.mock('../../api/watchPartyApi', () => ({
 }))
 
 const originalTelegram = window.Telegram
-const originalConfirm = window.confirm
+const originalConfirm: typeof window.confirm = window.confirm.bind(window)
 
 describe('openFilmWatchInBrowser', () => {
   beforeEach(() => {
@@ -130,11 +130,12 @@ describe('openFilmWatchInBrowser', () => {
 
   it('falls back to window.confirm when showConfirm is missing', async () => {
     window.Telegram = undefined
-    window.confirm = vi.fn(() => true)
+    const confirmMock = vi.fn(() => true)
+    window.confirm = confirmMock
 
     await confirmAndOpenFilmWatchInBrowser(3)
 
-    expect(window.confirm).toHaveBeenCalledWith(WATCH_IN_BROWSER_CONFIRM_MESSAGE)
+    expect(confirmMock).toHaveBeenCalledWith(WATCH_IN_BROWSER_CONFIRM_MESSAGE)
     expect(mocks.createWatchParty).toHaveBeenCalledWith(3)
     expect(mocks.openExternalUrl).toHaveBeenCalledWith(
       `${window.location.origin}/films/3/watch?party=new-party-slug`,

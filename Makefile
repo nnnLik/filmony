@@ -9,7 +9,7 @@ RUFF_FMT = ruff format --config /opt/app/pyproject.toml .
 RUFF_LINT = ruff check --config /opt/app/pyproject.toml .
 RUFF_FIX = ruff check --fix --config /opt/app/pyproject.toml .
 
-.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata backfill-film-cast diagnose-film-tmdb-metadata seed-letterboxd-top-500 seed-oscars seed-collections seed-achievements sync-film-award-badges
+.PHONY: start build up down backend-restart make-migration migrate backend-format backend-lint backend-fix backend-test backend-test-unit backend-test-integration backend-test-one backend-security-audit frontend-security-audit security-audit fixtures-load sync-reactions-rustfs celery-worker-logs backfill-film-gamification-metadata backfill-film-tmdb-metadata backfill-film-cast diagnose-film-tmdb-metadata seed-letterboxd-top-500 seed-oscars seed-collections seed-achievements sync-film-award-badges
 
 start: build up
 
@@ -52,6 +52,14 @@ backend-test: backend-test-unit backend-test-integration
 backend-test-one:
 	@test -n "$(target)" || (echo 'usage: make backend-test-one target=src/tests/unit|integration/<dir>/test_<name>::<test_name>' >&2; exit 1)
 	$(AEXEC_NO_TTY) $(APP) uv run pytest -n0 --no-cov $(target)
+
+backend-security-audit:
+	bash scripts/security-audit-backend.sh
+
+frontend-security-audit:
+	bash scripts/security-audit-frontend.sh
+
+security-audit: backend-security-audit frontend-security-audit
 
 logs:
 	$(DLOG) $(APP)

@@ -11,6 +11,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  backend-security-audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.13.10'
+
+      - name: uv audit (advisory)
+        run: |
+          set +e
+          uv audit --frozen --preview-features audit-command
+          status=$?
+          set -e
+          {
+            echo '## Backend security audit (`uv audit`)'
+            echo
+            if [[ "$status" -eq 0 ]]; then
+              echo 'No known vulnerabilities reported.'
+            else
+              echo "Audit reported findings (exit ${status}). Job is non-blocking."
+              echo
+              echo 'Full text output is in the step log above.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
   backend-lint:
     runs-on: ubuntu-latest
     defaults:

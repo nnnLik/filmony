@@ -59,7 +59,7 @@ make backend-test-one target=src/tests/integration/api/test_public_routes.py
 make backend-test-one target=src/tests/integration/api/test_public_routes.py::test_root
 ```
 
-**Pre-commit (Ruff, только `backend/src/`):** если `pre-commit` не в PATH — `uv tool install pre-commit` (или разово `uvx pre-commit …`); один раз `pre-commit install`; перед коммитом хуки запускаются сами, вручную — `pre-commit run --all-files`. Конфиг: `.pre-commit-config.yaml`, правила Ruff — `backend/pyproject.toml`. Хуки **не** передают `--config`: Ruff сам находит `backend/pyproject.toml` от корня репозитория (как и `make backend-fix` в Docker с cwd `/opt/app/src`).
+**Pre-commit (Ruff + advisory security audits):** если `pre-commit` не в PATH — `uv tool install pre-commit` (или разово `uvx pre-commit …`); один раз `pre-commit install`; перед коммитом хуки запускаются сами, вручную — `pre-commit run --all-files`. Конфиг: `.pre-commit-config.yaml`, правила Ruff — `backend/pyproject.toml`. Хуки **не** передают `--config`: Ruff сам находит `backend/pyproject.toml` от корня репозитория (как и `make backend-fix` в Docker с cwd `/opt/app/src`). Advisory audits: `scripts/security-audit-backend.sh` (`uv audit`, нужен uv ≥ 0.13) и `scripts/security-audit-frontend.sh` (`npm audit`); хуки и CI-джобы **не блокируют** коммит/merge, но печатают все находки. Вручную: `make security-audit`.
 
 **Те же действия без Makefile** (из корня репозитория, compose уже `up`):
 

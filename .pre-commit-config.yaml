@@ -2,6 +2,9 @@
 # Ruff config: backend/pyproject.toml ([tool.ruff])
 # Do NOT pass --config here: from repo root that path breaks isort first-party
 # detection for backend/src/...; Ruff discovers backend/pyproject.toml via cwd.
+#
+# Security audits are advisory: hooks always exit 0 so commits are not blocked,
+# but they print every finding. CI mirrors that with continue-on-error jobs.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.12
@@ -11,3 +14,21 @@ repos:
       - id: ruff
         args: [--fix]
         files: ^backend/src/
+
+  - repo: local
+    hooks:
+      - id: security-audit-backend
+        name: backend uv audit (advisory)
+        language: system
+        entry: bash scripts/security-audit-backend.sh
+        pass_filenames: false
+        always_run: true
+        verbose: true
+      - id: security-audit-frontend
+        name: frontend npm audit (advisory)
+        language: system
+        entry: bash scripts/security-audit-frontend.sh
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
